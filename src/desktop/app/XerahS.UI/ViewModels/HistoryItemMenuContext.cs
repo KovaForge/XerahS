@@ -25,6 +25,7 @@
 
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
+using XerahS.Common;
 using XerahS.History;
 
 namespace XerahS.UI.ViewModels;
@@ -36,6 +37,7 @@ namespace XerahS.UI.ViewModels;
 public interface IHistoryItemMenuContext
 {
     ICommand EditImageCommand { get; }
+    ICommand EditAnnotationsCommand { get; }
     ICommand OpenFileCommand { get; }
     ICommand UploadItemCommand { get; }
     ICommand OpenFolderCommand { get; }
@@ -61,6 +63,10 @@ public interface IHistoryItemMenuTarget
 {
     string? URL { get; }
     bool HasErrors { get; }
+    bool HasEditableAnnotations { get; }
+    bool HasImageFile { get; }
+    bool HasFilePath { get; }
+    bool HasExistingFile { get; }
 }
 
 /// <summary>
@@ -77,6 +83,10 @@ public sealed class HistoryItemMenuTargetAdapter : IHistoryItemMenuTarget
 
     public string? URL => _item.URL;
     public bool HasErrors => _item.HasErrors;
+    public bool HasEditableAnnotations => _item.HasEditableAnnotations;
+    public bool HasImageFile => !string.IsNullOrWhiteSpace(_item.FilePath) && FileHelpers.IsImageFile(_item.FilePath);
+    public bool HasFilePath => !string.IsNullOrWhiteSpace(_item.FilePath);
+    public bool HasExistingFile => !string.IsNullOrWhiteSpace(_item.FilePath) && File.Exists(_item.FilePath);
 }
 
 /// <summary>
@@ -98,6 +108,7 @@ public sealed class HistoryItemMenuContext : IHistoryItemMenuContext
     public object? DisplayItem => _item;
 
     public ICommand EditImageCommand => new RelayCommand(() => _vm.EditImageCommand.Execute(_item));
+    public ICommand EditAnnotationsCommand => new RelayCommand(() => _vm.EditAnnotationsCommand.Execute(_item));
     public ICommand OpenFileCommand => new RelayCommand(() => _vm.OpenFileCommand.Execute(_item));
     public ICommand UploadItemCommand => new RelayCommand(() => _vm.UploadItemCommand.Execute(_item));
     public ICommand OpenFolderCommand => new RelayCommand(() => _vm.OpenFolderCommand.Execute(_item));
@@ -124,6 +135,10 @@ public sealed class ToastItemMenuTargetAdapter : IHistoryItemMenuTarget
 
     public string? URL => _vm.Url;
     public bool HasErrors => _vm.HasErrors;
+    public bool HasEditableAnnotations => false;
+    public bool HasImageFile => _vm.CanCopyImage;
+    public bool HasFilePath => !string.IsNullOrWhiteSpace(_vm.FilePath);
+    public bool HasExistingFile => _vm.HasExistingFile;
 }
 
 
@@ -145,6 +160,7 @@ public sealed class ToastMenuContext : IHistoryItemMenuContext
     public object? DisplayItem => null;
 
     public ICommand EditImageCommand => ViewModel.EditImageCommand;
+    public ICommand EditAnnotationsCommand => ViewModel.EditImageCommand;
     public ICommand OpenFileCommand => ViewModel.OpenFileCommand;
     public ICommand UploadItemCommand => ViewModel.UploadItemCommand;
     public ICommand OpenFolderCommand => ViewModel.OpenFolderCommand;

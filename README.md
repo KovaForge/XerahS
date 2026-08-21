@@ -1,4 +1,6 @@
-﻿# XerahS
+# XerahS
+
+[![XerahS Health](https://oss-health-monitor.vercel.app/api/badge/ShareX/XerahS)](https://github.com/volotat/OSS-Health-Monitor)
 
 A cross-platform port of the popular **ShareX** screen capture and file sharing tool, built with **Avalonia UI** and .NET 10.
 
@@ -150,7 +152,6 @@ If you see a message saying **"XerahS is damaged and can't be opened"**, it is d
 See [XerahS Developer Guide](developers/README.md) for architecture details and contribution guidelines.
 
 ## 📄 [License](LICENSE.txt)
-
 
 
 

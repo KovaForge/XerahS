@@ -33,8 +33,8 @@ namespace XerahS.Uploaders.PluginSystem;
 /// </summary>
 public static class ProviderCatalog
 {
-    private static readonly Dictionary<string, IUploaderProvider> _providers = new();
-    private static readonly Dictionary<string, PluginMetadata> _pluginMetadata = new();
+    private static readonly Dictionary<string, IUploaderProvider> _providers = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, PluginMetadata> _pluginMetadata = new(StringComparer.OrdinalIgnoreCase);
     private static readonly object _lock = new();
     private static bool _pluginsLoaded = false;
     private static readonly PluginLoader _pluginLoader = new(); // Keep contexts alive
@@ -58,18 +58,26 @@ public static class ProviderCatalog
     /// <param name="pluginDirectories">List of directories to scan</param>
     public static void LoadPlugins(IEnumerable<string> pluginDirectories, bool forceReload = false)
     {
+        var pluginDirectoryList = pluginDirectories?.ToList() ?? new List<string>();
+
         lock (_lock)
         {
             if (_pluginsLoaded && !forceReload)
             {
                 DebugHelper.WriteLine("[Plugins] Already loaded, skipping");
+                PluginFolderCleaner.ScheduleCleanup(pluginDirectoryList);
                 return;
+            }
+
+            if (forceReload)
+            {
+                RemoveDynamicProvidersForDirectories(pluginDirectoryList);
             }
 
             var discovery = new PluginDiscovery();
             var allDiscovered = new List<PluginMetadata>();
 
-            foreach (var pluginsDirectory in pluginDirectories)
+            foreach (var pluginsDirectory in pluginDirectoryList)
             {
                 DebugHelper.WriteLine($"[Plugins] Scanning directory: {pluginsDirectory}");
                 if (Directory.Exists(pluginsDirectory))
@@ -90,7 +98,7 @@ public static class ProviderCatalog
 
             foreach (var metadata in allDiscovered)
             {
-                if (_pluginMetadata.ContainsKey(metadata.Manifest.PluginId))
+                if (HasLoadedManifestPluginId(metadata.Manifest.PluginId))
                 {
                     continue;
                 }
@@ -109,13 +117,13 @@ public static class ProviderCatalog
                     else
                     {
                         failureCount++;
-                        DebugHelper.WriteLine($"[Plugins] ✗ FAILED: {metadata.Manifest.Name} - {metadata.LoadError}");
+                        DebugHelper.WriteLine($"[Plugins] [FAIL] {metadata.Manifest.Name} - {metadata.LoadError}");
                     }
                 }
                 catch (Exception ex)
                 {
                     failureCount++;
-                    DebugHelper.WriteLine($"[Plugins] ✗ ERROR loading {metadata.Manifest.Name}: {ex.Message}");
+                    DebugHelper.WriteLine($"[Plugins] [ERROR] loading {metadata.Manifest.Name}: {ex.Message}");
                     DebugHelper.WriteLine($"[Plugins]   Stack: {ex.StackTrace}");
                 }
             }
@@ -124,7 +132,7 @@ public static class ProviderCatalog
 
             // Also load custom uploaders (.sxcu files) from the same directories
             int customCount = 0;
-            foreach (var pluginsDirectory in pluginDirectories)
+            foreach (var pluginsDirectory in pluginDirectoryList)
             {
                 if (Directory.Exists(pluginsDirectory))
                 {
@@ -138,7 +146,68 @@ public static class ProviderCatalog
                     (customCount > 0 ? $", {customCount} custom" : "") +
                     (failureCount > 0 ? $", {failureCount} failed" : ""));
             }
+
+            PluginFolderCleaner.ScheduleCleanup(pluginDirectoryList);
         }
+    }
+
+    private static void RemoveDynamicProvidersForDirectories(IEnumerable<string> pluginDirectories)
+    {
+        var normalizedDirectories = pluginDirectories
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(NormalizePath)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (normalizedDirectories.Count == 0)
+        {
+            return;
+        }
+
+        var providersToRemove = _pluginMetadata
+            .Where(kvp => IsPathWithinTrackedDirectories(kvp.Value.AssemblyPath, normalizedDirectories))
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var providerId in providersToRemove)
+        {
+            _providers.Remove(providerId);
+            _pluginMetadata.Remove(providerId);
+            _pluginLoader.UnloadPlugin(providerId);
+            DebugHelper.WriteLine($"[Plugins] Removed provider during reload: {providerId}");
+        }
+
+        var customProvidersToRemove = _providers
+            .Where(kvp => kvp.Value is CustomUploaderProvider customProvider &&
+                          IsPathWithinTrackedDirectories(customProvider.FilePath, normalizedDirectories))
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var providerId in customProvidersToRemove)
+        {
+            _providers.Remove(providerId);
+            _pluginMetadata.Remove(providerId);
+            DebugHelper.WriteLine($"[CustomUploader] Removed provider during reload: {providerId}");
+        }
+    }
+
+    private static bool IsPathWithinTrackedDirectories(string path, IReadOnlyCollection<string> normalizedDirectories)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        var normalizedPath = NormalizePath(path);
+        return normalizedDirectories.Any(directory =>
+            normalizedPath.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalizedPath, directory, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string NormalizePath(string path)
+    {
+        return Path.GetFullPath(path)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
     }
 
     /// <summary>
@@ -157,6 +226,12 @@ public static class ProviderCatalog
     {
         if (provider == null) throw new ArgumentNullException(nameof(provider));
 
+        if (string.IsNullOrWhiteSpace(provider.ProviderId))
+        {
+            DebugHelper.WriteLine($"[Plugins] Skipped provider with missing provider ID: {provider.Name}");
+            return;
+        }
+
         lock (_lock)
         {
             if (!_providers.ContainsKey(provider.ProviderId))
@@ -173,6 +248,11 @@ public static class ProviderCatalog
     /// </summary>
     public static IUploaderProvider? GetProvider(string providerId)
     {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return null;
+        }
+
         lock (_lock)
         {
             return _providers.TryGetValue(providerId, out var provider) ? provider : null;
@@ -208,10 +288,27 @@ public static class ProviderCatalog
     /// </summary>
     public static PluginMetadata? GetPluginMetadata(string providerId)
     {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return null;
+        }
+
         lock (_lock)
         {
             return _pluginMetadata.TryGetValue(providerId, out var metadata) ? metadata : null;
         }
+    }
+
+    private static bool HasLoadedManifestPluginId(string pluginId)
+    {
+        if (string.IsNullOrWhiteSpace(pluginId))
+        {
+            return false;
+        }
+
+        return _pluginMetadata.ContainsKey(pluginId) ||
+            _pluginMetadata.Values.Any(metadata =>
+                string.Equals(metadata.Manifest.PluginId, pluginId, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -335,18 +432,18 @@ public static class ProviderCatalog
                     _pluginMetadata[provider.ProviderId] = metadata;
 
                     loadedCount++;
-                    DebugHelper.WriteLine($"[CustomUploader] ✓ Loaded: {provider.Name} ({provider.ProviderId}) - Categories: {string.Join(", ", provider.SupportedCategories)}");
+                    DebugHelper.WriteLine($"[CustomUploader] [OK] Loaded: {provider.Name} ({provider.ProviderId}) - Categories: {string.Join(", ", provider.SupportedCategories)}");
                 }
                 catch (Exception ex)
                 {
-                    DebugHelper.WriteLine($"[CustomUploader] ✗ Error creating provider for {uploader.FilePath}: {ex.Message}");
+                    DebugHelper.WriteLine($"[CustomUploader] [ERROR] creating provider for {uploader.FilePath}: {ex.Message}");
                 }
             }
 
             // Log failures
             foreach (var uploader in loaded.Where(u => !u.IsValid))
             {
-                DebugHelper.WriteLine($"[CustomUploader] ✗ Failed to load {uploader.FilePath}: {uploader.LoadError}");
+                DebugHelper.WriteLine($"[CustomUploader] [FAIL] Failed to load {uploader.FilePath}: {uploader.LoadError}");
             }
         }
 
@@ -405,26 +502,39 @@ public static class ProviderCatalog
     }
 
     /// <summary>
+    /// Gets a custom uploader provider by its backing file path.
+    /// </summary>
+    /// <param name="filePath">Full path to the custom uploader definition file.</param>
+    /// <returns>The matching provider if one is loaded; otherwise null.</returns>
+    public static CustomUploaderProvider? GetCustomUploaderProviderByFilePath(string filePath)
+    {
+        string normalizedFilePath = NormalizePath(filePath);
+
+        lock (_lock)
+        {
+            return _providers.Values
+                .OfType<CustomUploaderProvider>()
+                .FirstOrDefault(provider => string.Equals(NormalizePath(provider.FilePath), normalizedFilePath, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    /// <summary>
     /// Reloads a specific custom uploader file
     /// </summary>
     /// <param name="filePath">Path to the .sxcu file to reload</param>
     /// <returns>True if reload was successful</returns>
     public static bool ReloadCustomUploader(string filePath)
     {
-        var loaded = CustomUploaderRepository.ReloadFile(filePath);
-
-        if (loaded == null)
-        {
-            return false;
-        }
+        string normalizedFilePath = NormalizePath(filePath);
+        var loaded = CustomUploaderRepository.ReloadFile(normalizedFilePath);
 
         lock (_lock)
         {
-            var provider = new CustomUploaderProvider(loaded);
-
-            // Remove old provider with same file if exists
+            // Remove old provider with same file if exists, even when the reload failed,
+            // so invalid or deleted definitions do not leave stale providers selectable.
             var existingKey = _providers.Keys.FirstOrDefault(k =>
-                _providers[k] is CustomUploaderProvider cp && cp.FilePath == filePath);
+                _providers[k] is CustomUploaderProvider cp &&
+                string.Equals(NormalizePath(cp.FilePath), normalizedFilePath, StringComparison.OrdinalIgnoreCase));
 
             if (existingKey != null)
             {
@@ -432,6 +542,13 @@ public static class ProviderCatalog
                 _pluginMetadata.Remove(existingKey);
             }
 
+            if (loaded == null)
+            {
+                DebugHelper.WriteLine($"[CustomUploader] Reload failed, removed stale provider for: {normalizedFilePath}");
+                return false;
+            }
+
+            var provider = new CustomUploaderProvider(loaded);
             _providers[provider.ProviderId] = provider;
             ApplyContext(provider);
             _pluginMetadata[provider.ProviderId] = CreateCustomUploaderMetadata(provider, loaded);
@@ -477,6 +594,7 @@ public static class ProviderCatalog
         {
             _providers.Clear();
             _pluginMetadata.Clear();
+            _pluginLoader.UnloadAllPlugins();
             _pluginsLoaded = false;
             _builtInInitialized = false;
             CustomUploaderRepository.Clear();
@@ -488,6 +606,11 @@ public static class ProviderCatalog
     /// </summary>
     public static IUploaderExplorer? GetExplorer(string providerId)
     {
+        if (string.IsNullOrWhiteSpace(providerId))
+        {
+            return null;
+        }
+
         lock (_lock)
         {
             if (_providers.TryGetValue(providerId, out var provider) && provider is IUploaderExplorer explorer)

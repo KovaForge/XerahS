@@ -63,6 +63,12 @@ public class FFmpegRecordingService : IRecordingService
     public event EventHandler<RecordingErrorEventArgs>? ErrorOccurred;
     public event EventHandler<RecordingStatusEventArgs>? StatusChanged;
 
+    public RecordingRuntimeCapabilities GetCapabilities(RecordingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return RecordingRuntimeCapabilities.SegmentedRestart;
+    }
+
     public Task StartRecordingAsync(RecordingOptions options)
     {
         Console.WriteLine("[FFmpegRecordingService] StartRecordingAsync called");
@@ -232,7 +238,19 @@ public class FFmpegRecordingService : IRecordingService
             DebugHelper.WriteLine($"[FFmpeg] FFmpeg not found at explicitly set path.");
         }
 
-        // 2. Check if Options has path override
+        // 2. Check workflow recording options for a configured override path
+        if (!string.IsNullOrEmpty(_currentOptions?.FFmpegOverridePath))
+        {
+            DebugHelper.WriteLine($"[FFmpeg] Checking RecordingOptions.FFmpegOverridePath: {_currentOptions.FFmpegOverridePath}");
+            if (File.Exists(_currentOptions.FFmpegOverridePath))
+            {
+                DebugHelper.WriteLine($"[FFmpeg] Found FFmpeg at RecordingOptions.FFmpegOverridePath: {_currentOptions.FFmpegOverridePath}");
+                return _currentOptions.FFmpegOverridePath;
+            }
+            DebugHelper.WriteLine("[FFmpeg] FFmpeg not found at RecordingOptions.FFmpegOverridePath.");
+        }
+
+        // 3. Check service-level options for a configured override path
         if (Options?.OverrideCLIPath == true && !string.IsNullOrEmpty(Options.CLIPath))
         {
             DebugHelper.WriteLine($"[FFmpeg] Checking Options.CLIPath: {Options.CLIPath}");
@@ -244,7 +262,7 @@ public class FFmpegRecordingService : IRecordingService
             DebugHelper.WriteLine($"[FFmpeg] FFmpeg not found at Options.CLIPath.");
         }
 
-        // 3. Use Centralized PathsManager
+        // 4. Use Centralized PathsManager
         return PathsManager.GetFFmpegPath();
     }
 
@@ -437,10 +455,28 @@ public class FFmpegRecordingService : IRecordingService
         args.Add("-y"); // Overwrite output file
 
         // Output path
-        string outputPath = options.OutputPath ?? GetDefaultOutputPath();
+        string outputPath = ResolveOutputPath(options.OutputPath);
         args.Add($"\"{outputPath}\"");
 
         return string.Join(" ", args);
+    }
+
+    private string ResolveOutputPath(string? outputPath)
+    {
+        if (!string.IsNullOrWhiteSpace(outputPath))
+        {
+            string fullPath = Path.GetFullPath(outputPath);
+            string? outputDirectory = Path.GetDirectoryName(fullPath);
+
+            if (!string.IsNullOrEmpty(outputDirectory))
+            {
+                Directory.CreateDirectory(outputDirectory);
+            }
+
+            return fullPath;
+        }
+
+        return GetDefaultOutputPath();
     }
 
     private string GetDefaultOutputPath()

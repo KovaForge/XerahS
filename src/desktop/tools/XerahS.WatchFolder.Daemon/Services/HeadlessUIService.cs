@@ -35,17 +35,33 @@ internal sealed class HeadlessUIService : IUIService
 
     public Task RestoreMainWindowAsync() => Task.CompletedTask;
 
-    public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false) => Task.FromResult<SKBitmap?>(image);
+    public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false) => Task.FromResult<SKBitmap?>(null);
 
     public Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath) => Task.FromResult<string?>(null);
 
-    public Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel)> ShowAfterCaptureWindowAsync(
+    public Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel, AfterCaptureQuickAction QuickAction)> ShowAfterCaptureWindowAsync(
         SKBitmap image,
         AfterCaptureTasks afterCapture,
         AfterUploadTasks afterUpload)
     {
-        return Task.FromResult((afterCapture, afterUpload, false));
+        return Task.FromResult((afterCapture, afterUpload, false, AfterCaptureQuickAction.None));
     }
 
     public Task ShowAfterUploadWindowAsync(AfterUploadWindowInfo info) => Task.CompletedTask;
+
+    public Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection)
+    {
+        return Task.FromResult(new SendToPromptResult
+        {
+            Action = SendToAction.UploadNow,
+            IsFallback = true,
+            Reason = "Headless UI service cannot display the Send-to prompt."
+        });
+    }
+
+    public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection, SendToPromptResult? decision = null) => Task.CompletedTask;
+
+    public Task ShowOcrWindowAsync(SKBitmap image) => Task.CompletedTask;
+
+    public Task ShowAnalyzerWindowAsync(SKBitmap image) => Task.CompletedTask;
 }

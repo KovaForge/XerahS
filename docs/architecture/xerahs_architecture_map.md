@@ -336,7 +336,7 @@ XerahS is a cross-platform screen capture and upload application built on Avalon
 - `Platform/` - Platform-specific capture backends
 - `Animations/` - Fade/zoom effects
 
-**Dependencies**: Avalonia, SkiaSharp 2.88.9, XerahS.Media (FFmpeg)
+**Dependencies**: Avalonia, SkiaSharp 3, XerahS.Media (FFmpeg)
 
 ### XerahS.History
 **Purpose**: Task history persistence
@@ -386,9 +386,12 @@ XerahS is a cross-platform screen capture and upload application built on Avalon
 ### 7.2 Plugin Discovery
 **File**: [PluginDiscovery.cs](../../src/desktop/core/XerahS.Uploaders/PluginSystem/PluginDiscovery.cs)
 
-**Search Path**: `Documents\XerahS\Plugins\*.xsdp`
+**Search Paths**:
+- App-bundled binary plugins: `AppContext.BaseDirectory\Plugins\<pluginId>\`
+- User-installed binary plugins: `Documents\XerahS\Plugins\<rid>\<pluginId>\`
+- Shared custom uploaders: `Documents\XerahS\Plugins\*.sxcu`
 
-**Manifest Format**: `plugin.manifest.json`
+**Manifest Format**: `plugin.json`
 ```json
 {
   "pluginId": "unique-id",
@@ -430,8 +433,12 @@ Treated as internal plugins (no separate assemblies):
 
 **Format**: `.xsdp` archive (ZIP-based) containing:
 - Plugin DLL + dependencies
-- `plugin.manifest.json`
+- `plugin.json`
 - Optional README, license
+
+**Install Layout**:
+- Binary plugin packages are extracted into the current RID bucket under `Documents\XerahS\Plugins\<rid>\`
+- `.sxcu` custom uploader definitions stay in the shared root `Documents\XerahS\Plugins\`
 
 ---
 
@@ -541,8 +548,8 @@ Located in [XerahS.UI/Services](../../src/desktop/app/XerahS.UI/Services/)
 - **Cross-platform**: `net10.0`
 
 ### 10.2 Key NuGet Dependencies
-- **Avalonia**: 11.3.10 (UI framework)
-- **SkiaSharp**: 2.88.9 (locked to 2.x - Avalonia 11 compatibility)
+- **Avalonia**: 12.0.0 (UI framework)
+- **SkiaSharp**: 3.119.3-preview.1.1 (aligned with the current Avalonia 12 package line)
 - **Newtonsoft.Json**: 13.0.4 (configuration serialization)
 - **FluentAvaloniaUI**: 2.4.1 (theming)
 - **ReactiveUI**: 22.3.1 (MVVM framework)

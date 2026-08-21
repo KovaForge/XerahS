@@ -175,11 +175,32 @@ internal static class PulseAudioHelper
 
     private static string? RunPactl(string arguments)
     {
+        var (output, exitCode) = RunPactlCapture("pactl", arguments, 3000);
+        if (exitCode == null)
+        {
+            return null;
+        }
+
+        return output;
+    }
+
+    /// <summary>
+    /// Spawns a pactl (or other POSIX CLI) child process and captures stdout
+    /// safely, draining stderr asynchronously and bounding the stdout read
+    /// with <see cref="Task.WaitAny(Task[])"/> so a chatty child cannot fill
+    /// the 64KB OS pipe buffer (pipe-fill deadlock) and a sleeping child
+    /// cannot stretch the call past the configured timeout.
+    /// Returns <c>(string.Empty, null)</c> on timeout or spawn failure.
+    /// </summary>
+    internal static (string Output, int? ExitCode) RunPactlCapture(
+        string fileName, string arguments, int timeoutMs)
+    {
+        Process? process = null;
         try
         {
             var startInfo = new ProcessStartInfo
             {
-                FileName = "pactl",
+                FileName = fileName,
                 Arguments = arguments,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -187,18 +208,61 @@ internal static class PulseAudioHelper
                 CreateNoWindow = true
             };
 
-            using var process = Process.Start(startInfo);
-            if (process == null) return null;
+            process = Process.Start(startInfo);
+            if (process == null) return (string.Empty, null);
 
-            string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit(3000);
+            // Drain stderr asynchronously so a chatty child cannot block on
+            // its own write to a full pipe. Discard the text — caller can
+            // surface it via the log if needed.
+            var stderrDrain = process.StandardError.ReadToEndAsync()
+                .ContinueWith(_ => { }, TaskScheduler.Default);
 
-            return output;
+            // Read stdout ASYNCHRONOUSLY so a child that sleeps without
+            // producing output (anti-pattern B) cannot stretch the call
+            // beyond the timeout.
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var timeoutTask = Task.Delay(timeoutMs);
+
+            if (Task.WaitAny(stdoutTask, timeoutTask) != 0)
+            {
+                try { process.Kill(); } catch { /* best effort */ }
+                try { Task.WaitAll(new Task[] { stdoutTask, stderrDrain }, 1000); }
+                catch { /* drainer may have faulted on a closed stream */ }
+                return (string.Empty, null);
+            }
+
+            if (!process.WaitForExit(timeoutMs))
+            {
+                try { process.Kill(); } catch { /* best effort */ }
+                process.WaitForExit(1000);
+                return (stdoutTask.Result, null);
+            }
+
+            try { Task.WaitAll(new Task[] { stderrDrain }, 1000); }
+            catch { /* ignore */ }
+
+            return (stdoutTask.Result, process.ExitCode);
         }
         catch
         {
-            return null;
+            return (string.Empty, null);
         }
+        finally
+        {
+            process?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Test accessor exposing the run helper to the XerahS.Tests assembly
+    /// so regression tests can drive synthetic <c>/bin/sh</c> commands
+    /// without requiring a real <c>pactl</c> binary.
+    /// </summary>
+    internal static class TestAccessor
+    {
+        public static (string Output, int? ExitCode) RunPactlCapture(
+            string fileName, string arguments, int timeoutMs)
+            => PulseAudioHelper.RunPactlCapture(fileName, arguments, timeoutMs);
     }
 }
 

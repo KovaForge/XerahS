@@ -28,9 +28,12 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using ShareX.ImageEditor.Presentation.ViewModels;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
+using XerahS.UI.Assistant;
+using XerahS.UI.CaptureCommandPalette;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 
@@ -39,10 +42,20 @@ namespace XerahS.UI.Services;
 public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 {
     private readonly object _uploadTitleLock = new();
+    private readonly IDesktopTaskManager _taskManager;
+    private readonly IScreenRecordingCoordinator _screenRecordingCoordinator;
     private IClassicDesktopStyleApplicationLifetime? _desktop;
     private Core.Hotkeys.WorkflowManager? _workflowManager;
+    private AssistantOverlayCoordinator? _assistantOverlayCoordinator;
+    private CaptureCommandPaletteCoordinator? _captureCommandPaletteCoordinator;
     private int _activeUploadCount;
     private string _baseTitle = AppResources.ProductNameWithVersion;
+
+    public WorkflowOrchestrator(IDesktopTaskManager taskManager, IScreenRecordingCoordinator screenRecordingCoordinator)
+    {
+        _taskManager = taskManager;
+        _screenRecordingCoordinator = screenRecordingCoordinator;
+    }
 
     public Core.Hotkeys.WorkflowManager? WorkflowManager => _workflowManager;
 
@@ -53,11 +66,18 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
         ConfigureWorkerTaskCallbacks();
         InitializeHotkeys();
+        _assistantOverlayCoordinator ??= new AssistantOverlayCoordinator();
+        _assistantOverlayCoordinator.Start();
+        if (_workflowManager != null)
+        {
+            _captureCommandPaletteCoordinator ??= new CaptureCommandPaletteCoordinator(_workflowManager, ExecuteWorkflowFromPaletteAsync);
+            _captureCommandPaletteCoordinator.Start();
+        }
 
-        Core.Managers.TaskManager.Instance.TaskCompleted -= OnWorkflowTaskCompleted;
-        Core.Managers.TaskManager.Instance.TaskStarted -= OnWorkflowTaskStarted;
-        Core.Managers.TaskManager.Instance.TaskCompleted += OnWorkflowTaskCompleted;
-        Core.Managers.TaskManager.Instance.TaskStarted += OnWorkflowTaskStarted;
+        _taskManager.TaskCompleted -= OnWorkflowTaskCompleted;
+        _taskManager.TaskStarted -= OnWorkflowTaskStarted;
+        _taskManager.TaskCompleted += OnWorkflowTaskCompleted;
+        _taskManager.TaskStarted += OnWorkflowTaskStarted;
     }
 
     private void ConfigureWorkerTaskCallbacks()
@@ -65,6 +85,25 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         Core.Tasks.WorkerTask.ShowWindowSelectorCallback = ShowWindowSelectorAsync;
         Core.Tasks.WorkerTask.ShowOpenFileDialogCallback = ShowOpenFileDialogAsync;
         Core.Tasks.WorkerTask.HandleToolWorkflowCallback = HandleToolWorkflowAsync;
+        Core.Tasks.Processors.CaptureJobProcessor.PinToScreenCallback = async (bitmap, location, options) =>
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                PinToScreenManager.PinImage(bitmap, location == null ? null : (Avalonia.PixelPoint?)location, options);
+            });
+        };
+        Core.Tasks.Processors.CaptureJobProcessor.ShowAnalyzerCallback = async bitmap =>
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var vm = new ImageAnalyzerViewModel();
+                vm.SetInputImage(bitmap);
+
+                var w = new ImageAnalyzerWindow();
+                w.Initialize(vm);
+                w.Show();
+            });
+        };
 
         Core.Tasks.WorkerTask.OpenMainWindowCallback = () =>
         {
@@ -93,7 +132,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             try
             {
                 var viewModel = new WindowSelectorViewModel();
-                var dialog = new Window
+                var dialog = new SurfaceWindow
                 {
                     Title = "Select Window to Capture",
                     Width = 400,
@@ -135,6 +174,11 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
     private async Task<string?> ShowOpenFileDialogAsync()
     {
+        if (OperatingSystem.IsMacOS())
+        {
+            return await MacOSUploadFilePicker.PickFileAsync().ConfigureAwait(false);
+        }
+
         var tcs = new TaskCompletionSource<string?>();
 
         await Dispatcher.UIThread.InvokeAsync(async () =>
@@ -174,7 +218,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         {
             var owner = _desktop?.MainWindow;
 
-            if (ToolWorkflowDispatcher.TryDispatch(workflowType, owner, taskSettings, out var dispatchTask))
+            if (ToolWorkflowDispatcher.TryDispatch(workflowType, owner, taskSettings, _taskManager, out var dispatchTask))
             {
                 await dispatchTask;
                 return;
@@ -191,7 +235,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             return;
         }
 
-        mainWindow.ShowInTaskbar = true;
+        mainWindow.ShowInTaskbar = !OperatingSystem.IsMacOS() || !SettingsManager.Settings.SilentRun;
 
         if (!mainWindow.IsVisible)
         {
@@ -291,10 +335,39 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             return;
         }
 
+        await ExecuteWorkflowFromTriggerAsync(settings);
+    }
+
+    private async Task ExecuteWorkflowFromPaletteAsync(Core.Hotkeys.WorkflowSettings settings)
+    {
+        DebugHelper.WriteLine($"Capture command palette selected: {settings} (ID: {settings?.Id ?? "null"})");
+
+        if (settings == null)
+        {
+            return;
+        }
+
+        await ExecuteWorkflowFromTriggerAsync(settings);
+    }
+
+    private async Task ExecuteWorkflowFromTriggerAsync(Core.Hotkeys.WorkflowSettings settings)
+    {
+        if (settings == null)
+        {
+            return;
+        }
+
         string category = settings.Job.GetHotkeyCategory();
         bool isCaptureJob = category == EnumExtensions.WorkflowType_Category_ScreenCapture ||
                             category == EnumExtensions.WorkflowType_Category_ScreenRecord;
 
+        // Hotkey/palette-triggered captures deliberately do NOT hide the main window.
+        // The caller pressed a hotkey because they wanted to grab what was on screen,
+        // which frequently includes the XerahS window itself. Navbar/toolbar clicks
+        // still hide via TaskHelpers.ExecuteJob(hideMainWindow: true); tray left/double/
+        // middle click still hides via TrayIconHelper -> ExecuteWorkflow(hideMainWindow: true).
+        // SilentRun callers already have the window hidden, and HideMainWindowAsync
+        // no-ops on a hidden window.
         if (!isCaptureJob && _desktop?.MainWindow is MainWindow immediateMainWindow)
         {
             bool isWindowVisible = immediateMainWindow.IsVisible &&
@@ -310,7 +383,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
         void HandleTaskCompleted(object? s, Core.Tasks.WorkerTask task)
         {
-            Core.Managers.TaskManager.Instance.TaskCompleted -= HandleTaskCompleted;
+            _taskManager.TaskCompleted -= HandleTaskCompleted;
             OnTaskCompleted(task, EventArgs.Empty);
 
             bool isScreenRecord = category == EnumExtensions.WorkflowType_Category_ScreenRecord;
@@ -329,7 +402,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             }
         }
 
-        Core.Managers.TaskManager.Instance.TaskCompleted += HandleTaskCompleted;
+        _taskManager.TaskCompleted += HandleTaskCompleted;
 
         if (settings.Job == Core.WorkflowType.CustomWindow)
         {
@@ -347,25 +420,31 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
                                  settings.Job == Core.WorkflowType.StartScreenRecorderGIF;
 
         if (settings.Job == Core.WorkflowType.PauseScreenRecording &&
-            (Core.Managers.ScreenRecordingManager.Instance.IsRecording || Core.Managers.ScreenRecordingManager.Instance.IsPaused))
+            (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
         {
+            if (!_screenRecordingCoordinator.CurrentCapabilities.SupportsPauseResume)
+            {
+                DebugHelper.WriteLine("Pause/Resume hotkey ignored because the active recording backend does not support pause/resume safely.");
+                return;
+            }
+
             DebugHelper.WriteLine("Pause/Resume hotkey triggered - toggling recording pause state...");
-            await Core.Managers.ScreenRecordingManager.Instance.TogglePauseResumeAsync();
+            await _screenRecordingCoordinator.TogglePauseResumeAsync();
             return;
         }
 
         if (settings.Job == Core.WorkflowType.AbortScreenRecording &&
-            (Core.Managers.ScreenRecordingManager.Instance.IsRecording || Core.Managers.ScreenRecordingManager.Instance.IsPaused))
+            (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
         {
             DebugHelper.WriteLine("Abort hotkey triggered - aborting recording...");
-            await Core.Managers.ScreenRecordingManager.Instance.AbortRecordingAsync();
+            await _screenRecordingCoordinator.AbortRecordingAsync();
             return;
         }
 
-        if (isRecordingHotkey && (Core.Managers.ScreenRecordingManager.Instance.IsRecording || Core.Managers.ScreenRecordingManager.Instance.IsPaused))
+        if (isRecordingHotkey && (_screenRecordingCoordinator.IsRecording || _screenRecordingCoordinator.IsPaused))
         {
             DebugHelper.WriteLine("Screen Recording active - flagging Stop Signal to existing task...");
-            Core.Managers.ScreenRecordingManager.Instance.SignalStop();
+            _screenRecordingCoordinator.SignalStop();
             return;
         }
 
@@ -389,7 +468,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         }
 
         var taskSettings = task.Info?.TaskSettings ?? new TaskSettings();
-        if (taskSettings.GeneralSettings?.ShowToastNotificationAfterTaskCompleted != true)
+        if (!ShouldShowCompletionNotification(task.Info))
         {
             return;
         }
@@ -479,6 +558,10 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             }
         });
     }
+
+    internal static bool ShouldShowCompletionNotification(TaskInfo? info) =>
+        info?.SuppressCompletionNotification != true &&
+        info?.TaskSettings?.GeneralSettings?.ShowToastNotificationAfterTaskCompleted == true;
 
     private void OnWorkflowTaskStarted(object? sender, Core.Tasks.WorkerTask task)
     {

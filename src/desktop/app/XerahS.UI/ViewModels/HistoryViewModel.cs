@@ -30,6 +30,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using XerahS.Common;
 using XerahS.Common.Converters;
+using XerahS.Bootstrap;
 using XerahS.Core;
 using XerahS.Core.Managers;
 using XerahS.History;
@@ -37,6 +38,7 @@ using XerahS.Media;
 using XerahS.Platform.Abstractions;
 using XerahS.Services.Abstractions;
 using XerahS.UI.Services;
+using ShareX.ImageEditor.Core.Persistence;
 using SkiaSharp;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -57,10 +59,6 @@ namespace XerahS.UI.ViewModels
             ".tif",
             ".tiff"
         };
-
-        // Converter for view toggle button text
-        public static IValueConverter ViewToggleConverter { get; } = new FuncValueConverter<bool, string>(
-            isGrid => isGrid ? "📋 List View" : "🔲 Grid View");
 
         // Converter to load thumbnail from file path (resource-efficient)
         public static IValueConverter ThumbnailConverter { get; } = new FuncValueConverter<string?, Bitmap?>(
@@ -96,10 +94,14 @@ namespace XerahS.UI.ViewModels
         private bool _isLoading = false;
 
         [ObservableProperty]
-        private bool _isLoadingThumbnails = false;
+        private bool _isCombiningSelection = false;
 
         [ObservableProperty]
-        private bool _isCombiningSelection = false;
+        [NotifyPropertyChangedFor(nameof(IsSearchActive))]
+        private string _searchText = string.Empty;
+
+        private int _searchVersion;
+        private int _reloadRequested;
 
         public ObservableCollection<HistoryItem> SelectedHistoryItems { get; } = new();
 
@@ -108,6 +110,8 @@ namespace XerahS.UI.ViewModels
         public bool ShowCombineActions => CanCombineSelectedImages;
 
         public int SelectedImageCount => GetSelectedCombinableHistoryItems().Count;
+
+        public bool IsSearchActive => !string.IsNullOrWhiteSpace(SearchText);
 
         public string CombineSelectionSummary => SelectedImageCount == 1
             ? "1 image selected"
@@ -140,12 +144,13 @@ namespace XerahS.UI.ViewModels
         public string PageInfo => $"Page {CurrentPage} of {Math.Max(1, TotalPages)} ({TotalItems} items)"; // Prevent "Page 1 of 0" looking weird
 
         private readonly HistoryManagerSQLite _historyManager;
-        private CancellationTokenSource? _thumbnailCancellationTokenSource;
+        private readonly IDesktopTaskManager _taskManager;
         private readonly IDialogService _coreDialogService;
 
-        public HistoryViewModel()
+        public HistoryViewModel(IDesktopTaskManager taskManager, IDialogService coreDialogService, bool autoLoadHistory = true)
         {
-            _coreDialogService = PlatformServices.RootProvider?.GetService(typeof(IDialogService)) as IDialogService ?? new AvaloniaDialogServiceAdapter();
+            _taskManager = taskManager;
+            _coreDialogService = coreDialogService;
             HistoryItems = new ObservableCollection<HistoryItem>();
             SelectedHistoryItems.CollectionChanged += (_, _) => NotifySelectionStateChanged();
 
@@ -162,7 +167,10 @@ namespace XerahS.UI.ViewModels
 
             // Start loading history asynchronously WITHOUT blocking UI
             // Use fire-and-forget to let view display immediately
-            _ = BeginHistoryLoadAsync();
+            if (autoLoadHistory)
+            {
+                _ = BeginHistoryLoadAsync();
+            }
         }
 
         /// <summary>
@@ -179,45 +187,61 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private async Task LoadHistoryAsync()
         {
-            if (IsLoading) return;
+            if (IsLoading)
+            {
+                Interlocked.Exchange(ref _reloadRequested, 1);
+                return;
+            }
 
             IsLoading = true;
-
-
             try
             {
                 var historyPath = SettingsManager.GetHistoryFilePath();
                 DebugHelper.WriteLine($"History.xml location: {historyPath} (exists={File.Exists(historyPath)})");
 
-                // calculating offset
-                int offset = (CurrentPage - 1) * PageSize;
-
-                // Load total count first
-                TotalItems = await _historyManager.GetTotalCountAsync();
-                TotalPages = (int)Math.Ceiling((double)TotalItems / PageSize);
-                if (TotalPages == 0) TotalPages = 1; // Ensure at least 1 page even if empty
-
-                // Adjust CurrentPage if out of bounds (e.g. after deletion)
-                if (CurrentPage > TotalPages) CurrentPage = TotalPages;
-                if (CurrentPage < 1) CurrentPage = 1;
-
-                // Load paged history on background thread
-                var items = await _historyManager.GetHistoryItemsAsync(offset, PageSize);
-
-                // Clear and populate on UI thread
-                ClearSelectedHistoryItems();
-                HistoryItems.Clear();
-                foreach (var item in items)
+                List<HistoryItem> items;
+                string query = SearchText.Trim();
+                if (string.IsNullOrWhiteSpace(query))
                 {
-                    HistoryItems.Add(item);
+                    TotalItems = await _historyManager.GetTotalCountAsync();
+                    TotalPages = (int)Math.Ceiling((double)TotalItems / PageSize);
+                    if (TotalPages == 0) TotalPages = 1; // Ensure at least 1 page even if empty
+
+                    // Adjust CurrentPage if out of bounds (e.g. after deletion)
+                    if (CurrentPage > TotalPages) CurrentPage = TotalPages;
+                    if (CurrentPage < 1) CurrentPage = 1;
+
+                    int offset = (CurrentPage - 1) * PageSize;
+                    items = await _historyManager.GetHistoryItemsAsync(offset, PageSize);
+                }
+                else
+                {
+                    int requestedPage = Math.Max(CurrentPage, 1);
+                    int offset = (requestedPage - 1) * PageSize;
+                    (items, TotalItems) = await SearchHistoryItemsAsync(query, offset, PageSize);
+                    TotalPages = (int)Math.Ceiling((double)TotalItems / PageSize);
+                    if (TotalPages == 0) TotalPages = 1;
+
+                    if (requestedPage > TotalPages)
+                    {
+                        CurrentPage = TotalPages;
+                        offset = (CurrentPage - 1) * PageSize;
+                        (items, TotalItems) = await SearchHistoryItemsAsync(query, offset, PageSize);
+                    }
+                    if (CurrentPage < 1) CurrentPage = 1;
                 }
 
-                DebugHelper.WriteLine($"History loaded: {items.Count} items (Page {CurrentPage}/{TotalPages})");
-
-                // Start loading thumbnails in background after history is displayed
-                if (HistoryItems.Count > 0)
+                if (!string.Equals(query, SearchText.Trim(), StringComparison.Ordinal))
                 {
-                    _ = LoadThumbnailsInBackgroundAsync();
+                    Interlocked.Exchange(ref _reloadRequested, 1);
+                }
+                else
+                {
+                    ClearSelectedHistoryItems();
+                    HistoryItems = new ObservableCollection<HistoryItem>(items);
+
+                    DebugHelper.WriteLine($"History loaded: {items.Count} items (Page {CurrentPage}/{TotalPages})");
+
                 }
             }
 
@@ -229,6 +253,54 @@ namespace XerahS.UI.ViewModels
             {
                 IsLoading = false;
             }
+
+            if (Interlocked.Exchange(ref _reloadRequested, 0) != 0)
+            {
+                await LoadHistoryAsync();
+            }
+        }
+
+        [RelayCommand]
+        private async Task SearchHistoryAsync()
+        {
+            Interlocked.Increment(ref _searchVersion);
+            CurrentPage = 1;
+            await LoadHistoryAsync();
+        }
+
+        [RelayCommand]
+        private async Task ClearSearchAsync()
+        {
+            if (string.IsNullOrWhiteSpace(SearchText))
+            {
+                return;
+            }
+
+            SearchText = string.Empty;
+            Interlocked.Increment(ref _searchVersion);
+            CurrentPage = 1;
+            await LoadHistoryAsync();
+        }
+
+        partial void OnSearchTextChanged(string value)
+        {
+            CurrentPage = 1;
+            int version = Interlocked.Increment(ref _searchVersion);
+            _ = DebouncedSearchAsync(version);
+        }
+
+        private async Task DebouncedSearchAsync(int version)
+        {
+            await Task.Delay(300);
+            if (version == _searchVersion)
+            {
+                await LoadHistoryAsync();
+            }
+        }
+
+        private Task<(List<HistoryItem> Items, int TotalCount)> SearchHistoryItemsAsync(string query, int offset, int limit)
+        {
+            return Task.Run(() => _historyManager.SearchHistoryItems(query, offset, limit));
         }
 
         [RelayCommand]
@@ -251,71 +323,6 @@ namespace XerahS.UI.ViewModels
             }
         }
 
-        /// <summary>
-        /// Loads thumbnails asynchronously on a background thread.
-        /// This allows history items to display immediately while thumbnails load gradually.
-        /// </summary>
-        private async Task LoadThumbnailsInBackgroundAsync()
-        {
-            // Cancel any previous thumbnail loading
-            _thumbnailCancellationTokenSource?.Cancel();
-            _thumbnailCancellationTokenSource = new CancellationTokenSource();
-
-            IsLoadingThumbnails = true;
-            try
-            {
-                await Task.Run(() =>
-                {
-                    int loadedCount = 0;
-                    foreach (var item in HistoryItems)
-                    {
-                        // Check cancellation token
-                        _thumbnailCancellationTokenSource.Token.ThrowIfCancellationRequested();
-
-                        // Pre-load thumbnail by accessing the converter
-                        // This forces the thumbnail to be cached for faster display
-                        if (!string.IsNullOrEmpty(item.FilePath) && File.Exists(item.FilePath))
-                        {
-                            try
-                            {
-                                var ext = Path.GetExtension(item.FilePath).ToLowerInvariant();
-                                if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".bmp" || ext == ".webp")
-                                {
-                                    using var stream = File.OpenRead(item.FilePath);
-                                    _ = Bitmap.DecodeToWidth(stream, 180);
-                                    loadedCount++;
-                                }
-                            }
-                            catch
-                            {
-                                // Silently skip thumbnails that fail to load
-                            }
-                        }
-
-                        // Add small delay to prevent CPU saturation
-                        if (loadedCount % 5 == 0)
-                        {
-                            System.Threading.Thread.Sleep(50);
-                        }
-                    }
-
-                    DebugHelper.WriteLine($"Thumbnails pre-loaded: {loadedCount} images");
-                }, _thumbnailCancellationTokenSource.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                DebugHelper.WriteLine("Thumbnail loading was cancelled");
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.WriteException(ex, "Error while loading thumbnails");
-            }
-            finally
-            {
-                IsLoadingThumbnails = false;
-            }
-        }
-
         [RelayCommand]
         private void ToggleView()
         {
@@ -325,8 +332,6 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private async Task RefreshHistory()
         {
-            // Cancel any ongoing thumbnail loading
-            _thumbnailCancellationTokenSource?.Cancel();
             await LoadHistoryAsync();
         }
 
@@ -345,22 +350,250 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private async Task EditImage(HistoryItem? item)
         {
+            await OpenImageInEditorAsync(item, preferAnnotations: false);
+        }
+
+        [RelayCommand]
+        private async Task EditAnnotations(HistoryItem? item)
+        {
+            await OpenImageInEditorAsync(item, preferAnnotations: true);
+        }
+
+        private async Task OpenImageInEditorAsync(HistoryItem? item, bool preferAnnotations)
+        {
             if (item == null || string.IsNullOrEmpty(item.FilePath)) return;
             if (!File.Exists(item.FilePath)) return;
 
             try
             {
-                // Load the image from file directly as SKBitmap
-                using var fs = new FileStream(item.FilePath, FileMode.Open, FileAccess.Read);
-                var skBitmap = SKBitmap.Decode(fs);
+                FileContentSnapshot originalImageSnapshot = FileContentSnapshot.Create(item.FilePath);
+                FileContentSnapshot originalSidecarSnapshot = FileContentSnapshot.Create(ResolveAnnotationSidecarPath(item));
+
+                if (preferAnnotations)
+                {
+                    string? sidecarPath = ResolveAnnotationSidecarPath(item);
+                    if (!string.IsNullOrWhiteSpace(sidecarPath))
+                    {
+                        try
+                        {
+                            var project = await XannProjectFileService.LoadAsync(sidecarPath, item.FilePath);
+                            SKBitmap sessionImage = project.SourceImage;
+
+                            try
+                            {
+                                if (!project.ImageHashMatches)
+                                {
+                                    DebugHelper.WriteLine($"Annotation sidecar hash mismatch for '{item.FilePath}'. Loading current file image for the editor session.");
+                                    sessionImage = DecodeImageFile(item.FilePath)
+                                        ?? throw new InvalidOperationException($"Failed to decode current image file '{item.FilePath}'.");
+                                }
+
+                                var sessionResult = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorSessionAsync(
+                                    sessionImage,
+                                    item.FilePath,
+                                    annotations: project.Project.Annotations,
+                                    restoredAnnotations: true);
+
+                                try
+                                {
+                                    await PersistAnnotationSessionResultAsync(item.FilePath, sessionResult);
+                                }
+                                finally
+                                {
+                                    sessionResult?.RenderedImage.Dispose();
+                                    sessionResult?.SourceImage?.Dispose();
+                                }
+                            }
+                            finally
+                            {
+                                if (!ReferenceEquals(sessionImage, project.SourceImage))
+                                {
+                                    sessionImage.Dispose();
+                                }
+
+                                project.SourceImage.Dispose();
+                            }
+
+                            await RefreshHistoryItemAfterEditorSessionAsync(item, originalImageSnapshot, originalSidecarSnapshot);
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugHelper.WriteLine($"Failed to load annotation sidecar '{sidecarPath}': {ex.Message}");
+                            DebugHelper.WriteException(ex);
+                        }
+                    }
+                }
+
+                // Load the image from file directly as SKBitmap and close the file before launching the editor.
+                // The editor may save back to the same source path, which would fail on platforms that enforce file-share locks.
+                using var skBitmap = DecodeImageFile(item.FilePath);
                 if (skBitmap == null) return;
 
                 // Open in Editor using the platform service
-                await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap);
+                var rendered = await XerahS.Platform.Abstractions.PlatformServices.UI.ShowEditorAsync(skBitmap, item.FilePath);
+                if (rendered != null && !ReferenceEquals(rendered, skBitmap))
+                {
+                    rendered.Dispose();
+                }
+
+                await RefreshHistoryItemAfterEditorSessionAsync(item, originalImageSnapshot, originalSidecarSnapshot);
             }
             catch (Exception ex)
             {
                 DebugHelper.WriteLine($"Failed to open image in editor: {ex.Message}");
+            }
+        }
+
+        private static SKBitmap? DecodeImageFile(string filePath)
+        {
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return SKBitmap.Decode(stream);
+        }
+
+        private static string? ResolveAnnotationSidecarPath(HistoryItem item)
+        {
+            if (!string.IsNullOrWhiteSpace(item.AnnotationSidecarPath) && File.Exists(item.AnnotationSidecarPath))
+            {
+                return item.AnnotationSidecarPath;
+            }
+
+            string defaultSidecarPath = XannProjectFileService.GetDefaultSidecarPath(item.FilePath);
+            return File.Exists(defaultSidecarPath) ? defaultSidecarPath : null;
+        }
+
+        private static async Task PersistAnnotationSessionResultAsync(string imagePath, ShareX.ImageEditor.Hosting.ImageEditorSessionResult? sessionResult)
+        {
+            if (sessionResult == null || string.IsNullOrWhiteSpace(imagePath))
+            {
+                return;
+            }
+
+            if (sessionResult.Annotations.Count == 0)
+            {
+                bool deleted = XannProjectFileService.TryDeleteSidecar(imagePath);
+                if (deleted)
+                {
+                    DebugHelper.WriteLine($"Deleted annotation sidecar for '{imagePath}' because the session returned no annotations.");
+                }
+
+                return;
+            }
+
+            if (sessionResult.SourceImage == null)
+            {
+                DebugHelper.WriteLine($"Skipped saving annotation sidecar for '{imagePath}' because the editor returned annotations without a source image.");
+                return;
+            }
+
+            string? sidecarPath = await XannProjectFileService.SaveAsync(
+                imagePath,
+                sessionResult.SourceImage,
+                sessionResult.Annotations);
+            DebugHelper.WriteLine($"Saved annotation sidecar after editor continue: {sidecarPath}");
+        }
+
+        private async Task RefreshHistoryItemAfterEditorSessionAsync(
+            HistoryItem item,
+            FileContentSnapshot originalImageSnapshot,
+            FileContentSnapshot originalSidecarSnapshot)
+        {
+            if (string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath))
+            {
+                return;
+            }
+
+            bool imageFileChanged = !FileContentSnapshot.Create(item.FilePath).Equals(originalImageSnapshot);
+            bool sidecarPathChanged = SynchronizeAnnotationSidecarPath(item);
+            bool sidecarContentChanged = !FileContentSnapshot.Create(item.AnnotationSidecarPath).Equals(originalSidecarSnapshot);
+
+            if (!imageFileChanged && !sidecarPathChanged && !sidecarContentChanged)
+            {
+                return;
+            }
+
+            if (item.Id > 0)
+            {
+                await Task.Run(() => _historyManager.Edit(item));
+            }
+
+            int index = HistoryItems.IndexOf(item);
+            if (index < 0)
+            {
+                return;
+            }
+
+            bool wasSelected = SelectedHistoryItems.Contains(item);
+            var refreshedItem = CloneHistoryItem(item);
+            HistoryItems[index] = refreshedItem;
+
+            if (wasSelected)
+            {
+                SelectedHistoryItems.Remove(item);
+                SelectedHistoryItems.Add(refreshedItem);
+                NotifySelectionStateChanged();
+            }
+        }
+
+        private static bool SynchronizeAnnotationSidecarPath(HistoryItem item)
+        {
+            string? originalSidecarPath = item.AnnotationSidecarPath;
+            string? refreshedSidecarPath = null;
+
+            if (!string.IsNullOrWhiteSpace(originalSidecarPath) && File.Exists(originalSidecarPath))
+            {
+                refreshedSidecarPath = originalSidecarPath;
+            }
+            else if (!string.IsNullOrWhiteSpace(item.FilePath))
+            {
+                string defaultSidecarPath = XannProjectFileService.GetDefaultSidecarPath(item.FilePath);
+                if (File.Exists(defaultSidecarPath))
+                {
+                    refreshedSidecarPath = defaultSidecarPath;
+                }
+            }
+
+            if (string.Equals(originalSidecarPath, refreshedSidecarPath, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            item.AnnotationSidecarPath = refreshedSidecarPath;
+            return true;
+        }
+
+        private static HistoryItem CloneHistoryItem(HistoryItem item)
+        {
+            return new HistoryItem
+            {
+                Id = item.Id,
+                FileName = item.FileName,
+                FilePath = item.FilePath,
+                DateTime = item.DateTime,
+                Type = item.Type,
+                Host = item.Host,
+                URL = item.URL,
+                ThumbnailURL = item.ThumbnailURL,
+                DeletionURL = item.DeletionURL,
+                ShortenedURL = item.ShortenedURL,
+                AnnotationSidecarPath = item.AnnotationSidecarPath,
+                Tags = item.Tags != null
+                    ? new Dictionary<string, string?>(item.Tags, StringComparer.Ordinal)
+                    : new Dictionary<string, string?>()
+            };
+        }
+
+        private readonly record struct FileContentSnapshot(bool Exists, long Length, DateTime LastWriteTimeUtc)
+        {
+            public static FileContentSnapshot Create(string? path)
+            {
+                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                {
+                    return default;
+                }
+
+                var fileInfo = new FileInfo(path);
+                return new FileContentSnapshot(true, fileInfo.Length, fileInfo.LastWriteTimeUtc);
             }
         }
 
@@ -406,7 +639,7 @@ namespace XerahS.UI.ViewModels
             {
                 var settings = GetUploadTaskSettings();
                 settings.Job = WorkflowType.FileUpload;
-                await TaskManager.Instance.StartFileTask(settings, item.FilePath);
+                await _taskManager.StartFileTask(settings, item.FilePath);
             }
             catch (Exception ex)
             {
@@ -455,7 +688,7 @@ namespace XerahS.UI.ViewModels
         {
             if (item == null || string.IsNullOrEmpty(item.URL)) return;
 
-            var markdownImage = $"[img]{item.URL}[/img]";
+            var markdownImage = ToastViewModel.BuildMarkdownImage(item.URL, item.FileName);
             try
             {
                 if (PlatformServices.IsInitialized)
@@ -536,6 +769,7 @@ namespace XerahS.UI.ViewModels
 
             // Persist deletion to database
             _historyManager.Delete(item);
+            new HistoryOcrIndexStore(SettingsManager.GetHistoryFilePath()).Delete(item.Id);
             DebugHelper.WriteLine($"Deleted history item: {item.FileName}");
         }
 
@@ -602,8 +836,11 @@ namespace XerahS.UI.ViewModels
                 if (!_historyManager.AppendHistoryItem(combinedHistoryItem))
                 {
                     DebugHelper.WriteLine($"HistoryViewModel - Failed to append combined history item: {combinedHistoryItem.FilePath}");
+                    ShowHistoryBackupFailureToastIfPresent(_historyManager.LastBackupFailureReason);
                     return;
                 }
+
+                XerahS.Core.Services.OcrIndexingService.QueueIndexHistoryItem(combinedHistoryItem);
 
                 ClearSelectedHistoryItems();
                 CurrentPage = 1;
@@ -734,10 +971,41 @@ namespace XerahS.UI.ViewModels
             return !string.IsNullOrWhiteSpace(extension) && CombinableImageExtensions.Contains(extension);
         }
 
+        /// <summary>
+        /// Surfaces a user-visible toast when a history append failure was caused by the
+        /// backup step rather than the data write itself. The history file write can succeed
+        /// even when the backup step fails, so this helper gives the user actionable context
+        /// (folder path, free space, permissions) instead of a silent DebugHelper line.
+        /// </summary>
+        /// <param name="reason">User-friendly description set by HistoryManager.LastBackupFailureReason,
+        /// or null when the failure was unrelated to backup.</param>
+        internal static void ShowHistoryBackupFailureToastIfPresent(string? reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                return;
+            }
+
+            try
+            {
+                PlatformServices.Toast?.ShowToast(new ToastConfig
+                {
+                    Title = "History Backup Failed",
+                    Text = reason,
+                    Duration = 6f,
+                    Size = new SizeI(420, 140),
+                    AutoHide = true,
+                    LeftClickAction = ToastClickAction.CloseNotification
+                });
+            }
+            catch
+            {
+                // Ignore toast errors (platform not ready, headless mode, etc.)
+            }
+        }
+
         public void Dispose()
         {
-            _thumbnailCancellationTokenSource?.Cancel();
-            _thumbnailCancellationTokenSource?.Dispose();
             _historyManager?.Dispose();
         }
     }

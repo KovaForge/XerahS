@@ -117,6 +117,15 @@ public class MobileSettingsViewModel : INotifyPropertyChanged
             Route = "CustomUploader"
         });
 
+        items.Add(new SettingsItem
+        {
+            Title = "About XerahS",
+            Description = "Version, package ID, links, and project information",
+            IconPath = "Info",
+            IsConfigured = true,
+            Route = "About"
+        });
+
         SettingsItems = new ObservableCollection<SettingsItem>(items);
     }
 

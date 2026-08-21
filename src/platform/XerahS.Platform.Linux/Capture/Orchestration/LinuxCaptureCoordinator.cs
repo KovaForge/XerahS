@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -73,7 +74,18 @@ internal sealed class LinuxCaptureCoordinator
                     continue;
                 }
 
-                var result = await provider.TryCaptureAsync(request, context, cancellationToken).ConfigureAwait(false);
+                LinuxCaptureResult result;
+
+                try
+                {
+                    result = await provider.TryCaptureAsync(request, context, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    trace.AddStep(stage, provider.ProviderId, CaptureDecisionOutcome.Failed, $"{ex.GetType().Name}: {ex.Message}");
+                    continue;
+                }
+
                 if (result.Bitmap != null)
                 {
                     trace.AddStep(stage, provider.ProviderId, CaptureDecisionOutcome.Succeeded);

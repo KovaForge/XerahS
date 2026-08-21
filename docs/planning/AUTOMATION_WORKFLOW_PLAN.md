@@ -74,7 +74,6 @@ graph TD
 **Lines**: 572-718 in WorkerTask.cs
 
 **Tasks** (configured via `AfterCaptureTasks` flags):
-- `BeautifyImage` - Border effects
 - `AddImageEffects` - Apply effects pipeline
 - `AnnotateImage` - Open annotation editor (BLOCKING)
 - `CopyImageToClipboard` - Copy raw image

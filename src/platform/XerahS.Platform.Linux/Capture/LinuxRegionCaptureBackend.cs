@@ -25,6 +25,7 @@
 using System;
 using System.Threading.Tasks;
 using ShareX.Avalonia.Platform.Abstractions.Capture;
+using XerahS.Platform.Linux.Services;
 
 namespace XerahS.Platform.Linux.Capture;
 
@@ -58,6 +59,19 @@ public sealed class LinuxRegionCaptureBackend : IRegionCaptureBackend
 
     private ICaptureStrategy SelectBestStrategy()
     {
+        var environment = LinuxRuntimeEnvironment.Detect();
+        if (environment.IsSandboxed && WaylandPortalStrategy.IsSupported())
+        {
+            try
+            {
+                return new WaylandPortalStrategy();
+            }
+            catch
+            {
+                // Fall through to session-specific native strategies.
+            }
+        }
+
         if (_sessionType == "wayland")
         {
             // Wayland: try portal, fall back to XWayland/CLI

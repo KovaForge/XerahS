@@ -41,7 +41,7 @@
                                                   MinWidth="240"
                                                   AutomationProperties.Name="Preferred Linux Region Selector">
                                             <ComboBox.ItemTemplate>
-                                                <DataTemplate>
+                                                <DataTemplate x:DataType="x:Object">
                                                     <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
                                                 </DataTemplate>
                                             </ComboBox.ItemTemplate>
@@ -50,6 +50,27 @@
                                                    FontSize="12"
                                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                                    TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <StackPanel Spacing="10" IsVisible="{Binding IsMacOSPlatform}">
+                                        <TextBlock Text="Preferred macOS region selector:" VerticalAlignment="Center"/>
+                                        <ComboBox ItemsSource="{Binding MacOSRegionSelectorPreferences}"
+                                                  SelectedItem="{Binding MacOSRegionSelectorPreference}"
+                                                  HorizontalAlignment="Stretch"
+                                                  MinWidth="240"
+                                                  AutomationProperties.Name="Preferred macOS Region Selector">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="x:Object">
+                                                    <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                        <TextBlock Text="Automatic follows Application Settings. Choose XerahS overlay or macOS native crosshair here to override this workflow only."
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
+                                        <CheckBox IsChecked="{Binding MacOSPlayCaptureSound}"
+                                                  Content="Play native macOS capture sound"
+                                                  AutomationProperties.Name="Play Native macOS Capture Sound"/>
                                     </StackPanel>
                                     <CheckBox IsChecked="{Binding ShowCursor}" Content="Show cursor in screenshots"/>
                                     
@@ -64,7 +85,7 @@
                                         <!-- Window Title -->
                                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Window title:" VerticalAlignment="Center" Margin="0,16,0,0"/>
                                         <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding CaptureCustomWindow, UpdateSourceTrigger=PropertyChanged}" 
-                                                 Watermark="Window title to capture (CustomWindow job)" Margin="0,16,0,0" AutomationProperties.Name="Window Title"/>
+                                                 PlaceholderText="Window title to capture (CustomWindow job)" Margin="0,16,0,0" AutomationProperties.Name="Window Title"/>
                                     </Grid>
 
                                     <StackPanel Spacing="10">
@@ -93,6 +114,8 @@
                                     <CheckBox IsChecked="{Binding ApplyImageEffects}" Content="Apply image effects"/>
                                     <CheckBox IsChecked="{Binding AnnotateMedia}" Content="Annotate media"/>
                                     <CheckBox IsChecked="{Binding ShowAfterCaptureWindow}" Content="Show after capture window"/>
+                                    <CheckBox IsChecked="{Binding DoOCR}" Content="OCR text recognition"/>
+                                    <CheckBox IsChecked="{Binding CopyOcrTextToClipboard}" Content="Copy OCR text to clipboard"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -109,7 +132,7 @@
                             <StackPanel Spacing="16">
                                 <Grid ColumnDefinitions="Auto, 16, *, Auto">
                                     <TextBlock Grid.Column="0" Text="Folder:" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Column="2" Text="{Binding IndexerFolderPath}" Watermark="Folder to index" AutomationProperties.Name="Indexer Folder"/>
+                                    <TextBox Grid.Column="2" Text="{Binding IndexerFolderPath}" PlaceholderText="Folder to index" AutomationProperties.Name="Indexer Folder"/>
                                     <Button Grid.Column="3" Content="Browse..." Command="{Binding BrowseIndexerFolderCommand}" Margin="16,0,0,0"/>
                                 </Grid>
 
@@ -214,14 +237,14 @@
                             <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
                                 <StackPanel Spacing="16">
                                     <TextBlock Text="Select the destination for this task:" VerticalAlignment="Center"/>
-                                    <ComboBox ItemsSource="{Binding DataContext.AvailableDestinations, RelativeSource={RelativeSource AncestorType={x:Type views:WorkflowEditorView}}}"
-                                              SelectedItem="{Binding DataContext.SelectedDestination, RelativeSource={RelativeSource AncestorType={x:Type views:WorkflowEditorView}}}"
+                                    <ComboBox ItemsSource="{Binding $parent[views:WorkflowEditorView].((vm:WorkflowEditorViewModel)DataContext).AvailableDestinations}"
+                                              SelectedItem="{Binding $parent[views:WorkflowEditorView].((vm:WorkflowEditorViewModel)DataContext).SelectedDestination}"
                                               HorizontalAlignment="Stretch"
-                                              AutomationProperties.Name="Select Destination">
+                                              AutomationProperties.Name="Select Destination"
+                                              ToolTip.Tip="Auto tries your configured uploaders in order until one succeeds. Any other destination uploads only to that uploader (configure it under Destination Settings). See documentation for details on image uploads and fallback behavior.">
                                         <ComboBox.ItemTemplate>
-                                            <DataTemplate>
+                                            <DataTemplate x:DataType="vm:UploaderInstanceViewModel">
                                                  <StackPanel Orientation="Horizontal" Spacing="8">
-                                                     <Image Source="{Binding Icon}" Width="16" Height="16"/>
                                                      <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
                                                  </StackPanel>
                                             </DataTemplate>

@@ -64,7 +64,7 @@ public partial class ImageAnalyzerWindow : SurfaceWindow
 
         if (_viewModel != null && files.Count > 0)
         {
-            var path = files[0].Path.LocalPath;
+            var path = files[0].TryGetLocalPath();
             if (!string.IsNullOrEmpty(path))
             {
                 _viewModel.SetInputFile(path);

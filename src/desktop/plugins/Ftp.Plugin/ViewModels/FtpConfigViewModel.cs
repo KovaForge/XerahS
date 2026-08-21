@@ -32,6 +32,12 @@ namespace ShareX.Ftp.Plugin.ViewModels;
 
 public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewModel
 {
+    private FTPProtocol _previousProtocol = FTPProtocol.FTP;
+    private FTPSEncryption _previousFtpsEncryptionMode = FTPSEncryption.Explicit;
+    private const FTPProtocol DefaultProtocol = FTPProtocol.FTP;
+    private const BrowserProtocol DefaultBrowserProtocol = BrowserProtocol.http;
+    private const FTPSEncryption DefaultFtpsEncryptionMode = FTPSEncryption.Explicit;
+
     [ObservableProperty]
     private string _accountName = "FTP Account";
 
@@ -85,8 +91,25 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
 
     partial void OnProtocolChanged(FTPProtocol value)
     {
+        if (Port == GetDefaultPort(_previousProtocol, _previousFtpsEncryptionMode))
+        {
+            Port = GetDefaultPort(value, FtpsEncryptionMode);
+        }
+
+        _previousProtocol = value;
+
         OnPropertyChanged(nameof(ShowFtpsOptions));
         OnPropertyChanged(nameof(ShowSftpKeyOptions));
+    }
+
+    partial void OnFtpsEncryptionModeChanged(FTPSEncryption value)
+    {
+        if (Protocol == FTPProtocol.FTPS && Port == GetDefaultPort(FTPProtocol.FTPS, _previousFtpsEncryptionMode))
+        {
+            Port = GetDefaultPort(FTPProtocol.FTPS, value);
+        }
+
+        _previousFtpsEncryptionMode = value;
     }
 
     public IReadOnlyList<FTPProtocol> ProtocolOptions { get; } = new[] { FTPProtocol.FTP, FTPProtocol.FTPS, FTPProtocol.SFTP };
@@ -100,21 +123,26 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
             var config = JsonConvert.DeserializeObject<FtpConfigModel>(json);
             if (config != null)
             {
+                FTPProtocol protocol = NormalizeEnum(config.Protocol, DefaultProtocol);
+                BrowserProtocol browserProtocol = NormalizeEnum(config.BrowserProtocol, DefaultBrowserProtocol);
+                FTPSEncryption ftpsEncryptionMode = NormalizeEnum(config.FTPSEncryption, DefaultFtpsEncryptionMode);
+
                 AccountName = config.AccountName ?? "FTP Account";
-                Protocol = config.Protocol;
-                Host = config.Host ?? string.Empty;
-                Port = config.Port;
+                Protocol = protocol;
+                Host = NormalizeHost(config.Host);
                 Username = config.Username ?? string.Empty;
                 Password = config.Password ?? string.Empty;
                 IsActive = config.IsActive;
                 SubFolderPath = config.SubFolderPath ?? string.Empty;
-                BrowserProtocol = config.BrowserProtocol;
+                BrowserProtocol = browserProtocol;
                 HttpHomePath = config.HttpHomePath ?? string.Empty;
                 HttpHomePathAutoAddSubFolderPath = config.HttpHomePathAutoAddSubFolderPath;
                 HttpHomePathNoExtension = config.HttpHomePathNoExtension;
-                FtpsEncryptionMode = config.FTPSEncryption;
+                FtpsEncryptionMode = ftpsEncryptionMode;
+                Port = IsValidPort(config.Port) ? config.Port : GetDefaultPort(protocol, ftpsEncryptionMode);
                 Keypath = config.Keypath ?? string.Empty;
                 Passphrase = config.Passphrase ?? string.Empty;
+                StatusMessage = null;
             }
         }
         catch
@@ -129,7 +157,7 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
         {
             AccountName = AccountName ?? "FTP Account",
             Protocol = Protocol,
-            Host = Host ?? string.Empty,
+            Host = NormalizeHost(Host),
             Port = Port,
             Username = Username ?? string.Empty,
             Password = Password ?? string.Empty,
@@ -153,12 +181,51 @@ public partial class FtpConfigViewModel : ObservableObject, IUploaderConfigViewM
             StatusMessage = "Host is required.";
             return false;
         }
-        if (Protocol == FTPProtocol.SFTP && string.IsNullOrWhiteSpace(Keypath) && string.IsNullOrWhiteSpace(Password))
+
+        if (!IsValidPort(Port))
         {
-            StatusMessage = "SFTP requires either a key file path or password.";
+            StatusMessage = "Port must be between 1 and 65535.";
             return false;
         }
+
+        if (Protocol == FTPProtocol.SFTP)
+        {
+            string keypath = Keypath?.Trim() ?? string.Empty;
+            bool hasPassword = !string.IsNullOrWhiteSpace(Password);
+
+            if (string.IsNullOrWhiteSpace(keypath) && !hasPassword)
+            {
+                StatusMessage = "SFTP requires either a key file path or password.";
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(keypath) && !File.Exists(keypath) && !hasPassword)
+            {
+                StatusMessage = "SFTP key file does not exist.";
+                return false;
+            }
+        }
+
         StatusMessage = null;
         return true;
+    }
+
+    private static string NormalizeHost(string? host) => host?.Trim() ?? string.Empty;
+
+    private static int GetDefaultPort(FTPProtocol protocol, FTPSEncryption ftpsEncryptionMode)
+    {
+        return protocol switch
+        {
+            FTPProtocol.SFTP => 22,
+            FTPProtocol.FTPS when ftpsEncryptionMode == FTPSEncryption.Implicit => 990,
+            _ => 21
+        };
+    }
+
+    private static bool IsValidPort(int port) => port is > 0 and <= 65535;
+
+    private static TEnum NormalizeEnum<TEnum>(TEnum value, TEnum fallback) where TEnum : struct, Enum
+    {
+        return Enum.IsDefined(typeof(TEnum), value) ? value : fallback;
     }
 }

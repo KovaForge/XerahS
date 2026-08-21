@@ -128,6 +128,31 @@ class Program
         {
             Console.WriteLine("Skipped RPM package (rpmbuild not available or build failed).");
         }
+
+        // 4. Create AppImage (portable, no install). Does not replace Flatpak.
+        if (string.Equals(Environment.GetEnvironmentVariable("XERAHS_SKIP_APPIMAGE"), "1", StringComparison.Ordinal))
+        {
+            Console.WriteLine("Skipped AppImage (XERAHS_SKIP_APPIMAGE=1).");
+        }
+        else
+        {
+            string appImageName = $"XerahS-{version}-{arch}.AppImage";
+            string appImagePath = Path.Combine(outputDir, appImageName);
+            string? iconSource = FindIconFile(publishDir);
+            if (XerahS.Packaging.AppImagePackager.TryCreate(publishDir, appImagePath, version, arch, iconSource, out string? appImageError))
+            {
+                Console.WriteLine($"Created AppImage: {appImageName}");
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                Console.WriteLine($"Error: AppImage packaging failed: {appImageError}");
+                Environment.Exit(1);
+            }
+            else
+            {
+                Console.WriteLine($"Skipped AppImage: {appImageError}");
+            }
+        }
     }
 
     static string? DetectVersionFromProps(string searchStartPath)
@@ -287,11 +312,20 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
             {
                 Console.WriteLine("Warning: Could not find Logo.png for desktop icon.");
             }
+
+            // Global hotkey (evdev) support: udev rule + optional polkit policy.
+            StageInputAccessAssets(dataRoot);
             // We will handle permissions when writing the tar
 
             // 2. Prepare control directory
             string controlRoot = Path.Combine(workDir, "control");
             Directory.CreateDirectory(controlRoot);
+
+            // Maintainer scripts to enable evdev global hotkeys after install/remove.
+            string postInstPath = Path.Combine(controlRoot, "postinst");
+            File.WriteAllText(postInstPath, DebPostInst.Replace("\r\n", "\n"));
+            string postRmPath = Path.Combine(controlRoot, "postrm");
+            File.WriteAllText(postRmPath, DebPostRm.Replace("\r\n", "\n"));
             
             long installedSizeKb = GetDirectorySize(installPath) / 1024;
             
@@ -308,6 +342,12 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
             // so it does not auto-install on non-GNOME desktops (KDE, XFCE, etc.) where tray works
             // natively without this package.
             sb.AppendLine("Suggests: gnome-shell-extension-appindicator");
+            // wl-clipboard (Wayland) and xclip (X11) back the CLI clipboard fallback used by
+            // non-UI contexts (CLI tool, watch-folder daemon, pre-window startup). Neither is
+            // installed on stock Ubuntu GNOME, and LinuxClipboardService degrades silently
+            // without them. apt installs Recommends by default, so this fixes out-of-box
+            // clipboard for background workflows while staying removable for minimal installs.
+            sb.AppendLine("Recommends: wl-clipboard, xclip");
             sb.AppendLine("Description: XerahS - Cross-platform screen capture tool");
             sb.AppendLine(" A modern, cross-platform successor to ShareX.");
             sb.AppendLine(" .");
@@ -335,6 +375,9 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
                 {
                     // Add control file
                     WriteTarFileEntry(tar, Path.Combine(controlRoot, "control"), "control", (UnixFileMode)Convert.ToInt32("644", 8));
+                    // Maintainer scripts must be executable (755).
+                    WriteTarFileEntry(tar, postInstPath, "postinst", (UnixFileMode)Convert.ToInt32("755", 8));
+                    WriteTarFileEntry(tar, postRmPath, "postrm", (UnixFileMode)Convert.ToInt32("755", 8));
                 }
                 controlTarGz = ms.ToArray();
             }
@@ -449,6 +492,9 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
                 Console.WriteLine("Warning: Could not find Logo.png for RPM icon.");
             }
 
+            // Global hotkey (evdev) support: udev rule + optional polkit policy.
+            StageInputAccessAssets(stagePackageRoot);
+
             // Create source tarball (contains xerahs-{version}/...)
             string sourceTarGz = Path.Combine(sourcesRoot, $"xerahs-{version}.tar.gz");
             if (Directory.Exists(stageRoot))
@@ -559,6 +605,8 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
         // required for the system tray icon. Suggests means it is displayed as optional by dnf
         // and not pulled in automatically, so KDE/XFCE users are unaffected.
         sb.AppendLine("Suggests: gnome-shell-extension-appindicator");
+        // wl-clipboard / xclip back CLI clipboard for daemon and pre-window workflows.
+        sb.AppendLine("Recommends: wl-clipboard, xclip");
         sb.AppendLine();
         sb.AppendLine("%description");
         sb.AppendLine("XerahS is a modern, cross-platform screen capture and sharing tool.");
@@ -580,11 +628,27 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
         sb.AppendLine("if [ -f %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon.exe ]; then chmod 755 %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon.exe; fi");
         sb.AppendLine("desktop-file-validate %{buildroot}/usr/share/applications/xerahs.desktop");
         sb.AppendLine();
+        sb.AppendLine("%post");
+        sb.AppendLine("# Enable evdev global hotkeys (XIP0080): ensure input group + reload udev.");
+        sb.AppendLine("if ! getent group input >/dev/null 2>&1; then groupadd --system input || true; fi");
+        sb.AppendLine("if command -v udevadm >/dev/null 2>&1; then");
+        sb.AppendLine("  udevadm control --reload-rules || true");
+        sb.AppendLine("  udevadm trigger --subsystem-match=input || true");
+        sb.AppendLine("fi");
+        sb.AppendLine();
+        sb.AppendLine("%postun");
+        sb.AppendLine("if command -v udevadm >/dev/null 2>&1; then");
+        sb.AppendLine("  udevadm control --reload-rules || true");
+        sb.AppendLine("  udevadm trigger --subsystem-match=input || true");
+        sb.AppendLine("fi");
+        sb.AppendLine();
         sb.AppendLine("%files");
         sb.AppendLine("%{_bindir}/xerahs");
         sb.AppendLine("/usr/lib/xerahs/**");
+        sb.AppendLine("/usr/lib/udev/rules.d/99-xerahs-input.rules");
         sb.AppendLine("%{_datadir}/applications/xerahs.desktop");
         sb.AppendLine("%{_datadir}/pixmaps/xerahs.png");
+        sb.AppendLine("%{_datadir}/polkit-1/actions/com.xerahs.input.policy");
         sb.AppendLine();
         sb.AppendLine("%changelog");
         sb.AppendLine($"* {DateTime.UtcNow:ddd MMM dd yyyy} ShareX Team <info@getsharex.com> - {version}-1");
@@ -857,8 +921,100 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
         return size;
     }
 
+    // Maintainer script run after the .deb is unpacked: ensure the input group exists
+    // and reload udev so the XerahS input rule (for evdev global hotkeys, XIP0080) applies.
+    const string DebPostInst = """
+        #!/bin/sh
+        set -e
+        if ! getent group input >/dev/null 2>&1; then
+            groupadd --system input || true
+        fi
+        if command -v udevadm >/dev/null 2>&1; then
+            udevadm control --reload-rules || true
+            udevadm trigger --subsystem-match=input || true
+        fi
+        echo "XerahS: For global hotkeys on Wayland/X11, add your user to the 'input' group:"
+        echo "  sudo usermod -aG input \$USER   (then log out and back in)"
+        echo "Verify with: xerahs doctor --linux-input"
+        exit 0
+
+        """;
+
+    const string DebPostRm = """
+        #!/bin/sh
+        set -e
+        if command -v udevadm >/dev/null 2>&1; then
+            udevadm control --reload-rules || true
+            udevadm trigger --subsystem-match=input || true
+        fi
+        exit 0
+
+        """;
+
+    static string? FindPackagingFile(string fileName)
+    {
+        string[] searchPaths =
+        {
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "packaging", fileName),
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", fileName),
+            Path.Combine(Environment.CurrentDirectory, "build", "linux", "packaging", fileName),
+            Path.Combine(Environment.CurrentDirectory, "..", "build", "linux", "packaging", fileName),
+        };
+
+        foreach (var path in searchPaths)
+        {
+            string fullPath = Path.GetFullPath(path);
+            if (File.Exists(fullPath))
+            {
+                return fullPath;
+            }
+        }
+
+        DirectoryInfo? dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir != null)
+        {
+            string candidate = Path.Combine(dir.FullName, "build", "linux", "packaging", fileName);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+            dir = dir.Parent;
+        }
+
+        return null;
+    }
+
+    static void StageInputAccessAssets(string dataRoot)
+    {
+        string udevDir = Path.Combine(dataRoot, "usr", "lib", "udev", "rules.d");
+        Directory.CreateDirectory(udevDir);
+        string? udevSrc = FindPackagingFile("99-xerahs-input.rules");
+        if (udevSrc != null)
+        {
+            File.Copy(udevSrc, Path.Combine(udevDir, "99-xerahs-input.rules"), true);
+            Console.WriteLine("Added udev rule for evdev global hotkeys (99-xerahs-input.rules).");
+        }
+        else
+        {
+            Console.WriteLine("Warning: 99-xerahs-input.rules not found; global hotkey udev rule will be missing.");
+        }
+
+        string polkitDir = Path.Combine(dataRoot, "usr", "share", "polkit-1", "actions");
+        Directory.CreateDirectory(polkitDir);
+        string? polkitSrc = FindPackagingFile("com.xerahs.input.policy");
+        if (polkitSrc != null)
+        {
+            File.Copy(polkitSrc, Path.Combine(polkitDir, "com.xerahs.input.policy"), true);
+            Console.WriteLine("Added polkit policy for optional input-access helper (com.xerahs.input.policy).");
+        }
+    }
+
     static string? FindIconFile(string publishDir)
     {
+        // Prefer the 512px app icon for AppImage / desktop pixmaps, then Logo.png.
+        string inPublish512 = Path.Combine(publishDir, "ShareX.iconset", "icon_512x512.png");
+        if (File.Exists(inPublish512)) return inPublish512;
+
         // Look for Logo.png in various locations
         // 1. Check if it's in the publish directory
         string inPublish = Path.Combine(publishDir, "Logo.png");
@@ -868,6 +1024,10 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
         // The packaging tool is in build/linux/XerahS.Packaging, icon is in src/desktop/app/XerahS.UI/Assets/Logo.png
         string[] searchPaths =
         {
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", "src", "desktop", "app", "XerahS.UI", "Assets", "ShareX.iconset", "icon_512x512.png"),
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "src", "desktop", "app", "XerahS.UI", "Assets", "ShareX.iconset", "icon_512x512.png"),
+            Path.Combine(Environment.CurrentDirectory, "src", "desktop", "app", "XerahS.UI", "Assets", "ShareX.iconset", "icon_512x512.png"),
+            Path.Combine(Environment.CurrentDirectory, "..", "src", "desktop", "app", "XerahS.UI", "Assets", "ShareX.iconset", "icon_512x512.png"),
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", "src", "desktop", "app", "XerahS.UI", "Assets", "Logo.png"),
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "src", "desktop", "app", "XerahS.UI", "Assets", "Logo.png"),
             Path.Combine(Environment.CurrentDirectory, "src", "desktop", "app", "XerahS.UI", "Assets", "Logo.png"),
@@ -887,11 +1047,24 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
         DirectoryInfo? dir = new DirectoryInfo(publishDir);
         while (dir != null)
         {
-            string candidate = Path.Combine(dir.FullName, "src", "XerahS.UI", "Assets", "Logo.png");
+            string candidate512 = Path.Combine(dir.FullName, "src", "desktop", "app", "XerahS.UI", "Assets", "ShareX.iconset", "icon_512x512.png");
+            if (File.Exists(candidate512))
+            {
+                return candidate512;
+            }
+
+            string candidate = Path.Combine(dir.FullName, "src", "desktop", "app", "XerahS.UI", "Assets", "Logo.png");
             if (File.Exists(candidate))
             {
                 return candidate;
             }
+
+            string legacyCandidate = Path.Combine(dir.FullName, "src", "XerahS.UI", "Assets", "Logo.png");
+            if (File.Exists(legacyCandidate))
+            {
+                return legacyCandidate;
+            }
+
             dir = dir.Parent;
         }
 

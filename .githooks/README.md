@@ -6,7 +6,12 @@ This directory contains Git hooks for the XerahS project to enforce code quality
 
 ### pre-commit
 
-Validates **GPL v3** license headers in all staged **C#**, **Swift**, and **Kotlin** source files. All require the **full GPL v3 license text** (same as C#), not just a short copyright line.
+Validates staged Markdown files for mojibake/BOM issues and validates **GPL v3** license headers in staged **C#**, **Swift**, and **Kotlin** source files. All require the **full GPL v3 license text** (same as C#), not just a short copyright line.
+
+**Markdown (`.md`):**
+- Rejects suspicious mojibake fragments such as corrupted dashes, arrows, checkmarks, and emoji byte sequences
+- Rejects UTF-8 BOM markers at the start of Markdown files
+- Uses `scripts/check-markdown-mojibake.py`
 
 **C# (`.cs`):**
 - Presence of `#region License Information (GPL v3)` tag
@@ -215,6 +220,9 @@ git add src/SomeFile.cs
 .githooks/pre-commit          # All platforms (launcher)
 pwsh .githooks/pre-commit.ps1 # Windows (PowerShell)
 .githooks/pre-commit.bash     # Linux/macOS (bash)
+
+# Run the Markdown checker directly
+python scripts/check-markdown-mojibake.py
 
 # Unstage files
 git reset HEAD

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- CoreCLR RyuJIT requires MAP_JIT under the hardened runtime; .NET apps crash at startup without this. -->
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+	<!-- Belt-and-braces for older CoreCLR codepaths / SkiaSharp shims; try removing after startup verification. -->
+	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+	<true/>
+	<!-- The plugin system loads externally built assemblies and native libraries that are not signed with our Team ID. -->
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+	<!-- Window management and clipboard image/file transfer send Apple events to System Events via osascript. -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+</dict>
+</plist>

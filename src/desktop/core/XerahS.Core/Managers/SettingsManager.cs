@@ -129,9 +129,9 @@ namespace XerahS.Core
             {
                 string uploadersConfigFolder = SettingsFolder;
 
-                if (Settings != null && !string.IsNullOrEmpty(Settings.CustomUploadersConfigPath))
+                if (Settings != null && !string.IsNullOrWhiteSpace(Settings.CustomUploadersConfigPath))
                 {
-                    uploadersConfigFolder = FileHelpers.ExpandFolderVariables(Settings.CustomUploadersConfigPath);
+                    uploadersConfigFolder = FileHelpers.GetAbsolutePath(Settings.CustomUploadersConfigPath);
                 }
 
                 string uploadersConfigFileName = GetUploadersConfigFileName(uploadersConfigFolder);
@@ -149,9 +149,9 @@ namespace XerahS.Core
             {
                 string workflowsConfigFolder = SettingsFolder;
 
-                if (Settings != null && !string.IsNullOrEmpty(Settings.CustomWorkflowsConfigPath))
+                if (Settings != null && !string.IsNullOrWhiteSpace(Settings.CustomWorkflowsConfigPath))
                 {
-                    workflowsConfigFolder = FileHelpers.ExpandFolderVariables(Settings.CustomWorkflowsConfigPath);
+                    workflowsConfigFolder = FileHelpers.GetAbsolutePath(Settings.CustomWorkflowsConfigPath);
                 }
 
                 string workflowsConfigFileName = GetWorkflowsConfigFileName(workflowsConfigFolder);
@@ -344,10 +344,7 @@ namespace XerahS.Core
 
         private static void InitializeRecentTasks()
         {
-            if (Settings.RecentTasks != null)
-            {
-                RecentTaskManager.Initialize(Settings.RecentTasks, Settings.RecentTasksMaxCount);
-            }
+            RecentTaskManager.Initialize(Settings.RecentTasks, Settings.RecentTasksMaxCount);
         }
 
         #endregion
@@ -364,11 +361,12 @@ namespace XerahS.Core
             SaveWorkflowsConfig();
         }
 
-        public static void SaveAllSettingsAsync()
+        public static async Task SaveAllSettingsAsync()
         {
-            SaveApplicationConfigAsync();
-            SaveUploadersConfigAsync();
-            SaveWorkflowsConfigAsync();
+            await Task.WhenAll(
+                SaveApplicationConfigAsync(),
+                SaveUploadersConfigAsync(),
+                SaveWorkflowsConfigAsync());
         }
 
         /// <summary>
@@ -381,10 +379,12 @@ namespace XerahS.Core
             RaiseSettingsChanged();
         }
 
-        public static void SaveApplicationConfigAsync()
+        public static async Task<bool> SaveApplicationConfigAsync()
         {
             UpdateRecentTasks();
-            Settings?.SaveAsync(ApplicationConfigFilePath);
+            bool saved = Settings != null && await Settings.SaveAsync(ApplicationConfigFilePath);
+            RaiseSettingsChanged();
+            return saved;
         }
 
         /// <summary>
@@ -394,12 +394,15 @@ namespace XerahS.Core
         {
             UploadersConfig?.SyncPolymorphicSettingsFromLegacy();
             UploadersConfig?.Save(UploadersConfigFilePath);
+            RaiseSettingsChanged();
         }
 
-        public static void SaveUploadersConfigAsync()
+        public static async Task<bool> SaveUploadersConfigAsync()
         {
             UploadersConfig?.SyncPolymorphicSettingsFromLegacy();
-            UploadersConfig?.SaveAsync(UploadersConfigFilePath);
+            bool saved = UploadersConfig != null && await UploadersConfig.SaveAsync(UploadersConfigFilePath);
+            RaiseSettingsChanged();
+            return saved;
         }
 
         /// <summary>
@@ -411,10 +414,11 @@ namespace XerahS.Core
             RaiseSettingsChanged();
         }
 
-        public static void SaveWorkflowsConfigAsync()
+        public static async Task<bool> SaveWorkflowsConfigAsync()
         {
-            WorkflowsConfig?.SaveAsync(WorkflowsConfigFilePath);
+            bool saved = WorkflowsConfig != null && await WorkflowsConfig.SaveAsync(WorkflowsConfigFilePath);
             RaiseSettingsChanged();
+            return saved;
         }
 
         private static void UpdateRecentTasks()
@@ -579,38 +583,32 @@ namespace XerahS.Core
         {
             try
             {
-                // Create timestamped backup folder
+                // Capture current resolved paths before resetting Settings so custom/machine-specific files are deleted correctly.
+                string applicationConfigFilePath = ApplicationConfigFilePath;
+                string uploadersConfigFilePath = UploadersConfigFilePath;
+                string workflowsConfigFilePath = WorkflowsConfigFilePath;
+                string secretsStoreFilePath = SecretsStoreFilePath;
+                string secretsKeyPath = Path.Combine(Path.GetDirectoryName(secretsStoreFilePath) ?? SettingsFolder, "SecretsStore.key");
+
+                // Create timestamped backup folder. Multiple reset requests can occur in the
+                // same second, so never reuse an existing reset backup directory and risk
+                // overwriting the previous backup's files.
                 var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-                var backupFolder = Path.Combine(BackupFolder, $"Reset_{timestamp}");
+                var backupFolder = GetUniqueResetBackupFolder(timestamp);
                 Directory.CreateDirectory(backupFolder);
 
-                // Backup and delete ApplicationConfig
-                if (File.Exists(ApplicationConfigFilePath))
-                {
-                    File.Copy(ApplicationConfigFilePath,
-                        Path.Combine(backupFolder, ApplicationConfigFileName), overwrite: true);
-                    File.Delete(ApplicationConfigFilePath);
-                }
+                BackupAndDeleteFile(applicationConfigFilePath, backupFolder, ApplicationConfigFileName);
+                BackupAndDeleteFile(uploadersConfigFilePath, backupFolder, Path.GetFileName(uploadersConfigFilePath));
+                BackupAndDeleteFile(workflowsConfigFilePath, backupFolder, Path.GetFileName(workflowsConfigFilePath));
+                BackupAndDeleteFile(secretsStoreFilePath, backupFolder, Path.GetFileName(secretsStoreFilePath));
+                BackupAndDeleteFile(secretsKeyPath, backupFolder, Path.GetFileName(secretsKeyPath));
+
                 Settings = new ApplicationConfig();
-
-                // Backup and delete UploadersConfig
-                if (File.Exists(UploadersConfigFilePath))
-                {
-                    File.Copy(UploadersConfigFilePath,
-                        Path.Combine(backupFolder, UploadersConfigFileName), overwrite: true);
-                    File.Delete(UploadersConfigFilePath);
-                }
                 UploadersConfig = new UploadersConfig();
-
-                // Backup and delete WorkflowsConfig
-                if (File.Exists(WorkflowsConfigFilePath))
-                {
-                    File.Copy(WorkflowsConfigFilePath,
-                        Path.Combine(backupFolder, WorkflowsConfigFileName), overwrite: true);
-                    File.Delete(WorkflowsConfigFilePath);
-                }
                 WorkflowsConfig = new WorkflowsConfig();
+                RecentTaskManager.Clear();
                 SyncDefaultTaskSettings();
+                XerahS.Core.Uploaders.ProviderContextManager.ResetProviderContext();
 
                 DebugHelper.WriteLine($"Settings reset successfully. Backup created: {backupFolder}");
                 return true;
@@ -622,17 +620,47 @@ namespace XerahS.Core
             }
         }
 
+        private static string GetUniqueResetBackupFolder(string timestamp)
+        {
+            string backupFolder = Path.Combine(BackupFolder, $"Reset_{timestamp}");
+
+            if (!Directory.Exists(backupFolder))
+            {
+                return backupFolder;
+            }
+
+            int suffix = 1;
+            string uniqueBackupFolder;
+            do
+            {
+                uniqueBackupFolder = $"{backupFolder} ({suffix++})";
+            }
+            while (Directory.Exists(uniqueBackupFolder));
+
+            return uniqueBackupFolder;
+        }
+
+        private static void BackupAndDeleteFile(string filePath, string backupFolder, string backupFileName)
+        {
+            if (!File.Exists(filePath))
+            {
+                return;
+            }
+
+            File.Copy(filePath, Path.Combine(backupFolder, backupFileName), overwrite: true);
+            File.Delete(filePath);
+        }
+
 
 
         public static void LoadAllSettings()
         {
+            EnsureDirectoriesExist();
             LoadApplicationConfig();
             LoadUploadersConfig();
             LoadWorkflowsConfig();
-
-
-            // Initialize PathsManager
-            EnsureDirectoriesExist();
+            InitializeRecentTasks();
+            XerahS.Core.Uploaders.ProviderContextManager.EnsureProviderContext();
         }
 
         public static void EnsureDirectoriesExist()

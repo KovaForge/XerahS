@@ -50,8 +50,26 @@ public sealed class LinuxHotkeyService : IHotkeyService
     private static readonly NativeMethods.XErrorHandler _errorHandler = HandleXError;
 
     public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
+    public event EventHandler? HotkeysChanged
+    {
+        add { }
+        remove { }
+    }
     public bool IsSuspended { get; set; }
     public Task<bool> ShowInteractiveConfigurationAsync() => Task.FromResult(false);
+
+    public HotkeyDiagnostics GetDiagnostics()
+    {
+        if (_display == IntPtr.Zero)
+        {
+            return new HotkeyDiagnostics(
+                HotkeyBackendState.Unavailable,
+                "XGrabKey (X11)",
+                "Unable to open the X11 display. Global hotkeys are disabled.");
+        }
+
+        return new HotkeyDiagnostics(HotkeyBackendState.Native, "XGrabKey (X11)", null);
+    }
 
     public LinuxHotkeyService()
     {
@@ -121,7 +139,7 @@ public sealed class LinuxHotkeyService : IHotkeyService
                     continue;
                 }
 
-                if ((keyEvent.state & registration.BaseModifierMask) == registration.BaseModifierMask)
+                if (IsModifierMatch(keyEvent.state, registration.BaseModifierMask))
                 {
                     triggered = registration.Info;
                     break;
@@ -294,6 +312,14 @@ public sealed class LinuxHotkeyService : IHotkeyService
         }
     }
 
+    internal static bool IsModifierMatch(uint state, uint baseModifierMask)
+    {
+        const uint ignoredModifierMask = NativeMethods.LockMask | NativeMethods.Mod2Mask;
+        return (state & ~ignoredModifierMask) == baseModifierMask;
+    }
+
+    internal static uint GetModifierMaskForTesting(KeyModifiers modifiers) => GetModifierMask(modifiers);
+
     private static uint GetModifierMask(KeyModifiers modifiers)
     {
         uint mask = 0;
@@ -448,6 +474,7 @@ public sealed class LinuxHotkeyService : IHotkeyService
         { Key.Oem5, "backslash" },
         { Key.Oem6, "bracketright" },
         { Key.Oem7, "apostrophe" },
+        { Key.Oem102, "backslash" },
         { Key.Apps, "Menu" },
         { Key.Divide, "KP_Divide" },
         { Key.Multiply, "KP_Multiply" },

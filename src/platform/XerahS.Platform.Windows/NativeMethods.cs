@@ -140,6 +140,9 @@ namespace XerahS.Platform.Windows
         public static extern IntPtr GetParent(IntPtr hWnd);
 
         [DllImport("user32.dll")]
+        public static extern IntPtr WindowFromPoint(POINT Point);
+
+        [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool IsIconic(IntPtr hWnd);
 
@@ -492,6 +495,9 @@ public static extern IntPtr GetModuleHandle(string? lpModuleName);
             GetClassName(hWnd, sb, sb.Capacity);
             return sb.ToString();
         }
+
+        [DllImport("user32.dll")]
+        public static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
 
         [DllImport("user32.dll")]
         public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);

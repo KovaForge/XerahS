@@ -45,71 +45,80 @@ private let s3Regions: [S3RegionOption] = [
 ]
 
 struct S3ConfigScreen: View {
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject var viewModel: S3ConfigViewModel
-    var onBack: () -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Button("Back", action: onBack)
-
-                Text("Amazon S3")
-                    .font(.title2)
-
-                if let err = viewModel.validationError {
-                    Text(err)
-                        .font(.caption)
+        Form {
+            if let err = viewModel.validationError {
+                Section {
+                    Label(err, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
                 }
+            }
 
+            Section {
                 TextField("Access Key ID", text: $viewModel.accessKeyId)
-                    .textFieldStyle(.roundedBorder)
-                    .autocapitalization(.none)
+                    .textInputAutocapitalization(.never)
                     .onChange(of: viewModel.accessKeyId) { _, _ in viewModel.clearValidationError() }
 
                 SecureField("Secret Access Key", text: $viewModel.secretAccessKey)
-                    .textFieldStyle(.roundedBorder)
                     .onChange(of: viewModel.secretAccessKey) { _, _ in viewModel.clearValidationError() }
 
                 TextField("Bucket Name", text: $viewModel.bucketName)
-                    .textFieldStyle(.roundedBorder)
-                    .autocapitalization(.none)
+                    .textInputAutocapitalization(.never)
                     .onChange(of: viewModel.bucketName) { _, _ in viewModel.clearValidationError() }
+            } header: {
+                Text("Credentials")
+            } footer: {
+                Text("These fields are required before the mobile app can sign S3 requests.")
+            }
 
+            Section {
                 Picker("Region", selection: $viewModel.regionIndex) {
                     ForEach(Array(s3Regions.enumerated()), id: \.offset) { index, option in
                         Text(option.displayName).tag(index)
                     }
                 }
-                .pickerStyle(.menu)
 
-                TextField("Custom Endpoint (optional)", text: $viewModel.customEndpoint)
-                    .textFieldStyle(.roundedBorder)
-                    .autocapitalization(.none)
-                Text("Override S3 API endpoint for MinIO or other S3-compatible storage. Leave blank for AWS.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                TextField("Custom Endpoint", text: $viewModel.customEndpoint, prompt: Text("https://minio.example.com"))
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
 
+                Toggle("Use path-style endpoint URLs", isOn: $viewModel.usePathStyle)
+            } header: {
+                Text("Endpoint")
+            } footer: {
+                Text("Path-style URLs are recommended for dotted bucket names and S3-compatible endpoints where TLS fails with virtual-host style URLs.")
+            }
+
+            Section {
                 Toggle("Use Custom Domain (CDN)", isOn: $viewModel.useCustomDomain)
+
                 if viewModel.useCustomDomain {
-                    TextField("Custom domain URL", text: $viewModel.customDomain, prompt: Text("https://cdn.example.com"))
-                        .textFieldStyle(.roundedBorder)
-                        .autocapitalization(.none)
+                    TextField("Custom Domain", text: $viewModel.customDomain, prompt: Text("https://cdn.example.com"))
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.URL)
                 }
 
                 Toggle("Signed payload", isOn: $viewModel.signedPayload)
-                Text("Recommended: sign request body (avoids 403 when bucket blocks public ACLs).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
                 Toggle("Make uploads public (public-read ACL)", isOn: $viewModel.setPublicAcl)
-
-                Button("Save") {
-                    if viewModel.save() { onBack() }
-                }
-                .buttonStyle(.borderedProminent)
+            } header: {
+                Text("Delivery")
+            } footer: {
+                Text("Signed payloads avoid 403 responses on stricter bucket policies.")
             }
-            .padding()
+        }
+        .navigationTitle("Amazon S3")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    if viewModel.save() {
+                        dismiss()
+                    }
+                }
+            }
         }
         .onAppear { viewModel.load() }
     }
@@ -121,6 +130,7 @@ final class S3ConfigViewModel: ObservableObject {
     @Published var bucketName: String = ""
     @Published var regionIndex: Int = 0
     @Published var customEndpoint: String = ""
+    @Published var usePathStyle: Bool = false
     @Published var useCustomDomain: Bool = false
     @Published var customDomain: String = ""
     @Published var signedPayload: Bool = true
@@ -139,6 +149,7 @@ final class S3ConfigViewModel: ObservableObject {
         secretAccessKey = config.secretAccessKey
         bucketName = config.bucketName
         customEndpoint = config.customEndpoint
+        usePathStyle = config.usePathStyle
         useCustomDomain = config.useCustomDomain
         customDomain = config.customDomain
         signedPayload = config.signedPayload
@@ -162,6 +173,7 @@ final class S3ConfigViewModel: ObservableObject {
         config.bucketName = bucket
         config.region = region
         config.customEndpoint = customEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+        config.usePathStyle = usePathStyle
         config.useCustomDomain = useCustomDomain
         config.customDomain = customDomain.trimmingCharacters(in: .whitespacesAndNewlines)
         config.signedPayload = signedPayload

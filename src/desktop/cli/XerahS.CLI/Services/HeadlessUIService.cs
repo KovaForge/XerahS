@@ -49,11 +49,11 @@ namespace XerahS.CLI.Services
             return Task.CompletedTask;
         }
 
-        public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false)
+        public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false)
         {
             Console.Error.WriteLine("[WARNING] Image editor not available in CLI mode.");
             Console.Error.WriteLine("Image dimensions: {0}x{1}", image.Width, image.Height);
-            return Task.FromResult<SKBitmap?>(image);
+            return Task.FromResult<SKBitmap?>(null);
         }
 
         public async Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
@@ -65,6 +65,13 @@ namespace XerahS.CLI.Services
                 try
                 {
                     string resolvedVideoPath = FileHelpers.GetAbsolutePath(videoPath);
+                    VideoEditorLaunchPolicy launchPolicy = VideoEditorLaunchPolicyResolver.GetCurrentPolicy();
+                    if (!launchPolicy.AllowInteractiveLaunch)
+                    {
+                        Console.Error.WriteLine("[VideoEditor] The video editor is unavailable on this platform/session.");
+                        return null;
+                    }
+
                     var ffmpegResolution = VideoEditorFfmpegResolver.Resolve(ffmpegPath, detectedFfmpegPath);
 
                     LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
@@ -95,7 +102,9 @@ namespace XerahS.CLI.Services
                         VideoPath = resolvedVideoPath,
                         FFmpegPath = ffmpegResolution.ConfiguredPath,
                         FFprobePath = ffprobePath,
-                        Theme = ResolveTheme()
+                        WindowTitle = AppResources.AppName,
+                        Theme = ResolveTheme(),
+                        EnableLinuxWaylandExplicitSyncMitigation = launchPolicy.EnableLinuxWaylandExplicitSyncMitigation
                     };
 
                     var events = new VideoEditorEvents
@@ -141,19 +150,50 @@ namespace XerahS.CLI.Services
             });
         }
 
-        public Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel)> ShowAfterCaptureWindowAsync(
+        public Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel, AfterCaptureQuickAction QuickAction)> ShowAfterCaptureWindowAsync(
             SKBitmap image,
             AfterCaptureTasks afterCapture,
             AfterUploadTasks afterUpload)
         {
             // Return the tasks as-is without modification (no UI to change them)
             Console.WriteLine("[INFO] After-capture window not available in CLI mode. Using configured defaults.");
-            return Task.FromResult((afterCapture, afterUpload, false));
+            return Task.FromResult((afterCapture, afterUpload, false, AfterCaptureQuickAction.None));
         }
 
         public Task ShowAfterUploadWindowAsync(AfterUploadWindowInfo info)
         {
             Console.WriteLine("[INFO] After-upload window not available in CLI mode.");
+            return Task.CompletedTask;
+        }
+
+        public Task ShowOcrWindowAsync(SKBitmap image)
+        {
+            Console.Error.WriteLine("[WARNING] OCR window not available in CLI mode.");
+            Console.Error.WriteLine("Image dimensions: {0}x{1}", image.Width, image.Height);
+            return Task.CompletedTask;
+        }
+
+        public Task ShowAnalyzerWindowAsync(SKBitmap image)
+        {
+            Console.Error.WriteLine("[WARNING] Analyzer window not available in CLI mode.");
+            return Task.CompletedTask;
+        }
+
+        public Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection)
+        {
+            Console.WriteLine("[INFO] Send-to prompt not available in CLI mode. Falling back to upload.");
+
+            return Task.FromResult(new SendToPromptResult
+            {
+                Action = SendToAction.UploadNow,
+                IsFallback = true,
+                Reason = "CLI mode cannot display the Send-to prompt."
+            });
+        }
+
+        public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection, SendToPromptResult? decision = null)
+        {
+            Console.WriteLine($"[INFO] Send-to action '{action}' is not available in CLI mode.");
             return Task.CompletedTask;
         }
 

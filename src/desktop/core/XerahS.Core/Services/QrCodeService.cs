@@ -102,10 +102,10 @@ public static class QrCodeService
             var reader = new ZXing.SkiaSharp.BarcodeReader
             {
                 AutoRotate = true,
-                TryInverted = true,
                 Options = new DecodingOptions
                 {
                     TryHarder = true,
+                    TryInverted = true,
                     PossibleFormats = new List<BarcodeFormat> { BarcodeFormat.QR_CODE }
                 }
             };

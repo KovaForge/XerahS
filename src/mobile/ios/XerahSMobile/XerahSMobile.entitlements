@@ -4,7 +4,11 @@
 <dict>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.getsharex.xerahs</string>
+		<string>group.com.xerahs.xerahs</string>
+	</array>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)com.xerahs.xerahs.mobile</string>
 	</array>
 </dict>
 </plist>

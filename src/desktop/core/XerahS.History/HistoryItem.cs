@@ -44,6 +44,56 @@ namespace XerahS.History
         public Dictionary<string, string?> Tags { get; set; } = new Dictionary<string, string?>();
 
         [JsonIgnore]
+        public string? AnnotationSidecarPath
+        {
+            get
+            {
+                if (Tags != null && Tags.TryGetValue(nameof(AnnotationSidecarPath), out string? value))
+                {
+                    return value;
+                }
+
+                return null;
+            }
+            set
+            {
+                if (Tags == null)
+                {
+                    Tags = new Dictionary<string, string?>();
+                }
+
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    Tags[nameof(AnnotationSidecarPath)] = value;
+                }
+                else
+                {
+                    Tags.Remove(nameof(AnnotationSidecarPath));
+                }
+            }
+        }
+
+        [JsonIgnore]
+        public bool HasEditableAnnotations
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(AnnotationSidecarPath) && System.IO.File.Exists(AnnotationSidecarPath))
+                    return true;
+
+                if (!string.IsNullOrWhiteSpace(FilePath))
+                {
+                    string defaultSidecar = System.IO.Path.Combine(
+                        System.IO.Path.GetDirectoryName(FilePath) ?? string.Empty,
+                        System.IO.Path.GetFileNameWithoutExtension(FilePath) + ".xann");
+                    return System.IO.File.Exists(defaultSidecar);
+                }
+
+                return false;
+            }
+        }
+
+        [JsonIgnore]
         public string? TagsWindowTitle
         {
             get

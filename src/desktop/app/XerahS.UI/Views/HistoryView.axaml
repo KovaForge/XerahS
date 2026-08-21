@@ -22,13 +22,49 @@
                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
             <StackPanel Spacing="12">
                 <StackPanel Orientation="Horizontal" Spacing="16">
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             PlaceholderText="Search history"
+                             MinWidth="260"
+                             AutomationProperties.Name="Search History"/>
+                    <Button Content="Search"
+                            Command="{Binding SearchHistoryCommand}"
+                            IsEnabled="{Binding !IsLoading}"
+                            AutomationProperties.Name="Search History"/>
+                    <Button Content="Clear"
+                            Command="{Binding ClearSearchCommand}"
+                            IsVisible="{Binding IsSearchActive}"
+                            IsEnabled="{Binding !IsLoading}"
+                            AutomationProperties.Name="Clear History Search"/>
+
+                    <Separator Classes="vertical" Height="20"/>
+
                     <Button Content="Refresh" Command="{Binding RefreshHistoryCommand}" 
                             IsEnabled="{Binding !IsLoading}"
                             AutomationProperties.Name="Refresh History"/>
-                    <Button Content="{Binding IsGridView, Converter={x:Static vm:HistoryViewModel.ViewToggleConverter}}" 
-                            Command="{Binding ToggleViewCommand}"
+                    <!-- List View button: shown when grid view is active -->
+                    <Button Command="{Binding ToggleViewCommand}"
                             IsEnabled="{Binding !IsLoading}"
-                            AutomationProperties.Name="Toggle View Mode"/>
+                            IsVisible="{Binding IsGridView}"
+                            AutomationProperties.Name="Switch to List View">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="&#xE1D1;"
+                                       FontFamily="avares://ShareX.ImageEditor/Assets#lucide"
+                                       FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="List View" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <!-- Grid View button: shown when list view is active -->
+                    <Button Command="{Binding ToggleViewCommand}"
+                            IsEnabled="{Binding !IsLoading}"
+                            IsVisible="{Binding !IsGridView}"
+                            AutomationProperties.Name="Switch to Grid View">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="&#xE4FF;"
+                                       FontFamily="avares://ShareX.ImageEditor/Assets#lucide"
+                                       FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="Grid View" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     
                     <Separator Classes="vertical" Height="20"/>
 
@@ -36,11 +72,6 @@
                                VerticalAlignment="Center" 
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                     
-                    <ProgressBar IsIndeterminate="True" 
-                                 Width="100" Height="2" 
-                                 IsVisible="{Binding IsLoadingThumbnails}"
-                                 VerticalAlignment="Center"
-                                 AutomationProperties.Name="Loading Thumbnails"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal"
@@ -119,8 +150,22 @@
                         <StackPanel Spacing="12">
                             <!-- Thumbnail -->
                             <Border Height="140" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" CornerRadius="4" ClipToBounds="True">
-                                <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}" 
-                                       Stretch="Uniform"/>
+                                <Grid>
+                                    <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}"
+                                           Stretch="Uniform"/>
+                                    <Border HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            Margin="6"
+                                            Padding="6,3"
+                                            CornerRadius="4"
+                                            Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                            IsVisible="{Binding HasEditableAnnotations}"
+                                            AutomationProperties.Name="Editable annotations available">
+                                        <TextBlock Text="Edit"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"/>
+                                    </Border>
+                                </Grid>
                             </Border>
                             <!-- Info -->
                             <StackPanel Spacing="4">
@@ -161,11 +206,6 @@
                  SelectionMode="Multiple"
                  SelectionChanged="OnHistorySelectionChanged"
                  AutomationProperties.Name="History List">
-            <ListBox.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <StackPanel Spacing="2"/>
-                </ItemsPanelTemplate>
-            </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="history:HistoryItem">
                     <Border Classes="history-list-item"
@@ -187,8 +227,18 @@
                         <Grid ColumnDefinitions="48, *, 160, 220">
                             <!-- Thumbnail -->
                             <Border Grid.Column="0" Width="36" Height="36" Background="{DynamicResource SolidBackgroundFillColorBaseBrush}" CornerRadius="4" ClipToBounds="True">
-                                <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}" 
-                                       Stretch="UniformToFill"/>
+                                <Grid>
+                                    <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}"
+                                           Stretch="UniformToFill"/>
+                                    <Border HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            Width="10"
+                                            Height="10"
+                                            CornerRadius="4"
+                                            Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                            IsVisible="{Binding HasEditableAnnotations}"
+                                            AutomationProperties.Name="Editable annotations available"/>
+                                </Grid>
                             </Border>
                             <!-- Filename -->
                             <TextBlock Grid.Column="1" Text="{Binding FileName}" 

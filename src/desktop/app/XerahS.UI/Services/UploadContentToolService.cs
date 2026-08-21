@@ -24,8 +24,12 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
+using Avalonia.Threading;
+using System.Linq;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.SendTo;
+using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 
@@ -35,27 +39,89 @@ public static class UploadContentToolService
 {
     private static UploadContentWindow? _window;
 
-    public static Task HandleWorkflowAsync(WorkflowType job, Window? owner)
+    /// <param name="background">
+    /// When <c>true</c>, the window is shown without stealing focus (used by the
+    /// clipboard-monitor auto-open path so menus and popups are not disrupted).
+    /// </param>
+    public static Task HandleWorkflowAsync(WorkflowType job, Window? owner, bool background = false)
     {
-        ShowWindow(owner);
+        var window = ShowWindow(owner, background);
 
         if (job is WorkflowType.ClipboardUploadWithContentViewer or WorkflowType.ClipboardViewer)
         {
-            _window?.ViewModel?.LoadFromClipboardCommand.Execute(null);
+            window.ViewModel?.LoadFromClipboardCommand.Execute(null);
         }
 
         return Task.CompletedTask;
     }
 
-    private static void ShowWindow(Window? owner)
+    public static async Task ShowSelectionAsync(
+        IEnumerable<string>? filePaths,
+        IEnumerable<string>? folderPaths,
+        Window? owner,
+        SendToFolderPolicy folderPolicy = SendToFolderPolicy.IncludeTopLevelFiles)
+    {
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var window = ShowWindow(owner, background: false);
+            var viewModel = window.ViewModel;
+            if (viewModel == null)
+            {
+                return;
+            }
+
+            UploadQueueItem? firstAddedItem = null;
+            int addedFileCount = 0;
+            int addedFolderCount = 0;
+
+            SendToSelection selection = SendToSelectionClassifier.Create(
+                filePaths ?? Enumerable.Empty<string>(),
+                folderPaths ?? Enumerable.Empty<string>());
+            SendToResolvedFiles resolvedFiles = SendToPolicyResolver.ResolveFiles(selection, folderPolicy);
+
+            foreach (var filePath in resolvedFiles.FilePaths)
+            {
+                var addedItem = viewModel.AddFileItem(filePath);
+                if (addedItem != null)
+                {
+                    firstAddedItem ??= addedItem;
+                    addedFileCount++;
+                }
+            }
+
+            addedFolderCount = selection.FolderPaths.Count;
+
+            if (firstAddedItem != null)
+            {
+                viewModel.SelectedItem = firstAddedItem;
+            }
+
+            DebugHelper.WriteLine(
+                $"UploadContent: Seeded Send-to selection with {addedFileCount} resolved file(s), " +
+                $"{addedFolderCount} folder item(s), folderPolicy={folderPolicy}, " +
+                $"folderDerivedFiles={resolvedFiles.FolderFileCount}, failedFolders={resolvedFiles.FailedFolderCount}.");
+        });
+    }
+
+    private static UploadContentWindow ShowWindow(Window? owner, bool background)
     {
         if (_window != null)
         {
             try
             {
+                if (_window.WindowState == WindowState.Minimized)
+                {
+                    _window.WindowState = WindowState.Normal;
+                }
+
                 _window.Show();
-                _window.Activate();
-                return;
+
+                if (!background)
+                {
+                    _window.Activate();
+                }
+
+                return _window;
             }
             catch
             {
@@ -63,7 +129,7 @@ public static class UploadContentToolService
             }
         }
 
-        var viewModel = new UploadContentViewModel();
+        var viewModel = UiViewModelFactoryAccessor.GetRequired().CreateUploadContentViewModel();
         _window = new UploadContentWindow();
         _window.Initialize(viewModel);
 
@@ -72,8 +138,21 @@ public static class UploadContentToolService
             _window = null;
         };
 
-        _window.Show();
+        if (owner != null)
+        {
+            _window.Show(owner);
+        }
+        else
+        {
+            _window.Show();
+        }
 
-        DebugHelper.WriteLine("UploadContent: Window shown.");
+        if (!background)
+        {
+            _window.Activate();
+        }
+
+        DebugHelper.WriteLine($"UploadContent: Window shown (background={background}).");
+        return _window;
     }
 }

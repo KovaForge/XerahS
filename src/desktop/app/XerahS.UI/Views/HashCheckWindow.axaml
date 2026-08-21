@@ -24,7 +24,7 @@
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
       <TextBox Grid.Column="0"
                Text="{Binding FilePath}"
-               Watermark="Select a file or drag and drop..."
+               PlaceholderText="Select a file or drag and drop..."
                IsReadOnly="True"
                AutomationProperties.Name="File path" />
       <Button Grid.Column="1"
@@ -49,7 +49,7 @@
           IsVisible="{Binding CompareTwoFiles}">
       <TextBox Grid.Column="0"
                Text="{Binding FilePath2}"
-               Watermark="Select second file..."
+               PlaceholderText="Select second file..."
                IsReadOnly="True"
                AutomationProperties.Name="Second file path" />
       <Button Grid.Column="1"
@@ -82,7 +82,6 @@
       <TextBox Grid.Row="1"
                Text="{Binding ResultHash}"
                IsReadOnly="True"
-               FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                AutomationProperties.Name="Hash result" />
     </Grid>
 
@@ -99,8 +98,7 @@
 
       <TextBox Grid.Row="1"
                Text="{Binding TargetHash, Mode=TwoWay}"
-               Watermark="Paste expected hash here to verify..."
-               FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
+               PlaceholderText="Paste expected hash here to verify..."
                AutomationProperties.Name="Target hash for comparison" />
     </Grid>
 

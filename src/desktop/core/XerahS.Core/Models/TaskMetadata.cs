@@ -40,6 +40,8 @@ public class TaskMetadata : IDisposable
 
     public string? UploadURL { get; set; }
 
+    public string? OcrText { get; set; }
+
     private string? windowTitle;
 
     public string? WindowTitle

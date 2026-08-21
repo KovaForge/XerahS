@@ -30,6 +30,7 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
 using XerahS.Core.Services;
+using XerahS.Mobile.Core;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Mobile.Maui.ViewModels;
@@ -96,15 +97,31 @@ public class MobileUploadViewModel : INotifyPropertyChanged
 
     public void ProcessFiles(string[] filePaths)
     {
+        ProcessFiles(filePaths, ownedTempFiles: null);
+    }
+
+    /// <summary>
+    /// Import and enqueue paths for upload. Paths listed in
+    /// <paramref name="ownedTempFiles"/> are owned by the queue and deleted
+    /// after processing (picker-streamed / content-provider copies).
+    /// </summary>
+    public void ProcessFiles(string[] filePaths, IEnumerable<string>? ownedTempFiles)
+    {
         if (filePaths.Length == 0)
         {
             StatusText = "No files received.";
             return;
         }
 
+        var importResult = MobileImportService.ImportFiles(filePaths);
+        foreach (var message in importResult.Messages)
+        {
+            StatusText = message;
+        }
+
         var validPaths = new List<string>();
 
-        foreach (var filePath in filePaths)
+        foreach (var filePath in importResult.UploadPaths)
         {
             if (!File.Exists(filePath))
             {
@@ -116,12 +133,12 @@ public class MobileUploadViewModel : INotifyPropertyChanged
             validPaths.Add(filePath);
         }
 
-        var queuedCount = _uploadQueueService.EnqueueFiles(validPaths);
+        var queuedCount = _uploadQueueService.EnqueueFiles(validPaths, ownedTempFiles);
         if (queuedCount > 0)
         {
             StatusText = $"Queued {queuedCount} file(s) for upload.";
         }
-        else if (validPaths.Count == 0)
+        else if (validPaths.Count == 0 && importResult.Messages.Count == 0)
         {
             UpdateCompletionStatus();
         }
@@ -218,6 +235,9 @@ public class MobileUploadViewModel : INotifyPropertyChanged
         }
 
         var localPaths = new List<string>(files.Count);
+        // Paths we materialize from non-file pickers; the upload queue owns
+        // these and deletes them after processing completes.
+        var ownedTempPaths = new List<string>();
 
         foreach (var file in files)
         {
@@ -235,6 +255,7 @@ public class MobileUploadViewModel : INotifyPropertyChanged
                 await using var target = File.Create(targetPath);
                 await source.CopyToAsync(target);
                 localPaths.Add(targetPath);
+                ownedTempPaths.Add(targetPath);
             }
             catch (Exception ex)
             {
@@ -248,7 +269,7 @@ public class MobileUploadViewModel : INotifyPropertyChanged
             return;
         }
 
-        ProcessFiles(localPaths.ToArray());
+        ProcessFiles(localPaths.ToArray(), ownedTempPaths);
     }
 
     private void CopyUrl(string? url)

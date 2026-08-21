@@ -24,10 +24,12 @@
 #endregion License Information (GPL v3)
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using ShareX.ImageEditor.Core.Persistence;
 using ShareX.ImageEditor.Presentation.Rendering;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using SkiaSharp;
 using System.IO;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 
@@ -41,11 +43,11 @@ public static class MainViewModelHelper
     /// <summary>
     /// Wires up the UploadRequested event to the XerahS upload pipeline.
     /// </summary>
-    public static void WireUploadRequested(MainViewModel viewModel)
+    public static void WireUploadRequested(MainViewModel viewModel, IDesktopTaskManager taskManager, Func<SKBitmap?>? getEditedSnapshot = null)
     {
         viewModel.UploadRequested += () =>
         {
-            _ = HandleUploadRequestedAsync(viewModel);
+            _ = HandleUploadRequestedAsync(viewModel, taskManager, getEditedSnapshot);
         };
     }
 
@@ -58,6 +60,7 @@ public static class MainViewModelHelper
         viewModel.CopyRequested += () =>
         {
             HandleCopyRequested(viewModel, getEditedSnapshot);
+            return Task.CompletedTask;
         };
     }
 
@@ -66,10 +69,7 @@ public static class MainViewModelHelper
     /// </summary>
     public static void WireSaveRequested(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot = null, Func<Window?>? getWindow = null)
     {
-        viewModel.SaveRequested += () =>
-        {
-            _ = HandleSaveRequestedAsync(viewModel, getEditedSnapshot, getWindow);
-        };
+        viewModel.SaveRequested += () => HandleSaveRequestedAsync(viewModel, getEditedSnapshot, getWindow);
     }
 
     /// <summary>
@@ -77,10 +77,7 @@ public static class MainViewModelHelper
     /// </summary>
     public static void WireSaveAsRequested(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot = null, Func<Window?>? getWindow = null)
     {
-        viewModel.SaveAsRequested += () =>
-        {
-            _ = HandleSaveAsRequestedAsync(viewModel, getEditedSnapshot, getWindow);
-        };
+        viewModel.SaveAsRequested += () => HandleSaveAsRequestedAsync(viewModel, getEditedSnapshot, getWindow);
     }
 
     /// <summary>
@@ -95,29 +92,37 @@ public static class MainViewModelHelper
         };
     }
 
-    private static async Task HandleSaveRequestedAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, Func<Window?>? getWindow)
+    private static async Task<string?> HandleSaveRequestedAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, Func<Window?>? getWindow)
     {
         DebugHelper.WriteLine("MainViewModelHelper: SaveRequested received");
         try
         {
-            if (!string.IsNullOrEmpty(viewModel.LastSavedPath))
+            if (!string.IsNullOrEmpty(viewModel.ImageFilePath))
             {
-                SaveToPath(viewModel, getEditedSnapshot, viewModel.LastSavedPath);
+                return await SaveToPathAsync(viewModel, getEditedSnapshot, viewModel.ImageFilePath);
             }
-            else
-            {
-                await HandleSaveAsRequestedAsync(viewModel, getEditedSnapshot, getWindow);
-            }
+
+            return await HandleSaveAsRequestedAsync(viewModel, getEditedSnapshot, getWindow);
         }
         catch (Exception ex)
         {
             DebugHelper.WriteLine($"Editor save failed: {ex.Message}");
             DebugHelper.WriteException(ex);
+            return null;
         }
     }
 
-    private static async Task HandleSaveAsRequestedAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, Func<Window?>? getWindow)
+    private static readonly HashSet<MainViewModel> _saveAsInProgress = new();
+
+    private static async Task<string?> HandleSaveAsRequestedAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, Func<Window?>? getWindow)
     {
+        // Guard against re-entry (e.g. double-click or keyboard repeat triggering the dialog twice)
+        if (!_saveAsInProgress.Add(viewModel))
+        {
+            DebugHelper.WriteLine("MainViewModelHelper: SaveAsRequested ignored — save already in progress.");
+            return null;
+        }
+
         DebugHelper.WriteLine("MainViewModelHelper: SaveAsRequested received");
         try
         {
@@ -126,12 +131,12 @@ public static class MainViewModelHelper
             if (topLevel?.StorageProvider == null)
             {
                 DebugHelper.WriteLine("MainViewModelHelper: SaveAs — no storage provider available.");
-                return;
+                return null;
             }
 
-            string suggestedName = string.IsNullOrEmpty(viewModel.LastSavedPath)
+            string suggestedName = string.IsNullOrEmpty(viewModel.ImageFilePath)
                 ? "image.png"
-                : Path.GetFileName(viewModel.LastSavedPath);
+                : Path.GetFileName(viewModel.ImageFilePath);
 
             var options = new FilePickerSaveOptions
             {
@@ -150,19 +155,24 @@ public static class MainViewModelHelper
             if (string.IsNullOrEmpty(path))
             {
                 DebugHelper.WriteLine("MainViewModelHelper: SaveAs cancelled or path unavailable.");
-                return;
+                return null;
             }
 
-            SaveToPath(viewModel, getEditedSnapshot, path);
+            return await SaveToPathAsync(viewModel, getEditedSnapshot, path);
         }
         catch (Exception ex)
         {
             DebugHelper.WriteLine($"Editor save-as failed: {ex.Message}");
             DebugHelper.WriteException(ex);
+            return null;
+        }
+        finally
+        {
+            _saveAsInProgress.Remove(viewModel);
         }
     }
 
-    private static void SaveToPath(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, string path)
+    private static async Task<string?> SaveToPathAsync(MainViewModel viewModel, Func<SKBitmap?>? getEditedSnapshot, string path)
     {
         SKBitmap? bitmap = getEditedSnapshot?.Invoke();
         if (bitmap == null && viewModel.PreviewImage != null)
@@ -171,39 +181,102 @@ public static class MainViewModelHelper
         if (bitmap == null)
         {
             DebugHelper.WriteLine("MainViewModelHelper: SaveToPath — no image to save.");
-            return;
+            return null;
         }
 
-        using (bitmap)
+        Exception? imageSaveError = null;
+        try
         {
-            var ext = Path.GetExtension(path).ToLowerInvariant();
-            var format = ext is ".jpg" or ".jpeg" ? SKEncodedImageFormat.Jpeg : SKEncodedImageFormat.Png;
-            int quality = format == SKEncodedImageFormat.Jpeg ? 95 : 100;
-            using var data = bitmap.Encode(format, quality);
-            using var stream = File.OpenWrite(path);
-            data.SaveTo(stream);
+            using (bitmap)
+            {
+                var ext = Path.GetExtension(path).ToLowerInvariant();
+                var format = ext is ".jpg" or ".jpeg" ? SKEncodedImageFormat.Jpeg : SKEncodedImageFormat.Png;
+                int quality = format == SKEncodedImageFormat.Jpeg ? 95 : 100;
+                using var data = bitmap.Encode(format, quality);
+                using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+                data.SaveTo(stream);
+            }
+        }
+        catch (Exception ex)
+        {
+            imageSaveError = ex;
         }
 
-        viewModel.LastSavedPath = path;
-        viewModel.IsDirty = false;
+        if (imageSaveError != null)
+        {
+            DebugHelper.WriteLine($"MainViewModelHelper: Image save failed (file may be incomplete): {imageSaveError.Message}");
+            DebugHelper.WriteException(imageSaveError);
+            viewModel.IsDirty = true;
+            return null;
+        }
+
+        viewModel.ImageFilePath = path;
+
+        try
+        {
+            var annotations = viewModel.GetAnnotationSnapshotForPersistence();
+            using var sourceImage = viewModel.CreateSourceImageCopyForPersistence();
+            if (annotations.Count > 0 && sourceImage != null)
+            {
+                string? sidecarPath = await XannProjectFileService.SaveAsync(path, sourceImage, annotations);
+                DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar saved to '{sidecarPath}'");
+            }
+            else
+            {
+                bool deleted = XannProjectFileService.TryDeleteSidecar(path);
+                if (deleted)
+                {
+                    DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar removed for '{path}'");
+                }
+            }
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar save failed (image saved successfully): {ex.Message}");
+            DebugHelper.WriteException(ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"MainViewModelHelper: Annotation sidecar save failed (image saved successfully): {ex.Message}");
+            DebugHelper.WriteException(ex);
+        }
+
         DebugHelper.WriteLine($"MainViewModelHelper: Image saved to '{path}'");
+        viewModel.IsDirty = false;
+        return path;
     }
 
-    private static async Task HandleUploadRequestedAsync(MainViewModel viewModel)
+    private static async Task HandleUploadRequestedAsync(MainViewModel viewModel, IDesktopTaskManager taskManager, Func<SKBitmap?>? getEditedSnapshot)
     {
         DebugHelper.WriteLine("MainViewModelHelper: UploadRequested received");
 
         try
         {
-            if (viewModel.PreviewImage == null)
+            using var editedSnapshot = getEditedSnapshot?.Invoke();
+            SKBitmap? imageToUpload = editedSnapshot;
+
+            if (imageToUpload != null)
             {
-                DebugHelper.WriteLine("MainViewModelHelper: UploadRequested ignored because PreviewImage is null.");
-                return;
+                DebugHelper.WriteLine($"MainViewModelHelper: Using edited snapshot {imageToUpload.Width}x{imageToUpload.Height} for upload");
             }
 
-            // Convert Avalonia Bitmap to SKBitmap for upload pipeline.
-            using var skBitmap = BitmapConversionHelpers.ToSKBitmap(viewModel.PreviewImage);
-            DebugHelper.WriteLine($"MainViewModelHelper: Converted bitmap {skBitmap.Width}x{skBitmap.Height}");
+            if (imageToUpload == null && viewModel.PreviewImage != null)
+            {
+                imageToUpload = BitmapConversionHelpers.ToSKBitmap(viewModel.PreviewImage);
+                if (imageToUpload != null)
+                {
+                    DebugHelper.WriteLine($"MainViewModelHelper: Using preview image {imageToUpload.Width}x{imageToUpload.Height} for upload");
+                }
+            }
+
+            using var previewBitmap = ReferenceEquals(imageToUpload, editedSnapshot) ? null : imageToUpload;
+
+            if (imageToUpload == null)
+            {
+                DebugHelper.WriteLine("MainViewModelHelper: UploadRequested ignored because no upload image is available.");
+                return;
+            }
 
             var taskSettings = new TaskSettings
             {
@@ -215,7 +288,7 @@ public static class MainViewModelHelper
             DebugHelper.WriteLine($"MainViewModelHelper: TaskSettings created - Job={taskSettings.Job}, AfterCapture={taskSettings.AfterCaptureJob}, AfterUpload={taskSettings.AfterUploadJob}, DestId={taskSettings.DestinationInstanceId}");
 
             DebugHelper.WriteLine("MainViewModelHelper: Calling TaskManager.StartImageUploadTask...");
-            await Core.Managers.TaskManager.Instance.StartImageUploadTask(taskSettings, skBitmap.Copy());
+            await taskManager.StartImageUploadTask(taskSettings, imageToUpload.Copy());
             DebugHelper.WriteLine("MainViewModelHelper: TaskManager.StartImageUploadTask completed");
         }
         catch (Exception ex)
@@ -270,14 +343,9 @@ public static class MainViewModelHelper
 
         try
         {
-            // Prefer edited snapshot (with annotations) over base preview image
-            SkiaSharp.SKBitmap? imageToCopy = null;
-            if (getEditedSnapshot != null)
-            {
-                imageToCopy = getEditedSnapshot();
-                if (imageToCopy != null)
-                    DebugHelper.WriteLine($"MainViewModelHelper: Using edited snapshot {imageToCopy.Width}x{imageToCopy.Height} for clipboard");
-            }
+            SkiaSharp.SKBitmap? imageToCopy = getEditedSnapshot?.Invoke();
+            if (imageToCopy != null)
+                DebugHelper.WriteLine($"MainViewModelHelper: Using edited snapshot {imageToCopy.Width}x{imageToCopy.Height} for clipboard");
 
             if (imageToCopy == null && viewModel.PreviewImage != null)
             {
@@ -302,6 +370,8 @@ public static class MainViewModelHelper
             {
                 DebugHelper.WriteLine("MainViewModelHelper: Platform clipboard not initialized");
             }
+
+            imageToCopy.Dispose();
         }
         catch (Exception ex)
         {

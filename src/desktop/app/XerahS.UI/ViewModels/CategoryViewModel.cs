@@ -25,9 +25,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
+using XerahS.UI.Services;
 using XerahS.Uploaders.PluginSystem;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace XerahS.UI.ViewModels;
 
@@ -62,6 +64,7 @@ public partial class CategoryViewModel : ViewModelBase
     {
         try
         {
+            DebugHelper.WriteLine($"[CategoryViewModel] AddFromCatalog called for category: {Category}");
             var viewModel = new ProviderCatalogViewModel(Category);
             var mainVm = MainViewModel.Current;
 
@@ -82,9 +85,11 @@ public partial class CategoryViewModel : ViewModelBase
 
                 viewModel.OnCancelled += Cleanup;
 
-                // Show Modal (set ViewModel, DataTemplate handles View)
-                mainVm.ModalContent = viewModel;
-                mainVm.IsModalOpen = true;
+                ModalOpenService.Open(mainVm, viewModel, "CategoryViewModel");
+            }
+            else
+            {
+                DebugHelper.WriteLine("[CategoryViewModel] ERROR: MainViewModel.Current is null — cannot open catalog modal");
             }
         }
         catch (Exception ex)
@@ -163,7 +168,9 @@ public partial class CategoryViewModel : ViewModelBase
         var instances = InstanceManager.Instance.GetInstancesByCategory(Category);
         var defaultInstance = InstanceManager.Instance.GetDefaultInstance(Category);
 
-        foreach (var instance in instances)
+        foreach (var instance in instances
+            .OrderByDescending(instance => defaultInstance != null && instance.InstanceId == defaultInstance.InstanceId)
+            .ThenByDescending(instance => instance.CreatedAt))
         {
             var vm = new UploaderInstanceViewModel(instance);
 

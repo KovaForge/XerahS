@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleExecutable</key>
+	<string>__EXECUTABLE__</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.xerahs.app</string>
+	<key>CFBundleName</key>
+	<string>XerahS</string>
+	<key>CFBundleDisplayName</key>
+	<string>XerahS</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>__VERSION__</string>
+	<key>CFBundleVersion</key>
+	<string>__VERSION__</string>
+	<key>CFBundleIconFile</key>
+	<string>Logo</string>
+	<key>CFBundleIconName</key>
+	<string>Logo</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>__MIN_OS__</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright (c) 2007-2026 ShareX Team. Licensed under GPL v3.</string>
+	<key>NSAppleScriptEnabled</key>
+	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>XerahS uses System Events to manage application windows (activate, minimize, move) and to read and write images and files on the clipboard.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>XerahS records microphone audio when you enable audio capture during screen recording.</string>
+</dict>
+</plist>

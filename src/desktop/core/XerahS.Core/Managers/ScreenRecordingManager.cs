@@ -27,6 +27,7 @@ using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Helpers;
 using XerahS.RegionCapture.ScreenRecording;
+using XerahS.Services.Abstractions;
 using System.Runtime.InteropServices;
 
 namespace XerahS.Core.Managers;
@@ -36,7 +37,7 @@ namespace XerahS.Core.Managers;
 /// Coordinates recording state across UI and workflow pipelines
 /// Stage 5: Workflow Pipeline Integration
 /// </summary>
-public class ScreenRecordingManager
+public class ScreenRecordingManager : IScreenRecordingManager
 {
     private static readonly Lazy<ScreenRecordingManager> _lazy = new(() => new ScreenRecordingManager());
     public static ScreenRecordingManager Instance => _lazy.Value;
@@ -55,6 +56,7 @@ public class ScreenRecordingManager
     private bool _isFinalized;
     private string? _cachedFinalPath;
     private TimeSpan _lastDuration;
+    private RecordingRuntimeCapabilities _currentCapabilities = RecordingRuntimeCapabilities.None;
 
     /// <summary>
     /// Task representing platform-specific recording initialization.
@@ -121,6 +123,28 @@ public class ScreenRecordingManager
     /// Indicates whether the current recording is using FFmpeg fallback
     /// </summary>
     public bool IsUsingFallback { get; private set; }
+
+    public RecordingRuntimeCapabilities CurrentCapabilities
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _currentCapabilities;
+            }
+        }
+    }
+
+    public bool CanPauseResumeCurrentRecording
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _currentCapabilities.SupportsPauseResume;
+            }
+        }
+    }
 
     /// <summary>
     /// Current recording options (null if not recording)
@@ -200,7 +224,7 @@ public class ScreenRecordingManager
         if (!hasNativeFactory && !hasFallbackFactory && !hasCaptureSourceFactory)
         {
             string message = RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                ? "Screen recording is not available. On Linux Wayland, ensure xdg-desktop-portal with ScreenCast support and PipeWire are installed and running."
+                ? "Screen recording is not available. On Linux Wayland, ensure xdg-desktop-portal with ScreenCast support is available, PipeWire is running, and either FFmpeg pipewire, GStreamer pipewiresrc, or wf-recorder is installed."
                 : "Screen recording is not available. Ensure platform recording has been initialized.";
             throw new InvalidOperationException(message);
         }
@@ -220,6 +244,16 @@ public class ScreenRecordingManager
         RecordingOptions optionsToStart = PrepareRecordingOptions(options, isResume: false);
 
         await StartRecordingCoreAsync(optionsToStart, preferFallback);
+    }
+
+    async Task IScreenRecordingManager.StartRecordingAsync(object options)
+    {
+        if (options is not RecordingOptions recordingOptions)
+        {
+            throw new ArgumentException("Recording options must be a RecordingOptions instance.", nameof(options));
+        }
+
+        await StartRecordingAsync(recordingOptions);
     }
 
     /// <summary>
@@ -437,6 +471,15 @@ public class ScreenRecordingManager
             return true;
         }
 
+        if (settings is not null && RecordingCodecSupportPolicy.RequiresFfmpegFallback(settings.Codec))
+        {
+            TroubleshootingHelper.Log(
+                "ScreenRecorder",
+                "FALLBACK",
+                $"Codec {settings.Codec} requires FFmpeg because the native backend only supports H.264 in this build.");
+            return true;
+        }
+
         // Check if we have a native recording service factory (complete IRecordingService)
         if (ScreenRecorderService.NativeRecordingServiceFactory != null)
         {
@@ -472,6 +515,7 @@ public class ScreenRecordingManager
         {
             bool useFallback = preferFallback || attempt == 1;
             IRecordingService recordingService;
+            RecordingRuntimeCapabilities capabilities;
 
             // Create service and assign state within single lock to prevent race condition
             lock (_lock)
@@ -484,8 +528,10 @@ public class ScreenRecordingManager
                 try
                 {
                     recordingService = CreateRecordingService(useFallback);
+                    capabilities = recordingService.GetCapabilities(optionsToStart);
                     _currentRecording = recordingService;
                     _currentOptions = optionsToStart;
+                    _currentCapabilities = capabilities;
                     _stopSignal = new TaskCompletionSource<bool>();
                 }
                 catch
@@ -493,6 +539,7 @@ public class ScreenRecordingManager
                     // Rollback state on service creation failure
                     _currentRecording = null;
                     _currentOptions = null;
+                    _currentCapabilities = RecordingRuntimeCapabilities.None;
                     _stopSignal = null;
                     throw;
                 }
@@ -523,6 +570,10 @@ public class ScreenRecordingManager
                 DebugHelper.WriteException(ex, "ScreenRecordingManager: Native recording failed, attempting FFmpeg fallback...");
                 lastError = ex;
                 CleanupCurrentRecording(recordingService);
+                lock (_lock)
+                {
+                    _currentCapabilities = RecordingRuntimeCapabilities.None;
+                }
                 preferFallback = true;
             }
             catch (Exception ex)
@@ -542,6 +593,7 @@ public class ScreenRecordingManager
                 {
                     _currentOptions = null;
                     _currentRecording = null;
+                    _currentCapabilities = RecordingRuntimeCapabilities.None;
                 }
                 throw;
             }
@@ -551,6 +603,7 @@ public class ScreenRecordingManager
         {
             _currentOptions = null;
             _currentRecording = null;
+            _currentCapabilities = RecordingRuntimeCapabilities.None;
         }
 
         throw lastError ?? new InvalidOperationException("Recording failed and no fallback recording service is available.");
@@ -600,6 +653,7 @@ public class ScreenRecordingManager
 
                 _currentRecording = null;
                 _currentOptions = null;
+                _currentCapabilities = RecordingRuntimeCapabilities.None;
             }
 
             SignalStop();
@@ -625,6 +679,32 @@ public class ScreenRecordingManager
             return;
         }
 
+        RecordingPauseBehavior pauseBehavior;
+        lock (_lock)
+        {
+            pauseBehavior = _currentCapabilities.PauseBehavior;
+        }
+
+        if (pauseBehavior == RecordingPauseBehavior.Unsupported)
+        {
+            DebugHelper.WriteLine("ScreenRecordingManager: Pause ignored because the active backend does not support pause/resume safely.");
+            return;
+        }
+
+        if (pauseBehavior == RecordingPauseBehavior.NativePauseResume)
+        {
+            if (_currentRecording is not IPausableRecordingService pausableRecording)
+            {
+                DebugHelper.WriteLine("ScreenRecordingManager: Backend reported native pause support but does not implement IPausableRecordingService.");
+                return;
+            }
+
+            _isPaused = true;
+            await pausableRecording.PauseRecordingAsync();
+            StatusChanged?.Invoke(this, new RecordingStatusEventArgs(RecordingStatus.Paused, _lastDuration));
+            return;
+        }
+
         _isPaused = true;
         await StopRecordingCoreAsync(signalStop: false);
         StatusChanged?.Invoke(this, new RecordingStatusEventArgs(RecordingStatus.Paused, _lastDuration));
@@ -632,7 +712,9 @@ public class ScreenRecordingManager
 
     public async Task ResumeRecordingAsync()
     {
+        RecordingPauseBehavior pauseBehavior;
         RecordingOptions? options;
+        IPausableRecordingService? pausableRecording = null;
         lock (_lock)
         {
             if (!_isPaused || _resumeOptions == null)
@@ -640,10 +722,31 @@ public class ScreenRecordingManager
                 return;
             }
 
-            _isPaused = false;
+            pauseBehavior = _currentCapabilities.PauseBehavior;
             options = _resumeOptions;
+            pausableRecording = _currentRecording as IPausableRecordingService;
         }
 
+        if (pauseBehavior == RecordingPauseBehavior.Unsupported)
+        {
+            DebugHelper.WriteLine("ScreenRecordingManager: Resume ignored because the active backend does not support pause/resume safely.");
+            return;
+        }
+
+        if (pauseBehavior == RecordingPauseBehavior.NativePauseResume)
+        {
+            if (pausableRecording == null)
+            {
+                DebugHelper.WriteLine("ScreenRecordingManager: Backend reported native resume support but no active pausable recording service was found.");
+                return;
+            }
+
+            await pausableRecording.ResumeRecordingAsync();
+            _isPaused = false;
+            return;
+        }
+
+        _isPaused = false;
         await StartRecordingInternalAsync(options, isResume: true);
     }
 
@@ -771,7 +874,8 @@ public class ScreenRecordingManager
                             string? dir = Path.GetDirectoryName(resolvedOutput);
                             if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
                             {
-                                var files = Directory.GetFiles(dir, "*.mp4");
+                                string searchPattern = "*" + Path.GetExtension(resolvedOutput);
+                                var files = Directory.GetFiles(dir, searchPattern);
                                 DebugHelper.WriteLine($"ScreenRecordingManager: Files in {dir}: {string.Join(", ", files.Select(Path.GetFileName))}");
                             }
                         }
@@ -917,6 +1021,7 @@ public class ScreenRecordingManager
             Region = source.Region,
             OutputPath = outputPath ?? source.OutputPath,
             Settings = source.Settings,
+            FFmpegOverridePath = source.FFmpegOverridePath,
             UseModernCapture = source.UseModernCapture,
             LinuxRecordingBackendPreference = source.LinuxRecordingBackendPreference
         };
@@ -950,6 +1055,7 @@ public class ScreenRecordingManager
         _isPaused = false;
         _isFinalized = false;
         _cachedFinalPath = null;
+        _currentCapabilities = RecordingRuntimeCapabilities.None;
     }
 
     private static async Task<bool> WaitForFileAsync(string path, TimeSpan timeout)

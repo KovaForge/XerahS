@@ -117,7 +117,12 @@ public sealed class GitHubGistUploader : TextUploader, IOAuth2Basic
             return result;
         }
 
-        string apiBase = string.IsNullOrWhiteSpace(_config.CustomURLAPI) ? DefaultApiUrl : _config.CustomURLAPI.Trim();
+        if (!TryResolveApiBase(_config.CustomURLAPI, out string apiBase))
+        {
+            Errors.Add("Custom Gist API URL must be a valid http:// or https:// URL.");
+            return result;
+        }
+
         string url = URLHelpers.CombineURL(apiBase, "gists");
 
         GistUpload gistUpload = new GistUpload
@@ -161,6 +166,33 @@ public sealed class GitHubGistUploader : TextUploader, IOAuth2Basic
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Empty CustomURLAPI falls back to api.github.com. A non-empty value must be an
+    /// absolute http/https URL with a host so the Gist POST cannot be pointed at
+    /// an arbitrary scheme or a malformed string.
+    /// </summary>
+    internal static bool TryResolveApiBase(string? customUrlApi, out string apiBase)
+    {
+        if (string.IsNullOrWhiteSpace(customUrlApi))
+        {
+            apiBase = DefaultApiUrl;
+            return true;
+        }
+
+        string trimmed = customUrlApi.Trim();
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out Uri? uri) &&
+            !string.IsNullOrWhiteSpace(uri.Host) &&
+            (uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+             uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+        {
+            apiBase = trimmed.TrimEnd('/');
+            return true;
+        }
+
+        apiBase = string.Empty;
+        return false;
     }
 
     private class GistUpload

@@ -38,8 +38,17 @@ namespace XerahS.Platform.MacOS.Services
         private readonly object _lock = new();
         private readonly Dictionary<ushort, HotkeyInfo> _registeredHotkeys = new();
         private readonly Dictionary<(Key Key, KeyModifiers Modifiers), HotkeyInfo> _hotkeysByCombo = new();
+        private readonly Dictionary<(Key Key, KeyModifiers Modifiers), HotkeyInfo> _carbonHotkeysByCombo = new();
         private readonly HashSet<KeyCode> _pressedKeys = new();
+        private readonly HashSet<KeyCode> _suppressedKeys = new();
+        // macOS native screencapture is also an interactive global shortcut consumer. Keep
+        // SimpleGlobalHook and set SuppressEvent in the synchronous key handler so a XerahS
+        // capture hotkey cannot leak to macOS and start a second /usr/sbin/screencapture.
         private readonly SimpleGlobalHook _hook;
+        // XIP0078 P4: Carbon RegisterEventHotKey is the primary backend because it needs no TCC
+        // permission and natively suppresses registered combos. SharpHook (CGEventTap, requires
+        // Accessibility) remains the fallback for combos Carbon cannot serve.
+        private readonly MacOSCarbonHotkeyBackend? _carbonBackend;
         private ushort _nextId = 1;
         private bool _isSuspended;
         private bool _disposed;
@@ -48,6 +57,11 @@ namespace XerahS.Platform.MacOS.Services
         private bool _hookRunning;
 
         public event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
+        public event EventHandler? HotkeysChanged
+        {
+            add { }
+            remove { }
+        }
 
         public MacOSHotkeyService()
         {
@@ -56,6 +70,19 @@ namespace XerahS.Platform.MacOS.Services
             _hook.KeyReleased += OnKeyReleased;
             _hook.HookEnabled += OnHookEnabled;
             _hook.HookDisabled += OnHookDisabled;
+
+            // Rollback flag: set XERAHS_MACOS_HOTKEY_BACKEND=sharphook to restore the
+            // pre-XIP0078 behavior (SharpHook-only, Accessibility required for all hotkeys).
+            string? backendOverride = Environment.GetEnvironmentVariable("XERAHS_MACOS_HOTKEY_BACKEND");
+            if (string.Equals(backendOverride, "sharphook", StringComparison.OrdinalIgnoreCase))
+            {
+                DebugHelper.WriteLine("MacOSHotkeyService: Carbon backend disabled via XERAHS_MACOS_HOTKEY_BACKEND=sharphook.");
+            }
+            else
+            {
+                _carbonBackend = new MacOSCarbonHotkeyBackend();
+                _carbonBackend.HotkeyPressed += OnCarbonHotkeyPressed;
+            }
         }
 
         public bool RegisterHotkey(HotkeyInfo hotkeyInfo)
@@ -65,17 +92,6 @@ namespace XerahS.Platform.MacOS.Services
                 if (hotkeyInfo != null)
                 {
                     hotkeyInfo.Status = XerahS.Platform.Abstractions.HotkeyStatus.NotConfigured;
-                }
-
-                return false;
-            }
-
-            if (!IsAccessibilityEnabled())
-            {
-                LogAccessibilityRequired();
-                if (hotkeyInfo != null)
-                {
-                    hotkeyInfo.Status = XerahS.Platform.Abstractions.HotkeyStatus.Failed;
                 }
 
                 return false;
@@ -91,15 +107,58 @@ namespace XerahS.Platform.MacOS.Services
                 return false;
             }
 
+            var combo = (hotkeyInfo.Key, hotkeyInfo.Modifiers);
+
             lock (_lock)
             {
-                var combo = (hotkeyInfo.Key, hotkeyInfo.Modifiers);
-                if (_hotkeysByCombo.ContainsKey(combo))
+                if (_hotkeysByCombo.ContainsKey(combo) || _carbonHotkeysByCombo.ContainsKey(combo))
                 {
                     hotkeyInfo.Status = XerahS.Platform.Abstractions.HotkeyStatus.Failed;
                     return false;
                 }
+            }
 
+            // Carbon first: no Accessibility prompt, native suppression of the combo.
+            if (_carbonBackend != null)
+            {
+                switch (_carbonBackend.TryRegister(hotkeyInfo))
+                {
+                    case CarbonRegistrationResult.Registered:
+                        lock (_lock)
+                        {
+                            if (hotkeyInfo.Id == 0)
+                            {
+                                hotkeyInfo.Id = _nextId++;
+                            }
+
+                            _registeredHotkeys[hotkeyInfo.Id] = hotkeyInfo;
+                            _carbonHotkeysByCombo[combo] = hotkeyInfo;
+                            hotkeyInfo.Status = XerahS.Platform.Abstractions.HotkeyStatus.Registered;
+                        }
+
+                        return true;
+
+                    case CarbonRegistrationResult.Conflict:
+                        // Another app owns the combo; surface the conflict instead of silently
+                        // swallowing it (SharpHook can never win that contest anyway).
+                        hotkeyInfo.Status = XerahS.Platform.Abstractions.HotkeyStatus.Failed;
+                        return false;
+
+                    case CarbonRegistrationResult.Unsupported:
+                        // Fall through to the SharpHook path below.
+                        break;
+                }
+            }
+
+            if (!IsAccessibilityEnabled())
+            {
+                LogAccessibilityRequired();
+                hotkeyInfo.Status = XerahS.Platform.Abstractions.HotkeyStatus.Failed;
+                return false;
+            }
+
+            lock (_lock)
+            {
                 if (hotkeyInfo.Id == 0)
                 {
                     hotkeyInfo.Id = _nextId++;
@@ -114,6 +173,16 @@ namespace XerahS.Platform.MacOS.Services
             return true;
         }
 
+        private void OnCarbonHotkeyPressed(HotkeyInfo hotkeyInfo)
+        {
+            if (_isSuspended)
+            {
+                return;
+            }
+
+            HotkeyTriggered?.Invoke(this, new HotkeyTriggeredEventArgs(hotkeyInfo));
+        }
+
         public bool UnregisterHotkey(HotkeyInfo hotkeyInfo)
         {
             if (hotkeyInfo == null)
@@ -122,6 +191,7 @@ namespace XerahS.Platform.MacOS.Services
             }
 
             bool removed = false;
+            bool wasCarbonBacked;
 
             lock (_lock)
             {
@@ -130,8 +200,15 @@ namespace XerahS.Platform.MacOS.Services
                     removed = true;
                 }
 
-                _hotkeysByCombo.Remove((hotkeyInfo.Key, hotkeyInfo.Modifiers));
+                var combo = (hotkeyInfo.Key, hotkeyInfo.Modifiers);
+                wasCarbonBacked = _carbonHotkeysByCombo.Remove(combo);
+                _hotkeysByCombo.Remove(combo);
                 hotkeyInfo.Status = XerahS.Platform.Abstractions.HotkeyStatus.NotConfigured;
+            }
+
+            if (wasCarbonBacked)
+            {
+                _carbonBackend?.Unregister(hotkeyInfo);
             }
 
             if (removed)
@@ -153,10 +230,26 @@ namespace XerahS.Platform.MacOS.Services
 
                 _registeredHotkeys.Clear();
                 _hotkeysByCombo.Clear();
+                _carbonHotkeysByCombo.Clear();
                 _pressedKeys.Clear();
+                _suppressedKeys.Clear();
             }
 
-            StopHookIfIdle(force: true);
+            _carbonBackend?.UnregisterAll();
+
+            if (_disposed)
+            {
+                StopHookIfIdle(force: true);
+            }
+            else
+            {
+                // Workflow edits call UnregisterAll followed immediately by RegisterHotkey for every
+                // workflow. SharpHook stops asynchronously on macOS, so stopping here can race the
+                // immediate re-register and make RunAsync throw "global hook is already running".
+                // Keep the hook alive during reconfiguration; the cleared dictionaries prevent
+                // stale hotkeys from firing, and Dispose still stops the hook for app shutdown.
+                DebugHelper.WriteLine("MacOSHotkeyService: Cleared hotkey registrations; keeping SharpHook running during reconfiguration.");
+            }
         }
 
         public bool IsRegistered(HotkeyInfo hotkeyInfo)
@@ -175,7 +268,51 @@ namespace XerahS.Platform.MacOS.Services
         public bool IsSuspended
         {
             get => _isSuspended;
-            set => _isSuspended = value;
+            set
+            {
+                if (_isSuspended == value)
+                {
+                    return;
+                }
+
+                _isSuspended = value;
+
+                if (_carbonBackend != null)
+                {
+                    // Carbon keeps registered combos suppressed while suspended, which prevents
+                    // a capture hotkey from starting a second native interactive capture.
+                    _carbonBackend.IsSuspended = value;
+                }
+
+                if (value)
+                {
+                    lock (_lock)
+                    {
+                        _pressedKeys.Clear();
+                        _suppressedKeys.Clear();
+                    }
+
+                    // Native macOS screencapture is itself an interactive global input session.
+                    // Stop SharpHook while suspended so the native selector does not race another
+                    // global hook-backed selector and fail with "cannot run two interactive screen captures".
+                    StopHookIfIdle(force: true);
+                    DebugHelper.WriteLine("MacOSHotkeyService: SharpHook suspended.");
+                    return;
+                }
+
+                bool hasRegisteredHotkeys;
+                lock (_lock)
+                {
+                    hasRegisteredHotkeys = _hotkeysByCombo.Count > 0;
+                }
+
+                if (hasRegisteredHotkeys)
+                {
+                    EnsureHookRunning();
+                }
+
+                DebugHelper.WriteLine("MacOSHotkeyService: SharpHook resumed.");
+            }
         }
 
         public void Dispose()
@@ -187,6 +324,12 @@ namespace XerahS.Platform.MacOS.Services
 
             _disposed = true;
             UnregisterAll();
+
+            if (_carbonBackend != null)
+            {
+                _carbonBackend.HotkeyPressed -= OnCarbonHotkeyPressed;
+                _carbonBackend.Dispose();
+            }
 
             _hook.KeyPressed -= OnKeyPressed;
             _hook.KeyReleased -= OnKeyReleased;
@@ -219,6 +362,14 @@ namespace XerahS.Platform.MacOS.Services
             }
             catch (Exception ex)
             {
+                if (ex is InvalidOperationException invalidOperationException &&
+                    invalidOperationException.Message.Contains("already running", StringComparison.OrdinalIgnoreCase))
+                {
+                    _hookRunning = true;
+                    DebugHelper.WriteLine("MacOSHotkeyService: SharpHook was already running; continuing with existing hook.");
+                    return;
+                }
+
                 DebugHelper.WriteException(ex, "MacOSHotkeyService: Failed to start SharpHook.");
                 lock (_lock)
                 {
@@ -239,7 +390,9 @@ namespace XerahS.Platform.MacOS.Services
 
             lock (_lock)
             {
-                if (!force && _registeredHotkeys.Count > 0)
+                // Only SharpHook-backed hotkeys keep the hook alive; Carbon-backed
+                // registrations do not need the CGEventTap hook at all.
+                if (!force && _hotkeysByCombo.Count > 0)
                 {
                     return;
                 }
@@ -270,6 +423,7 @@ namespace XerahS.Platform.MacOS.Services
             lock (_lock)
             {
                 _pressedKeys.Clear();
+                _suppressedKeys.Clear();
             }
         }
 
@@ -288,6 +442,11 @@ namespace XerahS.Platform.MacOS.Services
             {
                 if (!_pressedKeys.Add(keyCode))
                 {
+                    if (_suppressedKeys.Contains(keyCode))
+                    {
+                        e.SuppressEvent = true;
+                    }
+
                     return;
                 }
 
@@ -300,6 +459,10 @@ namespace XerahS.Platform.MacOS.Services
                 }
 
                 _hotkeysByCombo.TryGetValue((key, modifiers), out hotkeyInfo);
+                if (hotkeyInfo != null)
+                {
+                    _suppressedKeys.Add(keyCode);
+                }
             }
 
             if (hotkeyInfo == null)
@@ -311,7 +474,13 @@ namespace XerahS.Platform.MacOS.Services
                 return;
             }
 
-            DebugHelper.WriteLine($"Hotkey triggered: {hotkeyInfo}");
+            // Suppress before posting the workflow asynchronously. If this hotkey reaches
+            // macOS as well as XerahS, the system can start its own native selector first;
+            // XerahS then gets "cannot run two interactive screen captures at a time" and
+            // the native crosshair path returns null.
+            e.SuppressEvent = true;
+
+            DebugHelper.WriteLine($"Hotkey triggered: {hotkeyInfo} (suppressed native propagation)");
             Dispatcher.UIThread.Post(() =>
             {
                 HotkeyTriggered?.Invoke(this, new HotkeyTriggeredEventArgs(hotkeyInfo));
@@ -321,9 +490,16 @@ namespace XerahS.Platform.MacOS.Services
         private void OnKeyReleased(object? sender, KeyboardHookEventArgs e)
         {
             var keyCode = e.Data.KeyCode;
+            bool suppressRelease;
             lock (_lock)
             {
                 _pressedKeys.Remove(keyCode);
+                suppressRelease = _suppressedKeys.Remove(keyCode);
+            }
+
+            if (suppressRelease)
+            {
+                e.SuppressEvent = true;
             }
         }
 

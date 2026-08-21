@@ -29,6 +29,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Linq;
+using XerahS.Common;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Platform.Linux.Services
@@ -71,6 +72,8 @@ namespace XerahS.Platform.Linux.Services
         private static string BuildRecordingReport()
         {
             var sb = new StringBuilder();
+            var environment = LinuxRuntimeEnvironment.Detect();
+            var xdg = LinuxXdgDirectories.Detect();
 
             string sessionType = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE") ?? "unknown";
             string currentDesktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? "unknown";
@@ -93,15 +96,23 @@ namespace XerahS.Platform.Linux.Services
             bool hasScreenshotPortal = PortalInterfaceChecker.HasInterface("org.freedesktop.portal.Screenshot");
             bool hasGlobalShortcutsPortal = PortalInterfaceChecker.HasInterface("org.freedesktop.portal.GlobalShortcuts");
             bool hasInputCapturePortal = PortalInterfaceChecker.HasInterface("org.freedesktop.portal.InputCapture");
+            bool hasOpenUriPortal = PortalInterfaceChecker.HasInterface("org.freedesktop.portal.OpenURI");
+            bool hasBackgroundPortal = PortalInterfaceChecker.HasInterface("org.freedesktop.portal.Background");
+            bool hasNotificationPortal = PortalInterfaceChecker.HasInterface("org.freedesktop.portal.Notification");
             bool hasStatusNotifierWatcher = PortalInterfaceChecker.HasStatusNotifierWatcher();
 
             string screenCastProbe = PortalInterfaceChecker.GetDiagnosticSummary("org.freedesktop.portal.ScreenCast");
             string screenshotProbe = PortalInterfaceChecker.GetDiagnosticSummary("org.freedesktop.portal.Screenshot");
             string globalShortcutsProbe = PortalInterfaceChecker.GetDiagnosticSummary("org.freedesktop.portal.GlobalShortcuts");
             string inputCaptureProbe = PortalInterfaceChecker.GetDiagnosticSummary("org.freedesktop.portal.InputCapture");
+            string openUriProbe = PortalInterfaceChecker.GetDiagnosticSummary("org.freedesktop.portal.OpenURI");
+            string backgroundProbe = PortalInterfaceChecker.GetDiagnosticSummary("org.freedesktop.portal.Background");
+            string notificationProbe = PortalInterfaceChecker.GetDiagnosticSummary("org.freedesktop.portal.Notification");
 
             var ffmpegProbe = ProbeCommand("ffmpeg");
             var wfRecorderProbe = ProbeCommand("wf-recorder");
+            var wlCopyProbe = ProbeCommand("wl-copy");
+            var xclipProbe = ProbeCommand("xclip");
             var slurpProbe = ProbeCommand("slurp");
             var grimProbe = ProbeCommand("grim");
             var gstLaunchProbe = ProbeCommand("gst-launch-1.0");
@@ -111,6 +122,8 @@ namespace XerahS.Platform.Linux.Services
 
             bool hasFfmpeg = ffmpegProbe.Exists;
             bool hasWfRecorder = wfRecorderProbe.Exists;
+            bool hasWlCopy = wlCopyProbe.Exists;
+            bool hasXclip = xclipProbe.Exists;
             bool hasSlurp = slurpProbe.Exists;
             bool hasGrim = grimProbe.Exists;
             bool hasGstLaunch = gstLaunchProbe.Exists;
@@ -129,6 +142,7 @@ namespace XerahS.Platform.Linux.Services
 
             string recommendedBackend = GetRecommendedBackend(
                 isWayland,
+                environment.IsSandboxed,
                 hasScreenCastPortal,
                 ffmpegPipewire,
                 gstreamerPipewire,
@@ -160,6 +174,19 @@ namespace XerahS.Platform.Linux.Services
             sb.AppendLine($"Sandbox.ContainerEnv: {container}");
             sb.AppendLine($"Sandbox.DockerMarker: {hasDockerEnv}");
             sb.AppendLine($"Sandbox.ContainerMarker: {hasContainerEnv}");
+            sb.AppendLine($"RuntimeEnvironment: {environment.ToDiagnosticString()}");
+            sb.AppendLine();
+
+            sb.AppendLine("[XDG STORAGE]");
+            sb.AppendLine($"ConfigHome: {xdg.ConfigHome}");
+            sb.AppendLine($"DataHome: {xdg.DataHome}");
+            sb.AppendLine($"StateHome: {xdg.StateHome}");
+            sb.AppendLine($"CacheHome: {xdg.CacheHome}");
+            sb.AppendLine($"RuntimeDirectory: {xdg.RuntimeDirectory ?? "<not set>"}");
+            sb.AppendLine($"XerahS.ConfigDirectory: {xdg.ConfigDirectory}");
+            sb.AppendLine($"XerahS.DataDirectory: {xdg.DataDirectory}");
+            sb.AppendLine($"XerahS.StateDirectory: {xdg.StateDirectory}");
+            sb.AppendLine($"XerahS.CacheDirectory: {xdg.CacheDirectory}");
             sb.AppendLine();
 
             sb.AppendLine("[SESSION]");
@@ -178,6 +205,12 @@ namespace XerahS.Platform.Linux.Services
             sb.AppendLine($"GlobalShortcutsProbe: {globalShortcutsProbe}");
             sb.AppendLine($"InputCapture: {ToStatus(hasInputCapturePortal)}");
             sb.AppendLine($"InputCaptureProbe: {inputCaptureProbe}");
+            sb.AppendLine($"OpenURI: {ToStatus(hasOpenUriPortal)}");
+            sb.AppendLine($"OpenURIProbe: {openUriProbe}");
+            sb.AppendLine($"Background: {ToStatus(hasBackgroundPortal)}");
+            sb.AppendLine($"BackgroundProbe: {backgroundProbe}");
+            sb.AppendLine($"Notification: {ToStatus(hasNotificationPortal)}");
+            sb.AppendLine($"NotificationProbe: {notificationProbe}");
             sb.AppendLine();
 
             sb.AppendLine("[SYSTEM TRAY (SNI)]");
@@ -198,12 +231,22 @@ namespace XerahS.Platform.Linux.Services
             sb.AppendLine("[COMMAND RESOLUTION]");
             sb.AppendLine($"ffmpeg: {ToStatus(hasFfmpeg)} ({ffmpegProbe.Resolution})");
             sb.AppendLine($"wf-recorder: {ToStatus(hasWfRecorder)} ({wfRecorderProbe.Resolution})");
+            sb.AppendLine($"wl-copy: {ToStatus(hasWlCopy)} ({wlCopyProbe.Resolution})");
+            sb.AppendLine($"xclip: {ToStatus(hasXclip)} ({xclipProbe.Resolution})");
             sb.AppendLine($"slurp: {ToStatus(hasSlurp)} ({slurpProbe.Resolution})");
             sb.AppendLine($"grim: {ToStatus(hasGrim)} ({grimProbe.Resolution})");
             sb.AppendLine($"gst-launch-1.0: {ToStatus(hasGstLaunch)} ({gstLaunchProbe.Resolution})");
             sb.AppendLine($"gst-inspect-1.0: {ToStatus(hasGstInspect)} ({gstInspectProbe.Resolution})");
             sb.AppendLine($"busctl: {ToStatus(hasBusctl)} ({busctlProbe.Resolution})");
             sb.AppendLine($"pw-cli: {ToStatus(hasPwCli)} ({pwCliProbe.Resolution})");
+            sb.AppendLine();
+
+            sb.AppendLine("[CLIPBOARD CLI]");
+            sb.AppendLine(LinuxClipboardCapabilities.DiagnosticSummary);
+            if (!LinuxClipboardCapabilities.CliClipboardHealthy)
+            {
+                sb.AppendLine($"Warning: {LinuxClipboardCapabilities.UserFacingWarning}");
+            }
             sb.AppendLine();
 
             sb.AppendLine("[CAPABILITIES]");
@@ -233,7 +276,7 @@ namespace XerahS.Platform.Linux.Services
                     sb.AppendLine("  Log out and back in for the extension to take effect.");
                 }
             }
-            if (isWayland)
+            if (isWayland || environment.IsSandboxed)
             {
                 if (!hasScreenCastPortal)
                 {
@@ -247,10 +290,14 @@ namespace XerahS.Platform.Linux.Services
                 {
                     sb.AppendLine("- Install FFmpeg with pipewire input or GStreamer pipewire plugins.");
                 }
-                if (!hasSlurp)
-                {
-                    sb.AppendLine("- Install slurp for native region selection on wlroots compositors.");
-                }
+            if (!hasSlurp)
+            {
+                sb.AppendLine("- Install slurp for native region selection on wlroots compositors.");
+            }
+            if (!LinuxClipboardCapabilities.CliClipboardHealthy)
+            {
+                sb.AppendLine($"- [CLIPBOARD] {LinuxClipboardCapabilities.UserFacingWarning}");
+            }
             }
             else if (!ffmpegX11Grab)
             {
@@ -262,9 +309,9 @@ namespace XerahS.Platform.Linux.Services
 
         private static string ToStatus(bool value) => value ? "OK" : "Missing";
 
-        private static string GetRecommendedBackend(bool isWayland, bool hasScreenCastPortal, bool ffmpegPipewire, bool gstreamerPipewire, bool hasWfRecorder)
+        private static string GetRecommendedBackend(bool isWayland, bool isSandboxed, bool hasScreenCastPortal, bool ffmpegPipewire, bool gstreamerPipewire, bool hasWfRecorder)
         {
-            if (isWayland)
+            if (isWayland || isSandboxed)
             {
                 if (hasScreenCastPortal)
                 {
@@ -286,12 +333,12 @@ namespace XerahS.Platform.Linux.Services
                     return "Wayland Portal (missing encoder input integration)";
                 }
 
-                if (hasWfRecorder)
+                if (!isSandboxed && hasWfRecorder)
                 {
                     return "wf-recorder (no ScreenCast portal detected)";
                 }
 
-                return "Unsupported Wayland setup";
+                return isSandboxed ? "Unsupported sandboxed setup (ScreenCast portal missing)" : "Unsupported Wayland setup";
             }
 
             return "FFmpeg x11grab";

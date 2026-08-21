@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="using:XerahS.UI.Views"
         xmlns:vm="using:XerahS.UI.ViewModels"
+        xmlns:platform="using:XerahS.Platform.Abstractions"
         x:Class="XerahS.UI.Views.OcrWindow"
         x:DataType="vm:OcrViewModel"
         Title="OCR - Text Recognition"
@@ -22,7 +23,7 @@
                   MinWidth="160"
                   AutomationProperties.Name="OCR Language">
           <ComboBox.ItemTemplate>
-            <DataTemplate>
+            <DataTemplate x:DataType="platform:OcrLanguage">
               <TextBlock Text="{Binding DisplayName}" />
             </DataTemplate>
           </ComboBox.ItemTemplate>
@@ -51,11 +52,11 @@
                TextWrapping="Wrap"
                IsReadOnly="False"
                VerticalContentAlignment="Top"
-               Watermark="OCR result will appear here..."
+               PlaceholderText="OCR result will appear here..."
                AutomationProperties.Name="OCR recognized text" />
 
       <!-- Processing overlay -->
-      <Border Background="#80000000"
+      <Border Background="{DynamicResource XerahS.Brush.Overlay.Modal}"
               CornerRadius="4"
               IsVisible="{Binding IsProcessing}"
               HorizontalAlignment="Stretch"
@@ -66,7 +67,7 @@
           <ProgressBar IsIndeterminate="True"
                        Width="200" />
           <TextBlock Text="Processing..."
-                     Foreground="White"
+                     Foreground="{DynamicResource XerahS.Brush.Overlay.Foreground}"
                      HorizontalAlignment="Center" />
         </StackPanel>
       </Border>

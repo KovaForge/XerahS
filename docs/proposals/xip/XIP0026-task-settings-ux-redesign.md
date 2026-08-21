@@ -1,5 +1,8 @@
 # XIP0026 Task Settings UX Redesign
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0026: Task Settings UX Redesign
 
 

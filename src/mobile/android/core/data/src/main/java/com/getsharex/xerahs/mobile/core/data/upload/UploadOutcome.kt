@@ -23,5 +23,8 @@ package com.getsharex.xerahs.mobile.core.data.upload
 
 sealed class UploadOutcome {
     data class Success(val url: String) : UploadOutcome()
-    data class Failure(val error: String) : UploadOutcome()
+    data class Failure(val error: String, val details: String = "") : UploadOutcome() {
+        val clipboardText: String
+            get() = if (details.isBlank() || details == error) error else "$error\n\n$details"
+    }
 }

@@ -25,6 +25,7 @@
 
 using XerahS.Common;
 using XerahS.Platform.Abstractions;
+using XerahS.Platform.Windows.Capture;
 using SkiaSharp;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -55,23 +56,19 @@ namespace XerahS.Platform.Windows
                 bool cursorHidden = false;
                 try
                 {
-                    int x = (int)rect.Left;
-                    int y = (int)rect.Top;
-                    int width = (int)rect.Width;
-                    int height = (int)rect.Height;
-
-                    // Validate and clamp capture region to screen bounds
-                    var screenBounds = _screenService.GetVirtualScreenBounds();
-                    x = Math.Max(x, screenBounds.X);
-                    y = Math.Max(y, screenBounds.Y);
-                    width = Math.Min(width, screenBounds.Right - x);
-                    height = Math.Min(height, screenBounds.Bottom - y);
-
-                    if (width <= 0 || height <= 0)
+                    // Validate and clamp capture region to screen bounds.
+                    // Use outward rounding so fractional capture coordinates match the DXGI path
+                    // and avoid truncating a caller-selected edge.
+                    if (!GdiCaptureRectHelper.TryCreateCaptureRect(rect, _screenService.GetVirtualScreenBounds(), out Rectangle captureRect))
                     {
                         DebugHelper.WriteLine("Capture region outside screen bounds");
                         return null;
                     }
+
+                    int x = captureRect.X;
+                    int y = captureRect.Y;
+                    int width = captureRect.Width;
+                    int height = captureRect.Height;
 
                     if (options?.ShowCursor == false)
                     {
@@ -109,10 +106,16 @@ namespace XerahS.Platform.Windows
                                 return null;
                             }
 
+                            IntPtr oldBitmap = IntPtr.Zero;
                             try
                             {
-                                // Select bitmap into DC
-                                IntPtr oldBitmap = SelectObject(memDC, hBitmap);
+                                // Select bitmap into DC before writing into it.
+                                oldBitmap = SelectObject(memDC, hBitmap);
+                                if (oldBitmap == IntPtr.Zero)
+                                {
+                                    DebugHelper.WriteLine("WindowsScreenCaptureService: Failed to select bitmap into capture DC");
+                                    return null;
+                                }
 
                                 // BitBlt from screen to memory DC (physical pixels)
                                 bool success = BitBlt(memDC, 0, 0, width, height, screenDC, x, y, SRCCOPY);
@@ -135,13 +138,15 @@ namespace XerahS.Platform.Windows
                                 bitmap.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
                                 stream.Seek(0, SeekOrigin.Begin);
 
-                                // Restore old bitmap
-                                SelectObject(memDC, oldBitmap);
-
                                 return SKBitmap.Decode(stream);
                             }
                             finally
                             {
+                                if (oldBitmap != IntPtr.Zero)
+                                {
+                                    SelectObject(memDC, oldBitmap);
+                                }
+
                                 DeleteObject(hBitmap);
                             }
                         }
@@ -506,19 +511,16 @@ namespace XerahS.Platform.Windows
 
                 try
                 {
-                    foreach (uint id in AllCursorIds)
-                    {
-                        IntPtr copy = CopyIcon(blankCursor);
-                        if (copy != IntPtr.Zero)
-                            SetSystemCursor(copy, id);
-                    }
+                    return CursorReplacementHelper.TryReplaceSystemCursors(
+                        AllCursorIds,
+                        () => CopyIcon(blankCursor),
+                        (copy, id) => SetSystemCursor(copy, id),
+                        copy => DestroyCursor(copy));
                 }
                 finally
                 {
                     DestroyCursor(blankCursor);
                 }
-
-                return true;
             }
             catch
             {

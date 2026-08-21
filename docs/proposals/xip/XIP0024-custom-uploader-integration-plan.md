@@ -1,5 +1,8 @@
 # XIP0024 Custom Uploader Integration Plan
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0024: Custom Uploader Integration Plan
 
 

@@ -11,14 +11,14 @@
         Topmost="True"
         ShowInTaskbar="False"
         CanResize="False"
-        SystemDecorations="None"
+        WindowDecorations="None"
         TransparencyLevelHint="Transparent"
         Background="Transparent"
         WindowStartupLocation="Manual"
         Cursor="Hand"
         AutomationProperties.Name="Notification Toast">
     
-    <Border Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="1"
             CornerRadius="6"
@@ -58,15 +58,15 @@
             </StackPanel>
             
             <!-- URL overlay when hovering over image -->
-            <Border Background="#64000000"
+            <Border Background="{DynamicResource XerahS.Brush.Overlay.Soft}"
                     VerticalAlignment="Top"
                     HorizontalAlignment="Stretch"
                     Height="40"
-                    IsVisible="{Binding HasUrl}"
+                    IsVisible="{Binding HasHeaderText}"
                     x:Name="UrlOverlay"
                     Opacity="0">
-                <TextBlock Text="{Binding Url}"
-                           Foreground="White"
+                <TextBlock Text="{Binding HeaderText}"
+                           Foreground="{DynamicResource XerahS.Brush.Overlay.Foreground}"
                            FontSize="11"
                            Margin="12,0"
                            VerticalAlignment="Center"

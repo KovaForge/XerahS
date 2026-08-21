@@ -29,6 +29,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Layout;
 using Avalonia.Media;
 using XerahS.Services.Abstractions;
+using XerahS.UI.Views;
 
 namespace XerahS.UI.Services;
 
@@ -63,7 +64,7 @@ public sealed class AvaloniaDialogServiceAdapter : IDialogService
         string? result = null;
 
         var dialog = CreateDialog(title, 420, 200);
-        var textBox = new TextBox { Text = defaultValue ?? "", Watermark = label };
+        var textBox = new TextBox { Text = defaultValue ?? "", PlaceholderText = label };
 
         var panel = new StackPanel { Margin = new Thickness(20), Spacing = 14 };
         panel.Children.Add(new TextBlock { Text = label, FontSize = 14 });
@@ -143,7 +144,7 @@ public sealed class AvaloniaDialogServiceAdapter : IDialogService
 
     private static Window CreateDialog(string title, double width, double height)
     {
-        return new Window
+        return new SurfaceWindow
         {
             Title = title,
             Width = width,

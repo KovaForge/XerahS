@@ -83,6 +83,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
+          prerelease: true
+          make_latest: false
           files: dist/chocolatey/xerahs.${{ steps.version.outputs.version }}.nupkg
           fail_on_unmatched_files: true
         env:

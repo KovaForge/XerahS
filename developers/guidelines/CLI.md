@@ -41,12 +41,12 @@ The executable will be located at:
 
 **Windows:**
 ```
-src/XerahS.CLI/bin/Debug/net10.0-windows/xerahs.exe
+src/XerahS.CLI/bin/Debug/net10.0-windows/xerahscli.exe
 ```
 
 **macOS/Linux:**
 ```
-src/XerahS.CLI/bin/Debug/net10.0/xerahs
+src/XerahS.CLI/bin/Debug/net10.0/xerahscli
 ```
 
 You can also publish for specific platforms:
@@ -70,16 +70,16 @@ dotnet publish src/XerahS.CLI/XerahS.CLI.csproj -c Release -r linux-x64 --self-c
 Execute a configured workflow by ID:
 
 ```bash
-xerahs run <workflow-id>
+xerahscli run <workflow-id>
 ```
 
 **Example:**
 ```bash
 # Run full screen capture workflow
-xerahs run WF01
+xerahscli run WF01
 
 # Run active window capture workflow
-xerahs run WF02
+xerahscli run WF02
 ```
 
 **Exit Codes:**
@@ -91,7 +91,7 @@ xerahs run WF02
 #### Start Recording
 
 ```bash
-xerahs record start [options]
+xerahscli record start [options]
 ```
 
 **Options:**
@@ -107,25 +107,25 @@ xerahs record start [options]
 **Examples:**
 ```bash
 # Start full screen recording
-xerahs record start
+xerahscli record start
 
 # Record with high quality settings
-xerahs record start --fps 60 --codec hevc --bitrate 8000
+xerahscli record start --fps 60 --codec hevc --bitrate 8000
 
 # Record with audio
-xerahs record start --audio --microphone
+xerahscli record start --audio --microphone
 
 # Record to specific path
-xerahs record start --output "C:\Videos\my-recording.mp4"
+xerahscli record start --output "C:\Videos\my-recording.mp4"
 
 # Record specific region
-xerahs record start --mode region --region "100,100,1920,1080"
+xerahscli record start --mode region --region "100,100,1920,1080"
 ```
 
 #### Stop Recording
 
 ```bash
-xerahs record stop
+xerahscli record stop
 ```
 
 Stops the active recording and saves the file.
@@ -133,7 +133,7 @@ Stops the active recording and saves the file.
 #### Abort Recording
 
 ```bash
-xerahs record abort
+xerahscli record abort
 ```
 
 Aborts the active recording without saving.
@@ -143,29 +143,29 @@ Aborts the active recording without saving.
 #### Capture Full Screen
 
 ```bash
-xerahs capture screen [--output <path>]
+xerahscli capture screen [--output <path>]
 ```
 
 **Example:**
 ```bash
-xerahs capture screen --output "C:\Screenshots\screen.png"
+xerahscli capture screen --output "C:\Screenshots\screen.png"
 ```
 
 #### Capture Active Window
 
 ```bash
-xerahs capture window [--output <path>]
+xerahscli capture window [--output <path>]
 ```
 
 **Example:**
 ```bash
-xerahs capture window --output "C:\Screenshots\window.png"
+xerahscli capture window --output "C:\Screenshots\window.png"
 ```
 
 #### Capture Region
 
 ```bash
-xerahs capture region --region <x,y,width,height> [--output <path>]
+xerahscli capture region --region <x,y,width,height> [--output <path>]
 ```
 
 **Note:** Region capture from CLI is not fully implemented yet.
@@ -173,16 +173,16 @@ xerahs capture region --region <x,y,width,height> [--output <path>]
 ### List Workflows
 
 ```bash
-xerahs list workflows [--enabled-only]
+xerahscli list workflows [--enabled-only]
 ```
 
 **Example:**
 ```bash
 # List all workflows
-xerahs list workflows
+xerahscli list workflows
 
 # List only enabled workflows
-xerahs list workflows --enabled-only
+xerahscli list workflows --enabled-only
 ```
 
 **Output:**
@@ -215,13 +215,13 @@ Workflows (4):
 #### Show Configuration Summary
 
 ```bash
-xerahs config show
+xerahscli config show
 ```
 
 #### Show Configuration Paths
 
 ```bash
-xerahs config path
+xerahscli config path
 ```
 
 **Example Output:**
@@ -303,7 +303,7 @@ This allows integration with scripts and CI/CD pipelines:
 
 ```bash
 # Example: Fail build if capture fails
-if ! xerahs capture screen --output screenshot.png; then
+if ! xerahscli capture screen --output screenshot.png; then
     echo "Capture failed!"
     exit 1
 fi
@@ -315,25 +315,25 @@ fi
 
 ```bash
 # Windows Task Scheduler or cron job
-xerahs capture screen --output "C:\Screenshots\daily-%date%.png"
+xerahscli capture screen --output "C:\Screenshots\daily-%date%.png"
 ```
 
 ### Automated Recording
 
 ```bash
 # Start recording, run application, stop recording
-xerahs record start --fps 60 --output test-recording.mp4
+xerahscli record start --fps 60 --output test-recording.mp4
 myapp.exe
-xerahs record stop
+xerahscli record stop
 ```
 
 ### Workflow Execution
 
 ```bash
 # Execute multiple workflows
-xerahs run WF01
-xerahs run WF02
-xerahs run WF03
+xerahscli run WF01
+xerahscli run WF02
+xerahscli run WF03
 ```
 
 ## Troubleshooting
@@ -354,11 +354,11 @@ Documents/ShareX/Logs/yyyy-MM/ShareX-yyyy-MM-dd.log
 - Audio capture requires FFmpeg fallback (automatically enabled with `--audio`)
 
 **Workflow not found:**
-- Use `xerahs list workflows` to see available workflow IDs
+- Use `xerahscli list workflows` to see available workflow IDs
 - Check that `WorkflowsConfig.json` exists and contains workflows
 
 **Configuration not loading:**
-- Use `xerahs config path` to verify configuration file locations
+- Use `xerahscli config path` to verify configuration file locations
 - Ensure files are valid JSON
 - Check backup files in `Settings/Backup/` if main files are corrupted
 

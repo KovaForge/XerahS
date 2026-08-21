@@ -39,6 +39,8 @@ namespace XerahS.Platform.Windows
         public static void Initialize(IScreenCaptureService? screenCaptureService = null)
         {
             var screenService = new WindowsScreenService();
+            var clipboardService = new WindowsClipboardService();
+            var clipboardMonitorService = new WindowsClipboardMonitorService(clipboardService);
 
             // If no service provided, use modern DXGI capture if supported, otherwise GDI+
             if (screenCaptureService == null)
@@ -58,7 +60,7 @@ namespace XerahS.Platform.Windows
             PlatformServices.Initialize(
                 platformInfo: new WindowsPlatformInfo(),
                 screenService: screenService,
-                clipboardService: new WindowsClipboardService(),
+                clipboardService: clipboardService,
                 windowService: new WindowsWindowService(),
                 screenCaptureService: screenCaptureService,
                 hotkeyService: new WindowsHotkeyService(),
@@ -69,7 +71,8 @@ namespace XerahS.Platform.Windows
                 shellIntegrationService: new Services.WindowsShellIntegrationService(),
                 notificationService: new WindowsNotificationService(),
                 diagnosticService: new Services.WindowsDiagnosticService(),
-                watchFolderDaemonService: new Services.WindowsWatchFolderDaemonService()
+                watchFolderDaemonService: new Services.WindowsWatchFolderDaemonService(),
+                clipboardMonitorService: clipboardMonitorService
             );
 
             // Register optional scrolling capture service

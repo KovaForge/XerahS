@@ -28,6 +28,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.Input;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
@@ -50,6 +51,7 @@ public class TrayIconHelper : INotifyPropertyChanged
 {
     private static TrayIconHelper? _instance;
     public static TrayIconHelper Instance => _instance ??= new TrayIconHelper();
+    private IScreenRecordingCoordinator? _screenRecordingCoordinator;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -135,11 +137,10 @@ public class TrayIconHelper : INotifyPropertyChanged
 
     private static string GetIdleIconPath()
     {
-        // Use the white/monochrome icon on macOS (menu bar) and Linux (GNOME/KDE top panel)
-        // when the user has opted in. Both environments use dark system panels where a white
-        // icon matches the look of built-in indicators (WiFi, volume, battery).
-        bool useWhite = SettingsManager.Settings.UseWhiteShareXIcon &&
-                        (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux());
+        // The white/monochrome tray icon is opt-in everywhere. The setting is auto-flipped
+        // to true on Linux/macOS (dark system panels — menu bar, GNOME/KDE top bar) but the
+        // user can override it on any platform, including Windows. See issue #261.
+        bool useWhite = SettingsManager.Settings.UseWhiteShareXIcon;
         return useWhite ? WhiteIconPath : DefaultIconPath;
     }
 
@@ -192,10 +193,37 @@ public class TrayIconHelper : INotifyPropertyChanged
         // Subscribe to settings changes
         SettingsManager.SettingsChanged += OnSettingsChanged;
 
-        // Subscribe to recording state changes to update tray icon and menu
-        ScreenRecordingManager.Instance.StatusChanged += OnRecordingStatusChanged;
-        ScreenRecordingManager.Instance.RecordingStarted += OnRecordingStarted;
-        ScreenRecordingManager.Instance.ErrorOccurred += OnRecordingError;
+    }
+
+    public void Initialize(IScreenRecordingCoordinator screenRecordingCoordinator)
+    {
+        if (ReferenceEquals(_screenRecordingCoordinator, screenRecordingCoordinator))
+        {
+            return;
+        }
+
+        if (_screenRecordingCoordinator != null)
+        {
+            _screenRecordingCoordinator.StatusChanged -= OnRecordingStatusChanged;
+            _screenRecordingCoordinator.RecordingStarted -= OnRecordingStarted;
+            _screenRecordingCoordinator.ErrorOccurred -= OnRecordingError;
+        }
+
+        _screenRecordingCoordinator = screenRecordingCoordinator;
+        _screenRecordingCoordinator.StatusChanged += OnRecordingStatusChanged;
+        _screenRecordingCoordinator.RecordingStarted += OnRecordingStarted;
+        _screenRecordingCoordinator.ErrorOccurred += OnRecordingError;
+
+        _currentRecordingStatus = _screenRecordingCoordinator.IsPaused
+            ? RecordingStatus.Paused
+            : _screenRecordingCoordinator.IsRecording
+                ? RecordingStatus.Recording
+                : RecordingStatus.Idle;
+
+        OnPropertyChanged(nameof(CurrentTrayIcon));
+        OnPropertyChanged(nameof(TrayToolTipText));
+        OnPropertyChanged(nameof(IsRecordingActive));
+        BuildTrayMenu();
     }
 
     /// <summary>
@@ -373,9 +401,20 @@ public class TrayIconHelper : INotifyPropertyChanged
     /// </summary>
     private async Task PauseResumeRecordingAsync()
     {
+        if (_screenRecordingCoordinator == null)
+        {
+            return;
+        }
+
+        if (!_screenRecordingCoordinator.CurrentCapabilities.SupportsPauseResume)
+        {
+            DebugHelper.WriteLine("TrayIconHelper: Pause/resume is unavailable for the active recording backend.");
+            return;
+        }
+
         try
         {
-            await ScreenRecordingManager.Instance.TogglePauseResumeAsync();
+            await _screenRecordingCoordinator.TogglePauseResumeAsync();
         }
         catch (Exception ex)
         {
@@ -388,9 +427,14 @@ public class TrayIconHelper : INotifyPropertyChanged
     /// </summary>
     private async Task StopRecordingAsync()
     {
+        if (_screenRecordingCoordinator == null)
+        {
+            return;
+        }
+
         try
         {
-            await ScreenRecordingManager.Instance.StopRecordingAsync();
+            await _screenRecordingCoordinator.StopRecordingAsync();
         }
         catch (Exception ex)
         {
@@ -403,9 +447,14 @@ public class TrayIconHelper : INotifyPropertyChanged
     /// </summary>
     private async Task AbortRecordingAsync()
     {
+        if (_screenRecordingCoordinator == null)
+        {
+            return;
+        }
+
         try
         {
-            await ScreenRecordingManager.Instance.AbortRecordingAsync();
+            await _screenRecordingCoordinator.AbortRecordingAsync();
         }
         catch (Exception ex)
         {
@@ -487,7 +536,8 @@ public class TrayIconHelper : INotifyPropertyChanged
     /// </summary>
     private void AddRecordingMenuItems()
     {
-        bool canPauseResume = _currentRecordingStatus is RecordingStatus.Recording or RecordingStatus.Paused;
+        bool canPauseResume = _screenRecordingCoordinator?.CurrentCapabilities.SupportsPauseResume == true &&
+            (_currentRecordingStatus is RecordingStatus.Recording or RecordingStatus.Paused);
         bool canStop = _currentRecordingStatus is RecordingStatus.Recording or RecordingStatus.Paused;
         bool canAbort = _currentRecordingStatus is RecordingStatus.Recording
             or RecordingStatus.Paused
@@ -589,8 +639,8 @@ public class TrayIconHelper : INotifyPropertyChanged
             var window = desktop.MainWindow;
             if (window != null)
             {
-                // Ensure taskbar visibility is restored
-                window.ShowInTaskbar = true;
+                // On macOS, SilentRun doubles as menu-bar-only mode, so keep the Dock icon hidden.
+                window.ShowInTaskbar = ShouldShowInTaskbar();
                 
                 window.Show();
                 
@@ -614,8 +664,8 @@ public class TrayIconHelper : INotifyPropertyChanged
         if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
             desktop.MainWindow is Views.MainWindow mainWindow)
         {
-            // Ensure visibility before navigating
-            mainWindow.ShowInTaskbar = true;
+            // Ensure visibility before navigating while preserving macOS menu-bar-only mode.
+            mainWindow.ShowInTaskbar = ShouldShowInTaskbar();
             mainWindow.Show();
             
             if (mainWindow.WindowState == Avalonia.Controls.WindowState.Minimized)
@@ -645,6 +695,11 @@ public class TrayIconHelper : INotifyPropertyChanged
     {
         ApplicationConfig settings = SettingsManager.Settings;
         return settings.RememberMainFormSize || settings.RememberMainFormPosition;
+    }
+
+    private static bool ShouldShowInTaskbar()
+    {
+        return !OperatingSystem.IsMacOS() || !SettingsManager.Settings.SilentRun;
     }
 
     public void OnTrayClick()
@@ -717,4 +772,3 @@ public class TrayIconHelper : INotifyPropertyChanged
         }
     }
 }
-

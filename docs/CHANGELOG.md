@@ -3,587 +3,948 @@
 All notable changes to XerahS will be documented in this file.
 
 The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
+
 - **MAJOR** (x): Breaking changes (0 while unreleased)
 - **MINOR** (y): New features and enhancements
 - **PATCH** (z): Bug fixes and patches
 
+---
 
-## Unreleased
-
-
-## v0.20.3
-
-### Fixes
-- **Core**: Accent scrollbar thumbs app wide (7db2f3ed)
-- **Core**: Detach window content before wrapping (637899a7)
-- **Core**: Expand shared Fluent surface bridge (57f55361)
-- **Core**: Improve hotkey toolbar contrast (05d73905)
-- **Core**: Keep index folder controls visible (17ffcb04)
-- **Core**: Make hotkey move labels explicit (dee46e8d)
-- **Core**: Map primary text brush to theme (4268d657)
-- **Core**: Normalize hotkey control card surfaces (ec599b8b)
-- **Core**: Normalize tool window surfaces (19b4424f)
-- **Core**: Paint color picker root surfaces (ec782d3d)
-- **Core**: Paint hash check window surface (7a314245)
-- **Core**: Paint image analyzer root surface (8c025fb4)
-- **Core**: Paint image combiner root surface (4d411ce0)
-- **Core**: Paint image splitter root surface (87946d13)
-- **Core**: Paint image thumbnailer root surface (550ab5f8)
-- **Core**: Paint index folder root gutter (e59362e7)
-- **Core**: Paint index folder surfaces explicitly (5a7ea131)
-- **Core**: Paint video tool window surfaces (4b88f19c)
-- **Core**: Place color picker swatch tooltips above chips (dc6bb5ba)
-- **Core**: Preserve capable X11 modern region capture (6a90f696)
-- **Core**: Publish native Windows clipboard image formats (43bbccbe)
-- **Core**: Restore neutral scrollbars and disable auto-hide (d77b4a4f)
-- **Core**: Show workflow move button labels (cca26574)
-- **Core**: Update ShareX.ImageEditor move-down icon (24093641)
-- **Core**: Update ShareX.ImageEditor move-up icon (857b192d)
-- **Core**: Use accent buttons in color picker (7cbeef73)
-- **Core**: Use accent buttons in image combiner (2160e463)
-- **Core**: Use accent buttons in image splitter (d2e82af6)
-- **Core**: Use accent buttons in image thumbnailer (b2bed6c1)
-- **Core**: Use accent buttons in upload content (2b661408)
-- **Core**: Use accent buttons in video converter (77eaede2)
-- **Core**: Use accent buttons in video thumbnailer (553bc915)
-- **Core**: Widen image combiner options layout (c20f703e)
-
-### Refactor
-- **Core**: Centralize desktop theme styles (8254e13c)
-- **Core**: Expand theme surface compatibility (b2e17ebd)
-- **Core**: Make accent the default button style (6895b18e)
-- **Core**: Move window surfaces into host bases (68ff55e9)
-- **Core**: Replace Linux UseModernCapture semantics (3852768d)
-- **Core**: Unify shared container surfaces (0fbada88)
-
-### Documentation
-- **Core**: Add 2026-03-13 release and UI cleanup blog draft. (3afbe52c)
-- **Core**: Add 2026-03-14 Linux selector blog draft. (d133df18)
-- **Core**: Add XIP0051 Linux selector preferences (1cf8aa43)
-- **Core**: Record Linux selector UX lessons (f68f6300)
-- **Core**: Record X11 portal fallback guardrails (506f8dac)
-
-### Changed
-- **Core**: Add Linux region selector settings UI (298ce627)
-- **Core**: Add Linux selector preference plumbing (48036c10)
-- **Core**: Clarify Linux capture settings UI (94e4d020)
-- **Core**: Hide editor task buttons in XerahS hosts (a5be14e6)
-- **Core**: Hide task buttons in main editor host (0bffed33)
-- **Core**: Keep annotate editor task UI in XerahS (5809651a)
-- **Core**: Remove stale editor toolbar references (43b7c8f9)
-- **Core**: Show File Save and Save As only when image loaded in editor (b10a5338)
-- **Core**: Sort View Zoom menu alphabetically; zoom enabled only with image (1cca79ec)
-- **Core**: Update editor integration and tools navigation (9d4e09be)
-- **Core**: Update run-debug-app.sh (80677704)
-- **Core**: Wire annotate editor task actions (5560ea1b)
-- **Update ShareX.ImageEditor**: disable Copy when no image (119d6324)
-
-### Build
-- **Chocolatey**: Fix CRLF checksum replacement and normalize pack output paths in release sync so recovery packaging can find generated packages `(16af5a18, 075be629)`
-
-
-## v0.20.2
+## v0.25.6
 
 ### Features
-- **VideoEditor**: Integrate ShareX.VideoEditor into the desktop app with host wiring, `open-video-editor` CLI support, diagnostics, packaged WebUI assets, and FFmpeg/ffprobe-backed UI and headless trim flows `(267351e8, 1e345954, e81f1671, 9e2b917a, f0d954bc, f645d0f8, cbfc28d6, 2f684a0e, 9637f7fe, 45f16227)`
-- **Uploaders**: Add Nextcloud and native Immich uploader plugins, plus scaffolding and design notes for future uploader extensions `(bea34b98, b8bbfc15, a531c6a0, 5b112930, 4164b5c5)`
-- **History**: Add image combine actions and lay groundwork for history multi-selection workflows `(e52d4311, 9da0b6b2, a662c8ac)`
-
-### Fixes
-- **VideoEditor**: Harden startup, dependency resolution, repo layout, and packaged WebUI/bootstrap handling across submodule updates `(7a814699, adcbec9a, d4e1a449, 6be3f5b1, aaeee1de, bff513c2, f181f624, ec098878, 450ed938, 294b338b, 935a1ea3, c02c7bd0, 75f34059, 1fa78e6a, 39a0e65d, 451699c2, 5da69b45, 9ec27e11)`
-- **Custom Uploaders**: Inline the editor in settings while preserving names, hiding duplicate labels, and making inline names read-only `(75701a4c, d3a67428, af4635a3, 95325504)`
-- **Linux/Desktop**: Detect wallpaper providers across desktop environments, preload and normalize wallpaper sources, and restore ImageEditor wallpaper backgrounds through platform abstractions `(3401968f, 4b12b6df, f59aa050, 551b1967, 4e6528d3, ee3c3981, 85fe2871, 5a131ce1, 43907c07, bc12e966)`
-- **UI/ImageEditor**: Restore overlay theming and capture polish, including region capture toolbar icons, uploader theme inheritance, preview bitmap cloning, screenshots path picker, remembered window size, editor upload routing, Windows overlay alignment, pin export, pinned-window drag, and ShareX.ImageEditor background/context updates `(e1606785, 4d71abc5, 60629966, 794dcaee, eb7f99fd, a2b49176, fa6fda17, 79b62291, 6e8441c0, 3ce020e4, 8f9d8be4, 93fe5f0e, d2d95606, 9f691ab6, 735f08b7, bfb3f5bc, c98458dc, e133763c)`
-- **Build Targets**: Fix Windows-to-macOS packaging cross-compilation and Linux desktop build targeting `(501ebaaa, f466d80a)`
-
-### Refactor
-- **Core/UI**: Share history and toast context menus and align app typography and theme contracts with refreshed ImageEditor styling `(20739eea, 6f4a0e69, ae27f5eb)`
-
-### Build
-- **Release Automation**: Normalize editor projects to Any CPU, automate and harden Chocolatey release sync, and add desktop bootstrap helpers for fresh clones and arm64 toolchain detection `(c4c0ed5d, 7c6cb235, 07282313, bf240e76, 41834128)`
-- **VideoEditor**: Update the hybrid web/native toolchain requirements for the WebUI build `(1383ccfa)`
-
-### Documentation
-- **Developer Workflow**: Document fresh-clone setup, shared agent workflow, shared-library commit conventions, explicit GitHub issue handling, and FFmpeg Ubuntu PipeWire guidance `(e577b3fe, 8ba6112a, 975ac87d, 00f5c095, 5d10aabe, ffac673b)`
-- **Architecture**: Rework VEIP0001 for the hybrid web/native VideoEditor direction, add the Immich uploader design XIP, and refresh FAQ/theme guidance `(bbed6737, 4164b5c5, 82c2274a, c5d50d61)`
-
-### Testing
-- **Region Capture**: Add UI smoke tests for region capture flows `(d293e5b2)`
-
-
-## v0.19.9
-
-### Features
-- **Uploaders**: Add URL shortener foundation and Bitly URL shortener plugin support `(af65a13b)`
-
-### Fixes
-- **Linux**: Improve region capture cropping for physical-resolution desktops, including KDE Plasma portal bitmaps and X11 overlay positioning `(2c538a18, 5f60ca94, fd15830a)`
-- **Linux**: Add region capture diagnostics, detect XWayland vs native Wayland, and restore fast overlay region capture `(bb8548cd, f20211f4, ac69ff73)`
-
-### Refactor
-- **Indexer**: Share tree helpers and settings types, collapse async adapters, and externalize HTML styles `(5b3b5ad6, b9b6913e, b7a1580d, 6a7608bd)`
-
-### Build
-- **ImageEditor**: Replace the redundant legacy submodule layout and update embedded ShareX.ImageEditor integration `(99c79b0f, 259307a3, 10b04276)`
-
-### Documentation
-- **XIP0047**: Summarize Linux region capture DPI and performance investigation, including X11 overlay shift and KDE physical-bitmap crop fixes `(abdba2b1, af43a177)`
-
-
-## v0.19.8
-
-### Features
-- **Video Editor**: Integrate ShareX.VideoEditor; add WorkflowType.VideoEditor, Tools menu and sidebar nav, AnnotateMedia (renamed from AnnotateImage) with toast dispatch to VideoEditor; open editor after recording when AnnotateMedia set; headless stubs and IUIService wiring `(5a969637, 66dd517c, 5a3f3d20, d3edd7c2, 3e8b9203, b0cf726c, f4e081df, 65a8a0f2)`
-
-### Fixes
-- **Linux**: UseModernCapture option (XDG Portal vs overlay), Wayland region capture and mixed-DPI bounds, GNOME portal recording output, double region-selection prompt fix; KDE Spectacle and GNOME fallbacks (XIP0046-C); system tray SNI (GNOME/Wayland); systemd user unit path via UserProfile `(8e2f372b, 8b686d9c, 792f9f5c, 5aafdad2, ad0f48d5, 58283cb1, 6426a6c6, 17a52cdc, 74dd1532, ffa8f982)`
-- **Core**: Validate URL before OpenURL Process.Start; SaveRequested/SaveAsRequested for embedded and standalone editor; fall back to File-category instances when no Image uploader; default white tray icon on Linux/macOS; Tools_* nav items and VideoEditor dispatch; AnnotateImage JSON deserialization; Linux portal handle format and RPM packaging `(d16c0179, 6595731d, 7ec997c0, 63f81ce6, ddf64eb5, e9f8594b, b4b47f53, 1172b9a5, c6e9dd21)`
-- **ImageEditor**: Submodule updates and macOS build; add ShareX.ImageEditor at develop; Zoom to Fit in zoom picker; Ã‚Â§7a easy wins (Random.Shared, Category overrides, Gamma LUT cache) `(03833f97, aa407405, ae2a7ac6, 3179068a, 18c11a48, aeba3c67, 81d9cfee, 16e6f52d, 36dfd283, 6ab5833c, 6c220749, 8a8a493d, c65cb432, a13faf83, e3e01c2f)`
-- **VideoEditor submodule**: Button theme isolation and ReactiveUI main thread scheduler fixes `(ac7a1eec, 672a1e09)`
-- **Watch Folder**: Support legacy watchfolder.service `(9d291a15)`
-- **Core**: Hide Video Editor from Tools menu in release builds `(692cb5a0)`
-
-### Refactor
-- **ImageEditor**: Advance Phase 1 commits; migrate to new namespaces; rename submodule and sync references `(512e4216, eebd11e3, 6d58166f)`
-- **Core**: Centralize plugins path selection in PathsManager `(1ec799ac)`
-
-### Build
-- **Core**: Enforce standard release notes block; version bump to 0.19.7 `(88287c36, 7b601c62)`
-
-### Documentation
-- **Core**: Move image editor refactor proposal to IEIP; move proposals into docs/proposals; Backend Porting checklist (March 2026); EIP0001 phases A/B/C; OS-specific known issues and Linux hotkey workaround; XIP0046 summary (Issues C, D, E fixed); FFMPEG.md; XIP0042/XIP0044/XIP0046 task docs; run-debug-app.ps1; VEIP0001 and XIP0046 proposal `(cc325496, 73d661ce, d21b4a9a, 26c25e9b, bd700307, fb3c0400, daf7c1f9, 18b424ae, 7594c988, 87fa948d, efe3a4c7, c17a71d9, b733f172, 41e1d9c0, f315361d)`
-
-### Performance
-- **Core**: Faster overlay and smoother crosshair on Linux (region capture) `(a6e93903)`
-
-## v0.19.5
-
-### Fixes
-- **Linux Recording**: Harden GStreamer recording by correcting region crop, removing conflicting `video/x-raw` caps before `glupload`, adding GL-to-CPU fallback, and making fatal errors selectable in RecordingView (01527ef5, ef55b9e7, 78523202, eba1e9d0, ba13d971)
-- **Linux Recording**: Clean up portal session on fatal errors to prevent unobserved exceptions (d69bd5a1)
-- **Core**: Fix tray stop button behavior and hotkey recording stop flow (36410a85)
-- **PluginLoadContext**: Fix stale shared dependency name/order checks (fff53962)
-- **Updates/Logging**: Fix reflection-disabled GitHub update JSON handling and normalize error log naming to `yyyyMMdd` (f2ed43cf)
-
-### Refactor
-- **Core**: Centralize log and app path handling with `PathsManager` and expand path audit coverage for plugins/screenshots/tools/troubleshooting paths (ad12770f, bcb0423e)
-
-### Build
-- **Release Automation**: Run maintenance chores during release bump-tag flow (df7976f4)
-- **Developer Tooling**: Add `run-debug-app.sh` helper script (7d4fe9ec)
-
-### Documentation
-- **XIP0042**: Update the ImageEditor SkiaSharp hardware acceleration task document (3605dfa7)
-
-## v0.19.0
-
-### Fixes
-- **Core**: Correct DMDO_90/DMDO_270 Ã¢â€ â€™ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ ModeRotation mapping in DXGI capture (b484d197)
-
-### Documentation
-- **Core**: Fix XIP0042 markdown rendering (939f92c5)
-- **Core**: Normalize mojibake symbols in XIP0042 task doc (28c39130)
-- **Core**: Replicate XIP0042 formatting from ba3713b3 (5b418f5d)
-
-### Changed
-- **Core**: [Docs] Shorten XIP0043 title and backup filename; sync XIP0038/XIP0040 slugs (8ebe0ae8)
-- **Core**: [Docs] XIP sync: GitHub source of truth, single-folder backup, merge script (5994bb13)
-- **Core**: [XIP0042] Second audit ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â update task after Jaex's Round 2 fixes (4c06d5cf)
-- **Core**: [XIP0042] Sync task doc from feature/XIP0042-optimizations (latest implementation status) (b9da24b8)
-- **Core**: [XIP0042] Update GPU effects task with current codebase audit (7c70e94a)
-- **Core**: Move XIP0043 task to complete folder (2b9a95ed)
-- **Core**: Update ImageEditor (009d2201, 12c0380f, 600a1fdd, 8236ce9c, 9c2f85c4)
-
-## v0.18.11
-
-### Fixes
-- **Core**: Avoid SIGPIPE in archive validation checks (93287f30)
-
-## v0.18.10
-
-### Fixes
-- **Core**: Correct flipped monitor orientation in DXGI capture (106a497d)
-- **Core**: Fail fast for Linux publish and validate package payload (78f93344)
-- **Core**: Harden daemon bundling across desktop RIDs (d3052258)
-- **Core**: Marshal Avalonia clipboard access to UI thread (6d24889e)
-- **Core**: Remove WinForms dependency from Windows platform (0ced3438)
-- **Update Changelog Script**: ensure entries array has Count for single-category (22b5cbb3)
-
-### Build
-- **Core**: Add changelog update automation script (18d58b73)
-- **Core**: Validate release assets and RID metadata (571e383c)
-
-### Performance
-- **Core**: Skip app-driven plugin build in solution builds (57fb31f6)
-- **Core**: Update ImageEditor submodule for TFM simplification (619dddda)
-
-### Changed
-- **Core**: Create XIP0043-Remove-WinForms-and-Harden-CrossRID-Daemon-Bundling.md (63895920)
-- **Core**: Update CHANGELOG.md (43b0cbdb)
-- **Core**: Update ImageEditor (6fc22242)
-
-## v0.18.9
-
-### Features
-- **Mobile**: Android and iOS MVP with Share Extension and MAUI; adaptive theming, upload queue/picker/history, active destination selector, desktop-compatible upload filename pattern, broad share-intent support; Amazon S3 and Custom Uploader config UI; Swift/Kotlin native shells and share extension `(8746372, 03698c6, 493d147, 4b79ddb, a7cfb22, 1e5f9eb, 30bbe98, 68d97d9, 52d6ad2, 0b42d73, ccfa4ea, 357188f, c0af5d6, dbb6633, 7292102, 78a488e, 08604ee5, 21c40429, 5876b44b, 1e61b8bf)`
-- **Media Explorer**: Provider file browsing with S3 and Imgur, navigation, search, filtering, and CDN thumbnail optimization `(9deedf9, e374160)`
-- **Watch Folder**: Daemon with lifecycle hooks, runtime policy, settings controls, and tests `(79c1292, 2b94600, 4265528, 992c41b)`
-- **Indexer**: Async streaming with progress and cancellation; open in own window; file extension filters; dark theme with light-mode toggle `(8b2fe88, 8b20b3b, e3445f5b, cc58316, d24cdcf)`
-- **ImageEditor**: Integrate submodule; File Open choice dialog; annotation options persistence; app/editor theme sync `(0db2c71, 1a41df5, 7e82df3, 0d42719, 71fa3e1)`
-- **Workflows**: UploadContentWindow; AutoCapture, Pin to Screen, Ruler, MonitorTest, HashCheck; 6 media tools (ImageCombiner, ImageSplitter, ImageThumbnailer, VideoConverter, VideoThumbnailer, AnalyzeImage); OCR and ScrollingCapture end-to-end `(298457a, a45d02f, 1e0d3f2, 5647b4d, 8ea941e, 56a1ea3, 8e3164ac, 3a779ef1, ed56345c, 1eff3202)`
-- **Upload**: Auto destination uploader; cross-platform secrets store with diagnostics; proxy config UI `(f3abe81, c2b8105, f626f09, 473cbb88)`
-- **Amazon S3**: AWS SSO auth, region selection, CNAME, public bucket policy; redesign config to mimic Custom Uploaders `(9e2623be, 6880866, 6bacd05e)`
-- **Plugins**: Dropbox, Paste2, GitHub Gist, FTP/FTPS/SFTP, Pastebin; XIP0040 plugin architecture; DestinationsPluginSdk `(e04a8953, 3ec377db, 83669aec, 848d3064, c5c49513, 1c92e2c2)`
-- **UI**: Copy Errors to HistoryView, AfterUploadWindow, Toast `(5c08812)`
-- **Linux Capture**: DBus fallbacks, KDE permissions, decision trace orchestration, portal waterfall `(290b3e0, dc02dbd, c744059)`
-- **Packaging**: Scoop, WinGet, Chocolatey support; generate-winget.ps1 enhancements `(1ce955e0, aaa833f6, 552ef730, 124095e7)`
-- **Misc**: Imgur album selection and GIFV; Dropbox OAuth overhaul `(70a34373, d4993fd0)`
-
-### Fixes
-- **ImageEditor**: XAML startup crash, highlight/crop/submodule fixes, context menu, DPI and crop handles `(258bb09, f987eaa, 73dff63, 0eca71e, fcddf02, d9ab54a, db3bcaa, 584de4e, bd44498, 80eb42f, a1ac173, 592a2f1, 2cbc692, f85c57f, bb862c4, c5618de)`
-- **Scrolling Capture**: Auto-scroll, workflow settings, hotkeys, scroll position detection `(1fa45f2, 971219c, 8ac2c8b)`
-- **Media Explorer**: Harden listing, normalize URLs, error handling, copyable footer `(9bab13e, e1a5d59, 6b2b8d6, f4e796b)`
-- **Mobile**: iOS App Group for S3 config in Share Extension; unify share payload and TimeZoneInfo `(42a1033, 0aad5c1, a835153)`
-- **Upload**: MainViewModel parameterless copy/upload; multi-uploader fallback, clipboard routing `(06a2232, 72079e6, c06f17f, 6527590)`
-- **Capture/Region**: Annotation layer rendering, crop offset, AfterCapture refresh, workflow integration `(f3e3908, b3034be, af35c74, 4048f00, c5efeab, 4500b8a)`
-- **Workflows**: Allow OCR and scrolling workflows from tray `(4e07852)`
-- **Linux**: Portal timeout, Wayland/slurp/portal fixes, GStreamer clamp, D-Bus and plugins path resolution `(501af7bb, 4de4a5b1, 4735dcb1, 89a61dd4, d2590b9d, 5e12cbed)`
-- **After Capture**: ShowAfterCaptureWindow persistence `(9a04c9d, a3a581d, a8262d4)`
-- **Misc**: FAQ XerahS/ShareX Linux ref; update checker pre-releases; backup machine-specific; S3 setup reorder; macOS icon in Windows build; File Open dialog crash `(699634f, ed68066, c618542, 3196b02, ba40fbb, 5cbf5dd)`
-
-### Refactor
-- **Core**: Split large ViewModels, WatchFolder daemon base service, ScreenRecordingManager startup; WindowState naming; GeneralHelpers split `(86286af, 315549a, 1160519, 506072e, 78214dd)`
-- **Upload**: Polymorphic uploader config pilot `(7f2815d)`
-- **Workflows**: App workflow orchestration services `(4ee8ab9)`
-- **Linux Capture**: Modular providers, parallel lanes, coordinator, contracts `(733a49d, 5dd9931, 0a81693, 3569c0a)`
-
-### Build
-- **CI/Release**: All-platform release workflow, Linux by arch, release title, bump/tag automation `(2fbe5ee, bd8d0d3, aeccb68, 55f25d3)`
-- **Android**: Mobile build infrastructure `(3952287)`
-- **Linux**: Plugin packaging, RPM strip, display diagnostics, desktop-file-utils `(817d83a, 0723b45, 1c79a94, 2f6e3112)`
-- **ImageEditor**: Submodule checkout, recovery hook, pre-push `(3098824, 899e8f1)`
-- **Misc**: Version/changelog bumps, central package management, plugin DLL deduplication, cross-compilation macOS, GPL headers Swift/Kotlin `(81db32e, a2bf5a61, 19b3a84c, 519423d9, 55f25d30, cbcd5bb3)`
-
-### Documentation
-- **Consolidate**: Developer docs to developers/; plugins to developers/plugins and .xsdp; changelog consolidation; mobile README simplification `(1f17491, b78882f, 41702bd, 21927b4, ad719c9, c9ebe39, 72f2e55, c043844)`
-- **Planning**: Roadmap, XIP0033 complete, task docs `(caeaae1, e3f37e3, 04cf9cf, 168b2ea)`
-- **Misc**: Feasibility report JS/CSS; sync-submodules; build/Linux/mobile docs; XIP0040/0039; update-changelog skill in run-maintenance `(8fc7446, 47d833c, ce35146, e9ed21a, 8e97f89, ccff1c4, a05200f, 14be1df, 717be27, 76df673, 5ade43b)`
-
-### Testing
-- **Linux Capture**: Waterfall and lane matrix tests `(7f49769)`
-
-### Performance
-- **RegionCapture**: Reduce annotation rebuild pressure `(3bf82243)`
-
-
-## v0.17.4
-
-### Features
-- **Indexer**: Modernize HTML output flow and default to dark theme with light-mode toggle `(cc58316, d24cdcf)`
-
-### Build
-- **CI**: Split Linux release builds by runner architecture and set release title metadata `(aeccb68)`
-- **Automation**: Add release bump/tag workflow skill for standardized release prep `(55f25d3)`
-
-
-## v0.16.3
-
-### Features
-- **Mobile**: Add active upload destination selector and in-app destination label on Android and iOS `(0b42d73, ccfa4ea)`
-- **Mobile**: Use desktop-compatible upload filename pattern on Android and iOS `(357188f, c0af5d6)`
-- **Mobile**: Add broad share-intent support for arbitrary file types on Android and iOS `(dbb6633, 7292102)`
-- **Media Explorer**: Implement provider file browsing with S3 and Imgur support, including navigation, search, filtering, and CDN thumbnail optimization `(9deedf9, e374160)`
-- **Watch Folder**: Add watch-folder daemon with lifecycle hooks, runtime policy controls, and tests `(79c1292, 2b94600, 4265528, 992c41b)`
-- **Mobile**: Add adaptive theming infrastructure with native styling polish `(4b79ddb, a7cfb22, 1e5f9eb, 30bbe98)`
-- **Mobile**: Add upload queue, picker, and history screens `(68d97d9, 52d6ad2)`
-- **UI**: Add Copy Errors to UI (HistoryView, AfterUploadWindow, Toast) `(5c08812)`
-- **ImageEditor**: Add app/editor theme synchronization with platform-aware styling `(0d42719, 71fa3e1)`
-
-### Fixes
-- **iOS**: Use App Group settings so Share Extension can read Amazon S3 configuration `(42a1033)`
-- **ImageEditor**: Fix precompiled Avalonia XAML startup crash (`XamlLoadException`) in editor app initialization `(258bb09, f987eaa)`
-- **ImageEditor**: Improve highlight rendering/fill behavior, Smart Eraser, text defaults, and canvas zoom performance `(73dff63, 0eca71e, fcddf02, d9ab54a, db3bcaa, 584de4e, bd44498)`
-- **ImageEditor**: Restore crop UX and precision with full-image/L-shape fixes, visible handles, and DPI-aware hit zones `(80eb42f, a1ac173, 592a2f1, 2cbc692, f85c57f)`
-- **Scrolling Capture**: Improve auto-scroll behavior and workflow settings integration `(1fa45f2, 971219c, 8ac2c8b)`
-- **Workflows**: Allow OCR and scrolling workflows from tray `(4e07852)`
-- **Media Explorer**: Harden listing, normalize URLs, and improve error handling `(9bab13e, e1a5d59, 6b2b8d6, f4e796b)`
-- **Mobile**: Unify iOS share payload handling and TimeZoneInfo serialization `(0aad5c1, a835153)`
-- **Upload**: Align MainViewModel helper with parameterless copy/upload events `(06a2232)`
-- **ImageEditor**: Update submodule with context menu fixes `(bb862c4, c5618de)`
-- **Capture**: Optimize annotation layer rendering and resource management `(f3e3908, b3034be, af35c74, 4048f00)`
-- **Documentation**: Update FAQ to correctly reference XerahS instead of ShareX in Linux screen capture section `(699634f)`
-- **Infrastructure**: Integrate update-changelog skill into run-maintenance workflow `(5ade43b)`
-
-### Refactor
-- **Core**: Split large ViewModels, extract WatchFolder daemon base service, and consolidate ScreenRecordingManager startup flow `(86286af, 315549a, 1160519)`
-- **Core**: Remove WindowState naming collisions `(506072e)`
-- **Core**: Split GeneralHelpers into utility classes `(78214dd)`
-- **Upload**: Add polymorphic uploader config pilot `(7f2815d)`
-- **Workflows**: Extract app workflow orchestration services `(4ee8ab9)`
-
-### Build
-- **Infrastructure**: Add all-platform release workflow and repository sync helper script `(2fbe5ee, bd8d0d3)`
-- **Android**: Add Android mobile build infrastructure `(3952287)`
-- **Linux**: Harden plugin packaging, RPM strip behavior, and display diagnostics `(817d83a, 0723b45, 1c79a94)`
-- **Hooks**: Add cross-platform ImageEditor recovery and auto-push on pre-push `(3098824, 899e8f1)`
-
-### Documentation
-- **Maintenance**: Simplify mobile README and move refactor/hardening notes into documentation archives `(ad719c9, c9ebe39, 72f2e55, c043844)`
-- **Planning**: Update task planning docs and move completed XIP0033 `(caeaae1, e3f37e3, 04cf9cf, 168b2ea)`
-- **Plugins**: Consolidate plugin documentation into 'developers/plugins' and standardize on .xsdp extension `(b78882f, 41702bd, 21927b4)`
-- **Developer**: Consolidate developer documentation into 'developers' root folder `(1f17491)`
-- **Architecture**: Add feasibility report for JS/CSS migration `(8fc7446, 47d833c, ce35146, e9ed21a, 8e97f89, ccff1c4)`
-- **Submodules**: Add sync-submodules workflow and update ImageEditor to latest develop `(a05200f, a0e3054, 14be1df)`
-- **Tasks**: Add refactoring audit skill and native UI theming task `(ff8ea0e)`
-
-
-## v0.15.5
-
-### Features
-- **Linux Capture**: Add DBus fallbacks, KDE desktop permissions, and decision trace orchestration `(290b3e0, dc02dbd)`
-
-### Fixes
-- **Linux Capture**: Enforce portal-only sandbox policy, unify waterfall, and improve logging `(2de4ac6, c744059, a381faa)`
-- **Builds**: Fix cross-platform build configuration and add linux-arm64 support `(ad8611c, 519423d)`
-
-### Refactor
-- **Linux Capture**: Modularize providers with parallel lanes, coordinator, and contracts `(733a49d, 5dd9931, 0a81693, 3569c0a)`
-
-### Testing
-- **Linux Capture**: Add Linux capture waterfall and lane matrix tests `(7f49769)`
-
-### Documentation
-- **Build System**: Rename developer README and add Linux guide `(717be27)`
-- **Roadmap**: Finalize Linux phase roadmap and release gate `(76df673)`
-
-## v0.15.0
-
-### Features
-- **Mobile**: Add Android and iOS MVP with Share Extension support, .NET MAUI project `(8746372, 03698c6, 493d147)`
-- **Mobile**: Add Custom Uploader and Amazon S3 configuration UI `(#124, #125, @Hexeption; 78a488e)`
-- **Indexer**: Implement async streaming indexer with progress and cancellation `(8b2fe88)`
-
-### Fixes
-- **Image Editor**: Share annotation preview visuals with ImageEditor to ensure consistency `(cc074ad)`
-### Fixes
-- **Annotations**: Optimize rendering, remove draw-start dot artifact, and improve responsiveness `(d1afa2f, faa84e7, 891eed0)`
-- **Workflow**: Complete WorkflowType end-to-end wiring `(47ead0b)`
-- **UX**: Hide SilentRun window on first open instead of minimizing `(7567223)`
-- **Updates**: Gracefully handle repositories with only pre-releases `(ed68066)`
-- **After Capture**: Persist "Show after capture window" behavior across repeated runs `(9a04c9d, a3a581d, a8262d4)`
-- **Upload**: Add multi-uploader auto destination fallback and wire mobile Amazon S3 and plugin integration to InstanceManager `(72079e6, c06f17f, a576e78, 44c316b, 02087fb)`
-- **Watch Folder**: Convert MOV captures to MP4 `(27f6fec)`
-- **Settings**: Make backup and secrets filenames machine-specific `(c618542, 55a32d0)`
-- **Amazon S3**: Reorder and renumber setup steps `(3196b02)`
-- **iOS**: Improve local signing setup and share extension flow `(30f6822)`
-
-### Build
-- **Plugins**: Centralize plugin copy target and pass host TFM `(6bfa2e1)`
-- **Dependencies**: Bump Avalonia packages to 11.3.12 `(27ce502)`
-- **ImageEditor**: Update submodule for theme-aware view, net9 compatibility, and track develop branch `(5e8eee0, e03ec12, 71601ee, a17d91e, 493d147)`
-
-### Documentation
-- **Audits**: Organize audit files and update UI control inventory snapshots `(e3d2a9c, aadfea4)`
-- **Tasks**: Mark XIP0030 complete and move to completed tasks `(25a83a1)`
-
-## v0.14.0
-
-### Features
-- **Monitor Test**: Implement MonitorTest workflow with diagnostic and pattern testing modes `(56a1ea3, 1dc10f8)`
-- **Tools**: Add Ruler workflow with full RegionCapture integration `(5647b4d, 8ea9419)`
-- **Indexer**: Make Index Folder open in its own window `(8b20b3b)`
-- **Editor**: Integrate upstream ShareX.ImageEditor submodule with File Open choice dialog `(0db2c71, 1a41df5)`
-- **Region Capture**: Add annotation options persistence `(7e82df3)`
-
-### Fixes
-- **Logging**: Fix duplicate date in log filename on date rotation `(69cb3c2)`
-- **Region Capture**: Improve annotation toolbar integration and reduce rebuild pressure `(4500b8a, 3bf8224)`
-- **Indexer**: Enable Open in Browser button and remove WebView in favor of system browser `(4582529, 16945a0)`
-- **Navigation**: Enable menu navigation and update editor data transfer APIs `(49772bf)`
-- **Editor**: Sync ImageEditor fixes, persist annotation options, refactor platform abstractions, enable Zoom to Fit `(3ee199a, 2cc8fa7, 554099c, 79eb2be, e5ffef7)`
-- **ImageEditor**: Update submodule with unified undo-redo, smart padding crop sync, clipboard fixes, z-order fixes, and dispose bug fixes `(240649d, b3125b8, 0ee0ad7, 4eb30bf, 0c2b53e, 1131223, 751eb7c)`
-- **Packaging**: Restore macOS icon in Windows package build `(ba40fbb)`
-- **Upload**: Delay upload progress title update until actual upload starts `(9d4894b)`
-- **macOS**: Harden mac packaging and cross-platform editor wiring `(6e1d569)`
-- **Dialogs**: Prevent File Open dialog crash and add global exception logging `(5cbf5dd)`
-
-### Build
-- **Cross-Compilation**: Add macOS from Windows support and build system documentation `(a2bf5a6, 19b3a84)`
-- **Infrastructure**: Fix version parsing in Windows package script `(5069a01)`
-
-## v0.13.0
-
-### Fixes
-- **Menu Bar**: Fix hash checker routing and dynamic workflows menu `(8068e6f)`
-- **Upload**: Improve Upload Content workflow handling, window UX, and text upload routing `(62a1cda, 4fd8182)`
-
-## v0.12.0
-
-### Fixes
-- **Tools**: Add media tools to navigation bar and fix DataTemplate issues `(485a438)`
-- **Proxy**: Fix custom uploader loading and add configuration UI `(#77, @Hexeption)`
-- **Linux**: Add dark mode support, theme settings, and Wayland Hyprland screenshot support `(#62, @unicxrn; #61, @unicxrn)`
-- **macOS**: Add native application menu `(#60, @Hexeption)`
-- **Custom Uploaders**: Fix compatibility improvements and version compatibility `(#74, @Hexeption; #71, @emmsixx)`
-- **Security**: Fix DPAPI platform warning `(#73, @Hexeption)`
-
-### Refactor
-- **Editor**: Rename namespace from ShareX.Editor to XerahS.Editor and update all references `(25135d0, d0d1266, 1dfeb3b)`
-
-### Build
-- **Plugins**: Improve plugin copy target to only include plugin assemblies `(a9b5c63)`
-- **Configuration**: Update build files, packaging configuration, issue templates, and .gitignore `(09222cc, 5c03c33, b107da9, 789ec93)`
-
-## v0.11.0
-
-### Features
-- **Upload**: Implement UploadContentWindow and remove superseded upload WorkflowTypes `(298457a)`
-
-## v0.10.0
-
-### Features
-- **Workflows**: Implement AutoCapture workflows `(a45d02f)`
-
-## v0.9.0
-
-### Features
-- **Workflows**: Implement Pin to Screen workflows `(1e0d3f2)`
-- **Amazon S3**: Enhance SSO with region selection `(6880866)`
-
-### Fixes
-- **Upload**: Improve upload error surfacing and history actions `(760a6ef)`
-- **Workflows**: Preserve workflow order and exclude None `(6c08b22)`
-- **Custom Uploaders**: Fix compatibility check for XerahS versions `(422710a)`
-
-### Build
-- **Plugins**: Restore plugin DLL deduplication with retry logic `(81db32e)`
-
-### Core
-- **Rendering**: Remove RectangleLight; modern Skia rendering deprecated it `(12d3ae5)`
-
-## v0.8.0
-
-### Features
-- **Security**: Add cross-platform secrets store with diagnostics `(c2b8105, f626f09)`
-- **Upload**: Add auto destination uploader `(f3abe81)`
-- **Custom Uploaders**: Implement full support including editor UI and integration `(5962870, 8020d73)`
-- **Task Settings**: Redesign Task Settings UX with dedicated Image/Video tabs `(43436af)`
-- **Tray Icon**: Add recording-aware tray icon with pause/abort controls `(7d22818)`
-- **Image Formats**: Add AVIF and WebP image format support `(3b89381)`
-- **Linux/Wayland**: Fix screen capture on Wayland by integrating XDG Portal API `(4cc5a9f)`
-
-### Fixes
-- **Capture**: Allow clipboard payloads in capture phase `(a2e336f)`
-- **Upload**: Add clipboard upload auto routing `(6527590)`
-- **Region Capture**: Correct crop offset, refresh AfterCapture UI, and fix coordinate mapping for Windows `(c5efeab, #29)`
-- **Linux**: Fix active window capture hierarchy, coordinates, hotkey initialization, and Region Capture `(2957c89, 007f261, 73dd95d, e8a9cc8)`
-- **UX**: Hide main window when capture triggered from tray/navbar `(45264fb)`
-- **UI**: Fix update dialog layout `(7868256)`
-
-### Refactor
-- **Editor**: Update XerahS.Editor.csproj references and docs `(1dfeb3b, 90b9fe0)`
-
-
-## v0.7.0 - Annotation Overlays & Packaging
-
-### Features & Improvements
-- **Annotations**: Enable Annotation Toolbar in Region Capture Overlay and refactor `(05dcaf3, #53)`
-- **Region Capture**: Add support for transparent background capture (RectangleTransparent) `(9ee7277)`
-- **macOS**: Native single-file app bundle packaging (`.app`) `(c2b882c)`
-- **Packaging**: Automated multi-arch Windows release builds `(49a7ec6)`
-- **Plugins**: Support for user-installed plugins and packaging `(e787536)`
-- **Window Capture**: Add support via monitor cropping fallback `(d73daf5)`
-- **Media Library**: Basic implementation `(#49)`
-
-### Bug Fixes
-- **Annotation Layer**: Fix coordinate system for multi-monitor/high DPI and compositing `(5d69425, 61bd0c9, 3875298)`
-- **Exceptions**: Global exception handling implementation `(ad6d443)`
-- **Screen**: Fix frozen screen issue `(#51)`
-- **Cursor**: Fix system cursor issues `(#46)`
-
-## v0.6.0 - UI Redesign & Auto-Update
-
-### Features & Improvements
-- **UI Redesign**: Comprehensive visual overhaul of all views using Grid layout and consistent styling `(34f4cbf, d390fa7)`
-- **Auto-Update**: Implement auto-update system with Avalonia UI `(54b9546)`
-- **After Upload**: Add "After Upload" results window `(18a3ab7)`
-- **Property Grid**: Add ApplicationConfig property grid `(c4d20bf)`
-- **CLI**: Add `verify-recording` command for automated screen recording validation `(732e173)`
-- **Editor**: Unify editor undo history across different toolsets `(24ad021)`
-- **Architecture**: Move Windows-specific P/Invoke types to dedicated Platform.Windows project `(90da89a)`
-- **FFmpeg**: Improve FFmpeg download/config UX with progress hooks and better path resolution `(1646cbb, 7677ceb, b4fdcbf)`
-- **Documentation**: Replace ShareX.Avalonia references with XerahS `(#44)`
-- **Workflow**: Update cursor handling `(#43)`
-
-### Bug Fixes
-- **Recording**: Improve GIF recording quality, add clipboard support, pause, and stroke-based abort `(1baecc0, 4148e49, c3d04a7)`
-- **After Upload**: Fix window theming and errors `(9b752c0, 6dfe81e)`
-- **Rendering**: Fix speech balloon tail geometry rendering `(784594e)`
-- **Region Capture**: Fix system cursor appearing in screenshots and hotkey issues `(85a4e2f, #38, #39)`
-
-## v0.5.0 - Core Capture & Editor Improvements
-
-### Features & Improvements
-- **Capture**: Add single instance enforcement for the application `(aacb23b)`
-- **Region Capture**: Enhance crosshair visibility, add magnifier pixel sampling, and hide system cursor when ghost cursor active `(a838ae1, 56aa4de, d338b32)`
-- **Editor**: Wire ImageEffectsViewModel to unified undo/redo stack `(81a3815)`
-- **UX**: Set default file picker location to Desktop for easier access `(f5083e3)`
-
-### Bug Fixes
-- Fix 11+ HIGH/MEDIUM priority issues including null safety and resource management `(9188a22, 1f9a74f)`
-- Set RegionCaptureControl cursor to None to prevent double cursor visibility `(fe35424)`
-
-## v0.4.0 - Image Effects & Tools
-
-### Features & Improvements
-- **Image Effects**: Refactor preset management and improve effects UI `(154a6c9, 5d9dbd7, ee47e3d)`
-- **Tools**: Add QR code generator/decoder and Color Picker tools with standard color name mapping `(66bd61b, bdb22f8, 0b50328)`
-- **Watch Folders**: Implement Watch Folder system with per-folder workflow assignments `(49e838d, 63124f6, 951e034)`
-- **Indexer**: Add Index Folder preview and modernize HTML output using WebView `(63ca369, 3f3a751, e57932e)`
-- **macOS**: Add native ScreenCaptureKit video recording support `(fd75640)`
-
-### Bug Fixes
-- **Capture**: Fix cursor tracking and visibility during GDI capture `(f6973f6, e0a056b, 265a96a)`
-- **Capture**: Fix NullReferenceException in DXGI capture by preventing premature disposal of D3D11 device context `(df9bd33)`
-
-
-## v0.3.0 - Modern Capture Architecture
-
-### Features & Improvements
-- **Modern Capture**: Implement DXGI-based high-performance screen capture for Windows `(1440efc, 25f544d)`
-- **Screen Recording**: Unified recording pipeline with Windows Media Foundation and FFmpeg support `(9224b62, 7a6e47b, 8fc451c)`
-- **Workflow System**: Major overhaul of hotkeys into full Workflow system with GUID persistence `(faebe87, 09f1e35)`
-- **Toast Notifications**: New custom Avalonia-based notification system with advanced settings `(6229154, f1d9b88)`
-- **Linux**: Initial support for Wayland via XDG Desktop Portal and native X11 capture `(3573ad1, f7a103c, b92fb89, 7ccd5d9)`
-- **Settings**: Add weekly backup system for application settings `(0a8e15f)`
-- **UX**: Add tray icon support with customizable click actions `(035e8b4, 4ddfb59)`
-
-### Bug Fixes
-- **Modern Capture**: Fix multi-monitor blank capture issues `(52ae45e)`
-- **Region Capture**: Fix DPI handling, coordinate mapping, and offsets/scaling on multi-monitor setups `(e4817b1, 954dee3, e47e81b)`
-- **Code Quality**: Massive code audit fixing 500+ license headers and 160+ nullability issues `(dca9217, dd90761)`
-- **Windows**: Standardize Windows TFM and fix CsWinRT interop issues `(2f44742, 4e88d23)`
-
-
-
-## v0.2.0 - macOS Support & Plugin System
-
-### Features & Improvements
-- **macOS**: Initial platform support including ScreenCaptureKit, SharpHook hotkeys, and app bundling `(acba9d5, ca05d4b, 6fbf63e)`
-- **Plugins**: Implement dynamic plugin system with packaging (`.sxap`), CLI tools, and `.sxadp` file association `(f81c656, a2adbf3, e787536, df9bbd1)`
-- **History**: Switch history storage from XML to SQLite with automatic backups `(22b6cf5, 0f20d76)`
-- **Editor**: Integrate ShareX.Editor as core component with SkiaSharp rendering `(57bfe32, 90b5871)`
-
-## v0.1.0 - Initial Feature Set
-
-### Core Features
-- **UI**: Reimagined interface with two-toolbar system and modern dark theme `(c0bad1e, 231e4df)`
-- **Capture**: Region, Fullscreen, and Window capture modes `(4839944)`
-- **Annotations**: Object-based editor with Rectangle, Ellipse, Arrow, Line, Text, Number, Crop tools, and full Undo/Redo support `(bd1153c, 9b6cfe0, 9ecd720, cb7b54a)`
-- **Hotkeys**: Global hotkey system with Win32 registration `(80cd222)`
-- **Image Effects**: Initial implementation of 40+ effects including Resize, Shadows, and Gradients `(0840cef, 6777d86)`
-- **History**: Basic task history tracking `(9c1c2f8)`
+- **Linux**: Ship self-contained AppImage packages for linux-x64 and linux-arm64 (`XerahS-{version}-linux-{arch}.AppImage`) alongside tar.gz, deb, rpm, and Flatpak. Flatpak packaging is unchanged.
 
 ---
 
+## v0.25.5
+
+### Fixes
+- **Linux ARM64 packaging**: Publish destination plugins one at a time so parallel `dotnet publish` races no longer drop plugin assemblies (Bitly failed the v0.25.4 arm64 build).
+
+---
+
+## v0.25.4
+
+### Fixes
+- **Start minimized to tray**: Honor the Application Settings checkbox on launch, including Debug builds. The main window no longer opens normally when **Start minimized to tray** is enabled.
+
+---
+
+## v0.25.3
+
+### Features
+- **Updates**: Add an **Any source** option under Pre-release source. When selected, XerahS checks both ShareX and KovaForge and installs the newest usable pre-release.
+
+---
+
+## v0.25.2
+
+### Fixes
+- **GitHub Gist**: Reject invalid CustomURLAPI hosts so a crafted gist destination cannot point the uploader at an unexpected API.
+
+---
+
+## v0.25.1
+
+- Keep the main window visible during hotkey and command-palette screenshots so XerahS itself can be captured. Navbar and tray captures still hide the window.
+
+## v0.25.0
+
+### Features
+- **Core**: Add native XBackBone destination
+- **Video Editor**: Seed watermarks from host image effects; close the advertised export path from the host; use the XerahS video editor title
+
+---
+
+## v0.24.25
+
+### Security
+- **Core**: Bump `SSH.NET` 2025.1.0 → 2026.0.0 to address CVE-2026-48798 / [GHSA-q939-rpr3-3284](https://github.com/advisories/GHSA-q939-rpr3-3284) (ScpClient arbitrary file write via server-controlled filenames in recursive directory download). Affects `XerahS.Uploaders` (SFTP/SCP) and `Ftp.Plugin` via central package management.
+
+### Fixes
+- **Core**: Honor minimized Windows startup; Notify on macOS capture denial; Preflight macOS screenshot permission
+
+### Performance
+- **Core**: Optimize searchable screenshot indexing
+
+### Changed
+- **KFIP0018**: x-twitter screen capture user needs research
+- **Xerahs Bugfix**: drain stale submodule citation (queue 1 -> 0); empty-queue audit (00:05 AWST); and related changes
+- **Xerahs Review**: backfill producer commit pointer (c40f60cd); daily producer tick (Nadia, 23:05 AWST); and related changes
+
+---
+
+## v0.24.23
+
+### Features
+- **Core**: Add Copy image / Copy file path quick actions in After Capture; Add global 'Disable notification window' checkbox (issue #252); and related changes
+
+### Fixes
+- **Core**: Bitly shortener surfaces network errors on UploadResult; Don't surface .deb / .rpm update assets inside a Flatpak sandbox; Synchronize HotkeySelectionControl static debug log
+- **Dropbox OAuth**: stop forced refresh on bare refresh_token
+- **PluginManifest**: ASCII-only PluginId whitelist
+- **RandomCrypto**: prevent int.MaxValue overflow in Next range
+
+### Documentation
+- **Core**: Document fallback to plain git push when wrapper is missing
+
+### Changed
+- **Core**: [Fix] Suppress main window on SilentRun startup — raise Dispatcher priority to Send; [Nadia] xerahs-review producer tick 2026-08-01 23:10 AWST: ingest Bitly Plugin SendRequest error handling; and related changes
+- **KFIP0017**: X/Twitter Capture Mode Suite — scroll capture, video clips & GIF conversion
+- **Source Build Manifest**: Wayland-first finish-args, absolute OUTPUT_PATH
+- **Xerahs Bugfix**: audit empty consumer queue; drain CliCaptureStrategy temp cleanup false-positive; and related changes
+- **Xerahs Review**: fill in producer-tick commit SHA on tracker; fill in producer-tick commit SHA on tracker (23:11 AWST); and related changes
+
+---
+
+## [v0.24.12](https://github.com/ShareX/XerahS/releases/tag/v0.24.12)
+
+### Changed
+- No user-facing commits were detected in this range.
+
+---
+
+## [v0.24.11](https://github.com/ShareX/XerahS/releases/tag/v0.24.11)
+
+### Changed
+- No user-facing commits were detected in this range.
+
+---
+
+## [v0.24.10](https://github.com/ShareX/XerahS/releases/tag/v0.24.10)
+
+### Documentation
+- **Xip**: XIP, IEIP, and KFIP proposals and related documentation
+
+### Changed
+- **Xerahs Bugfix**: empty-queue audit (queue=0)
+
+---
+
+## v0.24.8
+
+Special pre-release from `linux-hotkey-rewrite` (XIP0080): Linux global hotkeys via evdev, merged onto latest develop.
+
+### Features
+- **Linux — Hotkeys (XIP0080)**: New evdev-based global hotkey backend with key map, modifier tracking, and matching engine; wired into `LinuxPlatform` with GlobalShortcuts portal / X11 fallback when input access is unavailable.
+- **Linux — Diagnostics**: `doctor --linux-input` reports evdev hotkey readiness (device access, group membership, and backend selection).
+- **Linux — Packaging**: Ship udev rule and polkit policy so packages can grant `/dev/input/event*` access for global hotkeys; document setup steps.
+
+### Tests
+- **Linux — Hotkeys**: Unit coverage for evdev key map, modifier tracker, and hotkey matcher.
+
+---
+
+## v0.24.2
+
+### Features
+- **Core**: Add settings hub search with deep-link open; Add ShareX-style live search on main navigation
+
+### Fixes
+- **Core**: Auto-select first visible settings tab after search filter; Reject path traversal in ReClip set-watch-folder; and related changes
+
+### Documentation
+- **Core**: Add Cursor Cloud setup instructions to AGENTS.md; Drain stale and out-of-scope review candidates; and related changes
+
+### Changed
+- **Core**: [xerahs-review] Populate commit SHA on 23:00 AWST producer last_runs row; [xerahs-review] Populate commit SHA on 23:07 AWST producer last_runs row; and related changes
+- **Xerahs Bugfix**: drain 10 stale/misleading queue items (pivot-only tick); drain 4 stale/noise items from next_candidates (skill v1.1.8); and related changes
+
+---
+
+## v0.23.141
+
+### Features
+- **Developers**: add clawpatch-parser dashboard
+
+### Fixes
+- **Core**: Constrain ImageEffectPreset.Effects deserialization to known ImageEffect types; Default screenshot subfolder pattern to year-month; and related changes
+- **Immich**: clear stale SelectedAlbum when AlbumName diverges
+
+### Build
+- **Core**: Make release channel repo-scoped for ShareX vs KovaForge
+
+### Documentation
+- **Core**: Record dual-repo release targeting lessons
+
+### Changed
+- **Core**: [Fix] Treat .html/.htm as binary files — route to S3 not Paste2
+- **Xerahs Bugfix**: backfill last_runs for 08:05 tick audit trail; update tracker and state JSON after batch
+
+---
+
+## v0.23.132
+
+### Fixes
+- **Linux — Flatpak startup crash (#270)**: The sandboxed build crashed ~1 second after startup on desktops with a StatusNotifierWatcher (KDE Plasma, XFCE, …). Avalonia's tray icon requests the `org.kde.StatusNotifierItem-{pid}-{id}` session-bus name, the Flatpak D-Bus proxy denied it, and the resulting `DBusErrorReplyException` escaped on the UI thread. The manifest now grants `--own-name=org.kde.*` so the tray icon works, and the dispatcher treats DBus/FreeDesktop integration failures as non-fatal (log-and-continue) so restricted sandboxes can never take the app down.
+- **Linux — Startup diagnostics**: Startup failures no longer print misleading "Unable to connect to display server" / "run via flatpak-spawn" guidance for non-display errors; the real exception and the log file path are written to the console instead.
+- **Linux — Flatpak plugin cleaner**: Skip plugin folder cleanup on read-only file systems (`/app`) with a single log line instead of a warning per bundled file.
+
+---
+
+## v0.23.131
+
+### Fixes
+- **macOS — Screenshot subfolder**: Onboarding was not syncing the "Create subfolder with today's date" toggle to the `UseSaveImageSubFolderPattern` setting; the checkbox in Settings always defaulted to `true`, overriding the user's choice on macOS.
+
+---
+
+## v0.23.130
+
+### Features
+- **Core**: Add checkbox to enable/disable screenshot subfolder pattern
+- **Linux — Clipboard (XIP0079 P3)**: clipboard CLI probe, warnings, RPM Recommends, post-exit persistence
+- **Linux — Hotkeys (XIP0079 P1)**: hotkey delivery diagnostics, settings banner, ConfigureShortcuts v2 gate
+- **Linux — Notifications (XIP0079 P2)**: notification action buttons via portal and notify-send
+- **macOS — App bundle (XIP0078 P1)**: render macOS Info.plist from template with stable bundle identity
+- **macOS — Hotkeys (XIP0078 P4)**: Carbon RegisterEventHotKey backend, no Accessibility needed; SharpHook fallback
+- **macOS — Packaging (XIP0078 P2)**: env-gated codesign/notarize/DMG pipeline, ad-hoc signing default in package-mac.sh
+- **macOS — Permissions (XIP0078 P3)**: Screen Recording permission preflight, guided flow, macOS diagnostics
+- **macOS — Window capture (XIP0078 P5)**: CGWindowList native window enumeration, wire sck_capture_window
+
+### Fixes
+- **Core**: Align OpenClaw manifest --json flags with pinned test contract; Keep Linux-only UI sources off macOS builds; skip X11 hotkey test on non-Linux; Remove superseded SettingsViewModel.LinuxClipboard partial
+- **FileDownloader**: cancel outer loop on early HTTP EOF
+- **Linux — Mixed-DPI (XIP0079 P4)**: cumulative mixed-DPI monitor layout for vertical stacks
+
+### Refactor
+- **macOS — ScreenCaptureKit (XIP0078 P8)**: rewrite ScreenCaptureKitStrategy against native bridge, fix stale ShareX.Avalonia namespaces
+
+### Documentation
+- **Core**: Add macOS paths to port-imageeditor skill; Blog drafts (2026 series, add/update); and related changes
+- **Linux — Documentation (XIP0079 P5)**: Linux INSTALL parity, KNOWN_ISSUES update, implementation notes
+- **macOS — Documentation (XIP0078)**: XIP0078 marked implemented with 2026-07-07 implementation notes; lessons-learnt entry
+
+### Changed
+- **Core**: mirror ExpireAfterDays<=0 clamp in ToJson (symmetry with LoadFromJson); round-trip share-security fields + SecurityMatches reconcile; and related changes
+
+---
+
+## v0.23.129
+
+### Features
+- **Linux — Hotkeys (XIP0079 P1)**: Surface global-hotkey delivery state in Settings → Hotkeys (portal-bound, focus-only X11 fallback, or unavailable) with a warning banner; gate “configure in DE settings” on GlobalShortcuts portal v2+.
+- **Linux — Notifications (XIP0079 P2)**: After-upload toasts support real action buttons via portal `buttons` + `ActionInvoked`, with async `notify-send --action` fallback; notifications no longer block the UI thread.
+- **Linux — Clipboard (XIP0079 P3)**: Probe `wl-copy` / `xclip` at startup; show settings and diagnostic warnings when CLI clipboard tools are missing; `.rpm` now recommends `wl-clipboard` and `xclip` (matching `.deb`); new **Persist clipboard after exit** setting (Wayland default) hands copies to `wl-copy` so paste survives app quit.
+- **Linux — Mixed-DPI (XIP0079 P4)**: Fix vertically stacked monitors with different scale factors using cumulative physical layout; rollback via `XERAHS_LEGACY_MONITOR_NORMALIZER=1`.
+
+### Fixes
+- **Linux**: Cross-platform build fix — Linux-only UI partials excluded from macOS/Windows builds.
+
+### Documentation
+- **Linux (XIP0079 P5)**: Rewrite `developers/linux/INSTALL.md` for Ubuntu, Fedora, and Arch; update `KNOWN_ISSUES.md` Linux section; mark XIP0079 implemented with distro smoke-test checklist (manual VM runs pending).
+
+---
+
+## v0.23.128
+
+### Features
+- **macOS — App bundle (XIP0078 P1)**: Render `Info.plist` from template during app-bundle creation with stable bundle identity (`com.xerahs.app`).
+- **macOS — Permissions (XIP0078 P3)**: Screen Recording permission preflight before capture, guided flow, and macOS diagnostic reporting.
+- **macOS — Hotkeys (XIP0078 P4)**: Carbon `RegisterEventHotKey` backend (no Accessibility permission required); SharpHook remains as fallback (`XERAHS_MACOS_HOTKEY_BACKEND=sharphook` to roll back).
+- **macOS — Window capture (XIP0078 P5)**: Native `CGWindowList` window enumeration and ScreenCaptureKit per-window capture (`sck_capture_window` wired end-to-end).
+- **macOS — ScreenCaptureKit (XIP0078 P8)**: Rewrite capture strategy against native bridge; fix stale `ShareX.Avalonia` namespaces.
+
+### Build
+- **macOS (XIP0078 P2)**: Env-gated codesign, notarization, and DMG pipeline in `package-mac.sh`; ad-hoc signing default when no Apple Developer credentials are set.
+
+### Documentation
+- Mark XIP0078 implemented with 2026-07-07 implementation notes; lessons-learnt entry for verifying XIP claims against current source.
+
+---
+
+## v0.23.127
+
+### Fixes
+- **Tests**: Harden `AssistantHistoryServiceTests` teardown against flaky async cleanup.
+
+### Plugins
+- **Immich**: Round-trip share-security fields with `SecurityMatches` reconcile; mirror `ExpireAfterDays<=0` clamp in `ToJson`.
+
+---
+
+## v0.23.124
+
+### Fixes
+- **Core**: `FileDownloader` — cancel outer loop on early HTTP EOF instead of spinning until timeout.
+
+---
+
+## v0.23.121 / v0.23.120
+
+### Changed
+- Release version bumps only; no additional user-facing changes in these ranges.
+
+---
+
+## v0.23.119
+
+### Changed
+- **KFIP**: Add KFIP-0013 X/Twitter Smart Thumbnail Generation proposal.
+
+---
+
+## v0.23.118
+
+### Documentation
+- Blog drafts (2026-07-01 through 2026-07-05) and hourly-review sweep notes.
+
+### Changed
+- Hourly review sweeps (Wayland CLI capture routing, Immich album share, upstream merges).
+
+---
+
+## v0.23.117
+
+Broad reliability, onboarding, CLI/OpenClaw, and platform-hardening release (aggregates work from v0.23.27 onward).
+
+### Features
+- **Capture & workflows**: Capture command palette, Send-to post-v1 policies, markdown directory index output, after-capture OCR-to-clipboard task, CLI `--randomize` upload naming.
+- **Onboarding**: Wire welcome and OCR steps into the onboarding wizard; apply OCR language to default task settings.
+- **CLI / OpenClaw**: Text and pipe uploads, bootstrap uploader JSON, manifest/runtime parity, plugin bundling for agent hosts.
+
+### Fixes
+- **MCP server**: History search query parsing, blob resource hardening, task identity race, thumbnail URI handling, stale-path diagnostics.
+- **Linux**: Pipe-drain deadlocks across CLI tools, theme service, clipboard/monitor, input, screen capture, and PulseAudio; Oem102 backslash hotkey mapping; Wayland active-window routing for Sway; `.deb` recommends `wl-clipboard` and `xclip`.
+- **macOS**: Clipboard file-path whitespace, dock hide for tray startup, upload file-picker fallback, update prompts, input/cursor helper deadlocks.
+- **Uploaders & settings**: Default-instance cleanup on category change and remove; history backup toasts and failure diagnostics; settings backup retention and restore-from-zip.
+- **Media / FFmpeg**: Path escaping, cancellation propagation, concat escape tests, thumbnail grid overflow guards, probe argument quoting.
+- **Editor & history**: Sidecar save failure handling, annotation persist-after-continue, editor copy bitmap leak, history OCR index cleanup on delete.
+- **OCR & onboarding**: Language refresh errors surfaced, regional defaults, null-selection guards, multi-language persistence.
+- **Toasts & UI**: Multi-monitor toast positioning, fade resume after context-menu close, command palette keyboard selection.
+- **Scrolling capture**: Guard `CurrentCapture` clear so closing an old window does not drop an active capture from a newer window.
+
+### Build
+- Bump Avalonia to 12.0.5 and SkiaSharp to stable 3.119.4; pin SQLite bundle packages; macOS `Info.plist` template and entitlements (prep for v0.23.128 wiring).
+
+### Documentation
+- Add macOS and Linux improvement plans (XIP0078, XIP0079), RELIABILITY-PLAN, KNOWN_ISSUES macOS section, XIP0080 evdev hotkeys proposal, KFIP0009/0010/0012, and 2026 blog-draft series.
+
+---
+
+## v0.23.107
+
+### Changed
+- No user-facing commits in this range.
+
+---
+
+## v0.23.105
+
+### Features
+- After-capture OCR clipboard task.
+
+### Fixes
+- CLI/OpenClaw manifest-vs-runtime parity; history backup user-visible toasts; MCP history search URI hardening; settings backup failure events.
+- **Linux packaging**: `.deb` recommends `wl-clipboard` and `xclip`.
+
+### Build
+- macOS `Info.plist` template and hardened-runtime entitlements (not yet wired into packaging).
+
+### Documentation
+- Linux and macOS improvement plans; XIP0080; RELIABILITY-PLAN; KNOWN_ISSUES macOS updates; KFIP0010 scope review.
+
+---
+
+## v0.23.98
+
+### Features
+- CLI `--randomize` flag for upload naming (matches UI `%ra{10}` CDN-cache avoidance).
+
+### Fixes
+- **Core reliability wave**: FFmpeg path escaping and cancellation, FileDownloader chunked/early-EOF handling, uploader default-instance non-mutating reads, plugin version alignment, history/OCR index lifecycle, backup zip atomic replacement, MCP blob/URI handling, scrolling-capture lifecycle guard.
+- **Linux**: Oem102 hotkey mapping, CLI runner and theme-service pipe deadlocks, Wayland active-window fallback, grim/slurp/grimblast stderr drain.
+- **macOS**: Upload picker fallback, clipboard path whitespace, update prompt unblock, osascript cursor helper deadlock.
+- **Platform services**: Linux input/screen capture and PulseAudio helper pipe drains; indexer enumeration exception guards.
+
+### Documentation
+- 2026-05/06 blog drafts, hourly-review tracker entries, CONTRIBUTING git-wrapper rules, FFmpeg Linux guidance.
+
+---
+
+## v0.23.27
+
+### Features
+- Capture command palette, Send-to post-v1 policies, markdown directory index output.
+
+### Fixes
+- **MCP**: History search parsing, blob hardening, task identity race, thumbnail resource URI.
+- **CLI / OpenClaw**: Text upload, JSON validation diagnostics, bootstrap uploader JSON, bounded diagnostic keys.
+- **Linux / macOS**: Clipboard stderr drain; macOS dock hide for tray; indexer long-path enumeration guards.
+- **Editor / settings**: Sidecar dirty-state preservation, async settings save await, editor copy bitmap dispose, settings restore from backup zips.
+- **OCR / onboarding**: Regional language matching, selection normalization, fallback language preservation.
+- **Mobile**: File-scoped S3 config imports.
+
+### Documentation
+- XIP0057 implementation notes, 2026-05 blog drafts, XIP proposal status normalization.
+
+### Changed
+- Fedora VS Code updater script; command-palette minor release marker; Flathub v0.22.256 verification recorded.
+
+---
+
+## v0.22.239
+
+### Fixes
+- **CLI**: OpenClaw plugin JSON parsing and stdout diagnostic redaction; use core plugin SDK import.
+
+### Build
+- Attach ImageEditor during release prep.
+
+### Documentation
+- Changelog tag linking and release-prep updates.
+
+---
+## v0.22.237
+
+### Features
+- **Capture**: Command palette for quick capture actions
+- **Core**: After-capture OCR clipboard task, markdown directory index output, and Send-to post-v1 policies
+- **CLI**: Upload `--randomize` flag (default on) appends random suffix matching UI `%ra{10}` to avoid CDN caching
+
+### Fixes
+- **CLI/OpenClaw**: Text-upload pipeline with JSON validation, diagnostics, path normalization, bootstrap uploader JSON, manifest parity, plugin bundling for agent hosts, macOS plugin discovery, and S3 keychain credentials; skip redundant named-copy when `--name` is set
+- **MCP**: History search and resources: query parsing, URI matching, thumbnail/blob paths, stale and oversized diagnostics, task identity race, error-shape alignment
+- **OCR**: Onboarding language lifecycle: regional defaults, refresh and persistence, fallback when enumeration fails, assistant history stale-file guard, index schema on history delete
+- **Command palette**: Keyboard selection wrap, blank-escape close, search whitespace normalization
+- **Editor**: Save and sidecar reliability: distinct failure reporting, dirty-state preservation, overwrite truncation, bitmap disposal, annotation persist-after-continue; ImageEditor resource path normalization and effect browser spacing
+- **FFmpeg/Media**: Path escaping, cancellation tokens, process-tree kill, CombineScreenshots guards, probe quoting, workflow override wiring; FileDownloader chunked encoding and early-EOF fix
+- **Linux**: Pipe-drain deadlocks across CLI subprocesses; Wayland/X11 capture routing, Oem102 hotkey mapping, active-window fallbacks; deb packaging recommends wl-clipboard/xclip; grim/slurp null-guard
+- **macOS**: Tray Dock icon hidden (#252), upload file picker fallback, front-window parsing, update prompts with manual action, clipboard path whitespace, onboarding folder-picker crash
+- **Uploaders**: Default-instance lifecycle, routing conflicts, auto fallback within category, drag-drop normalization, stale-default cleanup logging
+- **Settings/Backup**: Async saves, atomic zip replacement, weekly backup TOCTOU handling, restore from backups, empty-destination guards, user-visible failure toasts and diagnostics
+- **History/Indexer**: OCR index cleanup on delete; enumeration resilience for long paths and I/O errors
+- **UI**: Toast fade opacity, multi-monitor bounds, context-menu close resume
+- **Capture**: Scrolling capture ReferenceEquals guard when closing old capture window
+- **Mobile**: File-scoped S3 config and imports
+- **Misc**: IsFileLocked false for missing paths, HSB alpha hash contract, SFTP invalid key reporting, silent Windows updater, GDI cursor cleanup, build guardrails against user props override, StringCollection type converter fix, EmojiCatalog search score case-insensitivity
+
+### Build
+- **Dependencies**: Avalonia 12.0.5, SkiaSharp 3.119.4, SQLite bundle pins
+- **macOS**: Info.plist template and hardened-runtime entitlements (not yet wired into packaging)
+
+### Documentation
+- **Plans**: Linux and macOS improvement plans (XIP0077-XIP0079), reliability upgrade plan (U1-U10), KNOWN_ISSUES macOS section
+- **Proposals**: XIP, IEIP, and KFIP proposals including XIP0080 (Linux evdev hotkeys) and KFIP0009-0012
+- **Contributor**: AGENTS wrapper policy and CONTRIBUTING.md
+- **Blog**: 2026 blog draft series
+- **Guides**: FFmpeg Linux/override guidance, XIP proposal status normalization
+
+### Testing
+- **Core**: Guardrail coverage (Headless.NUnit, McpServer.Tests, FFmpeg concat escape regression tests)
+
+### Changed
+- **Release/CI**: Prerelease defaults, v0.22.256 workflow and Flathub verification docs, Fedora VS Code updater script
+- **OCR UI**: Normalize platform language tags and display names in tool UI loader
+- **ImageEditor**: Submodule updates
+
+## v0.22.239
+
+### Fixes
+- **Core**: Resolve startup log issues
+- **Core**: Parse raw OpenClaw plugin JSON output, redact stdout diagnostics, use core OpenClaw plugin SDK import
+
+### Build
+- **Core**: Attach ImageEditor during release prep
+
+### Documentation
+- **Core**: Link changelog only for existing tags; link version headings and omit per-entry hashes; update changelog for release prep
+
+## v0.22.237
+### Fixes
+- Resolve startup log issues
+
+### Build
+- Attach ImageEditor during release prep
+
+### Documentation
+- Link changelog tags and omit hashes
+- Update changelog for release prep
+
+## [v0.22.236](https://github.com/ShareX/XerahS/releases/tag/v0.22.236)
+
+### Features
+- **Mobile**: Expand Android and iOS parity with native shells, About screens, hosted/custom uploader imports, upload history, privacy/store metadata, and mobile configuration flows
+- **Assistant**: Add assistant provider configuration, OCR upload workflows, overlay commands, safety contracts, aliases, and current model IDs
+- **CLI**: Expand CLI automation with OpenClaw compatibility, upload naming, file-forced uploads, directory indexing, and ReClip commands
+- **Plugins**: Add community destination-plugin registry, installer UX, Pixelfox packaging, and KFIP0004 registry validation coverage
+- **MCP**: Introduce the XerahS MCP runtime, transports, desktop settings, prompts, usage guide, and integration coverage
+- **Onboarding**: Build the onboarding wizard state machine, UI, converters, trigger flow, debug launcher, and style integration
+- **Capture Workflows**: Add smart-region and social-media capture workflows with after-capture task execution, OCR wiring, copy-path actions, and profile services
+- **About**: Add About tab/library grouping and loaded library version display
+- **Annotations**: Preserve editable annotation sidecars and standardize saved-annotation re-editing support
+- **Image Effects**: Complete the SXIEF/schema-driven filter migration and harden image-effect preset handling
+- **Indexer**: Improve Index Folder and watch-folder options, including ignore-empty-folder handling
+
+### Fixes
+- **Capture**: Improve capture coordinate mapping, DXGI/GDI/WinRT fallback behavior, cursor composition, region/scroll targeting, recording bounds, and monitor scaling
+- **Uploaders**: Normalize uploader routing and provider behavior across FTP/SFTP, Nextcloud, Imgur, Dropbox, S3, cookies, custom uploaders, fallback paths, URLs, and result history
+- **Plugins**: Harden plugin dependency resolution, package extraction, manifest validation, load/unload cleanup, diagnostics, provider IDs, and fallback assembly checks
+- **Mobile**: Harden Android and iOS upload, import, share, secrets, package identity, diagnostics, and store-release flows
+- **Linux**: Harden Linux Wayland/X11 capture, portal hotkeys, clipboard URIs, Flatpak/XDG state, sandbox IDs, desktop entries, and geometry parsing
+- **macOS**: Stabilize macOS overlay mapping, region selection, clipboard file drops, service helpers, capture scaling, hotkeys, and release assets
+- **CLI**: Stabilize CLI capture/upload/record validation, JSON output, temp-file cleanup, naming, pipe/text uploads, and task completion matching
+- **Assistant**: Stabilize assistant aliases, OCR history/cache/options, copy-path privacy, clipboard handling, overlay output, and local-file lookup
+- **History and Editor**: Fix history lookup, editor sessions, sidecar fallback, thumbnail refresh, bitmap lifetimes, image presets, annotations, and Pin to Screen resource cleanup
+- **Media**: Fix FFmpeg, recording output, mixed thumbnail grids, random seek slots, video thumbnail leaks, and media timing behavior
+- **Notifications**: Fix toast actions, timeout/process cleanup, markdown image links, severity propagation, timing validation, and menu behavior
+- **Settings**: Harden settings save/reload, backups, reset cleanup, secret paths, upgrade detection, recent-task state, and config repair
+- **OCR**: Normalize OCR language/options handling, reruns, whitespace results, cache reuse, and history persistence
+- **Onboarding**: Repair onboarding rendering, step state, actions, destinations, hotkey parsing, trigger timing, and build errors
+- **MCP**: Harden MCP parameter validation, notification responses, headless contracts, and annotation parsing
+- **Indexer**: Fix Indexer traversal, extension filters, folder statistics, async output paths, and total-folder counting
+- **Workflows**: Repair workflow hotkeys, duplicate task identity, stale IDs, timeout handlers, task settings, and destination category mapping
+- **Paths**: Harden path normalization, filename mutation, unique suffix handling, directory collisions, URL encoding, and home-path behavior
+- **Build Stability**: Resolve build, binding, DevTools, XAML, release/debug, and test isolation regressions
+
+### Build
+- **Avalonia**: Move the app and Android bootstrap through Avalonia 12, headless text shaping, view-folder, and Vortice adjustments
+- **ImageEditor**: Sync ShareX.ImageEditor and supporting port tooling across Avalonia and framework updates
+- **VideoEditor**: Update ShareX.VideoEditor integration, submodule revisions, and WebUI build behavior
+- **Plugins**: Harden plugin copy, architecture separation, runtime restore, and solution-build behavior
+- **Build**: Stabilize release, CI, deterministic dotnet, isolated output, and repository build graph behavior
+- **Tooling**: Add changelog, markdown hygiene, mojibake, and BOM safeguards
+- **Build**: Apply build-system maintenance and dependency updates
+
+### Documentation
+- **Blog**: Consolidate the 2026 engineering, release-readiness, stabilization, plugin, Android, Flatpak, and maintenance blog draft series
+- **Proposals**: Consolidate XIP, IEIP, and KFIP proposal drafts, reviews, renames, migrations, and design/research updates
+- **Mobile Release**: Document Android Play, iOS App Store, privacy, release-build, and mobile parity readiness
+- **Plugins**: Refresh destination-plugin, registry, Pixelfox, and OpenClaw setup documentation
+- **Workflow**: Tighten changelog, release, build, XIP sync, maintenance, and commit-policy guidance
+- **ImageEditor**: Record ShareX.ImageEditor port planning, comparison, manifest, and sync guidance
+- **Repository Docs**: Repair markdown encoding and normalize repository, developer, build, and README documentation
+- **Maintenance**: Fold hourly review trackers, verification notes, and status snapshots into the release maintenance record
+- **Documentation**: Update supporting documentation and release notes
+
+### Testing
+- **Platform**: Add platform verification coverage for macOS native crosshair capture
+- **Coverage**: Restore and expand coverage for filters, editor history, after-capture workflows, proposals, and regression paths
+
+### Changed
+- **Editors**: Sync editor integrations with ShareX.ImageEditor and ShareX.VideoEditor updates
+- **Branding**: Refresh logos, icons, feature graphics, and release artwork
+- **Versioning**: Align version, prerelease, and origin-release synchronization metadata
+- **Privacy and Signing**: Tighten privacy, signing, export-compliance, and local-signing behavior
+- **General**: Apply miscellaneous release maintenance, UI polish, and compatibility updates
+
+## [v0.21.0](https://github.com/ShareX/XerahS/releases/tag/v0.21.0)
+### Features
+- **Custom uploaders & Send-to**: Catalog multi-add, save-back flow, and Send-to behavior prompt
+### Fixes
+- **ShareX.ImageEditor**: Submodule updates for effect browser parity, categories/borders, host shortcut rows, auto-crop dialog, empty-state actions, crop dedupe, and latest-effects compatibility
+- **Overlay & capture parity**: Align Linux overlay capture with Windows; fix region selector preference on hotkey-triggered captures
+- **Modals & catalog**: Centralize modal opening; dispatch opens on UI thread for Add from Catalog on Linux
+- **Recording & video editor**: Gate unsupported pause on Wayland; harden editor launch
+- **Core**: Upload fallback File→Image; suppress AfterCapture toast on cancel; repair uploader mojibake labels
+- **Hotkeys / Imgur**: X11 fallback when portal bind cancelled; cross-platform OAuth URL helpers
+- **Linux (Wayland / GNOME / KDE)**: Portal retry, transparent overlay and mixed-DPI, `UseTransparentOverlay` plumbing, DBus crash guard, selector defaults, GNOME crop workflow
+- **Paths / UI / upload**: User-writable plugins folder; effect browser aligned with unified editor API; auto-heal stale destination instance IDs
+### Refactor
+- **Core**: Remove upload destination auto-persist and simplify resolution
+### Build
+- **AUR & Windows**: PKGBUILD and script updates; reusable AUR packaging; permissions; MSI via WiX
+- **ShareX.ImageEditor**: Submodule tracking (IEIP0004 branch, develop, parity/revert/schema fixes)
+- **Tooling & quality**: Upload fallback logging/comments; default publish-release to prerelease; LF enforcement; CS8604/DBus
+### Documentation
+- **Blog drafts (Mar 2026)**: Annotation/IEIP/Linux/XIP/multipart/Wayland series — add and revise
+- **XIPs & proposals**: XIP0054–0056 (multipart, Send-to, history); Send-to post-v1; systems-thinking prompt; workflow destination tooltip; commit prefix; proposal consolidation; IEIP0004 finalize; capture/upload XML and fallback docs
+- **IEIP0004 / Linux**: Lessons from catalog browser integration; INSTALL.md; GNOME Wayland portal/overlay notes; interactive fallback explanation
+- **Developers**: Move `PLUGIN_SDK.md` to `developers/guidelines/`
+### Changed
+- **Multipart upload**: Abstractions, coverage, and S3 multipart support
+- **ShareX.ImageEditor / IEIP**: Schema-driven effects overhaul and IEIP0005 doc; effect apply, schema dialog binding/slider; ongoing submodule sync
+- **Imgur**: OAuth UX, token flow, and client ID defaults
+- **Custom uploaders**: Hide legacy import after first run; Save to Plugins label and XIP0056 auto-instance metadata
+- **Meta**: `Directory.Build.props` and feature-systems-thinking prompt updates
+## [v0.20.12](https://github.com/ShareX/XerahS/releases/tag/v0.20.12)
+### Fixes
+- **RegionCapture Toolbar**: Revert `RegionCaptureAnnotationViewModel` to the pre-ToolInfo adapter behavior to restore stable annotation toolbar interactions.
+- **RegionCapture Icons**: Load `ImageEditorStyles.axaml` in the overlay window so toolbar buttons render distinct Lucide icons instead of fallback glyphs.
+## [v0.20.11](https://github.com/ShareX/XerahS/releases/tag/v0.20.11)
+### Features
+- **Clipboard Monitor**: Add cross-platform clipboard monitoring with toggle in Application Settings > Integration tab; register on Windows, Linux, and macOS; suppress origin loops and harden async reads; default to disabled
+- **Tool Info Panel (IEIP0002)**: Implement ToolInfo adapter in RegionCapture; update dimensions during shape resize via handles; tune visual prominence
+- **Creative ImageEditor Filters**: Integrate creative image effects and filters into the ImageEditor
+### Fixes
+- **Menus**: Fix startup command binding regression across platforms, clipboard monitor focus-stealing, tool windows hidden behind main window, and menu dismissal on Linux
+- **Annotation Toolbar**: Restore fixed-width, square, centered-split, right-side layout and tool options; share annotation toolbar with ImageEditor
+- **Recording**: Apply CLI duration across recorder jobs, wire stop signal to active sessions, route start to last region, configure custom region recording fallback
+- **Send To**: Wire Windows pipeline, harden Linux entry generation, make macOS fallback explicit, use native Windows shortcut
+- **Theme**: Normalize effect property controls to XerahS theme; align task image effect editing with ImageEditor UX; add ShareX resource compatibility and correct surface tokens
+- **ImageEditor**: Restore Task Settings Add Effect enumeration; keep effect browser dialogs visible on Linux; prevent startup crash in native theme resources
+- **Scrolling Capture**: Correct stitching
+- **Cross-Assembly Views**: Resolve registration and update IEIP0003
+- **Linux Upload Content**: Prevent clipboard hang
+- **macOS**: Skip native dylib rebuild when sources unchanged
+- **History/Explorer**: Replace emoji glyphs with Lucide font icons
+- **Plugins**: Clean plugin folders safely across app and user roots
+- **Tools Navigation**: Improve tools navigation and upload window activation
+- **Release Scripts**: Fix tag name collision and redirect `find_tag_run_id` status to stderr
+### Refactor
+- **Fluent Theming**: Migrate XerahS UI to native Fluent theming; adopt OS-aware accent across desktop UI and RegionCapture; align app and RegionCapture theming; defer editor accent to ImageEditor; apply ImageEditor system theme support
+- **Compiled Bindings (XIP0053)**: Enable compiled bindings defaults, harden ViewLocator with explicit mappings, complete guardrails
+- **DI/Host (XIP0052)**: Inject task and recording managers through host services, extract overlay capture sessions, harden MVVM workflow boundaries, finalize host startup wiring, consolidate desktop composition
+- **Mobile Theming**: Add adaptive theme tokens and switch Mobile.Ava and Mobile.Maui views to shared theme resources
+- **UI Polish**: Move host icon surface into XerahS UI, remove inline workflow type dropdown, center button content, standardize color swatch tile width and names, preserve previous color on selection changes
+- **Annotation Toolbar**: Refactor toolbar styles in ShareX.ImageEditor
+### Build
+- **VideoEditor**: Update submodule for Tailwind 4.2.2 and playback/WebUI fixes
+- Exclude Windows clipboard tests on non-Windows platforms
+### Testing
+- Add XIP0052 composition boundary and injected manager coverage; stabilize manager tests
+## [v0.20.5](https://github.com/ShareX/XerahS/releases/tag/v0.20.5)
+### Features
+- **VideoEditor**: Integrate ShareX.VideoEditor with desktop host wiring, `open-video-editor` CLI support, diagnostics, FFmpeg/ffprobe-backed UI and headless trim, and packaged WebUI assets
+- **Uploaders**: Add Nextcloud and native Immich uploader plugins with scaffolding and design notes
+- **History**: Add image combine actions and multi-selection groundwork
+- **Theme**: Track OS system accent colour app-wide via `SystemAccentColor`
+### Fixes
+- **VideoEditor**: Harden startup, dependency resolution, packaged WebUI/bootstrap, FFmpeg path propagation, playback sync, and reopen lifecycle
+- **Custom Uploaders**: Inline editor in settings while preserving names, hiding duplicate labels, and making inline names read-only
+- **Linux Wallpaper**: Detect wallpaper providers across desktop environments, preload and normalize sources, and restore ImageEditor wallpaper backgrounds through platform abstractions
+- **UI/Theme Surfaces**: Normalize all tool window, hotkey control, card, and index folder surfaces; restore scrollbars; apply accent buttons across color picker, image splitter/combiner/thumbnailer, video converter/thumbnailer, upload content, and hash check window
+- **ImageEditor**: Region capture toolbar icons, overlay alignment, pin export, pinned-window drag, preview bitmap cloning, screenshotspath picker, remembered window size, and submodule updates
+- **Linux Region Capture**: Restore X11 fallbacks, enable Wayland overlay selector with portal capture, harden selector preference handling, and drain portal hotkey rebinds before dispose
+- **Shell Integration**: Wire startup and shell integration entries for Windows, Linux, and macOS
+- **Workflow/Editor UI**: Stage workflow editor changes until save; disable File Save/Save As when no image; sort View Zoom alphabetically; wire annotate editor task actions and hide task buttons in correct host contexts
+- **Settings**: Fix ScrollViewer not scrolling to bottom; fix Destination Settings provider panel flicker; fix About view Social groupBox width
+- **Linux**: Avoid Avalonia dispatcher sync-context capture in portal watchers
+- **Build Targets**: Fix Windows-to-macOS packaging cross-compilation and Linux desktop build targeting
+### Refactor
+- **Theme (XIP0050)**: Remove FluentAvalonia package; introduce shared surface window and page base controls; centralize desktop theme styles; make accent the default button style
+- **DI/MVVM (XIP0052)**: Migrate to Microsoft.Extensions.DependencyInjection; inject task and recording managers; extract pipeline from WorkerTask; consolidate desktop composition
+- **Linux Capture**: Replace UseModernCapture semantics with per-selector preference plumbing and settings UI
+- **Core/UI**: Share history and toast context menus; align app typography
+### Build
+- **Release Automation**: Normalize editor projects to Any CPU, automate and harden Chocolatey release sync, fix CRLF pack output paths, and add fresh-clone bootstrap helpers
+- **VideoEditor**: Update hybrid web/native toolchain requirements for the WebUI build
+### Documentation
+- **Developer Workflow**: Document fresh-clone setup, shared agent workflow, shared-library commit conventions, explicit GitHub issue handling, and FFmpeg guidance
+- **Architecture**: Add VEIP0001 hybrid VideoEditor direction, Immich plugin XIP, XIP0050 (FluentAvalonia removal), XIP0051 (Linux selector preferences), XIP0052 (agentic DI refactoring)
+### Testing
+- **Region Capture**: Add UI smoke tests for region capture flows
+## [v0.19.9](https://github.com/ShareX/XerahS/releases/tag/v0.19.9)
+### Features
+- **Video Editor**: Integrate ShareX.VideoEditor submodule; add `WorkflowType.VideoEditor`, Tools menu and sidebar nav, `AnnotateMedia` (renamed from `AnnotateImage`) with toast dispatch to VideoEditor; open editor after recording when AnnotateMedia is set; headless stubs and IUIService wiring
+- **Uploaders**: Add URL shortener foundation and Bitly URL shortener plugin support
+### Fixes
+- **Linux Region Capture**: Improve cropping for physical-resolution desktops, including KDE Plasma portal bitmaps and X11 overlay positioning; add diagnostics, detect XWayland vs native Wayland, and restore fast overlay region capture
+- **Linux**: UseModernCapture option (XDG Portal vs overlay), Wayland region capture and mixed-DPI bounds, GNOME portal recording output, double region-selection prompt fix; KDE Spectacle and GNOME fallbacks (XIP0046-C); system tray SNI (GNOME/Wayland); systemd user unit path via UserProfile
+- **Linux Recording**: Harden GStreamer pipeline by correcting region crop, removing conflicting `video/x-raw` caps before `glupload`, adding GL-to-CPU fallback, making fatal errors selectable in RecordingView, and cleaning up portal session on fatal errors
+- **Core**: Validate URL before OpenURL Process.Start; SaveRequested/SaveAsRequested for embedded and standalone editor; fall back to File-category instances when no Image uploader; default white tray icon on Linux/macOS; Tools_* nav items and VideoEditor dispatch; AnnotateImage JSON deserialization; Linux portal handle format and RPM packaging; fix tray stop button behavior and hotkey recording stop flow
+- **Core**: Correct DXGI capture ModeRotation mapping for DMDO_90/DMDO_270 rotations
+- **ImageEditor**: Submodule updates and macOS build; add ShareX.ImageEditor at develop; Zoom to Fit in zoom picker; —7a easy wins (Random.Shared, Category overrides, Gamma LUT cache)
+- **VideoEditor submodule**: Button theme isolation and ReactiveUI main thread scheduler fixes
+- **Watch Folder**: Support legacy watchfolder.service
+- **Core**: Hide Video Editor from Tools menu in release builds
+- **PluginLoadContext**: Fix stale shared dependency name/order checks
+- **Updates/Logging**: Fix reflection-disabled GitHub update JSON handling and normalize error log naming to `yyyyMMdd`
+### Refactor
+- **ImageEditor (EIP0001)**: Advance Phase 1 commits; migrate to new namespaces; rename submodule and sync references
+- **Core (PathsManager)**: Centralize plugins path selection; centralize log and app path handling and expand path audit coverage for plugins/screenshots/tools/troubleshooting paths
+- **Indexer**: Share tree helpers and settings types, collapse async adapters, and externalize HTML styles
+### Build
+- **ImageEditor**: Replace the redundant legacy submodule layout and update embedded ShareX.ImageEditor integration; update submodule references
+- **Release Automation**: Run maintenance chores during release bump-tag flow; enforce standard release notes block
+- **Developer Tooling**: Add `run-debug-app.sh` helper script
+### Documentation
+- **Architecture**: Move image editor refactor proposal to IEIP; move proposals into docs/proposals; Backend Porting checklist (March 2026); EIP0001 phases A/B/C; OS-specific known issues and Linux hotkey workaround; XIP0046 summary (Issues C, D, E fixed); FFMPEG.md; XIP0042/XIP0044/XIP0046 task docs; run-debug-app.ps1; VEIP0001 and XIP0046 proposal
+- **XIP0047**: Summarize Linux region capture DPI and performance investigation, including X11 overlay shift and KDE physical-bitmap crop fixes
+- **XIP0042**: Update the SkiaSharp hardware acceleration task document; XIP sync workflow and backups; XIP0043 complete; XIP0038/XIP0040/XIP0042 doc audits
+### Performance
+- **Linux**: Faster overlay and smoother crosshair on Linux (region capture)
+## [v0.18.11](https://github.com/ShareX/XerahS/releases/tag/v0.18.11)
+### Features
+- **Mobile**: Android and iOS MVP with Share Extension and MAUI; adaptive theming, upload queue/picker/history, active destination selector, desktop-compatible upload filename pattern, broad share-intent support; Amazon S3 and Custom Uploader config UI; Swift/Kotlin native shells and share extension
+- **Media Explorer**: Provider file browsing with S3 and Imgur, navigation, search, filtering, and CDN thumbnail optimization
+- **Watch Folder**: Daemon with lifecycle hooks, runtime policy, settings controls, and tests
+- **Indexer**: Async streaming with progress and cancellation; open in own window; file extension filters; dark theme with light-mode toggle
+- **ImageEditor**: Integrate submodule; File Open choice dialog; annotation options persistence; app/editor theme sync
+- **Workflows**: UploadContentWindow; AutoCapture, Pin to Screen, Ruler, MonitorTest, HashCheck; 6 media tools (ImageCombiner, ImageSplitter, ImageThumbnailer, VideoConverter, VideoThumbnailer, AnalyzeImage); OCR and ScrollingCapture end-to-end
+- **Upload**: Auto destination uploader; cross-platform secrets store with diagnostics; proxy config UI
+- **Amazon S3**: AWS SSO auth, region selection, CNAME, public bucket policy; redesign config to mimic Custom Uploaders
+- **Plugins**: Dropbox, Paste2, GitHub Gist, FTP/FTPS/SFTP, Pastebin; XIP0040 plugin architecture; DestinationsPluginSdk
+- **UI**: Copy Errors to HistoryView, AfterUploadWindow, Toast
+- **Linux Capture**: DBus fallbacks, KDE permissions, decision trace orchestration, portal waterfall
+- **Packaging**: Scoop, WinGet, Chocolatey support; generate-winget.ps1 enhancements
+- **Misc**: Imgur album selection and GIFV; Dropbox OAuth overhaul
+### Fixes
+- **ImageEditor**: XAML startup crash, highlight/crop/submodule fixes, context menu, DPI and crop handles
+- **Scrolling Capture**: Auto-scroll, workflow settings, hotkeys, scroll position detection
+- **Media Explorer**: Harden listing, normalize URLs, error handling, copyable footer
+- **Mobile**: iOS App Group for S3 config in Share Extension; unify share payload and TimeZoneInfo
+- **Upload**: MainViewModel parameterless copy/upload; multi-uploader fallback, clipboard routing
+- **Capture/Region**: Annotation layer rendering, crop offset, AfterCapture refresh, workflow integration
+- **Workflows**: Allow OCR and scrolling workflows from tray
+- **Linux**: Portal timeout, Wayland/slurp/portal fixes, GStreamer clamp, D-Bus and plugins path resolution
+- **After Capture**: ShowAfterCaptureWindow persistence
+- **Misc**: FAQ XerahS/ShareX Linux ref; update checker pre-releases; backup machine-specific; S3 setup reorder; macOS icon in Windows build; File Open dialog crash
+- **Core**: Correct flipped monitor orientation in DXGI capture; fail fast for Linux publish and validate package payload; harden daemon bundling across desktop RIDs; marshal Avalonia clipboard access to UI thread; remove WinForms dependency from Windows platform
+- **Core**: Avoid SIGPIPE in archive validation checks
+- **Update Changelog Script**: Ensure entries array has Count for single-category
+### Refactor
+- **Core**: Split large ViewModels, WatchFolder daemon base service, ScreenRecordingManager startup; WindowState naming; GeneralHelpers split
+- **Upload**: Polymorphic uploader config pilot
+- **Workflows**: App workflow orchestration services
+- **Linux Capture**: Modular providers, parallel lanes, coordinator, contracts
+### Build
+- **CI/Release**: All-platform release workflow, Linux by arch, release title, bump/tag automation
+- **Android**: Mobile build infrastructure
+- **Linux**: Plugin packaging, RPM strip, display diagnostics, desktop-file-utils
+- **ImageEditor**: Submodule checkout, recovery hook, pre-push
+- **Core**: Add changelog update automation script; validate release assets and RID metadata
+- **Misc**: Version/changelog bumps, central package management, plugin DLL deduplication, cross-compilation macOS, GPL headers Swift/Kotlin
+### Documentation
+- **Consolidate**: Developer docs to developers/; plugins to developers/plugins and .xsdp; changelog consolidation; mobile README simplification
+- **Planning**: Roadmap, XIP0033 complete, task docs
+- **Misc**: Feasibility report JS/CSS; sync-submodules; build/Linux/mobile docs; XIP0040/0039; update-changelog skill in run-maintenance
+- **Core**: Create XIP0043-Remove-WinForms-and-Harden-CrossRID-Daemon-Bundling.md
+### Testing
+- **Linux Capture**: Waterfall and lane matrix tests
+### Performance
+- **RegionCapture**: Reduce annotation rebuild pressure
+- **Core**: Skip app-driven plugin build in solution builds; update ImageEditor submodule for TFM simplification
+## [v0.17.4](https://github.com/ShareX/XerahS/releases/tag/v0.17.4)
+### Features
+- **Indexer**: Modernize HTML output flow and default to dark theme with light-mode toggle
+### Build
+- **CI**: Split Linux release builds by runner architecture and set release title metadata
+- **Automation**: Add release bump/tag workflow skill for standardized release prep
+## [v0.16.3](https://github.com/ShareX/XerahS/releases/tag/v0.16.3)
+### Features
+- **Mobile**: Add active upload destination selector and in-app destination label on Android and iOS
+- **Mobile**: Use desktop-compatible upload filename pattern on Android and iOS
+- **Mobile**: Add broad share-intent support for arbitrary file types on Android and iOS
+- **Media Explorer**: Implement provider file browsing with S3 and Imgur support, including navigation, search, filtering, and CDN thumbnail optimization
+- **Watch Folder**: Add watch-folder daemon with lifecycle hooks, runtime policy controls, and tests
+- **Mobile**: Add adaptive theming infrastructure with native styling polish
+- **Mobile**: Add upload queue, picker, and history screens
+- **UI**: Add Copy Errors to UI (HistoryView, AfterUploadWindow, Toast)
+- **ImageEditor**: Add app/editor theme synchronization with platform-aware styling
+### Fixes
+- **iOS**: Use App Group settings so Share Extension can read Amazon S3 configuration
+- **ImageEditor**: Fix precompiled Avalonia XAML startup crash (`XamlLoadException`) in editor app initialization
+- **ImageEditor**: Improve highlight rendering/fill behavior, Smart Eraser, text defaults, and canvas zoom performance
+- **ImageEditor**: Restore crop UX and precision with full-image/L-shape fixes, visible handles, and DPI-aware hit zones
+- **Scrolling Capture**: Improve auto-scroll behavior and workflow settings integration
+- **Workflows**: Allow OCR and scrolling workflows from tray
+- **Media Explorer**: Harden listing, normalize URLs, and improve error handling
+- **Mobile**: Unify iOS share payload handling and TimeZoneInfo serialization
+- **Upload**: Align MainViewModel helper with parameterless copy/upload events
+- **ImageEditor**: Update submodule with context menu fixes
+- **Capture**: Optimize annotation layer rendering and resource management
+- **Documentation**: Update FAQ to correctly reference XerahS instead of ShareX in Linux screen capture section
+- **Infrastructure**: Integrate update-changelog skill into run-maintenance workflow
+### Refactor
+- **Core**: Split large ViewModels, extract WatchFolder daemon base service, and consolidate ScreenRecordingManager startup flow
+- **Core**: Remove WindowState naming collisions
+- **Core**: Split GeneralHelpers into utility classes
+- **Upload**: Add polymorphic uploader config pilot
+- **Workflows**: Extract app workflow orchestration services
+### Build
+- **Infrastructure**: Add all-platform release workflow and repository sync helper script
+- **Android**: Add Android mobile build infrastructure
+- **Linux**: Harden plugin packaging, RPM strip behavior, and display diagnostics
+- **Hooks**: Add cross-platform ImageEditor recovery and auto-push on pre-push
+### Documentation
+- **Maintenance**: Simplify mobile README and move refactor/hardening notes into documentation archives
+- **Planning**: Update task planning docs and move completed XIP0033
+- **Plugins**: Consolidate plugin documentation into 'developers/plugins' and standardize on .xsdp extension
+- **Developer**: Consolidate developer documentation into 'developers' root folder
+- **Architecture**: Add feasibility report for JS/CSS migration
+- **Submodules**: Add sync-submodules workflow and update ImageEditor to latest develop
+- **Tasks**: Add refactoring audit skill and native UI theming task
+## [v0.15.5](https://github.com/ShareX/XerahS/releases/tag/v0.15.5)
+### Features
+- **Linux Capture**: Add DBus fallbacks, KDE desktop permissions, and decision trace orchestration
+### Fixes
+- **Linux Capture**: Enforce portal-only sandbox policy, unify waterfall, and improve logging
+- **Builds**: Fix cross-platform build configuration and add linux-arm64 support
+### Refactor
+- **Linux Capture**: Modularize providers with parallel lanes, coordinator, and contracts
+### Testing
+- **Linux Capture**: Add Linux capture waterfall and lane matrix tests
+### Documentation
+- **Build System**: Rename developer README and add Linux guide
+- **Roadmap**: Finalize Linux phase roadmap and release gate
+## v0.15.0
+### Features
+- **Mobile**: Add Android and iOS MVP with Share Extension support, .NET MAUI project
+- **Mobile**: Add Custom Uploader and Amazon S3 configuration UI (#124, #125, @Hexeption)
+- **Indexer**: Implement async streaming indexer with progress and cancellation
+### Fixes
+- **Image Editor**: Share annotation preview visuals with ImageEditor to ensure consistency
+### Fixes
+- **Annotations**: Optimize rendering, remove draw-start dot artifact, and improve responsiveness
+- **Workflow**: Complete WorkflowType end-to-end wiring
+- **UX**: Hide SilentRun window on first open instead of minimizing
+- **Updates**: Gracefully handle repositories with only pre-releases
+- **After Capture**: Persist "Show after capture window" behavior across repeated runs
+- **Upload**: Add multi-uploader auto destination fallback and wire mobile Amazon S3 and plugin integration to InstanceManager
+- **Watch Folder**: Convert MOV captures to MP4
+- **Settings**: Make backup and secrets filenames machine-specific
+- **Amazon S3**: Reorder and renumber setup steps
+- **iOS**: Improve local signing setup and share extension flow
+### Build
+- **Plugins**: Centralize plugin copy target and pass host TFM
+- **Dependencies**: Bump Avalonia packages to 11.3.12
+- **ImageEditor**: Update submodule for theme-aware view, net9 compatibility, and track develop branch
+### Documentation
+- **Audits**: Organize audit files and update UI control inventory snapshots
+- **Tasks**: Mark XIP0030 complete and move to completed tasks
+## v0.14.0
+### Features
+- **Monitor Test**: Implement MonitorTest workflow with diagnostic and pattern testing modes
+- **Tools**: Add Ruler workflow with full RegionCapture integration
+- **Indexer**: Make Index Folder open in its own window
+- **Editor**: Integrate upstream ShareX.ImageEditor submodule with File Open choice dialog
+- **Region Capture**: Add annotation options persistence
+### Fixes
+- **Logging**: Fix duplicate date in log filename on date rotation
+- **Region Capture**: Improve annotation toolbar integration and reduce rebuild pressure
+- **Indexer**: Enable Open in Browser button and remove WebView in favor of system browser
+- **Navigation**: Enable menu navigation and update editor data transfer APIs
+- **Editor**: Sync ImageEditor fixes, persist annotation options, refactor platform abstractions, enable Zoom to Fit
+- **ImageEditor**: Update submodule with unified undo-redo, smart padding crop sync, clipboard fixes, z-order fixes, and dispose bug fixes
+- **Packaging**: Restore macOS icon in Windows package build
+- **Upload**: Delay upload progress title update until actual upload starts
+- **macOS**: Harden mac packaging and cross-platform editor wiring
+- **Dialogs**: Prevent File Open dialog crash and add global exception logging
+### Build
+- **Cross-Compilation**: Add macOS from Windows support and build system documentation
+- **Infrastructure**: Fix version parsing in Windows package script
+## v0.13.0
+### Fixes
+- **Menu Bar**: Fix hash checker routing and dynamic workflows menu
+- **Upload**: Improve Upload Content workflow handling, window UX, and text upload routing
+## v0.12.0
+### Fixes
+- **Tools**: Add media tools to navigation bar and fix DataTemplate issues
+- **Proxy**: Fix custom uploader loading and add configuration UI (#77, @Hexeption)
+- **Linux**: Add dark mode support, theme settings, and Wayland Hyprland screenshot support (#62, @unicxrn; #61, @unicxrn)
+- **macOS**: Add native application menu (#60, @Hexeption)
+- **Custom Uploaders**: Fix compatibility improvements and version compatibility (#74, @Hexeption; #71, @emmsixx)
+- **Security**: Fix DPAPI platform warning (#73, @Hexeption)
+### Refactor
+- **Editor**: Rename namespace from ShareX.Editor to XerahS.Editor and update all references
+### Build
+- **Plugins**: Improve plugin copy target to only include plugin assemblies
+- **Configuration**: Update build files, packaging configuration, issue templates, and .gitignore
+## v0.11.0
+### Features
+- **Upload**: Implement UploadContentWindow and remove superseded upload WorkflowTypes
+## v0.10.0
+### Features
+- **Workflows**: Implement AutoCapture workflows
+## v0.9.0
+### Features
+- **Workflows**: Implement Pin to Screen workflows
+- **Amazon S3**: Enhance SSO with region selection
+### Fixes
+- **Upload**: Improve upload error surfacing and history actions
+- **Workflows**: Preserve workflow order and exclude None
+- **Custom Uploaders**: Fix compatibility check for XerahS versions
+### Build
+- **Plugins**: Restore plugin DLL deduplication with retry logic
+### Core
+- **Rendering**: Remove RectangleLight; modern Skia rendering deprecated it
+## v0.8.0
+### Features
+- **Security**: Add cross-platform secrets store with diagnostics
+- **Upload**: Add auto destination uploader
+- **Custom Uploaders**: Implement full support including editor UI and integration
+- **Task Settings**: Redesign Task Settings UX with dedicated Image/Video tabs
+- **Tray Icon**: Add recording-aware tray icon with pause/abort controls
+- **Image Formats**: Add AVIF and WebP image format support
+- **Linux/Wayland**: Fix screen capture on Wayland by integrating XDG Portal API
+### Fixes
+- **Capture**: Allow clipboard payloads in capture phase
+- **Upload**: Add clipboard upload auto routing
+- **Region Capture**: Correct crop offset, refresh AfterCapture UI, and fix coordinate mapping for Windows (#29)
+- **Linux**: Fix active window capture hierarchy, coordinates, hotkey initialization, and Region Capture
+- **UX**: Hide main window when capture triggered from tray/navbar
+- **UI**: Fix update dialog layout
+### Refactor
+- **Editor**: Update XerahS.Editor.csproj references and docs
+## [v0.7.0](https://github.com/ShareX/XerahS/releases/tag/v0.7.0) - Annotation Overlays & Packaging
+### Features & Improvements
+- **Annotations**: Enable Annotation Toolbar in Region Capture Overlay and refactor (#53)
+- **Region Capture**: Add support for transparent background capture (RectangleTransparent)
+- **macOS**: Native single-file app bundle packaging (`.app`)
+- **Packaging**: Automated multi-arch Windows release builds
+- **Plugins**: Support for user-installed plugins and packaging
+- **Window Capture**: Add support via monitor cropping fallback
+- **Media Library**: Basic implementation (#49)
+### Bug Fixes
+- **Annotation Layer**: Fix coordinate system for multi-monitor/high DPI and compositing
+- **Exceptions**: Global exception handling implementation
+- **Screen**: Fix frozen screen issue (#51)
+- **Cursor**: Fix system cursor issues (#46)
+## [v0.6.0](https://github.com/ShareX/XerahS/releases/tag/v0.6.0) - UI Redesign & Auto-Update
+### Features & Improvements
+- **UI Redesign**: Comprehensive visual overhaul of all views using Grid layout and consistent styling
+- **Auto-Update**: Implement auto-update system with Avalonia UI
+- **After Upload**: Add "After Upload" results window
+- **Property Grid**: Add ApplicationConfig property grid
+- **CLI**: Add `verify-recording` command for automated screen recording validation
+- **Editor**: Unify editor undo history across different toolsets
+- **Architecture**: Move Windows-specific P/Invoke types to dedicated Platform.Windows project
+- **FFmpeg**: Improve FFmpeg download/config UX with progress hooks and better path resolution
+- **Documentation**: Replace ShareX.Avalonia references with XerahS (#44)
+- **Workflow**: Update cursor handling (#43)
+### Bug Fixes
+- **Recording**: Improve GIF recording quality, add clipboard support, pause, and stroke-based abort
+- **After Upload**: Fix window theming and errors
+- **Rendering**: Fix speech balloon tail geometry rendering
+- **Region Capture**: Fix system cursor appearing in screenshots and hotkey issues (#38, #39)
+## v0.5.0 - Core Capture & Editor Improvements
+### Features & Improvements
+- **Capture**: Add single instance enforcement for the application
+- **Region Capture**: Enhance crosshair visibility, add magnifier pixel sampling, and hide system cursor when ghost cursor active
+- **Editor**: Wire ImageEffectsViewModel to unified undo/redo stack
+- **UX**: Set default file picker location to Desktop for easier access
+### Bug Fixes
+- Fix 11+ HIGH/MEDIUM priority issues including null safety and resource management
+- Set RegionCaptureControl cursor to None to prevent double cursor visibility
+## v0.4.0 - Image Effects & Tools
+### Features & Improvements
+- **Image Effects**: Refactor preset management and improve effects UI
+- **Tools**: Add QR code generator/decoder and Color Picker tools with standard color name mapping
+- **Watch Folders**: Implement Watch Folder system with per-folder workflow assignments
+- **Indexer**: Add Index Folder preview and modernize HTML output using WebView
+- **macOS**: Add native ScreenCaptureKit video recording support
+### Bug Fixes
+- **Capture**: Fix cursor tracking and visibility during GDI capture
+- **Capture**: Fix NullReferenceException in DXGI capture by preventing premature disposal of D3D11 device context
+## v0.3.0 - Modern Capture Architecture
+### Features & Improvements
+- **Modern Capture**: Implement DXGI-based high-performance screen capture for Windows
+- **Screen Recording**: Unified recording pipeline with Windows Media Foundation and FFmpeg support
+- **Workflow System**: Major overhaul of hotkeys into full Workflow system with GUID persistence
+- **Toast Notifications**: New custom Avalonia-based notification system with advanced settings
+- **Linux**: Initial support for Wayland via XDG Desktop Portal and native X11 capture
+- **Settings**: Add weekly backup system for application settings
+- **UX**: Add tray icon support with customizable click actions
+### Bug Fixes
+- **Modern Capture**: Fix multi-monitor blank capture issues
+- **Region Capture**: Fix DPI handling, coordinate mapping, and offsets/scaling on multi-monitor setups
+- **Code Quality**: Massive code audit fixing 500+ license headers and 160+ nullability issues
+- **Windows**: Standardize Windows TFM and fix CsWinRT interop issues
+## v0.2.0 - macOS Support & Plugin System
+### Features & Improvements
+- **macOS**: Initial platform support including ScreenCaptureKit, SharpHook hotkeys, and app bundling
+- **Plugins**: Implement dynamic plugin system with packaging (`.sxap`), CLI tools, and `.sxadp` file association
+- **History**: Switch history storage from XML to SQLite with automatic backups
+- **Editor**: Integrate ShareX.Editor as core component with SkiaSharp rendering
+## v0.1.0 - Initial Feature Set
+### Core Features
+- **UI**: Reimagined interface with two-toolbar system and modern dark theme
+- **Capture**: Region, Fullscreen, and Window capture modes
+- **Annotations**: Object-based editor with Rectangle, Ellipse, Arrow, Line, Text, Number, Crop tools, and full Undo/Redo support
+- **Hotkeys**: Global hotkey system with Win32 registration
+- **Image Effects**: Initial implementation of 40+ effects including Resize, Shadows, and Gradients
+- **History**: Basic task history tracking
+---
 *This changelog follows Semantic Versioning while the project remains in pre-release (0.x.x).*

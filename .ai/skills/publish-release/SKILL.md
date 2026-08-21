@@ -1,6 +1,6 @@
-﻿---
+---
 name: publish-release
-description: "Orchestrate XerahS release flow in strict order: run-maintenance first, update-changelog second (optional if no CHANGELOG), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then optionally set pre-release. On failures, inspect logs, fix root cause, and retry with the next patch release."
+description: "Orchestrate XerahS release flow in strict order: run maintenance prep first, update-changelog second (optional only if docs/CHANGELOG.md is intentionally absent), verify build, bump/commit/push/tag while syncing Chocolatey version metadata, monitor GitHub Actions every 2 minutes, ensure standard release notes content, then apply repo release-channel policy (ShareX/XerahS = pre-release; KovaForge/XerahS = full latest release). On failures, inspect logs, fix root cause, and retry with the next patch release."
 ---
 
 # XerahS Release Bump Tag
@@ -8,13 +8,29 @@ description: "Orchestrate XerahS release flow in strict order: run-maintenance f
 ## Overview
 
 Use this skill to run release steps in strict order:
-- Step 1: Execute maintenance chores first (`git pull --recurse-submodules` and `git submodule update --init --recursive`)
-- Step 2: Run `.ai/skills/update-changelog/SKILL.md` second (optional if no `CHANGELOG.md` exists)
+- Step 1: Execute maintenance prep first (`git pull --recurse-submodules` and `git submodule update --init --recursive`), then reattach `ShareX.ImageEditor` to `develop` and fast-forward it from `origin/develop`. Uncommitted local changes in the working tree are auto-committed with message `[skill] Auto-commit uncommitted changes before release maintenance` before the pull. Submodule local changes still block the sequence and must be committed/stashed manually.
+- Step 2: Run `.ai/skills/update-changelog/SKILL.md` second (optional only if `docs/CHANGELOG.md` is intentionally absent)
 - Step 3: Verify build, then execute bump/commit/push/tag automation
 - Step 4: Monitor the tag-triggered release workflow every 2 minutes
-- Step 5: If failure occurs, inspect logs, fix issues, and retry with the next patch version
+- Step 5: If failure occurs, inspect logs, fix the root cause in code or workflow first (do not skip the fix and retry the same version), commit and push the fix, then retry with the next patch version. If the failure is in the `build-flatpak` job, verify all plugin DLLs are present in the staging directory; the workflow now includes a plugin re-validation step but a code fix in `package-linux.sh` may also be needed. Repeat until workflow succeeds.
 - Step 6: Ensure standard release notes block is present on the GitHub release
-- Step 7: If requested, set the successful release as pre-release
+- Step 7: Apply repo release-channel policy (see below)
+- Optional Step 8: Generate a Flathub source-build manifest candidate from the successful release tag; do not open or automate a Flathub PR
+- GitHub Actions release upload steps must match the same repo policy (`prerelease` / `make_latest` by `github.repository`); do not rely only on the post-workflow `gh release edit` guard.
+
+Repository target behavior (dual-repo):
+- Supported release targets: `https://github.com/KovaForge/XerahS` and `https://github.com/ShareX/XerahS`.
+- Git pushes use `--push-remote` (default: `origin`). For ShareX publishes from a KovaForge fork checkout, use `--push-remote upstream --repo ShareX/XerahS`.
+- GitHub CLI operations (`gh run`, `gh release`) resolve from the `origin` remote URL by default.
+- Origin may be a standard `github.com` URL or a KovaForge per-person SSH alias such as `git@github-vladislava:KovaForge/XerahS.git`.
+- Do **not** rely on bare `gh repo view` for target inference on fork checkouts: it often resolves the upstream parent (`ShareX/XerahS`) instead of origin (`KovaForge/XerahS`).
+- Use `--repo owner/name` to override the inferred target when needed.
+- After a successful workflow, the skill verifies the required asset set on the chosen repo (Windows/macOS/Linux/Flatpak + Chocolatey nupkg).
+
+Release channel policy (default):
+- `ShareX/XerahS` -> always **Pre-release** (`prerelease: true`, not latest)
+- `KovaForge/XerahS` -> **Release** / latest (`prerelease: false`, `make_latest: true`)
+- Override with `--set-prerelease` or `--no-prerelease` when intentionally forcing the opposite channel.
 
 Step 3 performs:
 - Pre-check: Run `dotnet build src/desktop/XerahS.sln`; do not proceed if build fails.
@@ -41,6 +57,16 @@ Step 6 performs:
   - `### macOS Troubleshooting ("App is damaged")` section with Gatekeeper `xattr -cr` guidance.
 - After the release is published, the tag workflow also builds, smoke-tests, and attaches `xerahs.X.Y.Z.nupkg` to the GitHub release.
 - `build/windows/chocolatey/Sync-ChocolateyPackage.ps1 -Version X.Y.Z` remains the manual recovery path for re-syncing checksums or repacking.
+- Expected Windows release assets per architecture: `XerahS-X.Y.Z-win-x64.exe`, `XerahS-X.Y.Z-win-x64.msi`, `XerahS-X.Y.Z-win-arm64.exe`, `XerahS-X.Y.Z-win-arm64.msi`.
+- Expected Linux AppImage assets: `XerahS-X.Y.Z-linux-x64.AppImage`, `XerahS-X.Y.Z-linux-arm64.AppImage` (in addition to tar.gz/deb/rpm and the existing Flatpak bundle).
+
+Optional Step 8 performs:
+- Runs `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh --tag vX.Y.Z --repo owner/name --lint`.
+- Generates `dist/flathub/com.xerahs.XerahS.yml` from the GitHub release tag plus pinned `ShareX.ImageEditor` and `ShareX.VideoEditor` submodule commits.
+- Adds the Freedesktop SDK `dotnet10` and `node24` extensions needed to run the Linux publish script inside the Flatpak build sandbox.
+- Verifies the generated manifest does not use local `dist/xerahs-flatpak-staging` sources.
+- Flags missing offline dependency source artifacts for NuGet/.NET and npm. A release is not Flathub-ready until these generated dependency sources are present and a network-disabled Flatpak source build passes.
+- Keeps this as a pre-release validation path. Do not mark a release stable for Flathub until the source-build manifest, dependency sources, manifest lint, repo lint, and manual smoke tests pass.
 
 ## Primary Command
 
@@ -50,10 +76,34 @@ From repository root:
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh
 ```
 
-Automated monitor + pre-release (recommended):
+Automated monitor with repo-default channel (recommended):
 
 ```bash
-./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --set-prerelease --bump z --yes
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --bump z --yes
+```
+
+KovaForge fork example (publishes as full Release / latest):
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --repo KovaForge/XerahS --git-wrapper git-vladislava --push-remote vladislava --assume-changelog-done --monitor --bump z --yes
+```
+
+ShareX upstream example from a KovaForge checkout (publishes as Pre-release):
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --repo ShareX/XerahS --push-remote upstream --assume-changelog-done --monitor --bump z --yes
+```
+
+Force pre-release on KovaForge (override):
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --repo KovaForge/XerahS --assume-changelog-done --monitor --set-prerelease --bump z --yes
+```
+
+Force stable/latest on ShareX (override; uncommon):
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --repo ShareX/XerahS --push-remote upstream --assume-changelog-done --monitor --no-prerelease --bump z --yes
 ```
 
 Manual monitor (fallback, PowerShell example):
@@ -78,6 +128,12 @@ Patch bump with built-in 2-minute monitoring:
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --monitor-interval 120 --bump z --yes
 ```
 
+Patch bump, pre-release forced, and generate Flathub source-build candidate:
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --set-prerelease --prepare-flathub-source --bump z --yes
+```
+
 Minor bump with custom commit token/summary:
 
 ```bash
@@ -97,16 +153,28 @@ On environments where `bash` is not in PATH, execute the sequence manually:
 1. Step 1 - Maintenance
    - `git pull --recurse-submodules`
    - `git submodule update --init --recursive`
+   - Mandatory after submodule update: `git -C ShareX.ImageEditor fetch origin --prune`
+   - Mandatory after submodule update: `git -C ShareX.ImageEditor checkout develop`
+   - Mandatory after submodule update: `git -C ShareX.ImageEditor pull --ff-only origin develop`
+   - Verify `git -C ShareX.ImageEditor status --short --branch` shows `develop...origin/develop`, not detached HEAD.
+   - Abort if `ShareX.ImageEditor` has local changes, cannot fast-forward, or remains detached. If this updates the recorded submodule commit, commit and push the submodule before committing the parent XerahS gitlink.
 
 2. Step 2 - Changelog
    - Run `.ai/skills/update-changelog/SKILL.md`.
-   - Skip if no `CHANGELOG.md` or user confirms skip.
+   - Skip only if `docs/CHANGELOG.md` is intentionally absent or the user confirms skip.
 
 3. Step 3 - Bump, commit, push, tag
    - Run `dotnet build src/desktop/XerahS.sln`; abort if it fails.
    - Read current version from root `Directory.Build.props`.
    - Compute next version: patch `Z+1`, minor `Y+1.0`, major `X+1.0.0`.
-   - Ensure tag `v<new-version>` does not exist locally or on `origin`.
+    - Ensure tag `v<new-version>` does not exist locally or on `origin`.
+    - PowerShell-safe local check (avoid false positives from `if (git rev-parse <tag>)`):
+       - `git show-ref --verify --quiet "refs/tags/v<new-version>"`
+       - `if ($LASTEXITCODE -eq 0) { throw "Local tag exists" }`
+    - PowerShell-safe remote check:
+       - `git ls-remote --exit-code --tags origin "refs/tags/v<new-version>" *> $null`
+       - `if ($LASTEXITCODE -eq 0) { throw "Remote tag exists" }`
+    - For `--no-bump`: if `v<current-version>` already exists, do not try to recreate it. Use `--no-tag` for commit-only flow, or bump patch for a new tag.
    - Update all tracked `Directory.Build.props` files containing `<Version>`.
    - Update `build/windows/chocolatey/xerahs.nuspec` `<version>` to match.
    - `git add -A` -> `git commit -m "[v<new-version>] [CI] Release v<new-version>"` -> `git push origin <current-branch>` -> `git tag -a v<new-version> -m "v<new-version>"` -> `git push origin v<new-version>`.
@@ -125,12 +193,23 @@ On environments where `bash` is not in PATH, execute the sequence manually:
    - Read current body: `gh release view v<new-version> --json body`
    - Append the standard changelog + macOS troubleshooting block if missing.
    - Write body: `gh release edit v<new-version> --notes-file <file>`
+   - Verify all **8 Windows assets** are attached (`-win-x64.exe`, `-win-x64.msi`, `-win-arm64.exe`, `-win-arm64.msi`) plus macOS and Linux assets.
 
-7. Step 7 - Set pre-release (when requested)
-   - `gh release edit v<new-version> --prerelease`
-   - Verify: `gh release view v<new-version> --json isPrerelease,url,assets`
+7. Step 7 - Apply release channel policy
+   - `ShareX/XerahS`: `gh release edit v<new-version> --prerelease --latest=false`
+   - `KovaForge/XerahS`: `gh release edit v<new-version> --prerelease=false --latest`
+   - Verify: `gh release view v<new-version> --json isPrerelease,isLatest,url,assets`
+   - Overrides: `--set-prerelease` / `--no-prerelease`
+   - Workflow guard: `.github/workflows/release-build-all-platforms.yml` must create/upload with the same repo policy (`prerelease: github.repository != 'KovaForge/XerahS'`, `make_latest: github.repository == 'KovaForge/XerahS'`).
 
-8. Optional post-release Chocolatey maintenance
+8. Optional Flathub source-build preparation for manual submission
+   - Prefer keeping ShareX validation releases as pre-release while Flathub work is ongoing.
+   - Run `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh --tag v<new-version> --repo owner/name --lint`.
+   - Confirm the generated manifest uses `type: git` sources pinned by tag/commit for the main repository and submodules.
+   - Generate and add offline dependency sources for NuGet/.NET packages and `ShareX.VideoEditor/frontend` npm packages before attempting a network-disabled Flathub build.
+   - Build and lint the generated manifest locally before a human maintainer manually opens the Flathub PR.
+
+9. Optional post-release Chocolatey maintenance
    - The tag workflow should already have produced and smoke-tested `xerahs.<new-version>.nupkg`.
    - Manual repack/re-sync: `powershell -File build/windows/chocolatey/Sync-ChocolateyPackage.ps1 -Version <new-version> -Pack`
    - Manual smoke test: `powershell -File build/windows/chocolatey/Test-ChocolateyPackage.ps1 -Version <new-version> -SourceDirectory dist\chocolatey`
@@ -142,28 +221,34 @@ Default bump when unspecified: patch (`z`). Default commit type token: `CI`.
 
 1. Require completion of `run-maintenance` first.
    - Script behavior: executes maintenance commands automatically unless explicitly bypassed with `--skip-maintenance` (or legacy alias `--assume-maintenance-done`).
-2. Require completion of `update-changelog` second (skip if no `CHANGELOG.md` or user confirms).
+   - Uncommitted local working-tree changes are auto-committed before the pull; submodule changes still block and require manual resolution.
+2. Require completion of `update-changelog` second (skip only if `docs/CHANGELOG.md` is intentionally absent or user confirms).
 3. Before bump, run `dotnet build src/desktop/XerahS.sln`; abort on failure.
 4. Run `scripts/bump-version-commit-tag.sh` (or PowerShell/manual equivalent when bash unavailable).
 5. After tag push, monitor the release workflow every 120 seconds until complete.
 6. If failed, inspect logs, fix root cause, and retry with next patch version.
 7. Continue retry loop until release workflow is successful.
 8. Ensure standard release notes content is present on the successful release.
-9. If requested, mark successful release as pre-release.
+9. Apply release-channel policy for the target repo: ShareX/XerahS = pre-release; KovaForge/XerahS = full latest release.
+10. When preparing for Flathub, generate the source-build manifest candidate and treat missing offline dependency sources as release-blocking for Flathub submission.
 
 ## Guardrails
 
 - Do not skip sequence unless user explicitly requests bypass.
-- Do not skip maintenance unless user explicitly requests bypass (`--skip-maintenance`).
+- Do not skip maintenance unless user explicitly requests bypass (`--skip-maintenance`). Local working-tree changes are auto-committed before the pull rather than blocking.
 - Do not commit/push during maintenance/changelog steps.
+- After maintenance submodule update, always reattach `ShareX.ImageEditor` to `develop`, fast-forward it from `origin/develop`, and verify it is not detached before build, bump, tag, or release work continues.
 - Always verify build before bump/tag.
 - Always monitor workflow after tag push; do not stop at tag creation.
 - Always inspect logs on failure and fix root cause before retry.
 - Always ensure the standard release notes block exists on the successful release.
+- Always keep Flathub validation on ShareX/XerahS as pre-release until source-build, dependency-source, lint, repo-lint, and smoke-test gates pass.
+- Always keep the GitHub Actions release creation step aligned with repo channel policy: ShareX/XerahS uses `prerelease: true` / `make_latest: false`; KovaForge/XerahS uses `prerelease: false` / `make_latest: true`.
 - Always use a new patch version for retries requiring new commits/tags.
 - Abort on detached HEAD.
 - Abort if version format is not `X.Y.Z`.
 - Abort if matching tag already exists locally or remotely.
+- In PowerShell manual flow, use `git show-ref --verify --quiet "refs/tags/<tag>"` and `git ls-remote --exit-code --tags` with `$LASTEXITCODE` checks for tag existence.
 - Support `--no-push` and `--no-tag` when partial flow is needed.
 
 ## Agent usage (Cursor / Codex)
@@ -175,15 +260,40 @@ When executing this skill:
 4. Monitor tag workflow every 120 seconds until completion.
 5. On failure, inspect logs, fix issue, and retry with next patch version.
 6. Ensure release notes include changelog link + macOS troubleshooting block.
-7. If requested, set the final successful release to pre-release.
-8. Report final version, commit hash, branch push status, tag push status, run URL, and pre-release status.
+7. If requested explicitly, override channel with `--set-prerelease` or `--no-prerelease`; otherwise apply repo defaults.
+8. If preparing for Flathub, run the source-build helper and report which of the source/dependency gates passed or failed.
+9. Report final version, commit hash, branch push status, tag push status, run URL, repo target, and release channel (pre-release vs latest).
+
+Default release-channel policy: `ShareX/XerahS` = pre-release; `KovaForge/XerahS` = full latest release. Use `--set-prerelease` / `--no-prerelease` only for intentional overrides.
 
 ## Notes (lessons learnt)
 
 - Windows/PowerShell: bash may be unavailable; manual fallback must be first-class.
+- Windows/PowerShell: avoid `if (git rev-parse <tag>)` for local tag existence checks; use `git show-ref --verify --quiet refs/tags/<tag>` and inspect `$LASTEXITCODE`.
 - Build before bump: avoid tagging broken trees.
-- Changelog optional: do not block if `CHANGELOG.md` does not exist unless user requires it.
-- Version sync: update every tracked `Directory.Build.props` with `<Version>` and sync `build/windows/chocolatey/xerahs.nuspec`.
+- Changelog optional: do not block if `docs/CHANGELOG.md` is intentionally absent unless user requires it.
+- Version sync: update every tracked `Directory.Build.props` with `<Version>`, sync `build/windows/chocolatey/xerahs.nuspec`, and prepend a new `<release version="X.Y.Z" date="YYYY-MM-DD">` entry to the `<releases>` block in `flatpak/com.xerahs.XerahS.metainfo.xml`. The metainfo insertion uses a generic "See CHANGELOG.md for details." placeholder description; edit it in the resulting commit before pushing if a hand-written note is preferred.
+- **Windows packaging produces 4 assets per release**: `XerahS-X.Y.Z-win-x64.exe`, `XerahS-X.Y.Z-win-x64.msi`, `XerahS-X.Y.Z-win-arm64.exe`, `XerahS-X.Y.Z-win-arm64.msi`. The EXE is built by Inno Setup; the MSI is built by WiX Toolset v4 (`build/windows/XerahS-setup.wxs`). Both are produced by `build/windows/package-windows.ps1` in the same loop iteration.
+- **ShareX.ImageEditor submodule must stay on `develop`**: after `git submodule update --init --recursive`, immediately run `git -C ShareX.ImageEditor fetch origin --prune`, `git -C ShareX.ImageEditor checkout develop`, and `git -C ShareX.ImageEditor pull --ff-only origin develop`. `git submodule update` checks out the parent-recorded commit and can leave a detached HEAD; do not proceed with release work until `git -C ShareX.ImageEditor status --short --branch` confirms `develop...origin/develop`.
+- **WiX prerequisite (CI & local)**: use a pinned pre-v7 WiX CLI, currently `dotnet tool install --global wix --version 6.0.2` + `wix extension add --global WixToolset.UI.wixext/6.0.2`. The `release-build-all-platforms.yml` workflow installs WiX automatically in the `build-windows` job. For local MSI builds: install WiX first; if not present the script emits a warning and skips MSI.
+- **MSI install layout**: per-user, no UAC elevation required. Binaries → `%LocalAppData%\Programs\XerahS\`; Plugins → `%USERPROFILE%\Documents\XerahS\Plugins\`; Start Menu shortcut created automatically.
+- **Winget manifest**: both `InstallerType: nullsoft` (EXE) and `InstallerType: wix` (MSI) entries must be included for each architecture when submitting to winget-pkgs. See `build/windows/winget/manifests/0.16.0/ShareX.XerahS.yaml` as the template.
 - Chocolatey asset naming: `build/windows/chocolatey/tools/chocolateyInstall.ps1` resolves `XerahS-<version>-win-x64.exe` or `XerahS-<version>-win-arm64.exe` from `ChocolateyPackageVersion`, so release bumps should not hardcode installer filenames there.
 - Chocolatey checksums for community publication are post-release data because GitHub release assets do not exist until after the tag workflow completes. The tag workflow now performs that sync automatically for release packaging, and `build/windows/chocolatey/Sync-ChocolateyPackage.ps1` remains the manual fallback.
+- Flatpak CI setup must fail loudly when the runtime cannot be installed; use `flatpak remote-add --no-gpg-verify` for unsigned Flathub setup, not `--no-sign-verify`.
+- Flatpak manifest source paths are resolved relative to the manifest directory, so staging paths outside `flatpak/` need a `../` prefix.
+- Flathub submission manifests must not depend on local `dist/xerahs-flatpak-staging`; generate a tag-pinned source-build candidate with `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh`.
+- Flathub source-build candidates must include pinned submodule commits; GitHub source archives do not automatically include submodule contents.
+- Flathub source-build candidates are not ready until NuGet/.NET and npm dependency sources are generated and a network-disabled Flatpak build passes.
+- Flatpak build commands install into `/app`, not `/usr`; expose launchers through `/app/bin`.
+- Flatpak build commands run from the module build directory, not the repository root; add icons, desktop files, metainfo, or other repository assets as explicit manifest sources before installing them.
+- Flatpak `finish-args` must use options supported by `flatpak build-finish`; clipboard read/write flags are not valid `finish-args`.
+- Flatpak session bus access is expressed as `--socket=session-bus` or narrower `--talk-name=` policies, not `--bus=session`.
+- Flatpak CI bundling should export `flatpak-builder` output to an explicit local repo with `--repo=...`; validate files directly or use supported Flatpak commands, not `flatpak build-info`.
+- Chocolatey release metadata lookup must use the active GitHub repository (`GITHUB_REPOSITORY`, `origin`, or explicit `-Repository owner/name`), not a hardcoded upstream owner.
+- Chocolatey install scripts must also generate download URLs from the active release repository; updating only nuspec metadata is not enough.
+- Dual-repo remote resolution must parse `git@github-<alias>:Owner/Repo.git`; bare `gh repo view` on a KovaForge fork checkout often returns `ShareX/XerahS` and must not be used for release targeting.
+- After XIP0078 ad-hoc signing was added, macos-15 CI can fail when codesign hard-fails on unsigned nested managed DLLs; ad-hoc signing must use `--deep` and must not fail the release matrix for interim unsigned seals.
+- Always verify the full required asset list on the chosen repo after workflow success; an empty GitHub release with zero assets is a failed publish even if a tag/release shell exists.
+- Release channel is repo-scoped: never publish ShareX/XerahS as latest by default; never leave KovaForge/XerahS as pre-release by default after a successful publish-release run.
 - Release reliability loop: tag push is not the end; monitor, fix, and retry until green.

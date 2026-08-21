@@ -64,6 +64,8 @@ class S3ConfigViewModel(
     val regionIndex: StateFlow<Int> = _regionIndex.asStateFlow()
     private val _customEndpoint = MutableStateFlow("")
     val customEndpoint: StateFlow<String> = _customEndpoint.asStateFlow()
+    private val _usePathStyle = MutableStateFlow(false)
+    val usePathStyle: StateFlow<Boolean> = _usePathStyle.asStateFlow()
     private val _useCustomDomain = MutableStateFlow(false)
     val useCustomDomain: StateFlow<Boolean> = _useCustomDomain.asStateFlow()
     private val _customDomain = MutableStateFlow("")
@@ -84,6 +86,7 @@ class S3ConfigViewModel(
             _secretAccessKey.value = config.secretAccessKey
             _bucketName.value = config.bucketName
             _customEndpoint.value = config.customEndpoint
+            _usePathStyle.value = config.usePathStyle
             _useCustomDomain.value = config.useCustomDomain
             _customDomain.value = config.customDomain
             _signedPayload.value = config.signedPayload
@@ -98,6 +101,7 @@ class S3ConfigViewModel(
     fun setBucketName(value: String) { _bucketName.value = value }
     fun setRegionIndex(index: Int) { _regionIndex.value = index.coerceIn(0, REGIONS.lastIndex) }
     fun setCustomEndpoint(value: String) { _customEndpoint.value = value }
+    fun setUsePathStyle(value: Boolean) { _usePathStyle.value = value }
     fun setUseCustomDomain(value: Boolean) { _useCustomDomain.value = value }
     fun setCustomDomain(value: String) { _customDomain.value = value }
     fun setSignedPayload(value: Boolean) { _signedPayload.value = value }
@@ -108,11 +112,15 @@ class S3ConfigViewModel(
         val secret = _secretAccessKey.value.trim()
         val bucket = _bucketName.value.trim()
         val region = REGIONS.getOrNull(_regionIndex.value)?.regionId ?: ""
+        val endpoint = _customEndpoint.value.trim()
+        val domain = _customDomain.value.trim()
         when {
             accessKey.isBlank() -> { _validationError.value = "Access Key is required"; return false }
             secret.isBlank() -> { _validationError.value = "Secret Key is required"; return false }
             bucket.isBlank() -> { _validationError.value = "Bucket name is required"; return false }
             region.isBlank() -> { _validationError.value = "Region is required"; return false }
+            endpoint.startsWith("http://", ignoreCase = true) -> { _validationError.value = "HTTP S3 endpoints are not supported. Use HTTPS."; return false }
+            _useCustomDomain.value && domain.startsWith("http://", ignoreCase = true) -> { _validationError.value = "HTTP custom domains are not supported. Use HTTPS."; return false }
         }
         _validationError.value = null
         val config = S3Config(
@@ -120,9 +128,10 @@ class S3ConfigViewModel(
             secretAccessKey = secret,
             bucketName = bucket,
             region = region,
-            customEndpoint = _customEndpoint.value.trim(),
+            customEndpoint = endpoint,
+            usePathStyle = _usePathStyle.value,
             useCustomDomain = _useCustomDomain.value,
-            customDomain = _customDomain.value.trim(),
+            customDomain = domain,
             signedPayload = _signedPayload.value,
             setPublicAcl = _setPublicAcl.value
         )

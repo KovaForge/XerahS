@@ -41,13 +41,24 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
     private static readonly ObjectPath PortalObjectPath = new("/org/freedesktop/portal/desktop");
 
     private readonly LinuxSystemService _fallback = new();
+    private readonly bool _allowNativeFallback;
     private Connection? _connection;
     private IOpenUriPortal? _portal;
     private bool _disposed;
 
-    public WaylandPortalSystemService()
+    public WaylandPortalSystemService(bool allowNativeFallback = true)
     {
-        if (!WaylandPortalStrategy.IsSupported())
+        _allowNativeFallback = allowNativeFallback;
+
+        if (!allowNativeFallback || WaylandPortalStrategy.IsSupported())
+        {
+            InitializePortal();
+        }
+    }
+
+    private void InitializePortal()
+    {
+        if (!PortalInterfaceChecker.HasInterface("org.freedesktop.portal.OpenURI"))
         {
             return;
         }
@@ -55,7 +66,8 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         try
         {
             _connection = new Connection(Address.Session);
-            _connection.ConnectAsync().GetAwaiter().GetResult();
+            var connectionInfo = _connection.ConnectAsync().GetAwaiter().GetResult();
+            global::XerahS.Platform.Linux.Capture.PortalRequestExtensions.CacheLocalConnectionName(_connection, connectionInfo);
             _portal = _connection.CreateProxy<IOpenUriPortal>(PortalBusName, PortalObjectPath);
         }
         catch (Exception ex)
@@ -65,7 +77,7 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         }
     }
 
-    public bool IsDesktopWallpaperSupported => _fallback.IsDesktopWallpaperSupported;
+    public bool IsDesktopWallpaperSupported => _allowNativeFallback && _fallback.IsDesktopWallpaperSupported;
 
     public bool ShowFileInExplorer(string filePath)
     {
@@ -77,13 +89,13 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         if (_portal != null)
         {
             using var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            if (TryPortalRequest(() => _portal.OpenDirectoryAsync(string.Empty, stream.SafeFileHandle, new Dictionary<string, object>())))
+            if (TryPortalRequest(options => _portal.OpenDirectoryAsync(string.Empty, stream.SafeFileHandle, options)))
             {
                 return true;
             }
         }
 
-        return _fallback.ShowFileInExplorer(filePath);
+        return _allowNativeFallback && _fallback.ShowFileInExplorer(filePath);
     }
 
     public bool OpenUrl(string url)
@@ -95,13 +107,13 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
 
         if (_portal != null)
         {
-            if (TryPortalRequest(() => _portal.OpenURIAsync(string.Empty, url, new Dictionary<string, object>())))
+            if (TryPortalRequest(options => _portal.OpenURIAsync(string.Empty, url, options)))
             {
                 return true;
             }
         }
 
-        return _fallback.OpenUrl(url);
+        return _allowNativeFallback && _fallback.OpenUrl(url);
     }
 
     public bool OpenFile(string filePath)
@@ -115,39 +127,57 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
         {
             if (_portal != null)
             {
-                var folderUri = new Uri(filePath, UriKind.Absolute).AbsoluteUri;
-                if (TryPortalRequest(() => _portal.OpenURIAsync(string.Empty, folderUri, new Dictionary<string, object>())))
+                string folderUri = CreateDirectoryUri(filePath);
+                if (TryPortalRequest(options => _portal.OpenURIAsync(string.Empty, folderUri, options)))
                 {
                     return true;
                 }
             }
 
-            return _fallback.OpenFile(filePath);
+            return _allowNativeFallback && _fallback.OpenFile(filePath);
         }
 
         if (_portal != null)
         {
             using var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            if (TryPortalRequest(() => _portal.OpenFileAsync(string.Empty, stream.SafeFileHandle, new Dictionary<string, object>())))
+            if (TryPortalRequest(options => _portal.OpenFileAsync(string.Empty, stream.SafeFileHandle, options)))
             {
                 return true;
             }
         }
 
-        return _fallback.OpenFile(filePath);
+        return _allowNativeFallback && _fallback.OpenFile(filePath);
     }
 
     public bool TryGetDesktopWallpaperPath(out string? path)
     {
-        return _fallback.TryGetDesktopWallpaperPath(out path);
+        if (_allowNativeFallback)
+        {
+            return _fallback.TryGetDesktopWallpaperPath(out path);
+        }
+
+        path = null;
+        return false;
     }
 
     public bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper)
     {
-        return _fallback.TryGetDesktopWallpaper(out wallpaper);
+        if (_allowNativeFallback)
+        {
+            return _fallback.TryGetDesktopWallpaper(out wallpaper);
+        }
+
+        wallpaper = null;
+        return false;
     }
 
-    private bool TryPortalRequest(Func<Task<ObjectPath>> requestFactory)
+    internal static string CreateDirectoryUri(string directoryPath)
+    {
+        string fullPath = Path.GetFullPath(directoryPath);
+        return new Uri(fullPath, UriKind.Absolute).AbsoluteUri;
+    }
+
+    private bool TryPortalRequest(Func<IDictionary<string, object>, Task<ObjectPath>> requestFactory)
     {
         if (_connection == null)
         {
@@ -156,9 +186,14 @@ public sealed class WaylandPortalSystemService : ISystemService, IDisposable
 
         try
         {
-            var requestPath = requestFactory().GetAwaiter().GetResult();
-            var request = _connection.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
-            var (response, _) = request.WaitForResponseAsync().GetAwaiter().GetResult();
+            var options = new Dictionary<string, object>();
+            var (response, _) = _connection
+                .SendPortalRequestAsync(
+                    PortalBusName,
+                    options,
+                    () => requestFactory(options))
+                .GetAwaiter()
+                .GetResult();
             return response == 0;
         }
         catch (Exception ex)

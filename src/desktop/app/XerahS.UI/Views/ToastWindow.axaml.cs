@@ -29,6 +29,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
@@ -44,6 +45,7 @@ public partial class ToastWindow : OverlayWindow
     private ToastConfig? _config;
     private bool _isDragging;
     private Avalonia.Point _dragStart;
+    private PointerPressedEventArgs? _dragStartEventArgs;
     private Border? _urlOverlay;
     private Border? _flyoutHost;
 
@@ -74,7 +76,7 @@ public partial class ToastWindow : OverlayWindow
         }
     }
 
-    public void Initialize(ToastConfig config)
+    public void Initialize(ToastConfig config, IDesktopTaskManager? taskManager = null)
     {
         _config = config;
 
@@ -85,12 +87,36 @@ public partial class ToastWindow : OverlayWindow
         // Position window based on placement
         PositionWindow(config.Placement, config.Offset, config.Size);
 
+        // Adjust position to use the screen that actually contains the window (for multi-monitor correctness).
+        // On multi-monitor setups the primary screen working area may not match the screen the toast lands on.
+        AdjustPositionToScreenBounds();
+
         // Create and bind ViewModel
-        _viewModel = new ToastViewModel(config);
+        _viewModel = new ToastViewModel(config, taskManager);
         DataContext = _viewModel;
 
         _viewModel.CloseRequested += OnCloseRequested;
         _viewModel.OpacityChanged += OnOpacityChanged;
+    }
+
+    private void AdjustPositionToScreenBounds()
+    {
+        // Find the screen that contains the largest portion of this window
+        var screen = Screens.ScreenFromPoint(new PixelPoint(Position.X + (int)(Width / 2), Position.Y + (int)(Height / 2)))
+                     ?? Screens.ScreenFromPoint(new PixelPoint(Position.X, Position.Y))
+                     ?? Screens.Primary;
+
+        if (screen == null) return;
+
+        var workingArea = screen.WorkingArea;
+        var w = (int)Width;
+        var h = (int)Height;
+
+        // Clamp so the window stays within the screen's working area
+        int x = Math.Max(workingArea.X, Math.Min(Position.X, workingArea.X + workingArea.Width - w));
+        int y = Math.Max(workingArea.Y, Math.Min(Position.Y, workingArea.Y + workingArea.Height - h));
+
+        Position = new PixelPoint(x, y);
     }
 
     private void PositionWindow(ContentPlacement placement, int offset, SizeI size)
@@ -158,10 +184,11 @@ public partial class ToastWindow : OverlayWindow
     {
         var point = e.GetCurrentPoint(this);
 
-        if (point.Properties.IsLeftButtonPressed)
+        if (point.Properties.IsLeftButtonPressed || point.Properties.IsMiddleButtonPressed)
         {
             _dragStart = point.Position;
             _isDragging = true;
+            _dragStartEventArgs = e;
         }
     }
 
@@ -169,27 +196,54 @@ public partial class ToastWindow : OverlayWindow
     {
         var point = e.GetCurrentPoint(this);
 
-        // Only process click if we weren't dragging significantly
-        if (_isDragging)
+        if (_isDragging && TryGetClickAction(_dragStart, point.Position, point.Properties.PointerUpdateKind, out var action))
         {
-            var distance = Math.Sqrt(
-                Math.Pow(point.Position.X - _dragStart.X, 2) +
-                Math.Pow(point.Position.Y - _dragStart.Y, 2));
-
-            if (distance < 20) // Click threshold
+            switch (action)
             {
-                if (point.Properties.PointerUpdateKind == PointerUpdateKind.LeftButtonReleased)
-                {
+                case ToastPointerAction.LeftClick:
                     _viewModel?.ExecuteLeftClick();
-                }
-                else if (point.Properties.PointerUpdateKind == PointerUpdateKind.MiddleButtonReleased)
-                {
+                    break;
+                case ToastPointerAction.MiddleClick:
                     _viewModel?.ExecuteMiddleClick();
-                }
+                    break;
+                case ToastPointerAction.RightClick:
+                    _viewModel?.ExecuteRightClick();
+                    break;
             }
         }
 
         _isDragging = false;
+        _dragStartEventArgs = null;
+    }
+    internal static bool TryGetClickAction(Avalonia.Point dragStart, Avalonia.Point releasePosition, PointerUpdateKind pointerUpdateKind, out ToastPointerAction action)
+    {
+        var distance = Math.Sqrt(
+            Math.Pow(releasePosition.X - dragStart.X, 2) +
+            Math.Pow(releasePosition.Y - dragStart.Y, 2));
+
+        if (distance >= 20)
+        {
+            action = ToastPointerAction.None;
+            return false;
+        }
+
+        action = pointerUpdateKind switch
+        {
+            PointerUpdateKind.LeftButtonReleased => ToastPointerAction.LeftClick,
+            PointerUpdateKind.MiddleButtonReleased => ToastPointerAction.MiddleClick,
+            PointerUpdateKind.RightButtonReleased => ToastPointerAction.RightClick,
+            _ => ToastPointerAction.None
+        };
+
+        return action != ToastPointerAction.None;
+    }
+
+    internal enum ToastPointerAction
+    {
+        None,
+        LeftClick,
+        MiddleClick,
+        RightClick
     }
 
     private async void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -223,7 +277,10 @@ public partial class ToastWindow : OverlayWindow
             dataTransfer.Add(DataTransferItem.CreateFile(storageFile));
 
             // Start drag operation
-            await DragDrop.DoDragDropAsync(e, dataTransfer, DragDropEffects.Copy | DragDropEffects.Move);
+            if (_dragStartEventArgs != null)
+            {
+                await DragDrop.DoDragDropAsync(_dragStartEventArgs, dataTransfer, DragDropEffects.Copy | DragDropEffects.Move);
+            }
         }
     }
 
@@ -231,8 +288,8 @@ public partial class ToastWindow : OverlayWindow
     {
         _viewModel?.OnMouseEnter();
 
-        // Show URL overlay if there's a URL
-        if (_urlOverlay != null && _viewModel?.HasUrl == true)
+        // Show header overlay when there is a URL or a local file path fallback.
+        if (_urlOverlay != null && _viewModel?.HasHeaderText == true)
         {
             _urlOverlay.Opacity = 1;
         }
@@ -251,7 +308,7 @@ public partial class ToastWindow : OverlayWindow
 
     private void OnFlyoutOpened(object? sender, EventArgs e)
     {
-        if (sender is MenuFlyout mf && mf.Target == _flyoutHost)
+        if (sender is MenuFlyout)
         {
             _viewModel?.OnMenuOpened();
         }
@@ -259,7 +316,7 @@ public partial class ToastWindow : OverlayWindow
 
     private void OnFlyoutClosed(object? sender, EventArgs e)
     {
-        if (sender is MenuFlyout mf && mf.Target == _flyoutHost)
+        if (sender is MenuFlyout)
         {
             _viewModel?.OnMenuClosed();
         }

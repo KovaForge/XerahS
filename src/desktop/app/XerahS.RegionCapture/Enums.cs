@@ -120,7 +120,7 @@ namespace XerahS.RegionCapture
     public enum FFmpegAudioCodec
     {
         [Description("AAC")]
-        libvoaacenc,
+        aac,
         [Description("Opus")]
         libopus,
         [Description("Vorbis")]
@@ -364,6 +364,14 @@ namespace XerahS.RegionCapture
         Paused,
         Stopped,
         Aborted
+    }
+
+    public enum StepTailStyle
+    {
+        Triangle,
+        Circle,
+        Square,
+        Line
     }
 
 }

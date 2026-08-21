@@ -43,6 +43,14 @@ namespace XerahS.Common
 
         public object? GetValue(object target)
         {
+            // Json.NET can invoke IValueProvider with a null target during
+            // incomplete materialization / partial graph walks. Guard before
+            // PropertyInfo.GetValue so we never throw NullReferenceException.
+            if (target is null)
+            {
+                return null;
+            }
+
             string? value = targetProperty.GetValue(target) as string;
 
             if (!string.IsNullOrEmpty(value))
@@ -61,6 +69,12 @@ namespace XerahS.Common
 
         public void SetValue(object target, object? value)
         {
+            // Mirror GetValue: a null target is a no-op rather than NRE.
+            if (target is null)
+            {
+                return;
+            }
+
             string? text = value as string;
 
             if (!string.IsNullOrEmpty(text) && text.StartsWith(EncryptedTag))

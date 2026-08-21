@@ -15,6 +15,17 @@ YELLOW='\033[1;33m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+MARKDOWN_CHECKER="$SCRIPT_DIR/../scripts/check-markdown-mojibake.py"
+
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON_CMD="python3"
+elif command -v python >/dev/null 2>&1; then
+    PYTHON_CMD="python"
+else
+    PYTHON_CMD=""
+fi
+
 # Expected header components
 CURRENT_YEAR=$(date +%Y)
 EXPECTED_PROJECT="XerahS - The Avalonia UI implementation of ShareX"
@@ -26,9 +37,20 @@ EXPECTED_SWIFT_PROJECT="XerahS Mobile (Swift)"
 STAGED_CS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.cs$' || true)
 STAGED_SWIFT_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.swift$' || true)
 STAGED_KT_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.kt$' || true)
+mapfile -t STAGED_MD_FILES < <(git diff --cached --name-only --diff-filter=ACM | grep '\.md$' || true)
 
 VIOLATIONS=0
 VIOLATION_FILES=()
+
+if [ ${#STAGED_MD_FILES[@]} -gt 0 ]; then
+    if [ -z "$PYTHON_CMD" ]; then
+        echo -e "${RED}FAIL: Python 3 is required to run the Markdown mojibake checker.${NC}"
+        exit 1
+    fi
+
+    echo "Checking Markdown files for mojibake and BOM issues..."
+    "$PYTHON_CMD" "$MARKDOWN_CHECKER" "${STAGED_MD_FILES[@]}"
+fi
 
 # --- C# files ---
 if [ -n "$STAGED_CS_FILES" ]; then
@@ -88,8 +110,60 @@ if [ -n "$STAGED_KT_FILES" ]; then
     done
 fi
 
-if [ -z "$STAGED_CS_FILES" ] && [ -z "$STAGED_SWIFT_FILES" ] && [ -z "$STAGED_KT_FILES" ]; then
-    echo -e "${GREEN}OK: No C#, Swift, or Kotlin files to check${NC}"
+# --- XIP0077 U8: State JSON integrity check ---
+STATE_JSON="docs/reports/hourly_review_state.json"
+if git diff --cached --name-only | grep -qF "$STATE_JSON"; then
+    echo "Checking state JSON integrity ($STATE_JSON)..."
+    # Validate JSON syntax
+    if ! git show ":$STATE_JSON" | "$PYTHON_CMD" -m json.tool > /dev/null 2>&1; then
+        VIOLATIONS=$((VIOLATIONS + 1))
+        VIOLATION_FILES+=("$STATE_JSON")
+        echo -e "${RED}FAIL: $STATE_JSON is not valid JSON${NC}"
+    else
+        # Check last_runs didn't shrink by more than 1
+        if [ -n "$PYTHON_CMD" ]; then
+            SHRINK_CHECK=$("$PYTHON_CMD" -c "
+import json, subprocess, sys
+try:
+    staged = json.loads(subprocess.run(
+        ['git', 'show', ':$STATE_JSON'],
+        capture_output=True, text=True, check=True
+    ).stdout)
+    head = json.loads(subprocess.run(
+        ['git', 'show', 'HEAD:$STATE_JSON'],
+        capture_output=True, text=True, check=True
+    ).stdout)
+    staged_runs = len(staged.get('last_runs', []))
+    head_runs = len(head.get('last_runs', []))
+    if head_runs - staged_runs > 1:
+        print(f'SHRINK head={head_runs} staged={staged_runs}')
+    else:
+        print('OK')
+except Exception as e:
+    # Fail closed: treat hook error as rejection
+    print(f'ERROR {e}')
+" 2>&1)
+            case "$SHRINK_CHECK" in
+                SHRINK*)
+                    VIOLATIONS=$((VIOLATIONS + 1))
+                    VIOLATION_FILES+=("$STATE_JSON")
+                    echo -e "${RED}FAIL: $STATE_JSON last_runs shrank by more than 1 entry ($SHRINK_CHECK)${NC}"
+                    ;;
+                ERROR*)
+                    VIOLATIONS=$((VIOLATIONS + 1))
+                    VIOLATION_FILES+=("$STATE_JSON")
+                    echo -e "${RED}FAIL: $STATE_JSON integrity check errored ($SHRINK_CHECK)${NC}"
+                    ;;
+                *)
+                    echo -e "${GREEN}OK: $STATE_JSON integrity check passed${NC}"
+                    ;;
+            esac
+        fi
+    fi
+fi
+
+if [ ${#STAGED_MD_FILES[@]} -eq 0 ] && [ -z "$STAGED_CS_FILES" ] && [ -z "$STAGED_SWIFT_FILES" ] && [ -z "$STAGED_KT_FILES" ]; then
+    echo -e "${GREEN}OK: No Markdown, C#, Swift, or Kotlin files to check${NC}"
     exit 0
 fi
 
@@ -118,5 +192,6 @@ SWIFT_COUNT=0
 for _ in $STAGED_SWIFT_FILES; do SWIFT_COUNT=$((SWIFT_COUNT + 1)); done
 KT_COUNT=0
 for _ in $STAGED_KT_FILES; do KT_COUNT=$((KT_COUNT + 1)); done
-echo -e "${GREEN}OK: All staged C#, Swift, and Kotlin files have valid GPL v3 license headers (C#: $CS_COUNT, Swift: $SWIFT_COUNT, Kotlin: $KT_COUNT)${NC}"
+MD_COUNT=${#STAGED_MD_FILES[@]}
+echo -e "${GREEN}OK: Staged file checks passed (Markdown: $MD_COUNT, C#: $CS_COUNT, Swift: $SWIFT_COUNT, Kotlin: $KT_COUNT)${NC}"
 exit 0

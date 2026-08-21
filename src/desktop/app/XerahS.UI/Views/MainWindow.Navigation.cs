@@ -27,15 +27,18 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
-using ShareX.ImageEditor.Presentation.Theming;
 using ShareX.ImageEditor.Presentation.Views;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
 using XerahS.Core.Managers;
 using XerahS.UI.Helpers;
+using XerahS.UI.Services.SettingsSearch;
+using XerahS.UI.Theming;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views
@@ -43,21 +46,70 @@ namespace XerahS.UI.Views
     public partial class MainWindow
     {
         private NavigationNode? _captureNavigationNode;
+        private string _navigationSearchText = string.Empty;
+        private bool _navigationFilterUpdateQueued;
+        private bool _navigationSearchIndexEnriched;
 
-        private void OnMenuNavigateClick(object? sender, RoutedEventArgs e)
+        private void OnNavigationSearchTextChanged(object? sender, TextChangedEventArgs e)
         {
-            if (sender is not MenuItem menuItem)
+            _navigationSearchText = (sender as TextBox)?.Text ?? string.Empty;
+            QueueNavigationFilterUpdate();
+        }
+
+        private void QueueNavigationFilterUpdate()
+        {
+            if (_navigationFilterUpdateQueued)
             {
                 return;
             }
 
-            string? navTag = menuItem.Tag?.ToString();
-            if (string.IsNullOrWhiteSpace(navTag))
+            _navigationFilterUpdateQueued = true;
+            Dispatcher.UIThread.Post(() =>
             {
-                return;
+                _navigationFilterUpdateQueued = false;
+                ApplyNavigationFilter();
+            }, DispatcherPriority.Loaded);
+        }
+
+        private void ApplyNavigationFilter()
+        {
+            foreach (NavigationNode node in NavigationNodes)
+            {
+                node.ApplyFilter(_navigationSearchText);
             }
 
-            NavigateTo(navTag);
+            TreeView? navigationTree = this.FindControl<TreeView>("NavigationTree");
+            if (navigationTree?.SelectedItem is NavigationNode selected && !selected.IsVisible)
+            {
+                NavigationNode? firstVisiblePage = FlattenNavigationNodes(NavigationNodes)
+                    .FirstOrDefault(x => x.IsVisible && x.Kind == NavigationNodeKind.Page);
+
+                navigationTree.SelectedItem = firstVisiblePage;
+            }
+
+            ApplyApplicationSettingsPanelFilter();
+        }
+
+        private void ApplyApplicationSettingsPanelFilter()
+        {
+            ContentControl? contentFrame = this.FindControl<ContentControl>("ContentFrame");
+            if (contentFrame?.Content is ApplicationSettingsView appSettings)
+            {
+                XerahS.UI.Controls.SettingsSearch.Apply(appSettings, _navigationSearchText);
+            }
+        }
+
+        private static IEnumerable<NavigationNode> FlattenNavigationNodes(IEnumerable<NavigationNode> nodes)
+        {
+            foreach (NavigationNode node in nodes)
+            {
+                yield return node;
+
+                foreach (NavigationNode child in FlattenNavigationNodes(node.Children))
+                {
+                    yield return child;
+                }
+            }
         }
 
         private void OnNavSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -70,7 +122,8 @@ namespace XerahS.UI.Views
                 return;
             }
 
-            HandleNavigationTag(selectedItem.Tag, contentFrame);
+            HandleNavigationTag(selectedItem.Tag, contentFrame, out _);
+            QueueNavigationFilterUpdate();
         }
 
         private void OnNavigationNodeTapped(object? sender, TappedEventArgs e)
@@ -104,8 +157,10 @@ namespace XerahS.UI.Views
             }
         }
 
-        private bool HandleNavigationTag(string? tag, ContentControl contentFrame)
+        private bool HandleNavigationTag(string? tag, ContentControl contentFrame, out bool openedExternalWindow)
         {
+            openedExternalWindow = false;
+
             if (string.IsNullOrEmpty(tag))
             {
                 return false;
@@ -132,6 +187,7 @@ namespace XerahS.UI.Views
                     {
                         _ = ExecuteCaptureAsync(workflow.Job, workflow.Id);
                         NavigateToEditor();
+                        openedExternalWindow = true;
                         return true;
                     }
                 }
@@ -148,6 +204,7 @@ namespace XerahS.UI.Views
                     if (workflow != null)
                     {
                         _ = ExecuteCaptureAsync(workflow.Job, workflow.Id);
+                        openedExternalWindow = true;
                         return true;
                     }
                 }
@@ -155,7 +212,13 @@ namespace XerahS.UI.Views
                 return false;
             }
 
-            if (ToolNavigationHelper.TryHandleToolsTag(tag, this, contentFrame, ExecuteWorkflowFromNavigationAsync))
+            if (ToolNavigationHelper.TryHandleToolsTag(
+                    tag,
+                    this,
+                    contentFrame,
+                    _taskManager ?? throw new InvalidOperationException("Task manager is required for tool navigation."),
+                    ExecuteWorkflowFromNavigationAsync,
+                    out openedExternalWindow))
             {
                 return true;
             }
@@ -177,15 +240,16 @@ namespace XerahS.UI.Views
                     return true;
                 case "Upload_ClipboardUploadWithContentViewer":
                     _ = ExecuteWorkflowFromNavigationAsync(WorkflowType.ClipboardUploadWithContentViewer);
+                    openedExternalWindow = true;
                     return true;
                 case "Upload_FileUpload":
                     _ = ExecuteWorkflowFromNavigationAsync(WorkflowType.FileUpload);
+                    openedExternalWindow = true;
                     return true;
                 case "Settings":
-                    contentFrame.Content = new SettingsView();
-                    return true;
                 case "Settings_App":
-                    contentFrame.Content = new ApplicationSettingsView();
+                    _applicationSettingsView ??= CreateApplicationSettingsView();
+                    contentFrame.Content = _applicationSettingsView;
                     return true;
                 case "Settings_Dest":
                     _destinationSettingsView ??= CreateDestinationSettingsView();
@@ -205,6 +269,11 @@ namespace XerahS.UI.Views
         private EditorView CreateEditorView()
         {
             return new EditorView();
+        }
+
+        private ApplicationSettingsView CreateApplicationSettingsView()
+        {
+            return new ApplicationSettingsView();
         }
 
         private DestinationSettingsView CreateDestinationSettingsView()
@@ -229,6 +298,47 @@ namespace XerahS.UI.Views
             NavigationNodes.Add(CreateNode("About", "About", HostIcons.NavigationAbout, NavigationNodeKind.Page));
 
             UpdateNavigationItems();
+            QueueNavigationFilterUpdate();
+        }
+
+        internal void EnrichNavigationSearchTextFromSettingsIndex()
+        {
+            if (_navigationSearchIndexEnriched)
+            {
+                return;
+            }
+
+            IReadOnlyList<SettingsSearchEntry> entries = SettingsSearchService.Instance.GetAllEntries();
+            Dictionary<string, List<string>> byTag = new(StringComparer.Ordinal);
+
+            foreach (SettingsSearchEntry entry in entries)
+            {
+                if (!byTag.TryGetValue(entry.NavigationTag, out List<string>? list))
+                {
+                    list = [];
+                    byTag[entry.NavigationTag] = list;
+                }
+
+                list.Add(entry.Title);
+                list.AddRange(entry.Keywords);
+            }
+
+            foreach (NavigationNode node in FlattenNavigationNodes(NavigationNodes))
+            {
+                if (node.Tag != null && byTag.TryGetValue(node.Tag, out List<string>? extras))
+                {
+                    node.AppendSearchText(string.Join(' ', extras));
+                }
+
+                if (string.Equals(node.Tag, "Settings", StringComparison.Ordinal))
+                {
+                    node.AppendSearchText(string.Join(' ',
+                        entries.Select(entry => entry.Title).Concat(entries.SelectMany(entry => entry.Keywords))));
+                }
+            }
+
+            _navigationSearchIndexEnriched = true;
+            QueueNavigationFilterUpdate();
         }
 
         public void NavigateToEditor()
@@ -238,7 +348,7 @@ namespace XerahS.UI.Views
 
         public void NavigateToSettings()
         {
-            NavigateTo("Settings");
+            NavigateTo("Settings_App");
         }
 
         public void NavigateToHistory()
@@ -254,6 +364,7 @@ namespace XerahS.UI.Views
         private void NavigateTo(string navTag)
         {
             bool handled = false;
+            bool openedExternalWindow = false;
             ContentControl? contentFrame = this.FindControl<ContentControl>("ContentFrame");
             TreeView? navigationTree = this.FindControl<TreeView>("NavigationTree");
 
@@ -268,7 +379,7 @@ namespace XerahS.UI.Views
                     {
                         if (contentFrame != null)
                         {
-                            handled = HandleNavigationTag(navTag, contentFrame);
+                            handled = HandleNavigationTag(navTag, contentFrame, out openedExternalWindow);
                         }
                     }
                     else if (navNode.Kind == NavigationNodeKind.Page && !ReferenceEquals(navigationTree.SelectedItem, navNode))
@@ -278,14 +389,19 @@ namespace XerahS.UI.Views
                     }
                     else if (navNode.Kind == NavigationNodeKind.Page && contentFrame != null)
                     {
-                        handled = HandleNavigationTag(navTag, contentFrame);
+                        handled = HandleNavigationTag(navTag, contentFrame, out openedExternalWindow);
                     }
                 }
             }
 
             if (!handled && contentFrame != null)
             {
-                _ = HandleNavigationTag(navTag, contentFrame);
+                HandleNavigationTag(navTag, contentFrame, out openedExternalWindow);
+            }
+
+            if (!SilentRunStartupPolicy.ShouldActivateWindowOnNavigate(_suppressWindowActivation))
+            {
+                return;
             }
 
             if (!this.IsVisible)
@@ -298,8 +414,11 @@ namespace XerahS.UI.Views
                 this.WindowState = Avalonia.Controls.WindowState.Normal;
             }
 
-            this.Activate();
-            this.Focus();
+            if (!openedExternalWindow)
+            {
+                this.Activate();
+                this.Focus();
+            }
         }
 
         private bool InvokeNavigationNode(NavigationNode node, bool toggleGroups)
@@ -327,7 +446,7 @@ namespace XerahS.UI.Views
 
             if (node.Kind == NavigationNodeKind.Action)
             {
-                return HandleNavigationTag(node.Tag, contentFrame);
+                return HandleNavigationTag(node.Tag, contentFrame, out _);
             }
 
             if (navigationTree != null && !ReferenceEquals(navigationTree.SelectedItem, node))
@@ -336,7 +455,7 @@ namespace XerahS.UI.Views
                 return true;
             }
 
-            return HandleNavigationTag(node.Tag, contentFrame);
+            return HandleNavigationTag(node.Tag, contentFrame, out _);
         }
 
         private static NavigationNode? FindNavigationNodeByTag(IEnumerable? menuItems, string navTag)
@@ -376,11 +495,12 @@ namespace XerahS.UI.Views
             }
 
             _captureNavigationNode.ReplaceChildren(NavigationItemsHelper.CreateCaptureNavigationNodes());
+            QueueNavigationFilterUpdate();
         }
 
         private static NavigationNode CreateNode(string text, string? tag, string? glyph, NavigationNodeKind kind, bool isExpanded = false)
         {
-            return new NavigationNode(text, tag, glyph, kind)
+            return new NavigationNode(text, tag, glyph, kind, NavigationSearchKeywords.ForTag(tag))
             {
                 IsExpanded = isExpanded
             };
@@ -423,7 +543,7 @@ namespace XerahS.UI.Views
 
         private static NavigationNode CreateSettingsNode()
         {
-            NavigationNode settingsNode = CreateNode("Settings", "Settings", HostIcons.NavigationSettings, NavigationNodeKind.Page, isExpanded: true);
+            NavigationNode settingsNode = CreateNode("Settings", "Settings", HostIcons.NavigationSettings, NavigationNodeKind.Group, isExpanded: true);
             settingsNode.AddChild(CreateNode("Application Settings", "Settings_App", null, NavigationNodeKind.Page));
             settingsNode.AddChild(CreateNode("Destination Settings", "Settings_Dest", null, NavigationNodeKind.Page));
             return settingsNode;

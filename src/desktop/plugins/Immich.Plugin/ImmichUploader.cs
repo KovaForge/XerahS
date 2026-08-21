@@ -220,7 +220,12 @@ public sealed class ImmichUploader : FileUploader
         ImmichSharedLink? existing = client.GetSharedLinksAsync(albumId).GetAwaiter().GetResult()
             .FirstOrDefault(link => string.Equals(link.AlbumId, albumId, StringComparison.OrdinalIgnoreCase));
 
-        return existing ?? client.CreateSharedLinkAsync(
+        if (existing != null && SecurityMatches(existing))
+        {
+            return existing;
+        }
+
+        return client.CreateSharedLinkAsync(
             ImmichShareMode.Album,
             null,
             albumId,
@@ -231,6 +236,66 @@ public sealed class ImmichUploader : FileUploader
             _config.AllowShareDownload,
             _config.AllowShareUpload,
             _config.ShowMetadata).GetAwaiter().GetResult();
+    }
+
+    internal bool SecurityMatches(ImmichSharedLink link)
+    {
+        // Slug must match the current configured value.
+        if (!string.Equals(link.Slug ?? string.Empty, _config.ShareSlug ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        // Password: if link is password-protected, it must match _sharePassword.
+        // If link is not protected but we have a password configured, they differ.
+        if (string.IsNullOrEmpty(_sharePassword))
+        {
+            if (!string.IsNullOrEmpty(link.Password))
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (!string.Equals(link.Password, _sharePassword, StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        // Expiry: configured expiry must be active when link has expiry, and vice versa.
+        if (_config.UseShareExpiry && _config.ExpireAfterDays > 0)
+        {
+            if (!link.ExpiresAt.HasValue)
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (link.ExpiresAt.HasValue)
+            {
+                return false;
+            }
+        }
+
+        // Download/upload/metadata flags must match.
+        if (link.AllowDownload != _config.AllowShareDownload)
+        {
+            return false;
+        }
+
+        if (link.AllowUpload != _config.AllowShareUpload)
+        {
+            return false;
+        }
+
+        if (link.ShowMetadata != _config.ShowMetadata)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private static string ComputeSha1Hex(Stream stream)

@@ -1,5 +1,8 @@
 # XIP0017 Screen Recording Modernization
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0017: Screen Recording Modernization (Consolidated)
 
 **Status**: Complete ?  
@@ -11,7 +14,7 @@ XIP0017: Screen Recording Modernization (Consolidated)
 
 ## Overview
 
-XIP-0017 implements a modern, cross-platform screen recording architecture for XerahS using native APIs (Windows.Graphics.Capture + Media Foundation on Windows) with FFmpeg fallback. This is a multi-stage implementation that replaces the legacy FFmpeg-only recording system.
+XIP0017 implements a modern, cross-platform screen recording architecture for XerahS using native APIs (Windows.Graphics.Capture + Media Foundation on Windows) with FFmpeg fallback. This is a multi-stage implementation that replaces the legacy FFmpeg-only recording system.
 
 ---
 
@@ -189,7 +192,7 @@ XIP0017: Screen Recording Modernization (Consolidated)
 
 ## Overview
 
-XIP-0017 implements a modern, cross-platform screen recording architecture for XerahS using native APIs (Windows.Graphics.Capture + Media Foundation on Windows) with FFmpeg fallback. This is a multi-stage implementation that replaces the legacy FFmpeg-only recording system.
+XIP0017 implements a modern, cross-platform screen recording architecture for XerahS using native APIs (Windows.Graphics.Capture + Media Foundation on Windows) with FFmpeg fallback. This is a multi-stage implementation that replaces the legacy FFmpeg-only recording system.
 
 ---
 
@@ -2448,7 +2451,7 @@ src/XerahS.ScreenCapture/ScreenRecording/
 src/platform/XerahS.Platform.Windows/Recording/
 ΓööΓöÇΓöÇ WasapiAudioCapture.cs                        ΓÅ│ [NEW - IN PROGRESS]
 
-docs/proposals/xip/
+tasks/
 Γö£ΓöÇΓöÇ SIP0017_Implementation_Status_2026-01-08.md  Γ£à [NEW]
 ΓööΓöÇΓöÇ SIP0017_Progress_Summary_2026-01-08.md       Γ£à [NEW - THIS FILE]
 ```
@@ -3422,7 +3425,7 @@ WindowsPlatform.InitializeRecording():
 src/XerahS.ScreenCapture/ScreenRecording/
 ΓööΓöÇΓöÇ FFmpegRecordingService.cs          [NEW] 312 lines
 
-docs/proposals/xip/
+tasks/
 Γö£ΓöÇΓöÇ SIP0017_Implementation_Status_2026-01-08.md  [NEW]
 ΓööΓöÇΓöÇ SIP0017_Session_Summary_2026-01-08_CORRECTED.md  [NEW - THIS FILE]
 ```

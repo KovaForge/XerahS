@@ -1,4 +1,4 @@
-﻿# Mobile Native Theming Architecture
+# Mobile Native Theming Architecture
 
 ## Overview
 

@@ -25,8 +25,7 @@
 
 using Avalonia.Controls;
 using Avalonia.Media;
-using System;
-using XerahS.RegionCapture.UI.Controls;
+using ShareX.ImageEditor.Presentation.Controls;
 
 namespace XerahS.RegionCapture.UI;
 
@@ -42,10 +41,11 @@ public partial class OverlayWindow
 
         toolbar.ColorChanged += OnToolbarColorChanged;
         toolbar.FillColorChanged += OnToolbarFillColorChanged;
+        toolbar.TextColorChanged += OnToolbarTextColorChanged;
         toolbar.WidthChanged += OnToolbarWidthChanged;
+        toolbar.CornerRadiusChanged += OnToolbarCornerRadiusChanged;
         toolbar.FontSizeChanged += OnToolbarFontSizeChanged;
         toolbar.StrengthChanged += OnToolbarStrengthChanged;
-        toolbar.ShadowButtonClick += OnToolbarShadowButtonClicked;
     }
 
     private void OnToolbarColorChanged(object? sender, IBrush color)
@@ -64,9 +64,22 @@ public partial class OverlayWindow
         }
     }
 
+    private void OnToolbarTextColorChanged(object? sender, IBrush color)
+    {
+        if (color is SolidColorBrush solidBrush)
+        {
+            _viewModel.TextColor = $"#{solidBrush.Color.A:X2}{solidBrush.Color.R:X2}{solidBrush.Color.G:X2}{solidBrush.Color.B:X2}";
+        }
+    }
+
     private void OnToolbarWidthChanged(object? sender, int width)
     {
         _viewModel.StrokeWidth = width;
+    }
+
+    private void OnToolbarCornerRadiusChanged(object? sender, int cornerRadius)
+    {
+        _viewModel.CornerRadius = cornerRadius;
     }
 
     private void OnToolbarFontSizeChanged(object? sender, float fontSize)
@@ -77,11 +90,6 @@ public partial class OverlayWindow
     private void OnToolbarStrengthChanged(object? sender, float strength)
     {
         _viewModel.EffectStrength = strength;
-    }
-
-    private void OnToolbarShadowButtonClicked(object? sender, EventArgs e)
-    {
-        _viewModel.ShadowEnabled = !_viewModel.ShadowEnabled;
     }
 
     /// <summary>

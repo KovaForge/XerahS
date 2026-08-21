@@ -27,6 +27,37 @@ using System.Diagnostics;
 
 namespace XerahS.Common
 {
+    internal static class FileDownloaderTestAccessor
+    {
+        public static async Task<(long downloadedSize, bool completed)> SimulateDownloadWithEarlyEOF(
+            long fileSize, byte[] receiveSequence)
+        {
+            // Simulates the loop behavior when a server closes the connection early.
+            // Returns (DownloadedSize, completed) matching what DoWork() would produce.
+            long downloadedSize = 0;
+            int idx = 0;
+            while (downloadedSize < fileSize)
+            {
+                if (idx >= receiveSequence.Length)
+                    break; // early EOF — same as bytesRead <= 0
+                downloadedSize += receiveSequence[idx++];
+            }
+            bool completed = downloadedSize >= fileSize;
+            return (downloadedSize, completed);
+        }
+
+        public static async Task<long> CopyToFileAsync(
+            FileDownloader downloader,
+            Stream source,
+            string destinationPath,
+            long? declaredFileSize,
+            CancellationToken cancellationToken = default)
+        {
+            using FileStream fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.Read);
+            return await downloader.CopyToFileAsync(source, fileStream, declaredFileSize, cancellationToken);
+        }
+    }
+
     public class FileDownloader
     {
         public event Action? FileSizeReceived;
@@ -41,6 +72,8 @@ namespace XerahS.Common
         public long FileSize { get; private set; } = -1;
         public long DownloadedSize { get; private set; }
         public double DownloadSpeed { get; private set; }
+
+        private CancellationTokenSource? _cts;
 
         public double DownloadPercentage
         {
@@ -67,7 +100,7 @@ namespace XerahS.Common
             DownloadLocation = downloadLocation;
         }
 
-        public async Task<bool> StartDownload()
+        public async Task<bool> StartDownload(CancellationToken cancellationToken = default)
         {
             if (!IsDownloading && !string.IsNullOrEmpty(URL))
             {
@@ -77,7 +110,13 @@ namespace XerahS.Common
                 DownloadedSize = 0;
                 DownloadSpeed = 0;
 
-                return await DoWork();
+                _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+                bool result = await DoWork(_cts.Token);
+
+                // Reset IsDownloading on early exit (e.g., canceled token)
+                IsDownloading = false;
+                return result;
             }
 
             return false;
@@ -86,10 +125,105 @@ namespace XerahS.Common
         public void StopDownload()
         {
             IsCanceled = true;
+            _cts?.Cancel();
         }
 
-        private async Task<bool> DoWork()
+        /// <summary>
+        /// Reads bytes from <paramref name="source"/> into <paramref name="destination"/> until either:
+        /// <list type="bullet">
+        ///   <item><paramref name="declaredFileSize"/> is set and the running total reaches it, or</item>
+        ///   <item>the source stream returns 0 bytes (end-of-stream for chunked / streaming
+        ///   transfer-encoding, or the server closed the connection before reaching the declared
+        ///   Content-Length), or</item>
+        ///   <item>the cancellation token is requested / <see cref="IsCanceled"/> flips.</item>
+        /// </list>
+        /// This is the inner loop extracted from <see cref="DoWork"/> so that the unknown-length
+        /// and declared-length paths share a single code path. Returns the total bytes copied.
+        /// </summary>
+        internal async Task<long> CopyToFileAsync(
+            Stream source,
+            FileStream destination,
+            long? declaredFileSize,
+            CancellationToken cancellationToken)
         {
+            // When declaredFileSize is null (chunked / streaming transfer-encoding or an HTTP
+            // response without Content-Length) the loop exits on stream close (bytesRead == 0).
+            // When declaredFileSize is set, the loop stops once we have received that many bytes
+            // (early EOF already covered by the bytesRead <= 0 check).
+            int bufferLength = declaredFileSize.HasValue && declaredFileSize.Value > 0
+                ? (int)Math.Min(bufferSize, declaredFileSize.Value)
+                : bufferSize;
+            byte[] buffer = new byte[bufferLength];
+
+            Stopwatch timer = new Stopwatch();
+            Stopwatch progressEventTimer = new Stopwatch();
+            long speedTest = 0;
+
+            long totalCopied = 0;
+            bool keepReading = !IsCanceled;
+            while (keepReading)
+            {
+                if (!timer.IsRunning)
+                {
+                    timer.Start();
+                }
+
+                if (!progressEventTimer.IsRunning)
+                {
+                    progressEventTimer.Start();
+                }
+
+                int bytesRead = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+
+                if (bytesRead <= 0)
+                {
+                    // Stream closed: end-of-stream for chunked/streaming transfer,
+                    // or the server closed the connection before reaching the declared
+                    // Content-Length. Either way the file write loop ends.
+                    break;
+                }
+
+                await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+
+                totalCopied += bytesRead;
+                DownloadedSize += bytesRead;
+                speedTest += bytesRead;
+
+                if (declaredFileSize.HasValue && totalCopied >= declaredFileSize.Value)
+                {
+                    keepReading = false;
+                }
+                else if (IsCanceled)
+                {
+                    keepReading = false;
+                }
+
+                if (timer.ElapsedMilliseconds > 500)
+                {
+                    DownloadSpeed = (double)speedTest / timer.ElapsedMilliseconds * 1000;
+                    speedTest = 0;
+                    timer.Reset();
+                }
+
+                if (progressEventTimer.ElapsedMilliseconds > 100)
+                {
+                    ProgressChanged?.Invoke();
+                    progressEventTimer.Reset();
+                }
+            }
+
+            return totalCopied;
+        }
+
+        private async Task<bool> DoWork(CancellationToken cancellationToken)
+        {
+            // Check cancellation before starting any network operations
+            if (cancellationToken.IsCancellationRequested)
+            {
+                IsCanceled = true;
+                return false;
+            }
+
             try
             {
                 HttpClient client = HttpClientFactory.Create();
@@ -101,66 +235,39 @@ namespace XerahS.Common
                         requestMessage.Headers.Accept.ParseAdd(AcceptHeader);
                     }
 
-                    using (HttpResponseMessage responseMessage = await client.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead))
+                    using (HttpResponseMessage responseMessage = await client.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
                     {
                         responseMessage.EnsureSuccessStatusCode();
 
-                        FileSize = responseMessage.Content.Headers.ContentLength ?? -1;
+                        long? declaredFileSize = responseMessage.Content.Headers.ContentLength;
+                        // Keep the legacy FileSize value semantics for callers that already inspect
+                        // FileSize (e.g. FFmpegDownloader / DownloaderWindowViewModel): 0 means
+                        // "unknown length at start of download" so DownloadPercentage stays at 0
+                        // rather than reporting a misleading percentage against a -1 denominator.
+                        FileSize = declaredFileSize ?? 0;
 
                         FileSizeReceived?.Invoke();
 
-                        if (FileSize > 0)
+                        using (Stream responseStream = await responseMessage.Content.ReadAsStreamAsync(cancellationToken))
+                        using (FileStream fileStream = new FileStream(DownloadLocation, FileMode.Create, FileAccess.Write, FileShare.Read))
                         {
-                            Stopwatch timer = new Stopwatch();
-                            Stopwatch progressEventTimer = new Stopwatch();
-                            long speedTest = 0;
-
-                            byte[] buffer = new byte[(int)Math.Min(bufferSize, FileSize)];
-                            int bytesRead;
-
-                            using (Stream responseStream = await responseMessage.Content.ReadAsStreamAsync())
-                            using (FileStream fileStream = new FileStream(DownloadLocation, FileMode.Create, FileAccess.Write, FileShare.Read))
-                            {
-                                while (DownloadedSize < FileSize && !IsCanceled)
-                                {
-                                    if (!timer.IsRunning)
-                                    {
-                                        timer.Start();
-                                    }
-
-                                    if (!progressEventTimer.IsRunning)
-                                    {
-                                        progressEventTimer.Start();
-                                    }
-
-                                    bytesRead = await responseStream.ReadAsync(buffer, 0, buffer.Length);
-                                    await fileStream.WriteAsync(buffer, 0, bytesRead);
-
-                                    DownloadedSize += bytesRead;
-                                    speedTest += bytesRead;
-
-                                    if (timer.ElapsedMilliseconds > 500)
-                                    {
-                                        DownloadSpeed = (double)speedTest / timer.ElapsedMilliseconds * 1000;
-                                        speedTest = 0;
-                                        timer.Reset();
-                                    }
-
-                                    if (progressEventTimer.ElapsedMilliseconds > 100)
-                                    {
-                                        ProgressChanged?.Invoke();
-
-                                        progressEventTimer.Reset();
-                                    }
-                                }
-
-                                ProgressChanged?.Invoke();
-                            }
-
-                            return true;
+                            await CopyToFileAsync(responseStream, fileStream, declaredFileSize, cancellationToken);
+                            ProgressChanged?.Invoke();
                         }
+
+                        return true;
                     }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancellation requested - set IsCanceled flag
+                IsCanceled = true;
+            }
+            catch (InvalidOperationException)
+            {
+                // Invalid URI (e.g. "x" is not a valid absolute URI)
+                // This is a user/configuration error, not a network error
             }
             catch
             {

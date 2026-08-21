@@ -23,12 +23,65 @@
 
 #endregion License Information (GPL v3)
 
+using System.Runtime.InteropServices;
+using System.Text;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Platform.Mobile;
 
 public class MobileDiagnosticService : IDiagnosticService
 {
-    public string WriteRegionCaptureDiagnostics(string personalFolder) => string.Empty;
-    public string WriteRecordingDiagnostics(string personalFolder) => string.Empty;
+    private const string FolderName = "CaptureTroubleshooting";
+
+    public string WriteRegionCaptureDiagnostics(string personalFolder)
+        => WriteDiagnostics(personalFolder, "mobile-region-capture");
+
+    public string WriteRecordingDiagnostics(string personalFolder)
+        => WriteDiagnostics(personalFolder, "mobile-recording");
+
+    private static string WriteDiagnostics(string personalFolder, string diagnosticType)
+    {
+        if (string.IsNullOrWhiteSpace(personalFolder))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            string folder = Path.Combine(personalFolder, FolderName);
+            Directory.CreateDirectory(folder);
+
+            string fileName = $"{diagnosticType}-diagnostics_{DateTime.Now:yyyyMMdd_HHmmss}.log";
+            string filePath = Path.Combine(folder, fileName);
+
+            File.WriteAllText(filePath, BuildReport(diagnosticType), Encoding.UTF8);
+            return filePath;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string BuildReport(string diagnosticType)
+    {
+        StringBuilder sb = new();
+        sb.AppendLine("============================================================");
+        sb.AppendLine("                   MOBILE DIAGNOSTICS");
+        sb.AppendLine("============================================================");
+        sb.AppendLine($"DiagnosticType: {diagnosticType}");
+        sb.AppendLine($"TimestampLocal: {DateTime.Now:O}");
+        sb.AppendLine($"TimestampUtc: {DateTime.UtcNow:O}");
+        sb.AppendLine($"OSVersion: {Environment.OSVersion.VersionString}");
+        sb.AppendLine($"FrameworkDescription: {RuntimeInformation.FrameworkDescription}");
+        sb.AppendLine($"OSArchitecture: {RuntimeInformation.OSArchitecture}");
+        sb.AppendLine($"ProcessArchitecture: {RuntimeInformation.ProcessArchitecture}");
+        sb.AppendLine($"MachineName: {Environment.MachineName}");
+        sb.AppendLine($"ProcessPath: {Environment.ProcessPath ?? "unknown"}");
+        sb.AppendLine($"CurrentDirectory: {Environment.CurrentDirectory}");
+        sb.AppendLine();
+        sb.AppendLine("Mobile platform diagnostics are currently limited.");
+        sb.AppendLine("This report confirms runtime environment details and that the diagnostic request completed.");
+        return sb.ToString();
+    }
 }

@@ -2,7 +2,7 @@
 
 ## 🤖 AI-First Development Philosophy
 
-**XerahS is engineered for the agentic coding era.** This project embraces bleeding-edge technologies (.NET 10, Avalonia 11.3+, SkiaSharp 2.88.9) and is architected with AI-assisted development as a first-class concern. We actively seek developers proficient in **agentic coding workflows**—leveraging AI agents like GitHub Copilot, Claude, and Codex to accelerate feature development, refactoring, and code quality. Our codebase prioritizes clarity, consistency, and comprehensive documentation to maximize AI comprehension and generation capabilities. Strict nullability, exhaustive inline documentation, and standardized patterns (MVVM, dependency injection, plugin architecture) ensure that both human developers and AI agents can navigate, understand, and extend the system efficiently. **As AI capabilities rapidly advance, agentic coding is the future—like it or not** and XerahS is built to evolve alongside these tools. If you're experienced with AI-powered development tools and ready to push the boundaries of cross-platform screenshot tooling, XerahS is your platform.
+**XerahS is engineered for the agentic coding era.** This project embraces bleeding-edge technologies (.NET 10, Avalonia 12, SkiaSharp 3) and is architected with AI-assisted development as a first-class concern. We actively seek developers proficient in **agentic coding workflows**—leveraging AI agents like GitHub Copilot, Claude, and Codex to accelerate feature development, refactoring, and code quality. Our codebase prioritizes clarity, consistency, and comprehensive documentation to maximize AI comprehension and generation capabilities. Strict nullability, exhaustive inline documentation, and standardized patterns (MVVM, dependency injection, plugin architecture) ensure that both human developers and AI agents can navigate, understand, and extend the system efficiently. **As AI capabilities rapidly advance, agentic coding is the future—like it or not** and XerahS is built to evolve alongside these tools. If you're experienced with AI-powered development tools and ready to push the boundaries of cross-platform screenshot tooling, XerahS is your platform.
 
 **Community-Driven Development:** XerahS is built collaboratively by developers and contributors from around the world, united by a shared commitment to open-source innovation. This is a project created by the community, for the community—where every contribution, whether code, documentation, or feedback, helps shape a tool that serves users across all platforms.
 
@@ -312,7 +312,7 @@ Plugins/myplugin/
 2. Enable debug logging in `UploaderInstanceViewModel.InitializeConfigViewModel()`
 3. Look for `ConfigView created: null` or type loading errors
 
-See also: [Destination Plugin Development Guide](plugins-destinations/README.md) for complete plugin setup instructions.
+See also: [Destination Plugin Development Guide](destination-plugins/README.md) for complete plugin setup instructions.
 
 ## Contribution
 1.  Review project documentation and existing code patterns
@@ -320,6 +320,7 @@ See also: [Destination Plugin Development Guide](plugins-destinations/README.md)
 3.  Follow MVVM separation: UI logic in Views, business logic in ViewModels
 4.  Add XML documentation for public APIs
 5.  Test on multiple platforms when possible
+6.  For Avalonia templates, follow `developers/guidelines/AVALONIA_COMPILED_BINDING_GUIDELINES.md`
 
 ## Building and Running
 

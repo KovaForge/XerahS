@@ -22,13 +22,13 @@
 */
 
 #endregion License Information (GPL v3)
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using XerahS.Common;
-using XerahS.Core;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views.Controls;
@@ -39,18 +39,31 @@ namespace XerahS.UI.Views.Controls;
 /// </summary>
 public partial class HotkeySelectionControl : UserControl
 {
-    // Static debug log - writes to Debug output and collects in list
+    public static readonly StyledProperty<bool> RegisterOnCommitProperty =
+        AvaloniaProperty.Register<HotkeySelectionControl, bool>(nameof(RegisterOnCommit), true);
+
+    // Static debug log - writes to Debug output and collects in list.
+    // Guarded by _debugLogLock: SetDebugCallback / OnLoaded default init /
+    // Log / GetDebugLog can race across UI + dispatcher posts.
+    private static readonly object _debugLogLock = new();
     private static Action<string>? _debugLog;
     private static readonly System.Collections.Generic.List<string> _debugMessages = new();
 
     public static void SetDebugCallback(Action<string> callback)
     {
-        _debugLog = (msg) =>
+        lock (_debugLogLock)
         {
-            _debugMessages.Add(msg);
-            XerahS.Common.DebugHelper.WriteLine($"[Hotkey] {msg}");
-            callback(msg);
-        };
+            _debugLog = (msg) =>
+            {
+                lock (_debugLogLock)
+                {
+                    _debugMessages.Add(msg);
+                }
+
+                XerahS.Common.DebugHelper.WriteLine($"[Hotkey] {msg}");
+                callback(msg);
+            };
+        }
     }
 
     public static void Log(string message)
@@ -59,10 +72,33 @@ public partial class HotkeySelectionControl : UserControl
         var formattedMsg = $"[{time}] {message}";
         // Also log to DebugHelper for file logging
         XerahS.Common.DebugHelper.WriteLine($"[Hotkey] {message}");
-        _debugLog?.Invoke(formattedMsg);
+
+        Action<string>? sink;
+        lock (_debugLogLock)
+        {
+            sink = _debugLog;
+        }
+
+        sink?.Invoke(formattedMsg);
     }
 
-    public static string GetDebugLog() => string.Join("\n", _debugMessages);
+    public static string GetDebugLog()
+    {
+        lock (_debugLogLock)
+        {
+            return string.Join("\n", _debugMessages);
+        }
+    }
+
+    /// <summary>Test hook: clear static debug sink + message buffer.</summary>
+    internal static void ResetDebugLogForTests()
+    {
+        lock (_debugLogLock)
+        {
+            _debugLog = null;
+            _debugMessages.Clear();
+        }
+    }
 
 
     private enum ControlMode
@@ -82,6 +118,12 @@ public partial class HotkeySelectionControl : UserControl
     private static readonly IBrush RecordingBackground = new SolidColorBrush(Color.FromRgb(255, 235, 120));
     private static readonly IBrush RecordingForeground = Brushes.Black;
 
+    public bool RegisterOnCommit
+    {
+        get => GetValue(RegisterOnCommitProperty);
+        set => SetValue(RegisterOnCommitProperty, value);
+    }
+
     public HotkeySelectionControl()
     {
         InitializeComponent();
@@ -100,16 +142,23 @@ public partial class HotkeySelectionControl : UserControl
         _originalBackground = HotkeyButton.Background;
 
         // Set up debug logger if not already set - use static list for simplicity
-        if (_debugLog == null)
+        lock (_debugLogLock)
         {
-            // Use a static StringBuilder that can be read later
-            _debugLog = (msg) =>
+            if (_debugLog == null)
             {
-                _debugMessages.Add(msg);
-                System.Diagnostics.Debug.WriteLine($"[HotkeyDebug] {msg}");
-            };
-            Log("Debug logger initialized (check Debug output and static _debugMessages)");
+                _debugLog = (msg) =>
+                {
+                    lock (_debugLogLock)
+                    {
+                        _debugMessages.Add(msg);
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"[HotkeyDebug] {msg}");
+                };
+            }
         }
+
+        Log("Debug logger initialized (check Debug output and static _debugMessages)");
 
         if (!_handlersAttached)
         {
@@ -142,23 +191,15 @@ public partial class HotkeySelectionControl : UserControl
             if (!listBoxItem.IsSelected)
             {
                 listBoxItem.IsSelected = true;
-                // We don't mark as handled because we want the button to still work (e.g. open menu)
+                // We don't mark as handled because child controls still need pointer input.
             }
         }
     }
-
-    // Remove the old handler if it exists or keep it for XAML compatibility if I don't remove it from XAML yet
-    // I will remove the XAML attribute in next step. For now I name this differently.
 
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         _viewModel = DataContext as HotkeyItemViewModel;
-
-        if (_viewModel != null)
-        {
-            PopulateTaskMenu();
-        }
     }
 
     private void OnLostFocus(object? sender, RoutedEventArgs e)
@@ -290,7 +331,7 @@ public partial class HotkeySelectionControl : UserControl
             Log("StopRecording: Global hotkeys re-enabled");
 
             // Re-register the hotkey with new binding
-            if (_viewModel != null)
+            if (_viewModel != null && RegisterOnCommit)
             {
                 var key = _viewModel.Model.HotkeyInfo.Key;
                 var mods = _viewModel.Model.HotkeyInfo.Modifiers;
@@ -299,6 +340,10 @@ public partial class HotkeySelectionControl : UserControl
                 Log($"StopRecording: Details - Key={key}, Modifiers={mods}, Id={id}");
                 var success = app.WorkflowManager.RegisterHotkey(_viewModel.Model);
                 Log($"StopRecording: RegisterHotkey returned: {success}, Status: {_viewModel.Model.HotkeyInfo.Status}");
+            }
+            else if (_viewModel != null)
+            {
+                Log("StopRecording: Hotkey registration deferred by caller.");
             }
             else
             {
@@ -411,17 +456,6 @@ public partial class HotkeySelectionControl : UserControl
         }
     }
 
-    private void TaskButton_Click(object? sender, RoutedEventArgs e)
-    {
-        TaskContextMenu?.Open(TaskButton);
-    }
-
-    private void EditButton_Click(object? sender, RoutedEventArgs e)
-    {
-        // TODO: Open TaskSettings editor dialog
-        TaskContextMenu?.Open(TaskButton);
-    }
-
     #endregion
 
     #region Helpers
@@ -433,7 +467,7 @@ public partial class HotkeySelectionControl : UserControl
             var info = _viewModel.Model.HotkeyInfo;
             if (info.IsValid)
             {
-                HotkeyButton.Content = info.ToString();
+                HotkeyButton.Content = info.GetDisplayString();
             }
             else
             {
@@ -449,35 +483,6 @@ public partial class HotkeySelectionControl : UserControl
                key == Key.LeftShift || key == Key.RightShift ||
                key == Key.LWin || key == Key.RWin ||
                key == Key.DeadCharProcessed; // Also skip this pseudo-key
-    }
-
-    private void PopulateTaskMenu()
-    {
-        if (TaskContextMenu == null || _viewModel == null) return;
-
-        TaskContextMenu.Items.Clear();
-
-        var hotkeyTypes = Enum.GetValues(typeof(WorkflowType)).Cast<WorkflowType>();
-
-        foreach (var workflowType in hotkeyTypes)
-        {
-            var menuItem = new MenuItem
-            {
-                Header = EnumExtensions.GetDescription(workflowType),
-                Tag = workflowType
-            };
-
-            menuItem.Click += (s, e) =>
-            {
-                if (_viewModel != null && s is MenuItem mi && mi.Tag is WorkflowType type)
-                {
-                    _viewModel.Model.Job = type;
-                    _viewModel.Refresh();
-                }
-            };
-
-            TaskContextMenu.Items.Add(menuItem);
-        }
     }
 
     #endregion

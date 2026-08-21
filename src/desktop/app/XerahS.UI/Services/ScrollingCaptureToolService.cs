@@ -26,6 +26,7 @@
 using System.Drawing;
 using Avalonia.Controls;
 using SkiaSharp;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Managers;
@@ -44,11 +45,15 @@ public static class ScrollingCaptureToolService
     /// </summary>
     internal static ScrollingCaptureViewModel? CurrentCapture { get; private set; }
 
-    public static Task HandleWorkflowAsync(WorkflowType job, Window? owner, TaskSettings? taskSettings = null)
+    public static Task HandleWorkflowAsync(
+        WorkflowType job,
+        Window? owner,
+        IDesktopTaskManager taskManager,
+        TaskSettings? taskSettings = null)
     {
         return job switch
         {
-            WorkflowType.ScrollingCapture => ShowScrollingCaptureWindowAsync(owner, taskSettings),
+            WorkflowType.ScrollingCapture => ShowScrollingCaptureWindowAsync(owner, taskManager, taskSettings),
             _ => Task.CompletedTask
         };
     }
@@ -64,7 +69,7 @@ public static class ScrollingCaptureToolService
         }
     }
 
-    private static Task ShowScrollingCaptureWindowAsync(Window? owner, TaskSettings? taskSettings)
+    private static Task ShowScrollingCaptureWindowAsync(Window? owner, IDesktopTaskManager taskManager, TaskSettings? taskSettings)
     {
         var viewModel = new ScrollingCaptureViewModel();
         var window = new ScrollingCaptureWindow
@@ -73,7 +78,11 @@ public static class ScrollingCaptureToolService
         };
 
         CurrentCapture = viewModel;
-        window.Closed += (_, _) => CurrentCapture = null;
+        window.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(CurrentCapture, viewModel))
+                CurrentCapture = null;
+        };
 
         // Wire window selection callback
         viewModel.SelectWindowRequested = async () =>
@@ -84,7 +93,7 @@ public static class ScrollingCaptureToolService
         // Wire upload callback
         viewModel.UploadRequested = async (image) =>
         {
-            await UploadCapturedImageAsync(image, taskSettings);
+            await UploadCapturedImageAsync(taskManager, image, taskSettings);
         };
 
         if (CanUseOwner(owner))
@@ -139,7 +148,7 @@ public static class ScrollingCaptureToolService
                     DataContext = selectorViewModel
                 };
 
-                var selectorWindow = new Window
+                var selectorWindow = new SurfaceWindow
                 {
                     Title = "Select Window to Capture",
                     Width = 400,
@@ -152,6 +161,12 @@ public static class ScrollingCaptureToolService
                 selectorViewModel.OnWindowSelected = (selectedWindow) =>
                 {
                     tcs.TrySetResult(selectedWindow);
+                    selectorWindow.Close();
+                };
+
+                selectorViewModel.OnCancelled = () =>
+                {
+                    tcs.TrySetResult(null);
                     selectorWindow.Close();
                 };
 
@@ -210,7 +225,7 @@ public static class ScrollingCaptureToolService
                owner.ShowInTaskbar;
     }
 
-    private static async Task UploadCapturedImageAsync(SKBitmap image, TaskSettings? taskSettings)
+    private static async Task UploadCapturedImageAsync(IDesktopTaskManager taskManager, SKBitmap image, TaskSettings? taskSettings)
     {
         try
         {
@@ -218,7 +233,7 @@ public static class ScrollingCaptureToolService
                 ?? new TaskSettings();
 
             // Create a new task to process the captured image through the pipeline
-            await TaskManager.Instance.StartTask(effectiveTaskSettings, image);
+            await taskManager.StartTask(effectiveTaskSettings, image);
         }
         catch (Exception ex)
         {

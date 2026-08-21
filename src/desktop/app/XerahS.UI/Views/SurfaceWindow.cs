@@ -41,6 +41,7 @@ public class SurfaceWindow : Window
 
     public SurfaceWindow()
     {
+        Classes.Add("xerahs-surface");
         PropertyChanged += OnSurfaceWindowPropertyChanged;
     }
 

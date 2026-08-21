@@ -147,19 +147,13 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
             throw new InvalidOperationException("Imgur secret key is missing");
         }
 
+        config.ClientId = NormalizeClientId(config.ClientId);
+
         string clientSecret = Secrets.GetSecret(ProviderId, config.SecretKey, "clientSecret")
             ?? "98871f37e179e496a0149e9c8558487779d424ft";
 
         var authInfo = new OAuth2Info(config.ClientId, clientSecret);
-        string? tokenJson = Secrets.GetSecret(ProviderId, config.SecretKey, "oauthToken");
-        if (!string.IsNullOrWhiteSpace(tokenJson))
-        {
-            var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
-            if (token != null)
-            {
-                authInfo.Token = token;
-            }
-        }
+        TryHydrateToken(authInfo, Secrets.GetSecret(ProviderId, config.SecretKey, "oauthToken"));
 
         return new ImgurUploader(config, authInfo);
     }
@@ -258,14 +252,14 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
     /// <inheritdoc/>
     public async Task<bool> DeleteAsync(MediaItem item, CancellationToken cancellation = default)
     {
-        if (!item.Metadata.TryGetValue("deleteHash", out string? deleteHash)) return false;
+        if (!item.Metadata.TryGetValue("deleteHash", out string? deleteHash) || string.IsNullOrWhiteSpace(deleteHash)) return false;
         if (!item.Metadata.TryGetValue("settingsJson", out string? settingsJson)) return false;
 
         var config = DeserializeImgurConfig(settingsJson);
         var authInfo = BuildAuthInfo(config);
         if (authInfo?.Token == null) return false;
 
-        string deleteUrl = $"https://api.imgur.com/3/image/{deleteHash}";
+        string deleteUrl = $"https://api.imgur.com/3/image/{Uri.EscapeDataString(deleteHash)}";
         using var request = new SysHttpRequestMessage(SysHttpMethod.Delete, deleteUrl);
         request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + authInfo.Token.access_token);
         try
@@ -293,7 +287,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
     {
         // Imgur uses integer page numbers; store page number as continuation token
         int page = int.TryParse(query.ContinuationToken, out int p) ? p : 0;
-        int perPage = query.PageSize;
+        int perPage = NormalizePageSize(query.PageSize);
 
         string url = $"https://api.imgur.com/3/account/me/albums?page={page}&perPage={perPage}";
         using var request = new SysHttpRequestMessage(SysHttpMethod.Get, url);
@@ -336,7 +330,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
     private async Task<ExplorerPage> ListAlbumImagesAsync(string albumId, OAuth2Info authInfo, ExplorerQuery query, CancellationToken cancellation)
     {
-        string url = $"https://api.imgur.com/3/album/{albumId}/images";
+        string url = CreateAlbumImagesUrl(albumId);
         using var request = new SysHttpRequestMessage(SysHttpMethod.Get, url);
         request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + authInfo.Token!.access_token);
 
@@ -381,7 +375,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
     private async Task<ExplorerPage> ListAccountImagesAsync(OAuth2Info authInfo, ExplorerQuery query, CancellationToken cancellation)
     {
         int page = int.TryParse(query.ContinuationToken, out int p) ? p : 0;
-        int perPage = query.PageSize;
+        int perPage = NormalizePageSize(query.PageSize);
 
         string url = $"https://api.imgur.com/3/account/me/images?page={page}&perPage={perPage}";
         using var request = new SysHttpRequestMessage(SysHttpMethod.Get, url);
@@ -425,10 +419,29 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
         }
     }
 
+    private static string CreateAlbumImagesUrl(string albumId)
+    {
+        string safeAlbumId = Uri.EscapeDataString(albumId.Trim('/'));
+        return $"https://api.imgur.com/3/album/{safeAlbumId}/images";
+    }
+
+    private static int NormalizePageSize(int pageSize)
+    {
+        return Math.Clamp(pageSize, 1, 100);
+    }
+
     private ImgurConfigModel DeserializeImgurConfig(string? settingsJson)
     {
         if (string.IsNullOrWhiteSpace(settingsJson)) return new ImgurConfigModel();
-        return JsonConvert.DeserializeObject<ImgurConfigModel>(settingsJson) ?? new ImgurConfigModel();
+
+        try
+        {
+            return JsonConvert.DeserializeObject<ImgurConfigModel>(settingsJson) ?? new ImgurConfigModel();
+        }
+        catch
+        {
+            return new ImgurConfigModel();
+        }
     }
 
     private OAuth2Info? BuildAuthInfo(ImgurConfigModel config)
@@ -437,16 +450,36 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
         string clientSecret = Secrets.GetSecret(ProviderId, config.SecretKey, "clientSecret")
             ?? "98871f37e179e496a0149e9c8558487779d424ft";
-        var authInfo = new OAuth2Info(config.ClientId, clientSecret);
-
-        string? tokenJson = Secrets.GetSecret(ProviderId, config.SecretKey, "oauthToken");
-        if (!string.IsNullOrWhiteSpace(tokenJson))
-        {
-            var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
-            if (token != null) authInfo.Token = token;
-        }
+        var authInfo = new OAuth2Info(NormalizeClientId(config.ClientId), clientSecret);
+        TryHydrateToken(authInfo, Secrets.GetSecret(ProviderId, config.SecretKey, "oauthToken"));
 
         return authInfo;
+    }
+
+    private static string NormalizeClientId(string? clientId)
+    {
+        return clientId?.Trim() ?? string.Empty;
+    }
+
+    private static void TryHydrateToken(OAuth2Info authInfo, string? tokenJson)
+    {
+        if (string.IsNullOrWhiteSpace(tokenJson))
+        {
+            return;
+        }
+
+        try
+        {
+            var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
+            if (token != null)
+            {
+                authInfo.Token = token;
+            }
+        }
+        catch
+        {
+            // Ignore malformed persisted tokens and leave the provider usable.
+        }
     }
 
     // Minimal response models for the explorer (used only within this file)

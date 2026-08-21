@@ -52,6 +52,7 @@ public sealed class RegionCaptureControl : UserControl
     private readonly MagnifierControl _magnifier;
     private readonly bool _enableKeyboardNudge;
     private readonly RegionCaptureMode _mode;
+    private PixelRect _physicalViewportBounds;
 
     // Rendering configuration
     private readonly double _dimOpacity;
@@ -67,6 +68,7 @@ public sealed class RegionCaptureControl : UserControl
     private readonly Bitmap? _ghostCursorBitmap;
     private readonly SkiaSharp.SKBitmap? _backgroundBitmap;
     private readonly Bitmap? _backgroundAvBitmap;
+    private readonly WindowPreselectionCapability _windowPreselectionCapability;
 
     // Keyboard state tracking
     private SelectionModifier _activeModifiers = SelectionModifier.None;
@@ -115,12 +117,14 @@ public sealed class RegionCaptureControl : UserControl
     private PixelPoint _currentPoint => _stateMachine.CurrentPoint;
     private PixelRect _selectionRect => _stateMachine.SelectionRect;
     private WindowInfo? _hoveredWindow => _stateMachine.HoveredWindow;
+    internal PixelPoint CurrentPointForTests => _currentPoint;
 
     public RegionCaptureControl(MonitorInfo monitor, RegionCaptureOptions? options = null, XerahS.Platform.Abstractions.CursorInfo? ghostCursor = null)
     {
         options ??= new RegionCaptureOptions();
 
         _monitor = monitor;
+        _physicalViewportBounds = monitor.PhysicalBounds;
         _ghostCursor = ghostCursor;
         _coordinateService = new CoordinateTranslationService();
         _windowService = new WindowDetectionService();
@@ -134,7 +138,9 @@ public sealed class RegionCaptureControl : UserControl
 
         _dimOpacity = options.DimOpacity;
         _mode = options.Mode;
-        _enableWindowSnapping = options.EnableWindowSnapping && _mode != RegionCaptureMode.ScreenColorPicker;
+        bool requestedWindowSnapping = options.EnableWindowSnapping && _mode != RegionCaptureMode.ScreenColorPicker;
+        _windowPreselectionCapability = WindowDetectionService.GetWindowPreselectionCapability();
+        _enableWindowSnapping = requestedWindowSnapping && _windowPreselectionCapability.IsEnabled;
         _enableMagnifier = options.EnableMagnifier;
         _enableKeyboardNudge = options.EnableKeyboardNudge;
         _backgroundBitmap = options.BackgroundImage;
@@ -185,6 +191,8 @@ public sealed class RegionCaptureControl : UserControl
                 _ghostCursorBitmap = null;
             }
         }
+
+        LogWindowPreselectionCapability(requestedWindowSnapping);
     }
 
     /// <summary>
@@ -201,7 +209,7 @@ public sealed class RegionCaptureControl : UserControl
         {
             convertedBitmap = new SKBitmap(skBitmap.Width, skBitmap.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
             using var canvas = new SKCanvas(convertedBitmap);
-            canvas.DrawBitmap(skBitmap, 0, 0);
+            canvas.DrawBitmap(skBitmap, 0, 0, SKSamplingOptions.Default);
             sourceBitmap = convertedBitmap;
         }
 
@@ -244,6 +252,16 @@ public sealed class RegionCaptureControl : UserControl
 
     public RegionCaptureControl(MonitorInfo monitor) : this(monitor, null, null)
     {
+    }
+
+    public void SetPhysicalViewport(PixelRect physicalViewportBounds, string source)
+    {
+        if (physicalViewportBounds.IsEmpty)
+            return;
+
+        _physicalViewportBounds = physicalViewportBounds;
+        XerahS.Common.DebugHelper.WriteLine($"[RegionCaptureControl.{source}] {_monitor.DeviceName}: PhysicalViewport=({_physicalViewportBounds.X:F0},{_physicalViewportBounds.Y:F0},{_physicalViewportBounds.Width:F0}x{_physicalViewportBounds.Height:F0}) MonitorPhysical=({_monitor.PhysicalBounds.X:F0},{_monitor.PhysicalBounds.Y:F0},{_monitor.PhysicalBounds.Width:F0}x{_monitor.PhysicalBounds.Height:F0})");
+        InvalidateVisual();
     }
 
     private void OnSelectionConfirmed(RegionSelectionResult result)
@@ -307,7 +325,12 @@ public sealed class RegionCaptureControl : UserControl
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
-        UpdateModifiers(e.KeyModifiers);
+        UpdateAimFromOverlayPointer(e.GetPosition(this), e.KeyModifiers);
+    }
+
+    public void UpdateAimFromOverlayPointer(Point localPoint, KeyModifiers keyModifiers)
+    {
+        UpdateModifiers(keyModifiers);
 
         if (!_firstPointerMovedLogged && _sessionStartUtc is { } start)
         {
@@ -316,8 +339,7 @@ public sealed class RegionCaptureControl : UserControl
             XerahS.Common.DebugHelper.WriteLine($"[RegionCapture] Milestone: first pointer moved (+{elapsedMs:F0} ms)");
         }
 
-        var point = e.GetPosition(this);
-        var physicalPoint = LocalToPhysical(point);
+        var physicalPoint = LocalToPhysical(localPoint);
 
         _stateMachine.UpdateCursorPosition(physicalPoint);
 
@@ -445,18 +467,21 @@ public sealed class RegionCaptureControl : UserControl
 
     private PixelPoint LocalToPhysical(Point local)
     {
-        // Convert from control-local logical coordinates to physical screen coordinates
+        // Convert from control-local logical coordinates to physical screen coordinates.
+        // macOS can force a borderless overlay to start at the menu-bar working-area origin
+        // even when the monitor starts at y=0, so use the actual window viewport origin here.
         return new PixelPoint(
-            local.X * _monitor.ScaleFactor + _monitor.PhysicalBounds.X,
-            local.Y * _monitor.ScaleFactor + _monitor.PhysicalBounds.Y);
+            local.X * _monitor.ScaleFactor + _physicalViewportBounds.X,
+            local.Y * _monitor.ScaleFactor + _physicalViewportBounds.Y);
     }
 
     private Point PhysicalToLocal(PixelPoint physical)
     {
-        // Convert from physical screen coordinates to control-local logical coordinates
+        // Convert from physical screen coordinates to control-local logical coordinates.
+        // See LocalToPhysical: this must use the same actual viewport origin.
         return new Point(
-            (physical.X - _monitor.PhysicalBounds.X) / _monitor.ScaleFactor,
-            (physical.Y - _monitor.PhysicalBounds.Y) / _monitor.ScaleFactor);
+            (physical.X - _physicalViewportBounds.X) / _monitor.ScaleFactor,
+            (physical.Y - _physicalViewportBounds.Y) / _monitor.ScaleFactor);
     }
 
     private Rect PhysicalRectToLocal(PixelRect rect)
@@ -607,22 +632,33 @@ public sealed class RegionCaptureControl : UserControl
     {
         if (_backgroundAvBitmap == null) return;
 
-        // Calculate the portion of the background bitmap that corresponds to this monitor
+        // Calculate the portion of the background bitmap that corresponds to the actual
+        // overlay viewport. On macOS this can differ from the monitor origin after NSWindow
+        // creation, and drawing from monitor origin would visibly shift the frozen desktop.
         var virtualBounds = _coordinateService.GetVirtualScreenBounds();
+        var visibleViewport = _physicalViewportBounds.Intersect(_monitor.PhysicalBounds);
+        if (visibleViewport.IsEmpty)
+        {
+            visibleViewport = _physicalViewportBounds;
+        }
 
-        // Monitor's position relative to virtual screen origin
-        var srcX = _monitor.PhysicalBounds.X - virtualBounds.X;
-        var srcY = _monitor.PhysicalBounds.Y - virtualBounds.Y;
+        var srcX = visibleViewport.X - virtualBounds.X;
+        var srcY = visibleViewport.Y - virtualBounds.Y;
 
         // Source rect in the full screenshot (physical pixels)
         var sourceRect = new Rect(
             srcX,
             srcY,
-            _monitor.PhysicalBounds.Width,
-            _monitor.PhysicalBounds.Height);
+            visibleViewport.Width,
+            visibleViewport.Height);
 
-        // Destination rect is the full control bounds (logical coordinates)
-        context.DrawImage(_backgroundAvBitmap, sourceRect, bounds);
+        var destinationRect = new Rect(
+            (visibleViewport.X - _physicalViewportBounds.X) / _monitor.ScaleFactor,
+            (visibleViewport.Y - _physicalViewportBounds.Y) / _monitor.ScaleFactor,
+            visibleViewport.Width / _monitor.ScaleFactor,
+            visibleViewport.Height / _monitor.ScaleFactor);
+
+        context.DrawImage(_backgroundAvBitmap, sourceRect, destinationRect);
     }
 
     private void DrawResizeHandles(DrawingContext context, Rect rect)
@@ -1038,6 +1074,57 @@ public sealed class RegionCaptureControl : UserControl
     private static readonly IBrush AnnotateModeBrush = new SolidColorBrush(Color.FromArgb(220, 255, 140, 0)); // Orange
     private static readonly IBrush RegionModeBrush = new SolidColorBrush(Color.FromArgb(220, 0, 174, 255));   // Blue
     private static readonly IBrush ReminderBrush = new SolidColorBrush(Color.FromArgb(220, 50, 205, 50));     // Green
+    private static readonly IBrush CapabilityBrush = new SolidColorBrush(Color.FromArgb(220, 216, 184, 116));
+
+    private void LogWindowPreselectionCapability(bool requestedWindowSnapping)
+    {
+        if (!requestedWindowSnapping || !OperatingSystem.IsLinux())
+            return;
+
+        switch (_windowPreselectionCapability.Level)
+        {
+            case WindowPreselectionSupportLevel.Partial:
+                XerahS.Common.DebugHelper.WriteLine(
+                    $"[RegionCapture] Window preselection is limited on this Linux session. {_windowPreselectionCapability.UserMessage}");
+                break;
+            case WindowPreselectionSupportLevel.Unsupported:
+                XerahS.Common.DebugHelper.WriteLine(
+                    $"[RegionCapture] Window preselection is unavailable on this Linux session. {_windowPreselectionCapability.UserMessage}");
+                break;
+        }
+    }
+
+    private string GetInstructionText()
+    {
+        if (_mode == RegionCaptureMode.ScreenColorPicker)
+        {
+            return "Click to pick a color | Esc to cancel";
+        }
+
+        if (_mode == RegionCaptureMode.Ruler)
+        {
+            return "Drag to measure distance and area | Arrow keys: adjust | Enter: finish | Esc: cancel";
+        }
+
+        if (_enableWindowSnapping)
+        {
+            return _windowPreselectionCapability.Level == WindowPreselectionSupportLevel.Partial
+                ? "Drag to select region | Click to snap supported windows | Ctrl: toggle mode | Enter: finish | Esc: cancel"
+                : "Drag to select region | Click to snap window | Ctrl: toggle mode | Enter: finish | Esc: cancel";
+        }
+
+        return "Drag to select region | Ctrl: toggle mode | Enter: finish | Esc: cancel";
+    }
+
+    private string? GetCapabilityMessage()
+    {
+        if (_mode == RegionCaptureMode.ScreenColorPicker || _mode == RegionCaptureMode.Ruler)
+            return null;
+
+        return _windowPreselectionCapability.Level is WindowPreselectionSupportLevel.Partial or WindowPreselectionSupportLevel.Unsupported
+            ? _windowPreselectionCapability.UserMessage
+            : null;
+    }
 
     private void DrawInstructions(DrawingContext context)
     {
@@ -1069,15 +1156,7 @@ public sealed class RegionCaptureControl : UserControl
             }
 
             // Draw instructions
-            var instructions = "Drag to select region | Click to snap window | Ctrl: toggle mode | Enter: finish | Esc: cancel";
-            if (_mode == RegionCaptureMode.ScreenColorPicker)
-            {
-                instructions = "Click to pick a color | Esc to cancel";
-            }
-            else if (_mode == RegionCaptureMode.Ruler)
-            {
-                instructions = "Drag to measure distance and area | Arrow keys: adjust | Enter: finish | Esc: cancel";
-            }
+            var instructions = GetInstructionText();
             var formatted = new FormattedText(
                 instructions,
                 System.Globalization.CultureInfo.CurrentCulture,
@@ -1093,6 +1172,24 @@ public sealed class RegionCaptureControl : UserControl
             context.DrawText(formatted, new Point(x, yOffset));
 
             yOffset += formatted.Height + 16;
+
+            if (GetCapabilityMessage() is { } capabilityMessage)
+            {
+                var noteFormatted = new FormattedText(
+                    capabilityMessage,
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Segoe UI", FontStyle.Normal, FontWeight.Normal),
+                    11,
+                    CapabilityBrush);
+
+                var noteX = (Bounds.Width - noteFormatted.Width) / 2;
+                var noteRect = new Rect(noteX - 12, yOffset - 4, noteFormatted.Width + 24, noteFormatted.Height + 8);
+                context.DrawRectangle(InfoBackgroundBrush, null, noteRect, 4, 4);
+                context.DrawText(noteFormatted, new Point(noteX, yOffset));
+
+                yOffset += noteFormatted.Height + 16;
+            }
         }
 
         // Draw "Press Enter to finish" reminder when annotations exist and region is selected

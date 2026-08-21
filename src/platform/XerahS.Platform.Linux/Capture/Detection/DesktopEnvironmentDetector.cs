@@ -29,7 +29,12 @@ internal static class DesktopEnvironmentDetector
 {
     public static string? Detect()
     {
-        foreach (string hint in EnumerateHints())
+        return Detect(Environment.GetEnvironmentVariable);
+    }
+
+    internal static string? Detect(Func<string, string?> getEnvironmentVariable)
+    {
+        foreach (string hint in EnumerateHints(getEnvironmentVariable))
         {
             string? normalized = NormalizeHint(hint);
             if (!string.IsNullOrEmpty(normalized))
@@ -105,21 +110,21 @@ internal static class DesktopEnvironmentDetector
         return null;
     }
 
-    private static IEnumerable<string> EnumerateHints()
+    private static IEnumerable<string> EnumerateHints(Func<string, string?> getEnvironmentVariable)
     {
-        string? currentDesktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP");
+        string? currentDesktop = getEnvironmentVariable("XDG_CURRENT_DESKTOP");
         if (!string.IsNullOrWhiteSpace(currentDesktop))
         {
             yield return currentDesktop;
         }
 
-        string? sessionDesktop = Environment.GetEnvironmentVariable("XDG_SESSION_DESKTOP");
+        string? sessionDesktop = getEnvironmentVariable("XDG_SESSION_DESKTOP");
         if (!string.IsNullOrWhiteSpace(sessionDesktop))
         {
             yield return sessionDesktop;
         }
 
-        string? desktopSession = Environment.GetEnvironmentVariable("DESKTOP_SESSION");
+        string? desktopSession = getEnvironmentVariable("DESKTOP_SESSION");
         if (!string.IsNullOrWhiteSpace(desktopSession))
         {
             yield return desktopSession;

@@ -108,9 +108,22 @@ public class ToastConfig
     public bool AutoHide { get; set; } = true;
 
     /// <summary>
+    /// Whether this toast communicates a critical action the user must take and should be shown
+    /// even when ordinary toast notifications are disabled.
+    /// </summary>
+    public bool IgnoreGlobalDisable { get; set; }
+
+    /// <summary>
     /// Checks if this configuration is valid for display
     /// </summary>
-    public bool IsValid => (Duration > 0 || FadeDuration > 0) && Size.Width > 0 && Size.Height > 0;
+    public bool IsValid =>
+        float.IsFinite(Duration) &&
+        float.IsFinite(FadeDuration) &&
+        Duration >= 0 &&
+        FadeDuration >= 0 &&
+        (!AutoHide || Duration > 0 || FadeDuration > 0) &&
+        Size.Width > 0 &&
+        Size.Height > 0;
 }
 
 /// <summary>

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Services
 {
@@ -7,8 +8,16 @@ namespace XerahS.UI.Services
     {
         Task ShowDialogAsync<TWindow>(object dataContext) where TWindow : class, new();
         Task<TResult?> ShowDialogAsync<TWindow, TResult>(object dataContext) where TWindow : class, new();
+        Task<bool> ShowPluginInstallerAsync(PluginInstallerViewModel viewModel);
+        Task<bool> ShowCustomUploaderEditorAsync(CustomUploaderEditorViewModel viewModel);
+        Task<bool> ShowWorkflowEditorAsync(WorkflowEditorViewModel viewModel);
+        Task ShowImageEffectsBrowserAsync(ImageEffectsViewModel viewModel);
+        Task ShowFFmpegOptionsAsync(FFmpegOptionsViewModel viewModel);
+        Task ShowProviderExplorerAsync(ProviderExplorerViewModel viewModel);
+        Task ShowQrCodeGeneratorAsync(QrCodeGeneratorViewModel viewModel);
         Task<string?> ShowFilePickerAsync(string title, IEnumerable<string>? filters = null);
         Task<string?> ShowSaveFilePickerAsync(string title, string suggestedFileName, string defaultExtension, IEnumerable<string>? filters = null);
+        Task<string?> ShowSecretInputAsync(string title, string label);
         Task<string?> ShowFolderPickerAsync(string title);
         object? GetMainWindow();
         IEnumerable<object> GetOpenWindows();

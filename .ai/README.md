@@ -1,22 +1,24 @@
-﻿# .ai/ - IDE-Agnostic AI Assistant Configuration
+# .ai/ - IDE-Agnostic AI Assistant Configuration
+
+[![XerahS Health](https://oss-health-monitor.vercel.app/api/badge/ShareX/XerahS)](https://github.com/volotat/OSS-Health-Monitor)
 
 This folder contains all AI assistant configurations and skills for XerahS, designed to work across multiple IDEs and AI coding assistants.
 
-## ðŸ“ Structure
+## 📁 Structure
 
 ```
 .ai/
-â”œâ”€â”€ instructions.md       # Main agent instructions (single source of truth)
-â”œâ”€â”€ skills/              # Reusable skills/prompts for specific tasks
-â”‚   â”œâ”€â”€ avalonia-guidelines/
-â”‚   â”œâ”€â”€ build-windows-exe/
-â”‚   â”œâ”€â”€ design-ui-window/
-â”‚   â””â”€â”€ ...
-â”œâ”€â”€ workflows/           # Complex multi-step workflows
-â””â”€â”€ README.md           # This file
+├── instructions.md       # Main agent instructions (single source of truth)
+├── skills/               # Reusable skills/prompts for specific tasks
+│   ├── avalonia-guidelines/
+│   ├── build-windows-exe/
+│   ├── design-ui-window/
+│   └── ...
+├── workflows/            # Complex multi-step workflows
+└── README.md             # This file
 ```
 
-## ðŸ”§ IDE Integration
+## 🔧 IDE Integration
 
 This centralized structure is referenced by:
 
@@ -26,7 +28,7 @@ This centralized structure is referenced by:
 - **Antigravity**: `.antigravity/rules.md`
 - **Cline/Aider**: Direct reference to `.ai/instructions.md`
 
-## ðŸ“š Skills
+## 📚 Skills
 
 Skills are specialized instruction sets for domain-specific tasks. Each skill folder contains:
 - `SKILL.md` - Detailed instructions for that capability
@@ -34,7 +36,7 @@ Skills are specialized instruction sets for domain-specific tasks. Each skill fo
 
 To use a skill, agents read the SKILL.md file and follow its instructions.
 
-## ðŸŽ¯ Benefits
+## 🎯 Benefits
 
 1. **Single Source of Truth**: Update instructions once, applies to all IDEs
 2. **Version Control**: All AI configs tracked in git
@@ -42,7 +44,7 @@ To use a skill, agents read the SKILL.md file and follow its instructions.
 4. **Maintainability**: Clear organization, easy to update
 5. **Team Collaboration**: Consistent AI behavior for all developers
 
-## ðŸš€ Usage
+## 🚀 Usage
 
 ### For Developers
 Just use your preferred IDE/AI assistant. The configs automatically reference this folder.

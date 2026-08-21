@@ -66,6 +66,13 @@ public static class RegionCropper
             _ => throw new NotSupportedException($"Pixel format {sourceFrame.Format} not supported for cropping")
         };
 
+        if (sourceFrame.Stride < sourceFrame.Width * bytesPerPixel)
+        {
+            throw new ArgumentException(
+                $"Source frame stride ({sourceFrame.Stride}) is smaller than the required row width ({sourceFrame.Width * bytesPerPixel}).",
+                nameof(sourceFrame));
+        }
+
         // Calculate cropped frame properties
         int croppedStride = region.Width * bytesPerPixel;
         int croppedBufferSize = croppedStride * region.Height;

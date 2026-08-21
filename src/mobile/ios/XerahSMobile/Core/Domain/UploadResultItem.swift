@@ -29,6 +29,17 @@ struct UploadResultItem: Equatable {
     let success: Bool
     let url: String?
     let error: String?
+    let errorDetails: String?
 
     var hasUrl: Bool { !(url ?? "").isEmpty }
+
+    var errorClipboardText: String? {
+        guard let error else { return nil }
+        let details = errorDetails?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let details, !details.isEmpty, details != error else {
+            return error
+        }
+
+        return "\(error)\n\n\(details)"
+    }
 }

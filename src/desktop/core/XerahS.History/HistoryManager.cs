@@ -34,6 +34,15 @@ namespace XerahS.History
         public bool CreateBackup { get; set; }
         public bool CreateWeeklyBackup { get; set; }
 
+        /// <summary>
+        /// Gets a user-friendly description of the most recent history backup failure, or null if the last backup
+        /// attempt succeeded (or no backup was configured). Cleared at the start of every <see cref="Backup"/> call
+        /// so a subsequent successful backup resets the diagnostic. This is intentionally separate from the
+        /// <see cref="HistoryManager"/> boolean return contract: the data write itself can succeed even when the
+        /// backup step fails, and the caller needs a way to surface that distinction to the user.
+        /// </summary>
+        public string? LastBackupFailureReason { get; private set; }
+
         public HistoryManager(string filePath)
         {
             FilePath = filePath;
@@ -97,19 +106,63 @@ namespace XerahS.History
 
         protected abstract bool Append(string filePath, IEnumerable<HistoryItem> historyItems);
 
-        protected void Backup(string filePath)
+        protected bool Backup(string filePath)
         {
-            if (!string.IsNullOrEmpty(BackupFolder))
+            if (string.IsNullOrEmpty(BackupFolder))
             {
-                if (CreateBackup)
-                {
-                    FileHelpers.BackupFileZip(filePath, BackupFolder);
-                }
+                LastBackupFailureReason = null;
+                return true;
+            }
 
-                if (CreateWeeklyBackup)
+            // Clear the previous diagnostic at the start of each backup attempt. A subsequent successful
+            // backup step keeps the value null, and a failed step populates it with a user-friendly
+            // description the caller can surface to the user.
+            LastBackupFailureReason = null;
+
+            if (CreateBackup)
+            {
+                string? backupPath = FileHelpers.BackupFileZip(filePath, BackupFolder);
+
+                if (backupPath == null)
                 {
-                    FileHelpers.BackupFileWeekly(filePath, BackupFolder);
+                    string reason = $"Could not create zipped history backup in '{BackupFolder}'. The history file itself was updated, but a backup of the previous state was not written. Check that the folder exists, is writable, and has enough free space.";
+                    DebugHelper.WriteLine($"History backup failed: {reason}");
+                    LastBackupFailureReason = reason;
+                    return false;
                 }
+            }
+
+            if (CreateWeeklyBackup)
+            {
+                string? backupPath = FileHelpers.BackupFileWeekly(filePath, BackupFolder);
+
+                if (backupPath == null && !WeeklyBackupAlreadyExists(filePath))
+                {
+                    string reason = $"Could not create weekly history backup in '{BackupFolder}'. The history file itself was updated, but a backup of the previous state was not written. Check that the folder exists, is writable, and has enough free space.";
+                    DebugHelper.WriteLine($"History backup failed: {reason}");
+                    LastBackupFailureReason = reason;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool WeeklyBackupAlreadyExists(string filePath)
+        {
+            try
+            {
+                string fileName = Path.GetFileNameWithoutExtension(filePath);
+                DateTime dateTime = DateTime.Now;
+                string extension = Path.GetExtension(filePath);
+                string backupFileName = $"{fileName}-{dateTime:yyyy-MM}-W{FileHelpers.WeekOfYear(dateTime):00}{extension}";
+                string backupFilePath = Path.Combine(BackupFolder, backupFileName);
+
+                return File.Exists(backupFilePath);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            {
+                return false;
             }
         }
 

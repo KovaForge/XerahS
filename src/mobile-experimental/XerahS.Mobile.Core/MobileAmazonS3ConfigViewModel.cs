@@ -235,7 +235,9 @@ public class MobileAmazonS3ConfigViewModel : IMobileUploaderConfig, INotifyPrope
     private bool LoadFromInstanceManager()
     {
         var instance = InstanceManager.Instance.GetInstances()
-            .FirstOrDefault(i => i.ProviderId == ProviderId);
+            .FirstOrDefault(i =>
+                string.Equals(i.ProviderId, ProviderId, StringComparison.OrdinalIgnoreCase) &&
+                i.Category == UploaderCategory.File);
         if (instance == null || string.IsNullOrWhiteSpace(instance.SettingsJson))
             return false;
         _instanceId = instance.InstanceId;
@@ -324,8 +326,10 @@ public class MobileAmazonS3ConfigViewModel : IMobileUploaderConfig, INotifyPrope
             };
             var instanceManager = InstanceManager.Instance;
             var existingInstance = _instanceId != null
-                ? instanceManager.GetInstance(_instanceId)
-                : instanceManager.GetInstances().FirstOrDefault(i => i.ProviderId == ProviderId);
+                ? GetFileS3Instance(instanceManager, _instanceId)
+                : instanceManager.GetInstances().FirstOrDefault(i =>
+                    string.Equals(i.ProviderId, ProviderId, StringComparison.OrdinalIgnoreCase) &&
+                    i.Category == UploaderCategory.File);
             if (existingInstance != null)
             {
                 existingInstance.SettingsJson = settingsJson.ToString(Formatting.Indented);
@@ -354,6 +358,19 @@ public class MobileAmazonS3ConfigViewModel : IMobileUploaderConfig, INotifyPrope
             DebugHelper.WriteException(ex, "[MobileAmazonS3Config] SaveConfig failed");
             return false;
         }
+    }
+
+    private static UploaderInstance? GetFileS3Instance(InstanceManager instanceManager, string instanceId)
+    {
+        var instance = instanceManager.GetInstance(instanceId);
+        if (instance == null ||
+            !string.Equals(instance.ProviderId, ProviderId, StringComparison.OrdinalIgnoreCase) ||
+            instance.Category != UploaderCategory.File)
+        {
+            return null;
+        }
+
+        return instance;
     }
 
     public async Task<bool> TestConfigAsync()

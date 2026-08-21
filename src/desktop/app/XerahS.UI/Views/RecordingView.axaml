@@ -4,7 +4,7 @@
                 xmlns:views="using:XerahS.UI.Views"
                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
+                xmlns:theming="clr-namespace:XerahS.UI.Theming"
                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="800"
                 x:Class="XerahS.UI.Views.RecordingView"
                 x:DataType="vm:RecordingViewModel">
@@ -55,7 +55,6 @@
                                        Theme="{StaticResource CaptionTextBlockStyle}"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                             <TextBlock Text="{Binding OutputFilePath}"
-                                       FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                                        Theme="{StaticResource CaptionTextBlockStyle}"
                                        TextWrapping="Wrap"/>
                         </StackPanel>
@@ -131,7 +130,13 @@
 
                         </Grid>
 
-                        <TextBlock Text="Note: Higher bitrates and frame rates will result in larger file sizes. Hardware encoding may be used automatically if available. Audio capture requires FFmpeg and appropriate system audio devices."
+                        <TextBlock Text="{Binding CodecAvailabilityMessage}"
+                                   Theme="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{DynamicResource SystemFillColorAttentionBrush}"
+                                   TextWrapping="Wrap"
+                                   IsVisible="{Binding CodecAvailabilityMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+                        <TextBlock Text="Note: Higher bitrates and frame rates will result in larger file sizes. Hardware encoding may be used automatically if available. Audio capture depends on the active recording backend and appropriate system audio devices."
                                    Theme="{StaticResource CaptionTextBlockStyle}"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    TextWrapping="Wrap"/>

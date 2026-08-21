@@ -1,0 +1,33 @@
+<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:XerahS.UI.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:XerahS.UI.ViewModels"
+        xmlns:imageEditorControls="using:ShareX.ImageEditor.Presentation.Controls"
+        mc:Ignorable="d"
+        x:Class="XerahS.UI.Views.ImageEffectsBrowserDialog"
+        x:DataType="vm:ImageEffectsViewModel"
+        Width="840" Height="680"
+        Title="Add Image Effect"
+        WindowStartupLocation="CenterOwner">
+
+  <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+          Padding="16">
+    <Grid RowDefinitions="Auto,*,Auto">
+      <TextBlock Grid.Row="0" Text="Select an effect to add" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+      <Border Grid.Row="1"
+              BorderThickness="1"
+              BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+              Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+              CornerRadius="6">
+        <imageEditorControls:EffectBrowserPanel x:Name="EffectBrowserPanel"/>
+      </Border>
+
+      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+        <Button Content="Close" Width="110" Click="Close_Click" AutomationProperties.Name="Close Add Effect Browser"/>
+      </StackPanel>
+    </Grid>
+  </Border>
+</ui:SurfaceWindow>

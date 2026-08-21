@@ -1,4 +1,8 @@
 # XIP0041 Native AOT ΓÇô Full Implementation (Issue #149)
+
+**Status**: Superseded
+**Version**: v0.22.257
+
 ## Summary
 
 **Goal**: Fully implement [GitHub Issue #149](https://github.com/ShareX/XerahS/issues/149) ΓÇö *[Feature]: Consider Enabling NAOT to Reduce Installer Size* ΓÇö by enabling .NET **Native AOT** for the XerahS host so the Windows installer is smaller (~90 MB today; target 50ΓÇô87% reduction), with faster startup and no separate .NET runtime.

@@ -8,7 +8,7 @@
         Topmost="True"
         ShowInTaskbar="False"
         CanResize="False"
-        SystemDecorations="None"
+        WindowDecorations="None"
         Background="Transparent"
         WindowStartupLocation="Manual"
         Focusable="True"
@@ -49,14 +49,14 @@
 
       <!-- Hover toolbar overlay -->
       <Border x:Name="HoverToolbar"
-              Background="#80000000"
+              Background="{DynamicResource XerahS.Brush.Overlay.Soft}"
               VerticalAlignment="Top"
               HorizontalAlignment="Right"
               CornerRadius="0,0,0,4"
               Padding="6,3"
               IsVisible="False">
         <TextBlock Text="{Binding ScaleText}"
-                   Foreground="White"
+                   Foreground="{DynamicResource XerahS.Brush.Overlay.Foreground}"
                    FontSize="11"
                    VerticalAlignment="Center" />
       </Border>

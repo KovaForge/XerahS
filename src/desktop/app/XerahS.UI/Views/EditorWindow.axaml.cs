@@ -24,7 +24,6 @@
 #endregion License Information (GPL v3)
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using ShareX.ImageEditor.Presentation.Theming;
 using ShareX.ImageEditor.Presentation.ViewModels;
 
 namespace XerahS.UI.Views
@@ -32,14 +31,14 @@ namespace XerahS.UI.Views
     public partial class EditorWindow : SurfaceWindow
     {
         private MainViewModel? _viewModel;
+        private bool _allowClose;
         internal bool IsCloseRequestedByViewModel { get; private set; }
 
         public EditorWindow()
         {
             InitializeComponent();
-
-            RequestedThemeVariant = ThemeManager.GetCurrentTheme();
-            ThemeManager.ThemeChanged += (s, theme) => RequestedThemeVariant = theme;
+            Classes.Remove("xerahs-surface");
+            Classes.Add("xerahs-editor-host");
         }
 
         private void InitializeComponent()
@@ -57,6 +56,7 @@ namespace XerahS.UI.Views
             base.OnDataContextChanged(e);
 
             IsCloseRequestedByViewModel = false;
+            _allowClose = false;
             _viewModel = DataContext as MainViewModel;
             if (_viewModel != null)
             {
@@ -72,11 +72,25 @@ namespace XerahS.UI.Views
                 _viewModel = null;
             }
 
+            _allowClose = false;
             base.OnClosed(e);
+        }
+
+        protected override void OnClosing(WindowClosingEventArgs e)
+        {
+            if (_allowClose || _viewModel == null)
+            {
+                base.OnClosing(e);
+                return;
+            }
+
+            e.Cancel = true;
+            _viewModel?.RequestClose();
         }
 
         private void OnViewModelCloseRequested(object? sender, EventArgs e)
         {
+            _allowClose = true;
             IsCloseRequestedByViewModel = true;
             Close();
         }

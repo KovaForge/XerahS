@@ -44,6 +44,7 @@ public class ScreenRecorderService : IRecordingService
     private ICaptureSource? _captureSource;
     private IVideoEncoder? _encoder;
     private RecordingOptions? _currentOptions;
+    private string? _activeOutputPath;
     private RecordingStatus _status = RecordingStatus.Idle;
     private readonly Stopwatch _stopwatch = new();
     private readonly object _lock = new();
@@ -80,6 +81,12 @@ public class ScreenRecorderService : IRecordingService
     /// On macOS, this creates MacOSNativeRecordingService using ScreenCaptureKit.
     /// </summary>
     public static Func<IRecordingService>? NativeRecordingServiceFactory { get; set; }
+
+    public RecordingRuntimeCapabilities GetCapabilities(RecordingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return RecordingRuntimeCapabilities.SegmentedRestart;
+    }
 
     /// <summary>
     /// Debug: dump the first captured frame to disk for orientation analysis.
@@ -140,6 +147,7 @@ public class ScreenRecorderService : IRecordingService
 
             // Determine output path
             string outputPath = GetOutputPath(options);
+            _activeOutputPath = outputPath;
             DebugHelper.WriteLine($"[ScreenRecorder] Output path resolved: {outputPath}");
 
             // Configure video format
@@ -205,7 +213,7 @@ public class ScreenRecorderService : IRecordingService
 
             captureSource = _captureSource;
             encoder = _encoder;
-            outputPath = _currentOptions?.OutputPath;
+            outputPath = _activeOutputPath;
             elapsed = _stopwatch.Elapsed;
         }
 
@@ -228,12 +236,13 @@ public class ScreenRecorderService : IRecordingService
             if (!string.IsNullOrEmpty(outputPath))
             {
                 var info = new FileInfo(outputPath);
-                DebugHelper.WriteLine($"[ScreenRecorder] Output validation: exists={info.Exists}, size={info.Length} bytes");
+                long? outputSize = info.Exists ? info.Length : null;
+                DebugHelper.WriteLine($"[ScreenRecorder] Output validation: exists={info.Exists}, size={(outputSize?.ToString() ?? "(missing)")} bytes");
 
                 // [2026-01-10T14:02:37+08:00] Fail fast on zero-byte recordings observed intermittently; outcome (2026-01-10T14:09:06+08:00) validated mp4 > 0 bytes after guarded finalize.
-                if (!info.Exists || info.Length <= 0)
+                if (!info.Exists || outputSize <= 0)
                 {
-                    throw new InvalidOperationException($"Recording output invalid (exists={info.Exists}, size={info.Length}) for {outputPath}");
+                    throw new InvalidOperationException($"Recording output invalid (exists={info.Exists}, size={(outputSize?.ToString() ?? "missing")}) for {outputPath}");
                 }
             }
         }
@@ -248,6 +257,7 @@ public class ScreenRecorderService : IRecordingService
                 _captureSource = null;
                 _encoder = null;
                 _currentOptions = null;
+                _activeOutputPath = null;
                 _windowTrackingHandle = IntPtr.Zero;
                 UpdateStatus(RecordingStatus.Idle);
             }
@@ -409,16 +419,27 @@ public class ScreenRecorderService : IRecordingService
 
     private string GetOutputPath(RecordingOptions options)
     {
+        string outputPath;
+
         if (!string.IsNullOrEmpty(options.OutputPath))
         {
-            return options.OutputPath;
+            outputPath = Path.GetFullPath(options.OutputPath);
+            string? outputDirectory = Path.GetDirectoryName(outputPath);
+
+            if (!string.IsNullOrEmpty(outputDirectory))
+            {
+                Directory.CreateDirectory(outputDirectory);
+            }
+
+            return outputPath;
         }
 
         string screencastsFolder = PathsManager.ScreencastsFolder;
         Directory.CreateDirectory(screencastsFolder);
 
         string fileName = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.mp4";
-        return Path.Combine(screencastsFolder, fileName);
+        outputPath = Path.Combine(screencastsFolder, fileName);
+        return outputPath;
     }
 
     private int GetCaptureWidth(RecordingOptions options)
@@ -455,8 +476,7 @@ public class ScreenRecorderService : IRecordingService
             width = GetPrimaryScreenWidth();
         }
 
-        // Ensure even dimension for Media Foundation H.264 encoder
-        return width & ~1;
+        return NormalizeEncoderDimension(width);
     }
 
     private int GetCaptureHeight(RecordingOptions options)
@@ -493,8 +513,18 @@ public class ScreenRecorderService : IRecordingService
             height = GetPrimaryScreenHeight();
         }
 
-        // Ensure even dimension for Media Foundation H.264 encoder
-        return height & ~1;
+        return NormalizeEncoderDimension(height);
+    }
+
+    private static int NormalizeEncoderDimension(int dimension)
+    {
+        if (dimension <= 0)
+        {
+            return 2;
+        }
+
+        int evenDimension = dimension & ~1;
+        return evenDimension > 0 ? evenDimension : 2;
     }
 
     private static int GetPrimaryScreenWidth()
@@ -573,6 +603,7 @@ public class ScreenRecorderService : IRecordingService
 
             _captureSource = null;
             _encoder = null;
+            _activeOutputPath = null;
             _windowTrackingHandle = IntPtr.Zero;
         }
     }

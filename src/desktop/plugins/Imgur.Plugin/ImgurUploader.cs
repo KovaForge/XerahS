@@ -51,34 +51,70 @@ public class ImgurUploader : ImageUploader, IOAuth2
         var args = new Dictionary<string, string>
         {
             ["client_id"] = AuthInfo.Client_ID,
-            ["response_type"] = "pin"
+            ["response_type"] = "token"
         };
 
         return URLHelpers.CreateQueryString("https://api.imgur.com/oauth2/authorize", args);
     }
 
-    public bool GetAccessToken(string pin)
+    public bool GetAccessToken(string input)
     {
-        var args = new Dictionary<string, string>
+        try
         {
-            ["client_id"] = AuthInfo.Client_ID,
-            ["client_secret"] = AuthInfo.Client_Secret,
-            ["grant_type"] = "pin",
-            ["pin"] = pin
-        };
-
-        string? response = SendRequestMultiPart("https://api.imgur.com/oauth2/token", args);
-
-        if (!string.IsNullOrEmpty(response))
-        {
-            var token = JsonConvert.DeserializeObject<OAuth2Token>(response);
-
-            if (token != null && !string.IsNullOrEmpty(token.access_token))
+            string normalizedInput = input?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(normalizedInput))
             {
+                return false;
+            }
+
+            string tokenPayload = normalizedInput;
+
+            if (Uri.TryCreate(normalizedInput, UriKind.Absolute, out Uri? uri))
+            {
+                string fragment = uri.Fragment.TrimStart('#');
+                if (string.IsNullOrEmpty(fragment))
+                {
+                    fragment = uri.Query.TrimStart('?');
+                }
+
+                tokenPayload = fragment;
+            }
+            else
+            {
+                tokenPayload = normalizedInput.TrimStart('#').TrimStart('?');
+            }
+
+            var parsedArgs = URLHelpers.ParseQueryString(tokenPayload);
+            string? accessToken = parsedArgs?["access_token"];
+            string? refreshToken = parsedArgs?["refresh_token"];
+            string? expiresInStr = parsedArgs?["expires_in"];
+
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                var token = new OAuth2Token
+                {
+                    access_token = accessToken,
+                    refresh_token = refreshToken ?? "",
+                    token_type = "Bearer"
+                };
+
+                if (int.TryParse(expiresInStr, out int expiresIn))
+                {
+                    token.expires_in = expiresIn;
+                }
+                else
+                {
+                    token.expires_in = 315360000;
+                }
+
                 token.UpdateExpireDate();
                 AuthInfo.Token = token;
                 return true;
             }
+        }
+        catch
+        {
+            // Ignore parse errors
         }
 
         return false;
@@ -272,6 +308,12 @@ public class ImgurUploader : ImageUploader, IOAuth2
                         errorData?.error?.ToString()?.Equals("The access token provided is invalid.", StringComparison.OrdinalIgnoreCase) == true &&
                         RefreshAccessToken())
                     {
+                        if (!TryPrepareStreamForRetry(stream))
+                        {
+                            Errors.Add("Imgur upload retry requires a seekable stream.");
+                            return result;
+                        }
+
                         DebugHelper.WriteLine("Imgur access token refreshed, reuploading image.");
                         return InternalUpload(stream, fileName, false);
                     }
@@ -286,6 +328,17 @@ public class ImgurUploader : ImageUploader, IOAuth2
         }
 
         return result;
+    }
+
+    private static bool TryPrepareStreamForRetry(Stream stream)
+    {
+        if (!stream.CanSeek)
+        {
+            return false;
+        }
+
+        stream.Position = 0;
+        return true;
     }
 
     private bool IsVideoFile(string fileName)

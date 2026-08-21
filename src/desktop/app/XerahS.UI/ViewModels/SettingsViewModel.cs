@@ -61,6 +61,9 @@ namespace XerahS.UI.ViewModels
         private string _saveImageSubFolderPattern = string.Empty;
 
         [ObservableProperty]
+        private bool _useSaveImageSubFolderPattern = true;
+
+        [ObservableProperty]
         private bool _useCustomScreenshotsPath;
 
         [ObservableProperty]
@@ -68,6 +71,26 @@ namespace XerahS.UI.ViewModels
 
         [ObservableProperty]
         private bool _silentRun;
+
+        partial void OnShowTrayChanged(bool value)
+        {
+            if (_isLoading) return;
+
+            if (!value && SilentRun)
+            {
+                SilentRun = false;
+            }
+        }
+
+        partial void OnSilentRunChanged(bool value)
+        {
+            if (_isLoading) return;
+
+            if (value && !ShowTray)
+            {
+                ShowTray = true;
+            }
+        }
 
         [ObservableProperty]
         private int _selectedTheme;
@@ -95,12 +118,59 @@ namespace XerahS.UI.ViewModels
         private bool _taskbarProgressEnabled;
 
         [ObservableProperty]
+        private bool _disableToastNotification;
+
+        [ObservableProperty]
         private bool _autoCheckUpdate;
 
         [ObservableProperty]
         private UpdateChannel _updateChannel;
 
         public UpdateChannel[] UpdateChannels => (UpdateChannel[])Enum.GetValues(typeof(UpdateChannel));
+
+        [ObservableProperty]
+        private PreReleaseUpdateSource _preReleaseUpdateSource;
+
+        public PreReleaseUpdateSource[] PreReleaseUpdateSources => (PreReleaseUpdateSource[])Enum.GetValues(typeof(PreReleaseUpdateSource));
+
+        [ObservableProperty]
+        private string _customPreReleaseUpdateSource = string.Empty;
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ManualUpdateCommand))]
+        private bool _isManualUpdateInProgress;
+
+        [ObservableProperty]
+        private string _manualUpdateStatusText = "Use Update Now to check and install the latest release for your selected channel.";
+
+        public string ManualUpdateButtonText => IsManualUpdateInProgress ? "Checking..." : "Update Now";
+        public bool CanTriggerManualUpdate => !IsManualUpdateInProgress;
+
+        public bool ShowPreReleaseSourceSettings => UpdateChannel == UpdateChannel.PreRelease;
+        public bool ShowCustomPreReleaseSource => ShowPreReleaseSourceSettings && PreReleaseUpdateSource == PreReleaseUpdateSource.Custom;
+
+        partial void OnAutoCheckUpdateChanged(bool value)
+        {
+            OnPropertyChanged(nameof(ShowPreReleaseSourceSettings));
+            OnPropertyChanged(nameof(ShowCustomPreReleaseSource));
+        }
+
+        partial void OnUpdateChannelChanged(UpdateChannel value)
+        {
+            OnPropertyChanged(nameof(ShowPreReleaseSourceSettings));
+            OnPropertyChanged(nameof(ShowCustomPreReleaseSource));
+        }
+
+        partial void OnPreReleaseUpdateSourceChanged(PreReleaseUpdateSource value)
+        {
+            OnPropertyChanged(nameof(ShowCustomPreReleaseSource));
+        }
+
+        partial void OnIsManualUpdateInProgressChanged(bool value)
+        {
+            OnPropertyChanged(nameof(ManualUpdateButtonText));
+            OnPropertyChanged(nameof(CanTriggerManualUpdate));
+        }
 
         [ObservableProperty]
         private HotkeySettingsViewModel _hotkeySettings;
@@ -146,6 +216,23 @@ namespace XerahS.UI.ViewModels
             nameof(HotkeySettings),
             nameof(SelectedWatchFolder),
             nameof(HasWatchFolders),
+            nameof(HasMcpApiKey),
+            nameof(McpApiKeyDisplay),
+            nameof(McpApiKeyStatusText),
+            nameof(McpManifestUrl),
+            nameof(AssistantHotkeyText),
+            nameof(AssistantHotkeyStatusText),
+            nameof(CaptureCommandPaletteHotkeyText),
+            nameof(CaptureCommandPaletteStatusText),
+            nameof(AssistantProviderOptions),
+            nameof(SelectedAssistantProvider),
+            nameof(AssistantProviderModelId),
+            nameof(AssistantProviderBaseUrl),
+            nameof(AssistantProviderApiKey),
+            nameof(AssistantProviderStatusText),
+            nameof(AssistantProviderNeedsApiKey),
+            nameof(AssistantProviderHasApiKey),
+            nameof(AssistantProviderKeyStatus),
             nameof(WatchFolderDaemonSupported),
             nameof(ShowWatchFolderDaemonScopeSelector),
             nameof(WatchFolderDaemonRunning),
@@ -159,6 +246,8 @@ namespace XerahS.UI.ViewModels
             nameof(LinuxRegionSelectorAvailableText),
             nameof(LinuxRegionSelectorAutomaticText),
             nameof(LinuxRegionSelectorLastDecisionText),
+            nameof(IsManualUpdateInProgress),
+            nameof(ManualUpdateStatusText),
         };
 
         protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
@@ -180,6 +269,7 @@ namespace XerahS.UI.ViewModels
             ScreenshotsFolder = settings.CustomScreenshotsPath ??
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "ShareX");
             SaveImageSubFolderPattern = settings.SaveImageSubFolderPattern ?? "%y-%mo";
+            UseSaveImageSubFolderPattern = settings.UseSaveImageSubFolderPattern;
             UseCustomScreenshotsPath = settings.UseCustomScreenshotsPath;
             ShowTray = settings.ShowTray;
             SilentRun = settings.SilentRun;
@@ -187,8 +277,11 @@ namespace XerahS.UI.ViewModels
             ThemeMode = settings.ThemeMode;
             TrayIconProgressEnabled = settings.TrayIconProgressEnabled;
             TaskbarProgressEnabled = settings.TaskbarProgressEnabled;
+            DisableToastNotification = settings.DisableToastNotification;
             AutoCheckUpdate = settings.AutoCheckUpdate;
             UpdateChannel = settings.UpdateChannel;
+            PreReleaseUpdateSource = settings.PreReleaseUpdateSource;
+            CustomPreReleaseUpdateSource = settings.CustomPreReleaseUpdateSource;
             // Migrate legacy Dev channel to PreRelease (Dev was removed)
             if ((int)UpdateChannel >= 2)
             {
@@ -216,8 +309,11 @@ namespace XerahS.UI.ViewModels
             CaptureClientArea = taskSettings.CaptureSettings.CaptureClientArea;
             UseModernCapture = taskSettings.CaptureSettings.UseModernCapture;
             RefreshLinuxRegionSelectorDiagnostics();
+            RefreshLinuxClipboardDiagnostics();
             LinuxRegionSelectorPreference = LinuxRegionSelectorPreferenceSupport.NormalizeForCurrentSession(
                 taskSettings.CaptureSettings.LinuxRegionSelectorPreference);
+            MacOSRegionSelectorPreference = taskSettings.CaptureSettings.MacOSRegionSelectorPreference;
+            MacOSPlayCaptureSound = taskSettings.CaptureSettings.MacOSPlayCaptureSound;
             LinuxRecordingBackendPreference = ResolveLinuxRecordingBackendPreference(taskSettings.CaptureSettings);
 
             // Task Settings - File Naming Defaults
@@ -266,6 +362,7 @@ namespace XerahS.UI.ViewModels
             SupportsFileAssociations = shellIntegration?.SupportsPluginExtensionRegistration == true;
             SupportsContextMenuIntegration = shellIntegration?.SupportsContextMenuIntegration == true;
             SupportsSendToIntegration = shellIntegration?.SupportsSendToIntegration == true;
+            LoadAssistantProviderSettings();
 
             if (shellIntegration != null)
             {
@@ -291,6 +388,7 @@ namespace XerahS.UI.ViewModels
 
             settings.CustomScreenshotsPath = ScreenshotsFolder;
             settings.SaveImageSubFolderPattern = SaveImageSubFolderPattern;
+            settings.UseSaveImageSubFolderPattern = UseSaveImageSubFolderPattern;
             settings.UseCustomScreenshotsPath = UseCustomScreenshotsPath;
             settings.ShowTray = ShowTray;
             settings.SilentRun = SilentRun;
@@ -298,8 +396,11 @@ namespace XerahS.UI.ViewModels
             settings.ThemeMode = ThemeMode;
             settings.TrayIconProgressEnabled = TrayIconProgressEnabled;
             settings.TaskbarProgressEnabled = TaskbarProgressEnabled;
+            settings.DisableToastNotification = DisableToastNotification;
             settings.AutoCheckUpdate = AutoCheckUpdate;
             settings.UpdateChannel = UpdateChannel;
+            settings.PreReleaseUpdateSource = PreReleaseUpdateSource;
+            settings.CustomPreReleaseUpdateSource = CustomPreReleaseUpdateSource?.Trim() ?? string.Empty;
 
             // Proxy Settings
             settings.ProxySettings.ProxyMethod = ProxyMethod;
@@ -320,6 +421,8 @@ namespace XerahS.UI.ViewModels
             taskSettings.CaptureSettings.CaptureClientArea = CaptureClientArea;
             taskSettings.CaptureSettings.UseModernCapture = UseModernCapture;
             taskSettings.CaptureSettings.LinuxRegionSelectorPreference = LinuxRegionSelectorPreference;
+            taskSettings.CaptureSettings.MacOSRegionSelectorPreference = MacOSRegionSelectorPreference;
+            taskSettings.CaptureSettings.MacOSPlayCaptureSound = MacOSPlayCaptureSound;
             taskSettings.CaptureSettings.LinuxRecordingBackendPreference = LinuxRecordingBackendPreference;
 
             taskSettings.UploadSettings.NameFormatPattern = NameFormatPattern;
@@ -343,11 +446,54 @@ namespace XerahS.UI.ViewModels
             _lastSavedWatchFolderSignature = currentWatchFolderSignature;
 
             SettingsManager.SaveApplicationConfig();
-            SettingsManager.SaveWorkflowsConfigAsync();
+            _ = SettingsManager.SaveWorkflowsConfigAsync();
+            App.ApplyMenuBarOnlyModeFromSettings();
+            Services.UpdateService.Instance.RefreshConfigurationFromSettings();
 
             ApplyWatchFolderRuntimePolicy(
                 watchFolderConfigurationChanged,
                 refreshDaemonStatus: watchFolderConfigurationChanged);
+        }
+
+        private bool CanManualUpdate() => !IsManualUpdateInProgress;
+
+        [RelayCommand(CanExecute = nameof(CanManualUpdate))]
+        private async Task ManualUpdate()
+        {
+            IsManualUpdateInProgress = true;
+
+            try
+            {
+                if (XerahS.UI.Services.UpdateService.IsRuntimeManagedByFlatpak)
+                {
+                    // The Flatpak runtime owns upgrade delivery; the in-app
+                    // updater is intentionally a no-op here so it does not
+                    // surface .deb / .rpm assets that the sandbox cannot
+                    // install.
+                    ManualUpdateStatusText = XerahS.UI.Services.UpdateService.RuntimeManagedUpdateMessage;
+                    return;
+                }
+
+                ManualUpdateStatusText = "Checking for updates...";
+                Services.UpdateService.Instance.Initialize();
+                UpdateStatus status = await Services.UpdateService.Instance.CheckForUpdatesAsync();
+
+                ManualUpdateStatusText = status switch
+                {
+                    UpdateStatus.UpdateAvailable => "Update available. Review the prompt to continue.",
+                    UpdateStatus.UpToDate => "XerahS is already up to date.",
+                    _ => "Update check failed. Check the debug log for details."
+                };
+            }
+            catch (Exception ex)
+            {
+                ManualUpdateStatusText = $"Update check failed: {ex.Message}";
+                DebugHelper.WriteException(ex, "Manual update check failed.");
+            }
+            finally
+            {
+                IsManualUpdateInProgress = false;
+            }
         }
 
         [RelayCommand]
@@ -370,11 +516,15 @@ namespace XerahS.UI.ViewModels
         {
             ScreenshotsFolder = PathsManager.ScreenshotsFolder;
             SaveImageSubFolderPattern = "%y-%mo";
+            UseSaveImageSubFolderPattern = true;
             UseCustomScreenshotsPath = false;
             ShowTray = true;
             SilentRun = false;
+            DisableToastNotification = false;
             SelectedTheme = 0;
             LinuxRegionSelectorPreference = LinuxInteractiveRegionSelectorPreference.Automatic;
+            MacOSRegionSelectorPreference = MacOSInteractiveRegionSelectorPreference.Automatic;
+            MacOSPlayCaptureSound = true;
             LinuxRecordingBackendPreference = XerahS.RegionCapture.ScreenRecording.LinuxRecordingBackendPreference.Automatic;
         }
 

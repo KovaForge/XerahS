@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Candidates (in-tray) · XerahS Developer Dashboard{% endblock %}
+{% block content %}
+
+<form class="filters" method="get" action="{{ url_for('candidates') }}">
+  <label>
+    Search
+    <input type="search" name="q" value="{{ q_filter }}" placeholder="title, category, raw text…">
+  </label>
+  <label>
+    Severity
+    <select name="severity">
+      <option value="">any</option>
+      {% for s in ('critical','high','medium','low') %}
+        <option value="{{ s }}" {% if sev_filter == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="checkbox">
+    <input type="checkbox" name="unmatched" value="1" {% if only_unmatched %}checked{% endif %}>
+    Show only queue items not in any current report
+  </label>
+  <button type="submit">Apply</button>
+  <a class="btn ghost" href="{{ url_for('candidates') }}">Reset</a>
+</form>
+
+{% if not joined %}
+  <div class="card">
+    <p class="muted">No candidates match the current filter.</p>
+  </div>
+{% else %}
+<p class="muted small">{{ joined|length }} item(s) shown · first {{ [joined|length, 50]|min }} rendered below.</p>
+
+<table class="t cands">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Severity</th>
+      <th>Category</th>
+      <th>Title</th>
+      <th>Source</th>
+      <th>Matches report?</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in joined[:50] %}
+    <tr class="cand-row {% if not c.in_report %}unmatched{% endif %}">
+      <td class="num">{{ loop.index }}</td>
+      <td>
+        {% if c.severity %}
+          <span class="pill {{ severity_color(c.severity) }}">{{ c.severity }}</span>
+        {% else %}
+          <span class="muted">—</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if c.category %}<code>{{ c.category }}</code>{% else %}—{% endif %}
+      </td>
+      <td>
+        <div class="title-line">{{ c.title }}</div>
+        {% if c.evidence %}
+          <details class="evidence">
+            <summary>evidence ({{ c.evidence|length }})</summary>
+            <ul>{% for e in c.evidence %}<li><code>{{ e }}</code></li>{% endfor %}</ul>
+          </details>
+        {% endif %}
+        {% if c.fnd_id %}
+          <details class="fnd">
+            <summary>fnd_sig</summary>
+            <code class="fndid">{{ c.fnd_id }}</code>
+          </details>
+        {% endif %}
+      </td>
+      <td>
+        {% if c.feature %}<code class="feat">{{ c.feature }}</code>{% else %}—{% endif %}
+      </td>
+      <td>
+        {% if c.in_report %}
+          <a class="btn" href="{{ url_for('report_view', filename=c.report_filename) }}">open report</a>
+        {% else %}
+          <span class="muted">no current report</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if joined|length > 50 %}
+  <p class="muted small">… {{ joined|length - 50 }} more hidden. Use the search/severity filter to narrow.</p>
+{% endif %}
+{% endif %}
+{% endblock %}

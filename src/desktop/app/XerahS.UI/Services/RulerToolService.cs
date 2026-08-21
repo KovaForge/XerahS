@@ -56,6 +56,8 @@ public static class RulerToolService
         var captureOptions = new CaptureOptions
         {
             UseModernCapture = captureSettings.UseModernCapture,
+            MacOSRegionSelectorPreference = captureSettings.MacOSRegionSelectorPreference,
+            MacOSPlayCaptureSound = captureSettings.MacOSPlayCaptureSound,
             ShowCursor = false,
             CaptureTransparent = captureSettings.CaptureTransparent,
             CaptureShadow = captureSettings.CaptureShadow,
@@ -97,7 +99,7 @@ public static class RulerToolService
             }
             finally
             {
-                RegionCaptureAnnotationOptionsStore.Persist();
+                await RegionCaptureAnnotationOptionsStore.PersistAsync();
             }
 
             // Result contains the measured region if user confirmed

@@ -23,7 +23,7 @@
         <TextBlock Text="FFmpeg Recording Options"
                    FontSize="20"
                    FontWeight="SemiBold"/>
-        <TextBlock Text="Configure the FFmpeg fallback encoder used for recording and audio capture."
+        <TextBlock Text="Configure per-workflow FFmpeg behavior, including the executable override path used by FFmpeg-based recording and GIF conversion."
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                    TextWrapping="Wrap"/>
       </StackPanel>
@@ -47,7 +47,6 @@
             </Grid>
             
             <TextBlock Text="{Binding EffectiveFFmpegPath}"
-                       FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                        FontSize="12"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                        IsVisible="{Binding EffectiveFFmpegPath, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
@@ -87,7 +86,7 @@
               <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="Extra args:"/>
               <TextBox Grid.Row="4" Grid.Column="2" Grid.ColumnSpan="5"
                        Text="{Binding UserArgs}"
-                       Watermark="Additional ffmpeg arguments"
+                       PlaceholderText="Additional ffmpeg arguments"
                        AutomationProperties.Name="Extra Arguments"/>
             </Grid>
 
@@ -97,7 +96,7 @@
               <TextBox Text="{Binding CustomCommands}"
                        AcceptsReturn="True"
                        Height="80"
-                       Watermark="Full ffmpeg command when overriding"
+                       PlaceholderText="Full ffmpeg command when overriding"
                        TextWrapping="Wrap"
                        AutomationProperties.Name="Custom Full Command"/>
             </StackPanel>

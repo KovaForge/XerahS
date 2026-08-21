@@ -24,63 +24,41 @@
 
 import SwiftUI
 
-struct HistoryScreen: View {
-    @ObservedObject var viewModel: HistoryViewModel
-    var onBack: () -> Void
-    var onCopyToClipboard: (String) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Button("Back", action: onBack)
-                Spacer()
-                Button("Refresh") { viewModel.refresh() }
-                    .buttonStyle(.bordered)
-                Button("Clear") { viewModel.clearAll() }
-                    .buttonStyle(.bordered)
-            }
-            .padding(.horizontal)
-
-            TextField("Search", text: $viewModel.searchQuery)
-                .textFieldStyle(.roundedBorder)
-                .padding(.horizontal)
-
-            Text("History")
-                .font(.title2)
-                .padding(.horizontal)
-
-            List {
-                ForEach(viewModel.filteredEntries) { entry in
-                    HistoryEntryRow(entry: entry, onCopyUrl: { onCopyToClipboard(entry.url) }, onDelete: { viewModel.deleteEntry(entry.id) })
-                }
-            }
-            .listStyle(.plain)
-        }
-        .onAppear { viewModel.refresh() }
-    }
-}
-
-private struct HistoryEntryRow: View {
+struct HistoryEntryRow: View {
     let entry: HistoryEntry
     var onCopyUrl: () -> Void
     var onDelete: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(entry.fileName)
-                .font(.subheadline.weight(.medium))
+                .font(.headline)
+
             if !entry.url.isEmpty {
                 Text(entry.url)
                     .font(.caption)
-                    .foregroundStyle(.blue)
-                    .lineLimit(2)
-                Button("Copy URL", action: onCopyUrl)
-                    .buttonStyle(.bordered)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
             }
-            Button("Delete", role: .destructive, action: onDelete)
-                .buttonStyle(.bordered)
+
+            Text(entry.host)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            HStack {
+                if !entry.url.isEmpty {
+                    Button {
+                        onCopyUrl()
+                    } label: {
+                        Label("Copy URL", systemImage: "doc.on.doc")
+                    }
+                }
+                Button(role: .destructive, action: onDelete) {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+            .buttonStyle(.borderless)
         }
-        .padding(.vertical, 4)
     }
 }
 

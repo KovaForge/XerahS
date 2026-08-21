@@ -29,24 +29,28 @@ using Avalonia.Platform.Storage;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using SkiaSharp;
+using XerahS.Bootstrap;
 using XerahS.Core;
 using XerahS.UI.ViewModels;
 using XerahS.Core.Hotkeys;
 using Avalonia; // For Application.Current
 using XerahS.Core.Tasks;
-using XerahS.Core.Managers;
 using ShareX.ImageEditor.Core.Annotations;
-using ShareX.ImageEditor.Presentation.Theming;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
 using XerahS.UI.Views.Dialogs;
+using XerahS.UI.Helpers;
+using XerahS.UI.Services.SettingsSearch;
 
 namespace XerahS.UI.Views
 {
@@ -56,21 +60,46 @@ namespace XerahS.UI.Views
         private const double DefaultWindowHeight = 650;
         private const int MinimumPersistedWindowDimension = 200;
 
+        private readonly IDesktopTaskManager? _taskManager;
         private EditorView? _editorView = null;
         private DestinationSettingsView? _destinationSettingsView = null;
+        private ApplicationSettingsView? _applicationSettingsView = null;
+        private MainViewModel? _mainViewModel;
         private bool _isOpenImageInProgress;
+        private bool _onboardingShown;
+        private bool _suppressWindowActivation = true;
+        private bool _silentRunHideApplied;
 
         /// <summary>
         /// Collection of user-configured workflows for menu binding.
         /// </summary>
         public ObservableCollection<WorkflowSettings> UserWorkflows { get; } = new ObservableCollection<WorkflowSettings>();
         public ObservableCollection<NavigationNode> NavigationNodes { get; } = new ObservableCollection<NavigationNode>();
+        public IAsyncRelayCommand OpenImageMenuCommand { get; }
+        public IRelayCommand ExitMenuCommand { get; }
+        public IRelayCommand<string?> NavigateMenuCommand { get; }
+        public IRelayCommand<WorkflowSettings?> RunWorkflowFromMenuCommand { get; }
 
-        public MainWindow()
+        public MainWindow() : this(null)
         {
+        }
+
+        public MainWindow(IDesktopTaskManager? taskManager)
+        {
+            _taskManager = taskManager;
+            OpenImageMenuCommand = new AsyncRelayCommand(OpenImageFromFileAsync);
+            ExitMenuCommand = new RelayCommand(Close);
+            NavigateMenuCommand = new RelayCommand<string?>(NavigateFromMenuTag);
+            RunWorkflowFromMenuCommand = new RelayCommand<WorkflowSettings?>(RunWorkflowFromMenu);
             InitializeComponent();
+            DataContextChanged += OnMainWindowDataContextChanged;
             KeyDown += OnKeyDown;
             ApplyInitialWindowPlacement();
+
+            if (this.FindControl<ContentControl>("ContentFrame") is ContentControl contentFrame)
+            {
+                contentFrame.PropertyChanged += OnContentFramePropertyChanged;
+            }
 
 #if !DEBUG
             // Video Editor is a work-in-progress; hide it in release builds.
@@ -78,10 +107,6 @@ namespace XerahS.UI.Views
             if (menuItemVideoEditor != null)
                 menuItemVideoEditor.IsVisible = false;
 #endif
-
-            // Set initial theme and subscribe to changes
-            RequestedThemeVariant = ThemeManager.GetCurrentTheme();
-            ThemeManager.ThemeChanged += (s, theme) => RequestedThemeVariant = theme;
 
             BuildNavigationNodes();
 
@@ -92,17 +117,97 @@ namespace XerahS.UI.Views
             }
 
             LoadUserWorkflows();
+            // Do not Show/Activate here. NavigateTo used to call Show() while the window
+            // was still being constructed, which fired Opened before App could attach the
+            // SilentRun hide-to-tray handler. Avalonia shows MainWindow after startup.
             NavigateTo("Editor");
+            _suppressWindowActivation = false;
         }
 
-        private void OnExitClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        protected override void OnClosed(EventArgs e)
         {
-            Close();
+            DataContextChanged -= OnMainWindowDataContextChanged;
+
+            if (this.FindControl<ContentControl>("ContentFrame") is ContentControl contentFrame)
+            {
+                contentFrame.PropertyChanged -= OnContentFramePropertyChanged;
+            }
+
+            if (_mainViewModel != null)
+            {
+                _mainViewModel.PropertyChanged -= OnMainViewModelPropertyChanged;
+                _mainViewModel = null;
+            }
+
+            base.OnClosed(e);
         }
 
-        private async void OnOpenImageClick(object? sender, RoutedEventArgs e)
+        private void OnMainWindowDataContextChanged(object? sender, EventArgs e)
         {
-            await OpenImageFromFileAsync();
+            if (_mainViewModel != null)
+            {
+                _mainViewModel.PropertyChanged -= OnMainViewModelPropertyChanged;
+            }
+
+            if (sender is not MainWindow window || window.DataContext is not MainViewModel nextVm)
+            {
+                _mainViewModel = null;
+                UpdateShellModalVisibility();
+                return;
+            }
+
+            _mainViewModel = nextVm;
+            _mainViewModel.PropertyChanged += OnMainViewModelPropertyChanged;
+            UpdateShellModalVisibility();
+        }
+
+        private void OnMainViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is nameof(MainViewModel.IsModalOpen) or nameof(MainViewModel.ModalContent))
+            {
+                UpdateShellModalVisibility();
+            }
+        }
+
+        private void OnContentFramePropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == ContentControl.ContentProperty)
+            {
+                UpdateShellModalVisibility();
+                QueueNavigationFilterUpdate();
+            }
+        }
+
+        private void UpdateShellModalVisibility()
+        {
+            Grid? overlay = this.FindControl<Grid>("MainWindowModalOverlay");
+            ContentControl? contentFrame = this.FindControl<ContentControl>("ContentFrame");
+
+            if (overlay == null)
+            {
+                return;
+            }
+
+            bool isEditorContent = contentFrame?.Content is EditorView;
+            bool isModalOpen = _mainViewModel?.IsModalOpen == true;
+
+            overlay.IsVisible = isModalOpen && !isEditorContent;
+        }
+
+        private void NavigateFromMenuTag(string? navTag)
+        {
+            if (!string.IsNullOrWhiteSpace(navTag))
+            {
+                NavigateTo(navTag);
+            }
+        }
+
+        private void RunWorkflowFromMenu(WorkflowSettings? workflow)
+        {
+            if (workflow != null)
+            {
+                _ = ExecuteCaptureAsync(workflow.Job, workflow.Id);
+            }
         }
 
         private async Task OpenImageFromFileAsync()
@@ -225,7 +330,7 @@ namespace XerahS.UI.Views
 
                 // Ownership of bitmap is transferred to ViewModel.
                 vm.UpdatePreview(bitmap, clearAnnotations: true);
-                vm.LastSavedPath = path;
+                vm.ImageFilePath = path;
                 bitmap = null;
             }
             catch (Exception ex)
@@ -294,14 +399,6 @@ namespace XerahS.UI.Views
             UpdateWorkflowMenuItems();
         }
 
-        private void OnWorkflowMenuItemClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            if (sender is MenuItem menuItem && menuItem.DataContext is WorkflowSettings workflow)
-            {
-                _ = ExecuteCaptureAsync(workflow.Job, workflow.Id);
-            }
-        }
-
         private void UpdateWorkflowMenuItems()
         {
             var runWorkflowsMenuItem = this.FindControl<MenuItem>("RunWorkflowsMenuItem");
@@ -317,9 +414,9 @@ namespace XerahS.UI.Views
                 var workflowMenuItem = new MenuItem
                 {
                     Header = GetWorkflowDisplayName(workflow),
-                    DataContext = workflow
+                    Command = RunWorkflowFromMenuCommand,
+                    CommandParameter = workflow
                 };
-                workflowMenuItem.Click += OnWorkflowMenuItemClick;
                 workflowMenuItems.Add(workflowMenuItem);
             }
 
@@ -347,6 +444,20 @@ namespace XerahS.UI.Views
 
         private void OnWindowOpened(object? sender, EventArgs e)
         {
+            // First Opened only: later tray "Open Main Window" must stay visible.
+            if (SilentRunStartupPolicy.ShouldHideMainWindowToTray(
+                    SettingsManager.Settings.SilentRun, App.IsExiting, _silentRunHideApplied))
+            {
+                _silentRunHideApplied = true;
+                if (!SettingsManager.Settings.ShowTray)
+                {
+                    SettingsManager.Settings.ShowTray = true;
+                    TrayIconHelper.Instance.RefreshFromSettings();
+                }
+                SilentRunStartupPolicy.ApplyHiddenToTray(this);
+                XerahS.Common.DebugHelper.WriteLine("SilentRun startup: main window hidden to tray.");
+            }
+
             // Provide the native window handle to platform services so the Wayland GlobalShortcuts
             // portal can display a transient permissions dialog (GNOME returns response=2 without it).
             // On X11/XWayland the descriptor is "XID"; on native Wayland it is "wl_surface"
@@ -395,25 +506,61 @@ namespace XerahS.UI.Views
                 };
             }
 
-            // Pre-warm Destination Settings so the first navigation does not pay init cost.
-            Dispatcher.UIThread.Post(() => _ = PreWarmDestinationSettingsAsync(), DispatcherPriority.Background);
+            // Pre-warm settings pages so first open and settings search indexing stay off the hot path.
+            Dispatcher.UIThread.Post(() => _ = PreWarmSettingsSearchIndexAsync(), DispatcherPriority.Background);
+
+            // Show onboarding wizard once on first run — guard prevents double-fire on repeated OnWindowOpened calls.
+            // Skip when SilentRun hid the window: ShowDialog would re-show the owner.
+            if (SettingsManager.Settings.IsFirstTimeRun && !_onboardingShown && !_silentRunHideApplied)
+            {
+                _onboardingShown = true;
+                Dispatcher.UIThread.Post(async () =>
+                {
+                    try
+                    {
+                        var wizard = new XerahS.UI.Onboarding.OnboardingWizardWindow();
+                        var result = await wizard.ShowDialogAsync(this);
+                        if (result.Completed || result.Skipped)
+                        {
+                            XerahS.Common.DebugHelper.WriteLine("[Onboarding] Wizard completed or skipped, marking first-time run complete.");
+                            SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        XerahS.Common.DebugHelper.WriteException(ex, "[Onboarding] Error showing wizard");
+                    }
+                }, DispatcherPriority.Background);
+            }
+        }
+
+        private async Task PreWarmSettingsSearchIndexAsync()
+        {
+            try
+            {
+                _applicationSettingsView ??= CreateApplicationSettingsView();
+                SettingsSearchService.Instance.MergeApplicationIndex(_applicationSettingsView);
+
+                _destinationSettingsView ??= CreateDestinationSettingsView();
+                if (_destinationSettingsView.DataContext is DestinationSettingsViewModel destinationVm)
+                {
+                    await destinationVm.Initialize();
+                    var categories = destinationVm.Categories.Select(category =>
+                        (category.Name, category.Instances.Select(instance => instance.DisplayName)));
+                    SettingsSearchService.Instance.MergeDestinationIndex(_destinationSettingsView, categories);
+                }
+
+                EnrichNavigationSearchTextFromSettingsIndex();
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, "Failed to pre-warm settings search index");
+            }
         }
 
         private async Task PreWarmDestinationSettingsAsync()
         {
-            try
-            {
-                _destinationSettingsView ??= CreateDestinationSettingsView();
-
-                if (_destinationSettingsView.DataContext is DestinationSettingsViewModel vm)
-                {
-                    await vm.Initialize();
-                }
-            }
-            catch (Exception ex)
-            {
-                XerahS.Common.DebugHelper.WriteException(ex, "Failed to pre-warm Destination Settings");
-            }
+            await PreWarmSettingsSearchIndexAsync();
         }
 
         protected override void OnClosing(WindowClosingEventArgs e)
@@ -593,7 +740,7 @@ namespace XerahS.UI.Views
             // Subscribe to task completion to update Editor preview
             void HandleTaskCompleted(object? s, WorkerTask task)
             {
-                TaskManager.Instance.TaskCompleted -= HandleTaskCompleted;
+                _taskManager?.TaskCompleted -= HandleTaskCompleted;
 
                 if (task.Info?.Metadata?.Image is { } image && DataContext is MainViewModel vm)
                 {
@@ -613,7 +760,12 @@ namespace XerahS.UI.Views
                 }
             }
 
-            TaskManager.Instance.TaskCompleted += HandleTaskCompleted;
+            if (_taskManager == null)
+            {
+                return;
+            }
+
+            _taskManager.TaskCompleted += HandleTaskCompleted;
 
             // Hide main window before capture to avoid capturing the app itself
             // This only applies to navbar-triggered captures, not hotkeys
@@ -628,7 +780,7 @@ namespace XerahS.UI.Views
 
             try
             {
-                await TaskManager.Instance.StartTask(settings, image);
+                await _taskManager.StartTask(settings, image);
             }
             finally
             {

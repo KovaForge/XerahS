@@ -33,6 +33,8 @@ namespace XerahS.UI.Views;
 
 public partial class UpdateMessageBox : SurfaceWindow
 {
+    private UpdateMessageBoxViewModel? _viewModel;
+
     public UpdateMessageBox()
     {
         InitializeComponent();
@@ -40,7 +42,7 @@ public partial class UpdateMessageBox : SurfaceWindow
 
     public UpdateMessageBox(UpdateChecker updateChecker) : this()
     {
-        var vm = new UpdateMessageBoxViewModel
+        _viewModel = new UpdateMessageBoxViewModel
         {
             CurrentVersion = FormatVersion(updateChecker.CurrentVersion),
             LatestVersion = FormatVersion(updateChecker.LatestVersion),
@@ -49,11 +51,29 @@ public partial class UpdateMessageBox : SurfaceWindow
             IsDev = updateChecker.IsDev
         };
 
-        DataContext = vm;
-        vm.RequestClose = result =>
+        DataContext = _viewModel;
+        _viewModel.RequestClose = result =>
         {
             Dispatcher.UIThread.Post(() => Close(result ?? false));
         };
+    }
+
+    public async Task<bool?> ShowDetachedAsync()
+    {
+        WindowStartupLocation = WindowStartupLocation.CenterScreen;
+
+        var completionSource = new TaskCompletionSource<bool?>();
+
+        void OnClosed(object? sender, EventArgs args)
+        {
+            Closed -= OnClosed;
+            completionSource.TrySetResult(_viewModel?.DialogResult);
+        }
+
+        Closed += OnClosed;
+        Show();
+
+        return await completionSource.Task;
     }
 
     private static string FormatVersion(Version? version)

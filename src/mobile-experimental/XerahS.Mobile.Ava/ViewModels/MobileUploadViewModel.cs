@@ -30,6 +30,7 @@ using System.Windows.Input;
 using Avalonia.Threading;
 using XerahS.Common;
 using XerahS.Core.Services;
+using XerahS.Mobile.Core;
 using XerahS.Platform.Abstractions;
 
 namespace Ava.ViewModels;
@@ -94,15 +95,31 @@ public class MobileUploadViewModel : INotifyPropertyChanged
 
     public void ProcessFiles(string[] filePaths)
     {
+        ProcessFiles(filePaths, ownedTempFiles: null);
+    }
+
+    /// <summary>
+    /// Import and enqueue paths for upload. Paths listed in
+    /// <paramref name="ownedTempFiles"/> are owned by the queue and deleted
+    /// after processing (picker-streamed / content-provider copies).
+    /// </summary>
+    public void ProcessFiles(string[] filePaths, IEnumerable<string>? ownedTempFiles)
+    {
         if (filePaths.Length == 0)
         {
             StatusText = "No files received.";
             return;
         }
 
+        var importResult = MobileImportService.ImportFiles(filePaths);
+        foreach (var message in importResult.Messages)
+        {
+            StatusText = message;
+        }
+
         var validPaths = new List<string>();
 
-        foreach (var filePath in filePaths)
+        foreach (var filePath in importResult.UploadPaths)
         {
             if (!File.Exists(filePath))
             {
@@ -114,12 +131,12 @@ public class MobileUploadViewModel : INotifyPropertyChanged
             validPaths.Add(filePath);
         }
 
-        var queuedCount = _uploadQueueService.EnqueueFiles(validPaths);
+        var queuedCount = _uploadQueueService.EnqueueFiles(validPaths, ownedTempFiles);
         if (queuedCount > 0)
         {
             StatusText = $"Queued {queuedCount} file(s) for upload.";
         }
-        else if (validPaths.Count == 0)
+        else if (validPaths.Count == 0 && importResult.Messages.Count == 0)
         {
             UpdateCompletionStatus();
         }

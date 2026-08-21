@@ -28,6 +28,8 @@ using XerahS.Platform.Abstractions;
 using XerahS.Uploaders;
 using System.ComponentModel;
 using System.Drawing;
+using Avalonia.Input;
+using HotkeyInfo = XerahS.Platform.Abstractions.HotkeyInfo;
 
 namespace XerahS.Core;
 
@@ -57,6 +59,19 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
         {
             UseWhiteShareXIcon = true;
         }
+
+        if (OperatingSystem.IsLinux())
+        {
+            bool isWayland = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")) ||
+                             string.Equals(Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), "wayland", StringComparison.OrdinalIgnoreCase);
+            PersistClipboardAfterExit ??= isWayland;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            AssistantHotkey = new HotkeyInfo(Key.Space, KeyModifiers.Meta | KeyModifiers.Shift);
+            CaptureCommandPaletteHotkey = new HotkeyInfo(Key.Space, KeyModifiers.Meta | KeyModifiers.Alt);
+        }
     }
 
     #region Settings - General
@@ -68,7 +83,18 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     public bool TrayIconProgressEnabled = true;
     public bool TaskbarProgressEnabled = true;
     public bool UseWhiteShareXIcon = false;
+    /// <summary>
+    /// Global master switch that suppresses every toast notification popup (the corner
+    /// "Task Completed" / "Upload Completed" window). Capture and upload still run; only
+    /// the toast window is hidden. See issue #252.
+    /// </summary>
+    public bool DisableToastNotification = false;
     public bool? LinuxUseWaylandPortalServices = null;
+    /// <summary>
+    /// After UI clipboard copy, also hand off to wl-copy so paste survives app exit (Linux Wayland).
+    /// Null applies platform default: enabled on Wayland, disabled on X11.
+    /// </summary>
+    public bool? PersistClipboardAfterExit = null;
     public bool RememberMainFormPosition = false;
     public System.Drawing.Point MainFormPosition = System.Drawing.Point.Empty;
     public bool RememberMainFormSize = false;
@@ -80,12 +106,26 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
 
     public bool AutoCheckUpdate = true;
     public UpdateChannel UpdateChannel = UpdateChannel.Release;
-    public bool CheckPreReleaseUpdates = false;
+    public PreReleaseUpdateSource PreReleaseUpdateSource = PreReleaseUpdateSource.KovaForge;
+    public string CustomPreReleaseUpdateSource = "";
+    public string McpApiKey { get; set; } = string.Empty;
+    public bool AssistantEnabled { get; set; } = true;
+    public HotkeyInfo AssistantHotkey { get; set; } = new HotkeyInfo(Key.Space, KeyModifiers.Control | KeyModifiers.Shift);
+    public bool CaptureCommandPaletteEnabled { get; set; } = true;
+    public HotkeyInfo CaptureCommandPaletteHotkey { get; set; } = new HotkeyInfo(Key.Space, KeyModifiers.Control | KeyModifiers.Alt);
+    public bool AssistantPromptHistoryEnabled { get; set; }
+    public bool ScreenshotContentSearchEnabled { get; set; } = true;
+    public string AssistantActiveProviderId { get; set; } = string.Empty;
+    public List<AssistantProviderConfig> AssistantProviders { get; set; } = new();
 
     // OS Integration (platform-agnostic naming)
     public bool RunAtStartup = false;
     public bool EnableContextMenuIntegration = false;
     public bool EnableSendToIntegration = false;
+    public SendToFolderPolicy SendToFolderPolicy = SendToFolderPolicy.IncludeTopLevelFiles;
+    public SendToBatchExecutionPolicy SendToBatchExecutionPolicy = SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold;
+    public int SendToBatchConfirmThreshold = 5;
+    public List<SendToRememberedChoice> SendToRememberedChoices = new();
     public WatchFolderDaemonScope WatchFolderDaemonScope = WatchFolderDaemonScope.User;
     public bool WatchFolderDaemonStartAtStartup = true;
 
@@ -107,6 +147,7 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
 
     public bool UseCustomScreenshotsPath = false;
     public string CustomScreenshotsPath = "";
+    public bool UseSaveImageSubFolderPattern = true;
     public string SaveImageSubFolderPattern = "%y-%mo";
     public string SaveImageSubFolderPatternWindow = "";
 
@@ -239,8 +280,8 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
         set => hotkeyRepeatLimit = Math.Max(value, 200);
     }
 
-    [Category("Clipboard"), DefaultValue(true), Description("Show clipboard content viewer.")]
-    public bool ShowClipboardContentViewer { get; set; }
+    [Category("Clipboard"), DefaultValue(false), Description("Show clipboard content viewer.")]
+    public bool ShowClipboardContentViewer { get; set; } = false;
 
     [Category("Clipboard"), DefaultValue(true), Description("Fill white background for clipboard copy.")]
     public bool DefaultClipboardCopyImageFillBackground { get; set; }
@@ -374,4 +415,12 @@ public class RecentTask
     public string ThumbnailURL { get; set; } = "";
     public string DeletionURL { get; set; } = "";
     public string ShortenedURL { get; set; } = "";
+}
+
+public class AssistantProviderConfig
+{
+    public string ProviderId { get; set; } = "";
+    public string ModelId { get; set; } = "";
+    public string BaseUrl { get; set; } = "";
+    public DateTime LastValidatedAt { get; set; }
 }

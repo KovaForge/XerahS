@@ -44,12 +44,6 @@ internal static class NativeWindowService
 {
     private const int GWL_STYLE = -16;
     private const int GWL_EXSTYLE = -20;
-    private const uint WS_VISIBLE = 0x10000000;
-    private const uint WS_EX_TOOLWINDOW = 0x00000080;
-    private const uint WS_EX_NOACTIVATE = 0x08000000;
-    private const uint WS_EX_APPWINDOW = 0x00040000;
-    private const uint WS_EX_LAYERED = 0x00080000;
-    private const uint WS_DISABLED = 0x08000000;
 
     // Cache for our own overlay windows to exclude them
     private static readonly HashSet<nint> ExcludedHandles = [];
@@ -100,48 +94,49 @@ internal static class NativeWindowService
             if (ExcludedHandles.Contains((nint)hWnd))
                 return true;
 
-            if (IsWindowValidForCapture(hWnd))
+            var info = GetWindowInfo(hWnd, zOrder);
+            if (info is not null)
             {
-                var info = GetWindowInfo(hWnd, zOrder++);
-                if (info is not null && !info.VisualBounds.IsEmpty)
-                {
-                    windows.Add(info);
-                }
+                windows.Add(info);
+                zOrder++;
             }
+
             return true;
         }, 0);
 
         return windows;
     }
 
-    private static bool IsWindowValidForCapture(HWND hWnd)
-    {
-        if (!PInvoke.IsWindowVisible(hWnd))
-            return false;
-
-        if (PInvoke.IsIconic(hWnd))
-            return false;
-
-        // Get window style
-        var style = GetWindowLongAuto(hWnd, GWL_STYLE);
-        if ((style & WS_VISIBLE) == 0)
-            return false;
-
-        // Skip tool windows and other special windows
-        var exStyle = GetWindowLongAuto(hWnd, GWL_EXSTYLE);
-        if ((exStyle & WS_EX_TOOLWINDOW) != 0)
-            return false;
-
-        // Skip windows with empty titles (usually internal windows)
-        var titleLength = PInvoke.GetWindowTextLength(hWnd);
-        if (titleLength == 0)
-            return false;
-
-        return true;
-    }
+    internal static bool ShouldIncludeWindowForCapture(
+        bool isVisible,
+        bool isMinimized,
+        bool isCloaked,
+        string title,
+        string className,
+        nint style,
+        nint exStyle)
+        => NativeWindowCaptureFilter.ShouldIncludeWindowForCapture(
+            isVisible,
+            isMinimized,
+            isCloaked,
+            title,
+            className,
+            style,
+            exStyle);
 
     private static WindowInfo? GetWindowInfo(HWND hWnd, int zOrder)
     {
+        bool isVisible = PInvoke.IsWindowVisible(hWnd);
+        bool isMinimized = PInvoke.IsIconic(hWnd);
+        bool isCloaked = IsWindowCloaked(hWnd);
+        var style = GetWindowLongAuto(hWnd, GWL_STYLE);
+        var exStyle = GetWindowLongAuto(hWnd, GWL_EXSTYLE);
+        string title = GetWindowTitle(hWnd);
+        string className = GetWindowClassName(hWnd);
+
+        if (!ShouldIncludeWindowForCapture(isVisible, isMinimized, isCloaked, title, className, style, exStyle))
+            return null;
+
         // Get standard window rect
         if (!PInvoke.GetWindowRect(hWnd, out var windowRect))
             return null;
@@ -152,35 +147,13 @@ internal static class NativeWindowService
             windowRect.Width,
             windowRect.Height);
 
+        if (bounds.Width <= 1 || bounds.Height <= 1)
+            return null;
+
         // Get visual bounds using DWM (excludes shadow/invisible borders)
         var visualBounds = GetDwmFrameBounds(hWnd) ?? bounds;
-
-        // Get window title
-        var titleLength = PInvoke.GetWindowTextLength(hWnd);
-        var titleBuilder = new char[titleLength + 1];
-        string title;
-
-        unsafe
-        {
-            fixed (char* pTitle = titleBuilder)
-            {
-                PInvoke.GetWindowText(hWnd, pTitle, titleLength + 1);
-                title = new string(pTitle);
-            }
-        }
-
-        // Get class name
-        var classBuilder = new char[256];
-        string className;
-
-        unsafe
-        {
-            fixed (char* pClass = classBuilder)
-            {
-                PInvoke.GetClassName(hWnd, pClass, 256);
-                className = new string(pClass);
-            }
-        }
+        if (visualBounds.Width <= 1 || visualBounds.Height <= 1)
+            return null;
 
         return new WindowInfo(
             Handle: (nint)hWnd,
@@ -190,6 +163,42 @@ internal static class NativeWindowService
             VisualBounds: visualBounds,
             IsMinimized: PInvoke.IsIconic(hWnd),
             ZOrder: zOrder);
+    }
+
+    private static unsafe string GetWindowTitle(HWND hWnd)
+    {
+        int titleLength = PInvoke.GetWindowTextLength(hWnd);
+        if (titleLength <= 0)
+            return string.Empty;
+
+        var titleBuilder = new char[titleLength + 1];
+        fixed (char* pTitle = titleBuilder)
+        {
+            PInvoke.GetWindowText(hWnd, pTitle, titleLength + 1);
+            return new string(pTitle);
+        }
+    }
+
+    private static unsafe string GetWindowClassName(HWND hWnd)
+    {
+        var classBuilder = new char[256];
+        fixed (char* pClass = classBuilder)
+        {
+            PInvoke.GetClassName(hWnd, pClass, 256);
+            return new string(pClass);
+        }
+    }
+
+    private static unsafe bool IsWindowCloaked(HWND hWnd)
+    {
+        int cloaked = 0;
+        var hr = PInvoke.DwmGetWindowAttribute(
+            hWnd,
+            DWMWINDOWATTRIBUTE.DWMWA_CLOAKED,
+            &cloaked,
+            (uint)sizeof(int));
+
+        return !hr.Failed && cloaked != 0;
     }
 
     private static PixelRect? GetDwmFrameBounds(HWND hWnd)

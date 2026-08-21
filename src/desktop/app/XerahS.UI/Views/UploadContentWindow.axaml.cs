@@ -62,7 +62,7 @@ public partial class UploadContentWindow : SurfaceWindow
 
     private void OnDragOver(object? sender, DragEventArgs e)
     {
-        e.DragEffects = e.DataTransfer.Formats.Contains(DataFormat.File)
+        e.DragEffects = HasDroppedFiles(e.DataTransfer)
             ? DragDropEffects.Copy
             : DragDropEffects.None;
     }
@@ -71,24 +71,49 @@ public partial class UploadContentWindow : SurfaceWindow
     {
         if (_viewModel == null) return;
 
-        foreach (var item in e.DataTransfer.Items)
+        foreach (var item in GetDroppedStorageItems(e.DataTransfer))
         {
-            if (item.TryGetRaw(DataFormat.File) is IStorageFile file)
+            AddStorageItemToUploadList(item, _viewModel);
+        }
+    }
+
+    internal static bool HasDroppedFiles(IDataTransfer dataTransfer) =>
+        dataTransfer.TryGetFiles()?.Any() == true || dataTransfer.Formats.Contains(DataFormat.File);
+
+    internal static IReadOnlyList<IStorageItem> GetDroppedStorageItems(IDataTransfer dataTransfer)
+    {
+        var droppedItems = dataTransfer.TryGetFiles()?.ToList() ?? new List<IStorageItem>();
+
+        // Fallback for providers that expose files only through raw DataTransfer items.
+        if (droppedItems.Count == 0)
+        {
+            foreach (var item in dataTransfer.Items)
             {
-                var path = file.Path.LocalPath;
-                if (!string.IsNullOrEmpty(path))
+                if (item.TryGetRaw(DataFormat.File) is IStorageItem storageItem)
                 {
-                    _viewModel.AddFileItem(path);
+                    droppedItems.Add(storageItem);
                 }
             }
-            else if (item.TryGetRaw(DataFormat.File) is IStorageFolder folder)
-            {
-                var path = folder.Path.LocalPath;
-                if (!string.IsNullOrEmpty(path))
-                {
-                    _viewModel.AddFolderFiles(path);
-                }
-            }
+        }
+
+        return droppedItems;
+    }
+
+    private static void AddStorageItemToUploadList(IStorageItem item, UploadContentViewModel viewModel)
+    {
+        var path = item.TryGetLocalPath();
+        if (string.IsNullOrEmpty(path))
+        {
+            return;
+        }
+
+        if (item is IStorageFile)
+        {
+            viewModel.AddFileItem(path);
+        }
+        else if (item is IStorageFolder)
+        {
+            viewModel.AddFolderFiles(path);
         }
     }
 
@@ -104,7 +129,7 @@ public partial class UploadContentWindow : SurfaceWindow
         {
             foreach (var file in files)
             {
-                var path = file.Path.LocalPath;
+                var path = file.TryGetLocalPath();
                 if (!string.IsNullOrEmpty(path))
                 {
                     _viewModel.AddFileItem(path);
@@ -123,7 +148,7 @@ public partial class UploadContentWindow : SurfaceWindow
 
         if (_viewModel != null && folders.Count > 0)
         {
-            var path = folders[0].Path.LocalPath;
+            var path = folders[0].TryGetLocalPath();
             if (!string.IsNullOrEmpty(path))
             {
                 _viewModel.AddFolderFiles(path);
@@ -133,7 +158,7 @@ public partial class UploadContentWindow : SurfaceWindow
 
     private async void OnTextInputRequested(object? sender, EventArgs e)
     {
-        var dialog = new Window
+        var dialog = new SurfaceWindow
         {
             Title = "Enter Text",
             Width = 450,
@@ -149,7 +174,7 @@ public partial class UploadContentWindow : SurfaceWindow
         {
             AcceptsReturn = true,
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-            Watermark = "Enter text to upload..."
+            PlaceholderText = "Enter text to upload..."
         };
 
         var okButton = new Button { Content = "OK", MinWidth = 80, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right };
@@ -184,7 +209,7 @@ public partial class UploadContentWindow : SurfaceWindow
 
     private async void OnURLInputRequested(object? sender, EventArgs e)
     {
-        var dialog = new Window
+        var dialog = new SurfaceWindow
         {
             Title = "Enter URL",
             Width = 450,
@@ -198,7 +223,7 @@ public partial class UploadContentWindow : SurfaceWindow
 
         var textBox = new TextBox
         {
-            Watermark = "https://..."
+            PlaceholderText = "https://..."
         };
 
         var okButton = new Button { Content = "OK", MinWidth = 80 };

@@ -30,6 +30,7 @@ using ShareX.Avalonia.Platform.Abstractions.Capture;
 using SkiaSharp;
 using Tmds.DBus;
 using XerahS.Common;
+using XerahS.Platform.Linux.Services;
 
 namespace XerahS.Platform.Linux.Capture;
 
@@ -47,8 +48,8 @@ internal sealed class WaylandPortalStrategy : ICaptureStrategy
 
     public static bool IsSupported()
     {
-        var sessionType = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE");
-        return sessionType?.Equals("wayland", StringComparison.OrdinalIgnoreCase) ?? false;
+        var environment = LinuxRuntimeEnvironment.Detect();
+        return environment.IsWayland || environment.IsSandboxed;
     }
 
     public MonitorInfo[] GetMonitors()
@@ -82,6 +83,11 @@ internal sealed class WaylandPortalStrategy : ICaptureStrategy
             return captured;
         }
 
+        if (LinuxRuntimeEnvironment.Detect().IsSandboxed)
+        {
+            throw new InvalidOperationException("Portal capture failed in a sandboxed Linux environment; native CLI capture fallbacks are disabled.");
+        }
+
         var cliStrategy = new LinuxCliCaptureStrategy();
         return await cliStrategy.CaptureRegionAsync(physicalRegion, options);
     }
@@ -111,7 +117,8 @@ internal sealed class WaylandPortalStrategy : ICaptureStrategy
         try
         {
             using var connection = new Connection(Address.Session);
-            await connection.ConnectAsync();
+            var connectionInfo = await connection.ConnectAsync();
+            PortalRequestExtensions.CacheLocalConnectionName(connection, connectionInfo);
 
             var portal = connection.CreateProxy<IScreenshotPortal>(PortalBusName, PortalObjectPath);
 
@@ -167,9 +174,12 @@ internal sealed class WaylandPortalStrategy : ICaptureStrategy
     {
         var requestStartUtc = DateTime.UtcNow;
         using var monitor = PortalBusMonitor.TryStart("WaylandPortalStrategy");
-        var requestPath = await portal.ScreenshotAsync(string.Empty, options).ConfigureAwait(false);
-        var request = connection.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
-        var (response, results) = await request.WaitForResponseAsync().ConfigureAwait(false);
+        var (response, results) = await connection
+            .SendPortalRequestAsync(
+                PortalBusName,
+                options,
+                () => portal.ScreenshotAsync(string.Empty, options))
+            .ConfigureAwait(false);
 
         if (response != 0)
         {
@@ -279,9 +289,10 @@ internal sealed class WaylandPortalStrategy : ICaptureStrategy
 
         var cropped = new SKBitmap(clamped.Width, clamped.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
         using var canvas = new SKCanvas(cropped);
-            canvas.DrawBitmap(source, new SKRectI(clamped.X, clamped.Y, clamped.X + clamped.Width, clamped.Y + clamped.Height), new SKRect(0, 0, clamped.Width, clamped.Height));
+        var srcRect = new SKRectI(clamped.X, clamped.Y, clamped.X + clamped.Width, clamped.Y + clamped.Height);
+        canvas.DrawBitmap(source, srcRect, new SKRect(0, 0, clamped.Width, clamped.Height), SKSamplingOptions.Default, null);
 
-            return new CapturedBitmap(cropped, new PhysicalRectangle(clamped.X, clamped.Y, clamped.Width, clamped.Height), 1.0);
+        return new CapturedBitmap(cropped, new PhysicalRectangle(clamped.X, clamped.Y, clamped.Width, clamped.Height), 1.0);
     }
 
     private static PhysicalRectangle ClampRegion(PhysicalRectangle region, int width, int height)

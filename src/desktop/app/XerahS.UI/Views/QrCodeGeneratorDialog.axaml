@@ -49,7 +49,7 @@
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
                              MinHeight="170"
-                             Watermark="Type or paste text to encode..."
+                             PlaceholderText="Type or paste text to encode..."
                              AutomationProperties.Name="QR Code Content Input"/>
 
                     <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalAlignment="Center">

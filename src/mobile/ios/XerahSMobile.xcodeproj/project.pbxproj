@@ -33,10 +33,23 @@
 		C10000A3 /* S3ConfigScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000A4 /* S3ConfigScreen.swift */; };
 		C10000A5 /* CustomUploaderConfigScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000A6 /* CustomUploaderConfigScreen.swift */; };
 		C10000A7 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000A8 /* RootView.swift */; };
+		C10000A9 /* AboutScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000AA /* AboutScreen.swift */; };
 		D1000001 /* ShareGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000002 /* ShareGroup.swift */; };
 		E1000001 /* UploadFileNameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000002 /* UploadFileNameGenerator.swift */; };
 		D1000003 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000004 /* ShareViewController.swift */; };
 		D1000005 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D1000000 /* ShareExtension.appex */; };
+		D2000001 /* ShareExtensionUploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2000002 /* ShareExtensionUploadService.swift */; };
+		D2000003 /* ApplicationConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000006 /* ApplicationConfig.swift */; };
+		D2000004 /* Paths.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000A0 /* Paths.swift */; };
+		D2000005 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000006 /* KeychainStore.swift */; };
+		D2000006 /* UploadOutcome.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000A8 /* UploadOutcome.swift */; };
+		D2000007 /* CustomUploader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000B0 /* CustomUploader.swift */; };
+		D2000008 /* S3Uploader.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000B2 /* S3Uploader.swift */; };
+		D2000009 /* HeicToPngConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000B8 /* HeicToPngConverter.swift */; };
+		D200000A /* UploadFileNameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000002 /* UploadFileNameGenerator.swift */; };
+		F1000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F1000002 /* PrivacyInfo.xcprivacy */; };
+		F1000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F1000004 /* PrivacyInfo.xcprivacy */; };
+		F1000005 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000006 /* KeychainStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,13 +105,18 @@
 		C10000A4 /* S3ConfigScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = S3ConfigScreen.swift; sourceTree = "<group>"; };
 		C10000A6 /* CustomUploaderConfigScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomUploaderConfigScreen.swift; sourceTree = "<group>"; };
 		C10000A8 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		C10000AA /* AboutScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutScreen.swift; sourceTree = "<group>"; };
 		D1000000 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1000002 /* ShareGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareGroup.swift; sourceTree = "<group>"; };
 		E1000002 /* UploadFileNameGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadFileNameGenerator.swift; sourceTree = "<group>"; };
 		D1000004 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		D2000002 /* ShareExtensionUploadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareExtensionUploadService.swift; sourceTree = "<group>"; };
 		D1000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D1000007 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
 		D1000008 /* XerahSMobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = XerahSMobile.entitlements; sourceTree = "<group>"; };
+		F1000002 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		F1000004 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		F1000006 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -150,6 +168,7 @@
 				B0FFFFF0 /* Core */,
 				A1000006 /* Assets.xcassets */,
 				A1000007 /* Info.plist */,
+				F1000002 /* PrivacyInfo.xcprivacy */,
 				D1000008 /* XerahSMobile.entitlements */,
 			);
 			path = XerahSMobile;
@@ -199,6 +218,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000A2 /* SettingsRepository.swift */,
+				F1000006 /* KeychainStore.swift */,
 				B10000A4 /* QueueRepository.swift */,
 				B10000A6 /* HistoryRepository.swift */,
 				B10000B4 /* UploadQueueWorker.swift */,
@@ -267,6 +287,7 @@
 				C10000A2 /* SettingsHubScreen.swift */,
 				C10000A4 /* S3ConfigScreen.swift */,
 				C10000A6 /* CustomUploaderConfigScreen.swift */,
+				C10000AA /* AboutScreen.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -275,7 +296,9 @@
 			isa = PBXGroup;
 			children = (
 				D1000004 /* ShareViewController.swift */,
+				D2000002 /* ShareExtensionUploadService.swift */,
 				D1000006 /* Info.plist */,
+				F1000004 /* PrivacyInfo.xcprivacy */,
 				D1000007 /* ShareExtension.entitlements */,
 			);
 			path = ShareExtension;
@@ -329,6 +352,16 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1500;
 				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					A0FFFFFA = {
+						DevelopmentTeam = 7C5AS6VPUH;
+						ProvisioningStyle = Automatic;
+					};
+					D0FFFFFA = {
+						DevelopmentTeam = 7C5AS6VPUH;
+						ProvisioningStyle = Automatic;
+					};
+				};
 			};
 			buildConfigurationList = A1000012 /* Build configuration list for PBXProject "XerahSMobile" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -355,6 +388,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000005 /* Assets.xcassets in Resources */,
+				F1000001 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -362,6 +396,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1000003 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -380,6 +415,7 @@
 				B1000007 /* UploadResultItem.swift in Sources */,
 				B1000009 /* Paths.swift in Sources */,
 				B10000A1 /* SettingsRepository.swift in Sources */,
+				F1000005 /* KeychainStore.swift in Sources */,
 				B10000A3 /* QueueRepository.swift in Sources */,
 				B10000A5 /* HistoryRepository.swift in Sources */,
 				B10000A7 /* UploadOutcome.swift in Sources */,
@@ -396,6 +432,7 @@
 				C10000A3 /* S3ConfigScreen.swift in Sources */,
 				C10000A5 /* CustomUploaderConfigScreen.swift in Sources */,
 				C10000A7 /* RootView.swift in Sources */,
+				C10000A9 /* AboutScreen.swift in Sources */,
 				D1000001 /* ShareGroup.swift in Sources */,
 				E1000001 /* UploadFileNameGenerator.swift in Sources */,
 			);
@@ -406,6 +443,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				D1000003 /* ShareViewController.swift in Sources */,
+				D2000001 /* ShareExtensionUploadService.swift in Sources */,
+				D2000003 /* ApplicationConfig.swift in Sources */,
+				D2000004 /* Paths.swift in Sources */,
+				D2000005 /* KeychainStore.swift in Sources */,
+				D2000006 /* UploadOutcome.swift in Sources */,
+				D2000007 /* CustomUploader.swift in Sources */,
+				D2000008 /* S3Uploader.swift in Sources */,
+				D2000009 /* HeicToPngConverter.swift in Sources */,
+				D200000A /* UploadFileNameGenerator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -530,8 +576,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = XerahSMobile/XerahSMobile.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5299HQVVA5;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 7C5AS6VPUH;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = XerahSMobile/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = XerahS;
@@ -542,8 +588,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.16.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.getsharex.xerahs.mobile;
+				MARKETING_VERSION = 0.22.133;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xerahs.xerahs.mobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -558,8 +604,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = XerahSMobile/XerahSMobile.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5299HQVVA5;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 7C5AS6VPUH;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = XerahSMobile/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = XerahS;
@@ -570,8 +616,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.16.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.getsharex.xerahs.mobile;
+				MARKETING_VERSION = 0.22.133;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xerahs.xerahs.mobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -584,8 +630,8 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5299HQVVA5;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 7C5AS6VPUH;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = XerahS;
@@ -594,8 +640,8 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.16.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.getsharex.xerahs.mobile.ShareExtension;
+				MARKETING_VERSION = 0.22.133;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xerahs.xerahs.mobile.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -609,8 +655,8 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5299HQVVA5;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_TEAM = 7C5AS6VPUH;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = XerahS;
@@ -619,8 +665,8 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.16.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.getsharex.xerahs.mobile.ShareExtension;
+				MARKETING_VERSION = 0.22.133;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xerahs.xerahs.mobile.ShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;

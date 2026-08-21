@@ -51,8 +51,16 @@ public class PluginDiscovery
             return discovered;
         }
 
-        // Each subdirectory is a potential plugin
-        var pluginDirs = Directory.GetDirectories(pluginsDirectory);
+        string[] pluginDirs;
+        try
+        {
+            pluginDirs = Directory.GetDirectories(pluginsDirectory);
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException)
+        {
+            DebugHelper.WriteLine($"Plugins directory cannot be enumerated: {pluginsDirectory}: {ex.Message}");
+            return discovered;
+        }
 
         foreach (var pluginDir in pluginDirs)
         {

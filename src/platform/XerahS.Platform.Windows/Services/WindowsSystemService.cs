@@ -35,7 +35,7 @@ namespace XerahS.Platform.Windows.Services
     public class WindowsSystemService : ISystemService
     {
         private const int SpiGetDesktopWallpaper = 0x0073;
-        private const int MaxWallpaperPath = 260;
+        private const int MaxWallpaperPath = 32767;
 
         public bool IsDesktopWallpaperSupported => true;
 
@@ -48,9 +48,7 @@ namespace XerahS.Platform.Windows.Services
 
             try
             {
-                string args = $"/select,\"{filePath.Replace('/', '\\')}\"";
-
-                Process.Start(new ProcessStartInfo("explorer.exe", args) { UseShellExecute = true });
+                Process.Start(CreateRevealStartInfo(NormalizeExistingPath(filePath)));
                 return true;
             }
             catch (Exception ex)
@@ -83,7 +81,7 @@ namespace XerahS.Platform.Windows.Services
 
              try
              {
-                 Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+                 Process.Start(CreateOpenStartInfo(NormalizeExistingPath(filePath)));
                  return true;
              }
              catch (Exception ex)
@@ -91,6 +89,27 @@ namespace XerahS.Platform.Windows.Services
                  Debug.WriteLine(ex);
              }
              return false;
+        }
+
+        internal static ProcessStartInfo CreateRevealStartInfo(string target)
+        {
+            return new ProcessStartInfo("explorer.exe", $"/select,\"{target.Replace('/', '\\')}\"")
+            {
+                UseShellExecute = true
+            };
+        }
+
+        internal static ProcessStartInfo CreateOpenStartInfo(string target)
+        {
+            return new ProcessStartInfo(target)
+            {
+                UseShellExecute = true
+            };
+        }
+
+        internal static string NormalizeExistingPath(string path)
+        {
+            return Path.GetFullPath(path);
         }
 
         public bool TryGetDesktopWallpaper(out DesktopWallpaperInfo? wallpaper)

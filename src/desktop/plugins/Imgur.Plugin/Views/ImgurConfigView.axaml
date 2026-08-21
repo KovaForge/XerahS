@@ -15,7 +15,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Client ID *" FontWeight="Medium"/>
             <TextBox Text="{Binding ClientId}" 
-                     Watermark="Enter Imgur Client ID"
+                     PlaceholderText="Enter Imgur Client ID"
                      Width="400"
                      HorizontalAlignment="Left"/>
             <TextBlock Text="Get your Client ID from https://api.imgur.com/oauth2/addclient" 
@@ -23,6 +23,12 @@
                        Foreground="{DynamicResource SystemAccentColor}"
                        TextWrapping="Wrap"
                        MaxWidth="400"
+                       HorizontalAlignment="Left"/>
+            <TextBlock Text="The built-in legacy ID is not valid for login. Register your own app and paste its Client ID here."
+                       FontSize="11"
+                       Foreground="{DynamicResource SystemAccentColor}"
+                       TextWrapping="Wrap"
+                       MaxWidth="460"
                        HorizontalAlignment="Left"/>
         </StackPanel>
 
@@ -51,11 +57,11 @@
                 </StackPanel>
 
                 <StackPanel Spacing="5" IsVisible="{Binding !IsLoggedIn}">
-                    <TextBlock Text="Step 2: Enter PIN from Imgur" FontSize="12"/>
+                    <TextBlock Text="Step 2: Paste the full callback URL from Imgur" FontSize="12"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBox Text="{Binding Pin}" 
-                                 Watermark="Enter PIN" 
-                                 Width="150"/>
+                        <TextBox Text="{Binding AuthCallbackUrl}" 
+                                 PlaceholderText="Paste full callback URL here" 
+                                 Width="350"/>
                         <Button Content="Complete Login" 
                                 Command="{Binding CompleteLoginCommand}"
                                 Classes="accent"/>

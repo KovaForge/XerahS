@@ -5,7 +5,7 @@
                 xmlns:views="using:XerahS.UI.Views"
                 xmlns:vm="using:XerahS.UI.ViewModels"
                 xmlns:controls="using:XerahS.UI.Views.Controls"
-                xmlns:theming="clr-namespace:ShareX.ImageEditor.Presentation.Theming;assembly=ShareX.ImageEditor"
+                xmlns:theming="clr-namespace:XerahS.UI.Theming"
                 mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
                 x:Class="XerahS.UI.Views.WorkflowsView"
                 x:DataType="vm:WorkflowsViewModel">
@@ -90,7 +90,7 @@
                          Background="Transparent"
                          AutomationProperties.Name="Workflows List">
                     <ListBox.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="vm:HotkeyItemViewModel">
                             <controls:HotkeySelectionControl Margin="0,4"/>
                         </DataTemplate>
                     </ListBox.ItemTemplate>

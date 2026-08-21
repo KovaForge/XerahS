@@ -438,11 +438,13 @@ public sealed class SecretStore : ISecretStore, ISecretStoreInfo
     {
         private readonly string _service;
         private readonly string _securityPath;
+        private readonly string _keychainArgument;
 
         public MacOSKeychainSecretStore(string service)
         {
             _service = service;
             _securityPath = File.Exists("/usr/bin/security") ? "/usr/bin/security" : "security";
+            _keychainArgument = BuildKeychainArgument();
         }
 
         public static bool IsAvailable()
@@ -453,27 +455,62 @@ public sealed class SecretStore : ISecretStore, ISecretStoreInfo
         public string? GetSecret(string providerId, string secretKey, string name)
         {
             var account = BuildKey(providerId, secretKey, name);
-            var result = RunCommand(_securityPath, $"find-generic-password -a \"{account}\" -s \"{_service}\" -w");
+            var result = RunCommand(_securityPath, $"find-generic-password -a \"{account}\" -s \"{_service}\" -w{_keychainArgument}");
             return string.IsNullOrWhiteSpace(result) ? null : result.Trim();
         }
 
         public void SetSecret(string providerId, string secretKey, string name, string value)
         {
             var account = BuildKey(providerId, secretKey, name);
-            RunCommand(_securityPath, $"add-generic-password -a \"{account}\" -s \"{_service}\" -w \"{value}\" -U");
+            RunCommand(_securityPath, $"add-generic-password -a \"{account}\" -s \"{_service}\" -w \"{value}\" -U{_keychainArgument}");
         }
 
         public void DeleteSecret(string providerId, string secretKey, string name)
         {
             var account = BuildKey(providerId, secretKey, name);
-            RunCommand(_securityPath, $"delete-generic-password -a \"{account}\" -s \"{_service}\"");
+            RunCommand(_securityPath, $"delete-generic-password -a \"{account}\" -s \"{_service}\"{_keychainArgument}");
         }
 
         public bool HasSecret(string providerId, string secretKey, string name)
         {
             var account = BuildKey(providerId, secretKey, name);
-            var result = RunCommand(_securityPath, $"find-generic-password -a \"{account}\" -s \"{_service}\" -w");
+            var result = RunCommand(_securityPath, $"find-generic-password -a \"{account}\" -s \"{_service}\" -w{_keychainArgument}");
             return !string.IsNullOrWhiteSpace(result);
+        }
+
+        private static string BuildKeychainArgument()
+        {
+            foreach (string home in GetCandidateHomeDirectories())
+            {
+                string loginKeychain = Path.Combine(home, "Library", "Keychains", "login.keychain-db");
+                if (File.Exists(loginKeychain))
+                {
+                    return $" \"{loginKeychain}\"";
+                }
+            }
+
+            return string.Empty;
+        }
+
+        private static IEnumerable<string> GetCandidateHomeDirectories()
+        {
+            string specialFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!string.IsNullOrWhiteSpace(specialFolder))
+            {
+                yield return specialFolder;
+            }
+
+            string? home = Environment.GetEnvironmentVariable("HOME");
+            if (!string.IsNullOrWhiteSpace(home))
+            {
+                yield return home;
+            }
+
+            string userName = Environment.UserName;
+            if (!string.IsNullOrWhiteSpace(userName) && OperatingSystem.IsMacOS())
+            {
+                yield return Path.Combine("/Users", userName);
+            }
         }
     }
 

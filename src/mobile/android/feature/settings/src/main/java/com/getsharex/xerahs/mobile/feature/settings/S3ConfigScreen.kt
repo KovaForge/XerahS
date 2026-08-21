@@ -37,13 +37,20 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -77,6 +84,7 @@ fun S3ConfigScreen(
     val bucket by viewModel.bucketName.collectAsState()
     val regionIndex by viewModel.regionIndex.collectAsState()
     val customEndpoint by viewModel.customEndpoint.collectAsState()
+    val usePathStyle by viewModel.usePathStyle.collectAsState()
     val useCustomDomain by viewModel.useCustomDomain.collectAsState()
     val customDomain by viewModel.customDomain.collectAsState()
     val signedPayload by viewModel.signedPayload.collectAsState()
@@ -84,6 +92,7 @@ fun S3ConfigScreen(
     val validationError by viewModel.validationError.collectAsState()
 
     var regionExpanded by remember { mutableStateOf(false) }
+    var showSecretKey by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -119,7 +128,20 @@ fun S3ConfigScreen(
             onValueChange = { viewModel.setSecretAccessKey(it); viewModel.clearValidationError() },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Secret Access Key") },
-            singleLine = true
+            singleLine = true,
+            visualTransformation = if (showSecretKey) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { showSecretKey = !showSecretKey }) {
+                    Icon(
+                        imageVector = if (showSecretKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        contentDescription = if (showSecretKey) "Hide secret access key" else "Show secret access key"
+                    )
+                }
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                capitalization = KeyboardCapitalization.None
+            )
         )
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
@@ -168,6 +190,22 @@ fun S3ConfigScreen(
             label = { Text("Custom Endpoint (optional)") },
             supportingText = { Text("Override S3 API endpoint for MinIO or other S3-compatible storage. Leave blank for AWS.") },
             singleLine = true
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = usePathStyle,
+                onCheckedChange = { viewModel.setUsePathStyle(it) }
+            )
+            Text("Use path-style endpoint URLs")
+        }
+        Text(
+            text = "Recommended for dotted bucket names and S3-compatible endpoints where TLS fails with virtual-host style URLs.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(12.dp))
         Row(

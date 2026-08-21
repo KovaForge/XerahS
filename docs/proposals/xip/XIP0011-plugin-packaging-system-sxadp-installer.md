@@ -1,5 +1,8 @@
 # XIP0011 Plugin Packaging System - .sxadp Installer
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0011: Plugin Packaging System - .sxadp Installer
 
 

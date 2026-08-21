@@ -27,9 +27,10 @@ import Combine
 
 struct UploadScreen: View {
     @ObservedObject var worker: UploadQueueWorker
-    var onOpenHistory: () -> Void
-    var onOpenSettings: () -> Void
+    @StateObject private var historyViewModel: HistoryViewModel
     var onCopyToClipboard: (String) -> Void
+    var onAutoShareUploadFinished: ([UploadResultItem]) -> Void
+    var onInitialPathsConsumed: () -> Void
     var initialPaths: [String]?
     /// Human-readable label for the active upload destination (e.g. "Amazon S3"). Shown so user knows where files will go.
     var activeDestinationLabel: String? = nil
@@ -37,42 +38,101 @@ struct UploadScreen: View {
     @State private var statusText = "Share files to XerahS to upload them."
     @State private var isUploading = false
     @State private var results: [UploadResultItem] = []
+    @State private var pendingAutoShareUploads = 0
+    @State private var autoShareResults: [UploadResultItem] = []
+
+    init(
+        worker: UploadQueueWorker,
+        historyRepository: HistoryRepository,
+        onCopyToClipboard: @escaping (String) -> Void,
+        onAutoShareUploadFinished: @escaping ([UploadResultItem]) -> Void,
+        onInitialPathsConsumed: @escaping () -> Void,
+        initialPaths: [String]?,
+        activeDestinationLabel: String? = nil
+    ) {
+        self.worker = worker
+        _historyViewModel = StateObject(wrappedValue: HistoryViewModel(historyRepository: historyRepository))
+        self.onCopyToClipboard = onCopyToClipboard
+        self.onAutoShareUploadFinished = onAutoShareUploadFinished
+        self.onInitialPathsConsumed = onInitialPathsConsumed
+        self.initialPaths = initialPaths
+        self.activeDestinationLabel = activeDestinationLabel
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("XerahS")
-                    .font(.title2)
-                Spacer()
-                Button("History", action: onOpenHistory)
-                    .buttonStyle(.bordered)
-                Button("Settings", action: onOpenSettings)
-                    .buttonStyle(.bordered)
-            }
-            .padding(.horizontal)
+        List {
+            Section {
+                HStack(alignment: .top, spacing: 14) {
+                    Image(systemName: isUploading ? "arrow.triangle.2.circlepath" : "checkmark.circle")
+                        .font(.title2)
+                        .foregroundStyle(isUploading ? .blue : .green)
+                        .symbolEffect(.pulse, isActive: isUploading)
 
-            ScrollView {
-                VStack(alignment: .center, spacing: 12) {
-                    Text("Share & Upload")
-                        .font(.headline)
-                    if let label = activeDestinationLabel {
-                        Text("Uploading to: \(label)")
-                            .font(.subheadline)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(isUploading ? "Uploading" : "Ready")
+                            .font(.headline)
+                        Text(statusText)
                             .foregroundStyle(.secondary)
-                    }
-                    Text(statusText)
-                        .font(.body)
-                        .multilineTextAlignment(.center)
-                    if isUploading {
-                        ProgressView()
-                            .padding(.top, 8)
-                    }
-                    ForEach(Array(results.enumerated()), id: \.offset) { _, item in
-                        ResultCard(item: item, onCopyToClipboard: onCopyToClipboard)
+                        if let label = activeDestinationLabel {
+                            Text("Destination: \(label)")
+                                .font(.subheadline.weight(.medium))
+                        }
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
+            } footer: {
+                Text("Share photos, files, or `.sxcu` definitions to XerahS from the iOS share sheet. Recent uploads appear below.")
+            }
+
+            if !results.isEmpty {
+                Section("Recent Results") {
+                    ForEach(Array(results.enumerated()), id: \.offset) { _, item in
+                        ResultRow(item: item, onCopyToClipboard: onCopyToClipboard)
+                    }
+                }
+            }
+
+            Section {
+                if historyViewModel.filteredEntries.isEmpty {
+                    ContentUnavailableView(
+                        historyViewModel.searchQuery.isEmpty ? "No History" : "No Results",
+                        systemImage: "clock",
+                        description: Text(historyViewModel.searchQuery.isEmpty
+                                          ? "Successful uploads will appear here."
+                                          : "Try a different filename, URL, or host.")
+                    )
+                } else {
+                    ForEach(historyViewModel.filteredEntries) { entry in
+                        HistoryEntryRow(
+                            entry: entry,
+                            onCopyUrl: { onCopyToClipboard(entry.url) },
+                            onDelete: { _ = historyViewModel.deleteEntry(entry.id) }
+                        )
+                    }
+                }
+            } header: {
+                Text("History")
+            }
+        }
+        .navigationTitle("Home")
+        .searchable(text: $historyViewModel.searchQuery, prompt: "Search history")
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if isUploading {
+                    ProgressView()
+                }
+
+                Button {
+                    historyViewModel.refresh()
+                } label: {
+                    Label("Refresh History", systemImage: "arrow.clockwise")
+                }
+
+                Button(role: .destructive) {
+                    _ = historyViewModel.clearAll()
+                } label: {
+                    Label("Clear History", systemImage: "trash")
+                }
+                .disabled(historyViewModel.filteredEntries.isEmpty && historyViewModel.searchQuery.isEmpty)
             }
         }
         .onReceive(worker.state.receive(on: DispatchQueue.main)) { state in
@@ -85,48 +145,75 @@ struct UploadScreen: View {
         }
         .onReceive(worker.itemCompleted.receive(on: DispatchQueue.main).compactMap { $0 }) { result in
             results.append(result)
+            historyViewModel.refresh()
+            if pendingAutoShareUploads > 0 {
+                pendingAutoShareUploads -= 1
+                autoShareResults.append(result)
+                if pendingAutoShareUploads == 0 {
+                    let completed = autoShareResults
+                    autoShareResults = []
+                    onAutoShareUploadFinished(completed)
+                }
+            }
         }
         .onAppear {
             worker.updateState()
-            if let paths = initialPaths, !paths.isEmpty {
-                _ = worker.enqueueFiles(paths)
-            }
+            historyViewModel.refresh()
+            enqueueInitialPathsIfNeeded(initialPaths)
         }
         .onChange(of: initialPaths) { _, newValue in
-            if let paths = newValue, !paths.isEmpty {
-                _ = worker.enqueueFiles(paths)
-            }
+            enqueueInitialPathsIfNeeded(newValue)
+        }
+    }
+
+    private func enqueueInitialPathsIfNeeded(_ paths: [String]?) {
+        guard let paths, !paths.isEmpty else { return }
+        let added = worker.enqueueFiles(paths)
+        onInitialPathsConsumed()
+        if added > 0 {
+            pendingAutoShareUploads += added
         }
     }
 }
 
-private struct ResultCard: View {
+private struct ResultRow: View {
     let item: UploadResultItem
     var onCopyToClipboard: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(item.fileName)
-                .font(.subheadline.weight(.semibold))
+            Label(item.fileName, systemImage: item.success ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                .font(.headline)
+                .foregroundStyle(item.success ? Color.primary : Color.red)
+
             if item.hasUrl, let url = item.url {
                 Text(url)
                     .font(.caption)
-                    .foregroundStyle(.blue)
-                    .lineLimit(2)
-                Button("Copy URL") { onCopyToClipboard(url) }
-                    .buttonStyle(.bordered)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+                Button {
+                    onCopyToClipboard(url)
+                } label: {
+                    Label("Copy URL", systemImage: "doc.on.doc")
+                }
             }
+
             if !item.success, let err = item.error {
                 Text(err)
                     .font(.caption)
                     .foregroundStyle(.red)
-                    .lineLimit(3)
-                Button("Copy Error") { onCopyToClipboard(err) }
-                    .buttonStyle(.bordered)
+                    .lineLimit(4)
+                if let details = item.errorDetails, !details.isEmpty, details != err {
+                    Text("Copy Error includes request, response, and transport diagnostics.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Button {
+                    onCopyToClipboard(item.errorClipboardText ?? err)
+                } label: {
+                    Label("Copy Error", systemImage: "exclamationmark.doc")
+                }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
     }
 }

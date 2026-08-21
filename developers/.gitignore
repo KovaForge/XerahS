@@ -1,0 +1,7 @@
+# Python venv — never commit the deps
+.venv/
+__pycache__/
+*.pyc
+
+# Local-only state
+.DS_Store

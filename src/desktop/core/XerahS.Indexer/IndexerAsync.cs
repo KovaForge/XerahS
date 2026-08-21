@@ -64,6 +64,7 @@ namespace XerahS.Indexer
                 IndexerOutput.Txt => new IndexerTextAsync(settings, progress, cancellationToken),
                 IndexerOutput.Xml => new IndexerSyncAdapter<IndexerXml>(settings, progress, cancellationToken),
                 IndexerOutput.Json => new IndexerSyncAdapter<IndexerJson>(settings, progress, cancellationToken),
+                IndexerOutput.Markdown => new IndexerSyncAdapter<IndexerMarkdown>(settings, progress, cancellationToken),
                 _ => throw new InvalidOperationException($"Unsupported indexer output: {settings.Output}")
             };
         }
@@ -111,7 +112,11 @@ namespace XerahS.Indexer
 
             FolderInfo folderInfo = new FolderInfo(folderPath);
 
-            if (settings.MaxDepthLevel == 0 || level < settings.MaxDepthLevel)
+            // Count every folder visited so totalFoldersProcessed reflects the actual number
+            // of directories processed, including the root folder passed to GetFolderInfoAsync.
+            totalFoldersProcessed++;
+
+            if (settings.ShouldRecurseIntoLevel(level))
             {
                 try
                 {
@@ -127,13 +132,19 @@ namespace XerahS.Indexer
                         }
 
                         FolderInfo subFolderInfo = await GetFolderInfoAsync(directoryInfo.FullName, level + 1);
+
+                        // Skip empty folders if the setting is enabled — matches sync Indexer.GetFolderInfo
+                        // behavior where empty subfolders are never added to the parent's Folders list.
+                        if (settings.IgnoreEmptyFolders && subFolderInfo.Files.Count == 0 && subFolderInfo.Folders.Count == 0)
+                        {
+                            continue;
+                        }
+
                         folderInfo.Folders.Add(subFolderInfo);
                         subFolderInfo.Parent = folderInfo;
 
-                        totalFoldersProcessed++;
-
-                        // Report progress every 10 folders to avoid overwhelming the UI
-                        if (totalFoldersProcessed % 10 == 0)
+                        // Note: totalFoldersProcessed is already incremented inside
+                        // GetFolderInfoAsync for the child folder; do not double-count.
                         {
                             ReportProgress($"Scanning: {directoryInfo.FullName}", totalFilesProcessed, totalFoldersProcessed);
                             await Task.Yield(); // Allow UI to breathe
@@ -154,9 +165,7 @@ namespace XerahS.Indexer
                             // Apply include filter: only include specified extensions (without dots)
                             if (settings.IncludedFileExtensions != null && settings.IncludedFileExtensions.Count > 0)
                             {
-                                string ext = fileInfo.Extension.TrimStart('.').ToLowerInvariant();
-                                bool isIncluded = settings.IncludedFileExtensions.Any(inc =>
-                                    inc.TrimStart('.').Equals(ext, StringComparison.OrdinalIgnoreCase));
+                                bool isIncluded = IndexerSettings.ExtensionMatchesFilter(fileInfo.Extension, settings.IncludedFileExtensions);
                                 if (!isIncluded)
                                 {
                                     continue;
@@ -166,9 +175,7 @@ namespace XerahS.Indexer
                             // Apply exclude filter: skip specified extensions (without dots)
                             if (settings.ExcludedFileExtensions != null && settings.ExcludedFileExtensions.Count > 0)
                             {
-                                string ext = fileInfo.Extension.TrimStart('.').ToLowerInvariant();
-                                bool isExcluded = settings.ExcludedFileExtensions.Any(exc =>
-                                    exc.TrimStart('.').Equals(ext, StringComparison.OrdinalIgnoreCase));
+                                bool isExcluded = IndexerSettings.ExtensionMatchesFilter(fileInfo.Extension, settings.ExcludedFileExtensions);
                                 if (isExcluded)
                                 {
                                     continue;
@@ -186,6 +193,18 @@ namespace XerahS.Indexer
                 catch (UnauthorizedAccessException ex)
                 {
                     DebugHelper.WriteException(ex, $"Access denied: {folderPath}");
+                }
+                catch (PathTooLongException ex)
+                {
+                    DebugHelper.WriteException(ex, $"Path too long: {folderPath}");
+                }
+                catch (DirectoryNotFoundException ex)
+                {
+                    DebugHelper.WriteException(ex, $"Directory not found: {folderPath}");
+                }
+                catch (IOException ex) when (ex is not PathTooLongException && ex is not DirectoryNotFoundException)
+                {
+                    DebugHelper.WriteException(ex, $"I/O error in folder: {folderPath}");
                 }
             }
 

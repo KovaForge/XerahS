@@ -27,6 +27,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using XerahS.Core;
+using XerahS.UI.Services;
 using XerahS.UI.Controls;
 
 namespace XerahS.UI.Views
@@ -47,21 +48,13 @@ namespace XerahS.UI.Views
                 propertyGrid.PropertyValueChanged += (_, _) => SettingsManager.SaveApplicationConfig();
             }
 
+            var uiFactory = UiViewModelFactoryAccessor.GetRequired();
+
             // Wire up the edit requester
             vm.HotkeySettings.EditHotkeyRequester = async (settings) =>
             {
-                var editVm = new ViewModels.WorkflowEditorViewModel(settings);
-                var dialog = new WorkflowEditorView
-                {
-                    DataContext = editVm
-                };
-
-                if (VisualRoot is Window window)
-                {
-                    return await dialog.ShowDialog<bool>(window);
-                }
-
-                return false;
+                var editorViewModel = uiFactory.CreateWorkflowEditorViewModel(settings);
+                return await uiFactory.ViewDialogService.ShowWorkflowEditorAsync(editorViewModel);
             };
 
             vm.EditWatchFolderRequester = async (editVm) =>
@@ -107,6 +100,43 @@ namespace XerahS.UI.Views
             AvaloniaXamlLoader.Load(this);
         }
 
+        public bool SelectTabByHeader(string? tabHeader)
+        {
+            if (string.IsNullOrWhiteSpace(tabHeader))
+            {
+                return false;
+            }
+
+            TabControl? tabs = this.FindControl<TabControl>("ApplicationSettingsTabs");
+            if (tabs?.Items == null)
+            {
+                return false;
+            }
+
+            foreach (object? item in tabs.Items)
+            {
+                if (item is not TabItem tabItem)
+                {
+                    continue;
+                }
+
+                string header = tabItem.Header switch
+                {
+                    string text => text,
+                    TextBlock textBlock => textBlock.Text ?? string.Empty,
+                    _ => tabItem.Header?.ToString() ?? string.Empty
+                };
+
+                if (string.Equals(header.Trim(), tabHeader.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    tabs.SelectedItem = tabItem;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private async Task<string?> BrowseScreenshotsFolderAsync()
         {
             var topLevel = TopLevel.GetTopLevel(this);
@@ -122,7 +152,7 @@ namespace XerahS.UI.Views
                 SuggestedStartLocation = await topLevel.StorageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Pictures)
             });
 
-            return folders.Count > 0 ? folders[0].Path.LocalPath : null;
+            return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
         }
     }
 }

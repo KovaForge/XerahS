@@ -37,7 +37,7 @@ namespace XerahS.Platform.MacOS
     /// Requires macOS 12.3+ and libscreencapturekit_bridge.dylib.
     /// Falls back to CLI-based MacOSScreenshotService if native library is unavailable.
     /// </summary>
-    public class MacOSScreenCaptureKitService : IScreenCaptureService
+    public class MacOSScreenCaptureKitService : IScreenCaptureService, IScreenCapturePermissionService
     {
         private readonly MacOSScreenshotService _fallbackService;
         private readonly bool _nativeAvailable;
@@ -96,6 +96,17 @@ namespace XerahS.Platform.MacOS
 
         public Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
+            if (options?.MacOSRegionSelectorPreference != MacOSInteractiveRegionSelectorPreference.NativeCrosshair)
+            {
+                DebugHelper.WriteLine("[ScreenCaptureKit] macOS native crosshair was not requested; platform region capture is skipped.");
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
+            if (!EnsureScreenCaptureAccess())
+            {
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
             // Region capture requires interactive selection - delegate to CLI
             // ScreenCaptureKit doesn't have built-in interactive selection
             return _fallbackService.CaptureRegionAsync(options);
@@ -103,6 +114,11 @@ namespace XerahS.Platform.MacOS
 
         public Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
         {
+            if (!EnsureScreenCaptureAccess())
+            {
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
             bool useModern = options?.UseModernCapture ?? true;
 
             if (!_nativeAvailable || !useModern)
@@ -113,11 +129,16 @@ namespace XerahS.Platform.MacOS
                 return _fallbackService.CaptureRectAsync(rect, options);
             }
 
-            return Task.Run(() => CaptureRectNative(rect));
+            return Task.Run(() => CaptureRectNative(rect, options));
         }
 
         public Task<SKBitmap?> CaptureFullScreenAsync(CaptureOptions? options = null)
         {
+            if (!EnsureScreenCaptureAccess())
+            {
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
             bool useModern = options?.UseModernCapture ?? true;
 
             if (!_nativeAvailable || !useModern)
@@ -128,24 +149,133 @@ namespace XerahS.Platform.MacOS
                 return _fallbackService.CaptureFullScreenAsync(options);
             }
 
-            return Task.Run(CaptureFullscreenNative);
+            return Task.Run(() => CaptureFullscreenNative(options));
+        }
+
+        /// <summary>
+        /// XIP0078 P3: preflight Screen Recording permission before any capture path (native or CLI).
+        /// Without permission the CLI fallback would return wallpaper-only frames, which looks like
+        /// a broken screenshot; instead we stop, prompt once, and guide the user to the Privacy pane.
+        /// </summary>
+        public bool EnsureScreenCaptureAccess()
+        {
+            if (ScreenRecordingPermission.EnsureAccess())
+            {
+                return true;
+            }
+
+            DebugHelper.WriteLine("[ScreenCaptureKit] Capture aborted: Screen Recording permission denied.");
+            return false;
         }
 
         public Task<SKBitmap?> CaptureActiveWindowAsync(IWindowService windowService, CaptureOptions? options = null)
         {
+            if (!EnsureScreenCaptureAccess())
+            {
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
             if (!_nativeAvailable)
             {
                 return _fallbackService.CaptureActiveWindowAsync(windowService, options);
             }
 
-            // For window capture, we need the window ID from the window service
-            // Fallback to CLI for now as getting window ID requires additional interface support
-            return _fallbackService.CaptureActiveWindowAsync(windowService, options);
+            // XIP0078 P5: resolve the frontmost application window through CGWindowList
+            // (front-to-back order) and capture it via the native bridge, skipping the
+            // interactive CLI detour. Exclude our own windows so a capture triggered from
+            // the XerahS UI grabs the window behind it.
+            return Task.Run(() =>
+            {
+                try
+                {
+                    int ownPid = Environment.ProcessId;
+                    var windows = QuartzWindowList.GetApplicationWindows();
+                    foreach (var window in windows)
+                    {
+                        if (window.OwnerPid == ownPid)
+                        {
+                            continue;
+                        }
+
+                        var bitmap = CaptureWindowNative(window.WindowNumber);
+                        if (bitmap != null)
+                        {
+                            return bitmap;
+                        }
+
+                        break; // Native capture of the frontmost window failed; use CLI fallback.
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteException(ex, "ScreenCaptureKit active window capture failed");
+                }
+
+                return _fallbackService.CaptureActiveWindowAsync(windowService, options).GetAwaiter().GetResult();
+            });
         }
 
         public Task<SKBitmap?> CaptureWindowAsync(IntPtr windowHandle, IWindowService windowService, CaptureOptions? options = null)
         {
+            if (!EnsureScreenCaptureAccess())
+            {
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
+            // Handles produced by MacOSWindowService.GetAllWindows carry the CGWindowID (XIP0078 P5).
+            long handleValue = windowHandle.ToInt64();
+            if (_nativeAvailable && handleValue > 0 && handleValue <= uint.MaxValue &&
+                windowHandle != MacOSWindowService.FrontWindowHandle)
+            {
+                uint windowId = (uint)handleValue;
+                return Task.Run(() =>
+                    CaptureWindowNative(windowId) ??
+                    _fallbackService.CaptureWindowAsync(windowHandle, windowService, options).GetAwaiter().GetResult());
+            }
+
             return _fallbackService.CaptureWindowAsync(windowHandle, windowService, options);
+        }
+
+        private SKBitmap? CaptureWindowNative(uint windowId)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            IntPtr dataPtr = IntPtr.Zero;
+
+            try
+            {
+                DebugHelper.WriteLine($"[ScreenCaptureKit] Starting window capture for CGWindowID {windowId}");
+
+                int result = ScreenCaptureKitInterop.CaptureWindow(windowId, out dataPtr, out int length);
+
+                if (result != ScreenCaptureKitInterop.SUCCESS)
+                {
+                    DebugHelper.WriteLine($"[ScreenCaptureKit] Window capture failed: {ScreenCaptureKitInterop.GetErrorMessage(result)}");
+                    return null;
+                }
+
+                if (dataPtr == IntPtr.Zero || length <= 0)
+                {
+                    DebugHelper.WriteLine("[ScreenCaptureKit] No data returned from window capture");
+                    return null;
+                }
+
+                var bitmap = DecodePngFromPointer(dataPtr, length);
+                stopwatch.Stop();
+                DebugHelper.WriteLine($"[ScreenCaptureKit] Window capture completed in {stopwatch.ElapsedMilliseconds}ms, size={bitmap?.Width}x{bitmap?.Height}");
+                return bitmap;
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "ScreenCaptureKit window capture failed");
+                return null;
+            }
+            finally
+            {
+                if (dataPtr != IntPtr.Zero)
+                {
+                    ScreenCaptureKitInterop.FreeBuffer(dataPtr);
+                }
+            }
         }
 
         public Task<CursorInfo?> CaptureCursorAsync()
@@ -153,7 +283,7 @@ namespace XerahS.Platform.MacOS
             return Task.FromResult<CursorInfo?>(null);
         }
 
-        private SKBitmap? CaptureFullscreenNative()
+        private SKBitmap? CaptureFullscreenNative(CaptureOptions? options)
         {
             var stopwatch = Stopwatch.StartNew();
             IntPtr dataPtr = IntPtr.Zero;
@@ -172,7 +302,7 @@ namespace XerahS.Platform.MacOS
                     if (result == ScreenCaptureKitInterop.ERROR_PERMISSION_DENIED)
                     {
                         DebugHelper.WriteLine("[ScreenCaptureKit] Falling back to CLI due to permission issue");
-                        return _fallbackService.CaptureFullScreenAsync().GetAwaiter().GetResult();
+                        return _fallbackService.CaptureFullScreenAsync(options).GetAwaiter().GetResult();
                     }
 
                     return null;
@@ -198,7 +328,7 @@ namespace XerahS.Platform.MacOS
             catch (Exception ex)
             {
                 DebugHelper.WriteException(ex, "ScreenCaptureKit fullscreen capture failed");
-                return _fallbackService.CaptureFullScreenAsync().GetAwaiter().GetResult();
+                return _fallbackService.CaptureFullScreenAsync(options).GetAwaiter().GetResult();
             }
             finally
             {
@@ -209,7 +339,7 @@ namespace XerahS.Platform.MacOS
             }
         }
 
-        private SKBitmap? CaptureRectNative(SKRect rect)
+        private SKBitmap? CaptureRectNative(SKRect rect, CaptureOptions? options)
         {
             var stopwatch = Stopwatch.StartNew();
             IntPtr dataPtr = IntPtr.Zero;
@@ -225,7 +355,7 @@ namespace XerahS.Platform.MacOS
                 if (result != ScreenCaptureKitInterop.SUCCESS)
                 {
                     DebugHelper.WriteLine($"[ScreenCaptureKit] Capture failed: {ScreenCaptureKitInterop.GetErrorMessage(result)}");
-                    return _fallbackService.CaptureRectAsync(rect).GetAwaiter().GetResult();
+                    return _fallbackService.CaptureRectAsync(rect, options).GetAwaiter().GetResult();
                 }
 
                 if (dataPtr == IntPtr.Zero || length <= 0)
@@ -248,7 +378,7 @@ namespace XerahS.Platform.MacOS
             catch (Exception ex)
             {
                 DebugHelper.WriteException(ex, "ScreenCaptureKit rect capture failed");
-                return _fallbackService.CaptureRectAsync(rect).GetAwaiter().GetResult();
+                return _fallbackService.CaptureRectAsync(rect, options).GetAwaiter().GetResult();
             }
             finally
             {

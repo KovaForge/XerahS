@@ -55,11 +55,6 @@ internal static class LinuxRegionSelectorPreferenceSupport
     public static IReadOnlyList<LinuxInteractiveRegionSelectorPreference> GetVisiblePreferences(
         LinuxRegionSelectorDiagnostics? diagnostics)
     {
-        if (!OperatingSystem.IsLinux())
-        {
-            return System.Enum.GetValues<LinuxInteractiveRegionSelectorPreference>();
-        }
-
         if (diagnostics?.AvailablePreferences is { Count: > 0 } availablePreferences)
         {
             return BuildVisiblePreferencesWithAutomaticAndOverlay(diagnostics, availablePreferences);
@@ -108,9 +103,27 @@ internal static class LinuxRegionSelectorPreferenceSupport
             return preference;
         }
 
-        var diagnostics = TryGetDiagnostics();
-        if (diagnostics?.AvailablePreferences is { Count: > 0 } availablePreferences &&
-            !availablePreferences.Contains(preference))
+        return NormalizeForCurrentSession(preference, TryGetDiagnostics());
+    }
+
+    internal static LinuxInteractiveRegionSelectorPreference NormalizeForCurrentSession(
+        LinuxInteractiveRegionSelectorPreference preference,
+        LinuxRegionSelectorDiagnostics? diagnostics)
+    {
+        if (preference == LinuxInteractiveRegionSelectorPreference.Automatic)
+        {
+            return preference;
+        }
+
+        if (diagnostics?.AvailablePreferences is not { Count: > 0 } availablePreferences)
+        {
+            return preference;
+        }
+
+        bool overlayAvailableViaAutomaticPreference =
+            preference == LinuxInteractiveRegionSelectorPreference.XerahSOverlay &&
+            diagnostics.AutomaticPreference == LinuxInteractiveRegionSelectorPreference.XerahSOverlay;
+        if (!availablePreferences.Contains(preference) && !overlayAvailableViaAutomaticPreference)
         {
             return LinuxInteractiveRegionSelectorPreference.Automatic;
         }

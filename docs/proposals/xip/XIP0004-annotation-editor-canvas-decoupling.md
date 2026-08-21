@@ -1,5 +1,8 @@
 # XIP0004 Annotation Editor - Canvas & Decoupling
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0004: Annotation Editor - Canvas & Decoupling
 
 **Status**: Complete ?  
@@ -13,7 +16,7 @@ XIP0004: Annotation Editor - Canvas & Decoupling
 
 ## Overview
 
-XIP-0004 implements a fully decoupled, reusable image annotation editor for XerahS. This includes both the annotation canvas with drawing tools and the architectural decoupling into a standalone DLL.
+XIP0004 implements a fully decoupled, reusable image annotation editor for XerahS. This includes both the annotation canvas with drawing tools and the architectural decoupling into a standalone DLL.
 
 ---
 
@@ -179,7 +182,7 @@ XIP0004: Annotation Editor - Canvas & Decoupling
 
 ## Overview
 
-XIP-0004 implements a fully decoupled, reusable image annotation editor for XerahS. This includes both the annotation canvas with drawing tools and the architectural decoupling into a standalone DLL.
+XIP0004 implements a fully decoupled, reusable image annotation editor for XerahS. This includes both the annotation canvas with drawing tools and the architectural decoupling into a standalone DLL.
 
 ---
 

@@ -27,12 +27,16 @@ import com.getsharex.xerahs.mobile.core.data.HistoryRepository
 import com.getsharex.xerahs.mobile.core.data.QueueRepository
 import com.getsharex.xerahs.mobile.core.data.SettingsRepository
 import com.getsharex.xerahs.mobile.core.data.UploadQueueWorker
+import java.io.File
+
+private const val MAX_CACHE_FILE_AGE_MILLIS = 24L * 60L * 60L * 1000L
 
 class XerahSApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Paths.init(filesDir, cacheDir)
         Paths.ensureDirectoriesExist()
+        cleanupStaleCacheFiles()
     }
 
     val settingsRepository: SettingsRepository by lazy { SettingsRepository() }
@@ -47,4 +51,21 @@ class XerahSApplication : Application() {
 
     /** Set by NavGraph so MainActivity can navigate to Upload when share intent arrives while app is running. */
     var navController: androidx.navigation.NavController? = null
+
+    private fun cleanupStaleCacheFiles() {
+        val cutoff = System.currentTimeMillis() - MAX_CACHE_FILE_AGE_MILLIS
+        cacheDir.listFiles()?.forEach { file ->
+            deleteIfStaleCacheFile(file, cutoff)
+        }
+    }
+
+    private fun deleteIfStaleCacheFile(file: File, cutoff: Long) {
+        if (file.isDirectory) {
+            file.listFiles()?.forEach { deleteIfStaleCacheFile(it, cutoff) }
+            return
+        }
+        if (file.lastModified() < cutoff) {
+            runCatching { file.delete() }
+        }
+    }
 }

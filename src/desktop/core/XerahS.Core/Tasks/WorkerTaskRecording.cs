@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     XerahS - The Avalonia UI implementation of ShareX
@@ -43,6 +43,11 @@ namespace XerahS.Core.Tasks
     {
         #region Recording Handlers (Stage 5)
 
+        private static ScreenRecordingWorkflowCoordinator CreateRecordingCoordinator()
+        {
+            return new ScreenRecordingWorkflowCoordinator(RecordingManagerService);
+        }
+
         internal async Task HandleStartRecordingAsync(CaptureMode mode, IntPtr windowHandle = default, Rectangle? region = null)
         {
             var taskSettings = Info.TaskSettings ?? new TaskSettings();
@@ -62,6 +67,7 @@ namespace XerahS.Core.Tasks
                 {
                     Mode = mode,
                     Settings = captureSettings.ScreenRecordingSettings,
+                    FFmpegOverridePath = ResolveRecordingFFmpegOverridePath(captureSettings.FFmpegOptions),
                     TargetWindowHandle = windowHandle,
                     UseModernCapture = captureSettings.UseModernCapture,
                     LinuxRecordingBackendPreference = ResolveLinuxRecordingBackendPreference(captureSettings)
@@ -80,6 +86,11 @@ namespace XerahS.Core.Tasks
                 string fileName = TaskHelpers.GetFileName(taskSettings, "mp4", recordingMetadata);
                 Directory.CreateDirectory(recordingsFolder);
                 var resolvedPath = TaskHelpers.HandleExistsFile(recordingsFolder, fileName, taskSettings);
+                if (string.IsNullOrWhiteSpace(resolvedPath))
+                {
+                    DebugHelper.WriteLine($"[PathTrace {Info.CorrelationId}] ScreenRecorder: HandleExistsFile returned empty path (user cancelled or Ask in non-interactive context). Aborting recording.");
+                    return;
+                }
                 recordingOptions.OutputPath = resolvedPath;
                 Info.FilePath = resolvedPath;
                 Info.DataType = EDataType.File;
@@ -97,19 +108,20 @@ namespace XerahS.Core.Tasks
                 DebugHelper.WriteLine($"Output path: {recordingOptions.OutputPath}");
 
                 // 1. Start recording
-                await ScreenRecordingManager.Instance.StartRecordingAsync(recordingOptions);
-                recordingOptions.OutputPath = ScreenRecordingManager.Instance.PlannedOutputPath ?? recordingOptions.OutputPath;
+                var recordingCoordinator = CreateRecordingCoordinator();
+                await recordingCoordinator.StartRecordingAsync(recordingOptions);
+                recordingOptions.OutputPath = recordingCoordinator.PlannedOutputPath ?? recordingOptions.OutputPath;
                 Info.FilePath = recordingOptions.OutputPath;
                 TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "ScreenRecordingManager.StartRecordingAsync completed");
 
                 // 2. Wait for stop signal (ASYNC WAIT - Yields thread, keeps task alive)
                 TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Waiting for stop signal...");
-                await ScreenRecordingManager.Instance.WaitForStopSignalAsync();
+                await recordingCoordinator.WaitForStopSignalAsync();
                 TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Stop signal received. Resuming...");
 
                 // 3. Stop recording
                 DebugHelper.WriteLine("Stopping recording...");
-                string? outputPath = await ScreenRecordingManager.Instance.StopRecordingAsync();
+                string? outputPath = await recordingCoordinator.StopRecordingAsync();
                 DebugHelper.WriteLine($"[GIF] StopRecordingAsync returned: {(string.IsNullOrEmpty(outputPath) ? "(null)" : outputPath)} (exists={(!string.IsNullOrEmpty(outputPath) && File.Exists(outputPath))})");
                 string? expectedOutputPath = recordingOptions.OutputPath;
                 bool expectedOutputExists = !string.IsNullOrEmpty(expectedOutputPath) && File.Exists(expectedOutputPath);
@@ -218,13 +230,22 @@ namespace XerahS.Core.Tasks
                     if (taskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnnotateMedia)
                         && PlatformServices.IsInitialized && PlatformServices.UI != null)
                     {
-                        string? ffmpegPath = ResolveGifFFmpegPath(taskSettings.CaptureSettings?.FFmpegOptions);
-                        string? editedPath = await PlatformServices.UI.ShowVideoEditorAsync(outputPath, ffmpegPath);
-                        if (!string.IsNullOrEmpty(editedPath) && File.Exists(editedPath))
+                        VideoEditorLaunchPolicy launchPolicy = VideoEditorLaunchPolicyResolver.GetCurrentPolicy();
+                        if (!launchPolicy.AllowAutoLaunchAfterCapture)
                         {
-                            outputPath = editedPath;
-                            Info.FilePath = outputPath;
-                            DebugHelper.WriteLine($"VideoEditor produced: {outputPath}");
+                            DebugHelper.WriteLine($"VideoEditor auto-launch skipped: {launchPolicy.AutoLaunchBlockedReason}");
+                            ShowDeferredVideoEditorToast(outputPath, launchPolicy.AutoLaunchBlockedReason);
+                        }
+                        else
+                        {
+                            string? ffmpegPath = ResolveGifFFmpegPath(taskSettings.CaptureSettings?.FFmpegOptions);
+                            string? editedPath = await PlatformServices.UI.ShowVideoEditorAsync(outputPath, ffmpegPath);
+                            if (!string.IsNullOrEmpty(editedPath) && File.Exists(editedPath))
+                            {
+                                outputPath = editedPath;
+                                Info.FilePath = outputPath;
+                                DebugHelper.WriteLine($"VideoEditor produced: {outputPath}");
+                            }
                         }
                     }
 
@@ -265,14 +286,7 @@ namespace XerahS.Core.Tasks
                         {
                             var historyPath = SettingsManager.GetHistoryFilePath();
                             using var historyManager = new HistoryManagerSQLite(historyPath);
-                            var historyItem = new HistoryItem
-                            {
-                                FilePath = outputPath,
-                                FileName = Path.GetFileName(outputPath),
-                                DateTime = DateTime.Now,
-                                Type = "Video",
-                                URL = metadata.UploadURL ?? string.Empty // Will be populated if upload succeeded
-                            };
+                            var historyItem = CreateRecordingHistoryItem(Info, outputPath);
 
                             DebugHelper.WriteLine($"[HistoryTrace] Preparing to add item. URL='{historyItem.URL}', File='{historyItem.FileName}'");
 
@@ -331,7 +345,7 @@ namespace XerahS.Core.Tasks
                     FileNotFoundException => "FFmpeg not found. Please install FFmpeg to enable screen recording.",
                     PlatformNotSupportedException => "Screen recording is not supported on this system.",
                     InvalidOperationException when ex.Message.Contains("not available") =>
-                        "Screen recording is not available. On Linux Wayland, ensure xdg-desktop-portal with ScreenCast support and PipeWire are installed.",
+                        "Screen recording is not available. On Linux Wayland, ensure xdg-desktop-portal with ScreenCast support is available, PipeWire is running, and either FFmpeg pipewire, GStreamer pipewiresrc, or wf-recorder is installed.",
                     InvalidOperationException when ex.Message.Contains("initialization") =>
                         "Screen recording initialization failed. Check that required services are running.",
                     _ => $"Failed to start recording: {ex.Message}"
@@ -360,19 +374,19 @@ namespace XerahS.Core.Tasks
 
         internal async Task HandleStopRecordingAsync()
         {
-             // Legacy handler - mapped to SignalStop in UI now
+             CreateRecordingCoordinator().SignalStop();
              await Task.CompletedTask;
         }
 
         internal async Task HandleAbortRecordingAsync()
         {
              // Legacy handler
-             await ScreenRecordingManager.Instance.AbortRecordingAsync();
+             await CreateRecordingCoordinator().AbortRecordingAsync();
         }
 
         internal async Task HandlePauseRecordingAsync()
         {
-             await ScreenRecordingManager.Instance.TogglePauseResumeAsync();
+             await CreateRecordingCoordinator().TogglePauseResumeAsync();
         }
 
         private static string? ResolveGifFFmpegPath(FFmpegOptions? ffmpegOptions)
@@ -397,6 +411,84 @@ namespace XerahS.Core.Tasks
 
             string detectedPath = PathsManager.GetFFmpegPath();
             return string.IsNullOrWhiteSpace(detectedPath) ? null : detectedPath;
+        }
+
+        private static string? ResolveRecordingFFmpegOverridePath(FFmpegOptions? ffmpegOptions)
+        {
+            if (ffmpegOptions?.OverrideCLIPath == true && !string.IsNullOrWhiteSpace(ffmpegOptions.CLIPath))
+            {
+                string configuredPath = ffmpegOptions.CLIPath.Trim().Trim('"', '\'');
+                if (!string.IsNullOrWhiteSpace(configuredPath))
+                {
+                    try
+                    {
+                        configuredPath = FileHelpers.GetAbsolutePath(configuredPath);
+                    }
+                    catch
+                    {
+                        // Keep the user-provided value if normalization fails.
+                    }
+
+                    return configuredPath;
+                }
+            }
+
+            return null;
+        }
+
+        internal static HistoryItem CreateRecordingHistoryItem(TaskInfo info, string outputPath)
+        {
+            var historyItem = new HistoryItem
+            {
+                FilePath = outputPath,
+                FileName = Path.GetFileName(outputPath),
+                DateTime = DateTime.Now,
+                Type = "Video",
+                Host = info.UploaderHost ?? string.Empty,
+                URL = info.Metadata?.UploadURL ?? string.Empty
+            };
+
+            var tags = info.GetTags();
+            if (tags != null)
+            {
+                historyItem.Tags = new Dictionary<string, string?>(tags.Count);
+                foreach (var pair in tags)
+                {
+                    historyItem.Tags[pair.Key] = pair.Value;
+                }
+            }
+
+            return historyItem;
+        }
+
+        private static void ShowDeferredVideoEditorToast(string outputPath, string? message)
+        {
+            if (string.IsNullOrWhiteSpace(outputPath))
+            {
+                return;
+            }
+
+            try
+            {
+                PlatformServices.Toast?.ShowToast(new Platform.Abstractions.ToastConfig
+                {
+                    Title = "Recording Saved",
+                    Text = string.IsNullOrWhiteSpace(message)
+                        ? "Recording saved. Open the video editor manually if needed."
+                        : message,
+                    FilePath = outputPath,
+                    Duration = 8f,
+                    Size = new SizeI(480, 140),
+                    AutoHide = true,
+                    LeftClickAction = Platform.Abstractions.ToastClickAction.OpenFile,
+                    MiddleClickAction = Platform.Abstractions.ToastClickAction.AnnotateMedia,
+                    RightClickAction = Platform.Abstractions.ToastClickAction.CloseNotification
+                });
+            }
+            catch
+            {
+                // Ignore toast failures so the recording flow can finish cleanly.
+            }
         }
 
         private static LinuxRecordingBackendPreference ResolveLinuxRecordingBackendPreference(TaskSettingsCapture captureSettings)

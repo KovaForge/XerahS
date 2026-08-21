@@ -55,6 +55,13 @@ public class HotkeyInfo
     public HotkeyStatus Status { get; set; } = HotkeyStatus.NotConfigured;
 
     /// <summary>
+    /// Optional compositor-provided description of the effective trigger.
+    /// Used for display when the desktop environment owns shortcut assignment.
+    /// </summary>
+    [System.Runtime.Serialization.IgnoreDataMember]
+    public string? NativeTriggerDescription { get; set; }
+
+    /// <summary>
     /// Whether this is a valid hotkey (has a key assigned)
     /// </summary>
     public bool IsValid => Key != Key.None && !IsOnlyModifiers;
@@ -111,6 +118,13 @@ public class HotkeyInfo
         }
 
         return string.Join(" + ", parts);
+    }
+
+    public string GetDisplayString()
+    {
+        return string.IsNullOrWhiteSpace(NativeTriggerDescription)
+            ? ToString()
+            : NativeTriggerDescription;
     }
 
     private static string FormatKeyName(Key key)

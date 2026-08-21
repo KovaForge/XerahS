@@ -26,6 +26,9 @@
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using System;
+using System.IO;
+using System.Linq;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.UI.Views;
@@ -39,8 +42,9 @@ public class UpdateService : IDisposable
 {
     private static UpdateService? _instance;
     private static readonly object _lock = new();
-    private static readonly TimeSpan DialogOwnerRetryInterval = TimeSpan.FromMilliseconds(200);
-    private const int DialogOwnerRetryCount = 25;
+    private const string DefaultReleaseOwner = "ShareX";
+    private const string DefaultPreReleaseOwner = "KovaForge";
+    private const string DefaultRepo = "XerahS";
 
     public static UpdateService Instance
     {
@@ -62,6 +66,27 @@ public class UpdateService : IDisposable
 
     public bool IsUpdateDialogOpen { get; private set; }
 
+    /// <summary>
+    /// True when this process runs inside a Flatpak sandbox. In that case the
+    /// Flatpak runtime owns upgrade notifications and delivery (via
+    /// <c>flatpak update</c>), so the in-app GitHub updater must not offer
+    /// <c>.deb</c> / <c>.rpm</c> assets that the sandbox cannot install.
+    /// Detection mirrors <see cref="XerahS.Common.DebugHelper"/> and the check
+    /// already used in <c>XerahS.App/Program.cs</c>: prefer <c>FLATPAK_ID</c>,
+    /// fall back to the well-known marker file inside the Flatpak rootfs.
+    /// </summary>
+    public static bool IsRuntimeManagedByFlatpak =>
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FLATPAK_ID"))
+        || File.Exists("/.flatpak-info");
+
+    /// <summary>
+    /// Human-readable message for users who click "Check for updates" from
+    /// inside a Flatpak. Tells them to use the system update channel.
+    /// </summary>
+    public static string RuntimeManagedUpdateMessage =>
+        "Updates are managed by the Flatpak runtime. " +
+        "Run 'flatpak update com.xerahs.XerahS' in a terminal to upgrade.";
+
     private UpdateService()
     {
     }
@@ -74,16 +99,29 @@ public class UpdateService : IDisposable
         if (_updateManager != null)
         {
             DebugHelper.WriteLine("UpdateService already initialized.");
+            RefreshConfigurationFromSettings();
+            return;
+        }
+
+        if (IsRuntimeManagedByFlatpak)
+        {
+            DebugHelper.WriteLine(
+                "UpdateService: Skipping GitHub update manager inside Flatpak sandbox " +
+                "(FLATPAK_ID='{0}'); upgrades are delivered by 'flatpak update'.",
+                Environment.GetEnvironmentVariable("FLATPAK_ID") ?? "<unset>");
             return;
         }
 
         var settings = SettingsManager.Settings;
+        bool includePreRelease = settings.UpdateChannel == UpdateChannel.PreRelease;
+        IReadOnlyList<(string Owner, string Repo)> updateRepositories = ResolveUpdateRepositories(settings);
+        var updateRepository = updateRepositories[0];
 
-        _updateManager = new GitHubUpdateManager("ShareX", "XerahS")
+        _updateManager = new GitHubUpdateManager(updateRepository.Owner, updateRepository.Repo)
         {
+            GitHubRepositories = updateRepositories,
             IsPortable = IsPortableBuild(),
-            CheckPreReleaseUpdates = settings.CheckPreReleaseUpdates ||
-                                     settings.UpdateChannel == UpdateChannel.PreRelease,
+            IncludePreRelease = includePreRelease,
             AllowAutoUpdate = settings.AutoCheckUpdate
         };
 
@@ -99,6 +137,84 @@ public class UpdateService : IDisposable
         {
             DebugHelper.WriteLine("UpdateService: Auto-update is disabled.");
         }
+    }
+
+    public void RefreshConfigurationFromSettings()
+    {
+        if (_updateManager == null)
+        {
+            // Either initialization has not happened yet, or it was suppressed
+            // by the Flatpak runtime (see Initialize). Nothing to refresh.
+            return;
+        }
+
+        var settings = SettingsManager.Settings;
+        IReadOnlyList<(string Owner, string Repo)> updateRepositories = ResolveUpdateRepositories(settings);
+        var updateRepository = updateRepositories[0];
+        bool includePreRelease = settings.UpdateChannel == UpdateChannel.PreRelease;
+
+        _updateManager.GitHubRepositories = updateRepositories;
+        _updateManager.GitHubOwner = updateRepository.Owner;
+        _updateManager.GitHubRepo = updateRepository.Repo;
+        _updateManager.IncludePreRelease = includePreRelease;
+        _updateManager.AllowAutoUpdate = settings.AutoCheckUpdate;
+        _updateManager.ConfigureAutoUpdate();
+    }
+
+    public static (string Owner, string Repo) ResolveUpdateRepository(ApplicationConfig settings)
+    {
+        return ResolveUpdateRepositories(settings)[0];
+    }
+
+    public static IReadOnlyList<(string Owner, string Repo)> ResolveUpdateRepositories(ApplicationConfig settings)
+    {
+        if (settings.UpdateChannel != UpdateChannel.PreRelease)
+        {
+            return [(DefaultReleaseOwner, DefaultRepo)];
+        }
+
+        return settings.PreReleaseUpdateSource switch
+        {
+            PreReleaseUpdateSource.ShareX => [(DefaultReleaseOwner, DefaultRepo)],
+            PreReleaseUpdateSource.Custom => [ResolveCustomPreReleaseRepository(settings.CustomPreReleaseUpdateSource)],
+            PreReleaseUpdateSource.Any =>
+            [
+                (DefaultReleaseOwner, DefaultRepo),
+                (DefaultPreReleaseOwner, DefaultRepo)
+            ],
+            _ => [(DefaultPreReleaseOwner, DefaultRepo)]
+        };
+    }
+
+    public static (string Owner, string Repo) ResolveCustomPreReleaseRepository(string? source)
+    {
+        string normalized = NormalizeCustomPreReleaseSource(source);
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return (DefaultPreReleaseOwner, DefaultRepo);
+        }
+
+        string[] parts = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return parts.Length >= 2
+            ? (parts[0], parts[1])
+            : (parts[0], DefaultRepo);
+    }
+
+    private static string NormalizeCustomPreReleaseSource(string? source)
+    {
+        string normalized = source?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return string.Empty;
+        }
+
+        if (Uri.TryCreate(normalized, UriKind.Absolute, out Uri? uri) &&
+            uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = uri.AbsolutePath;
+        }
+
+        return normalized.Trim().Trim('/');
     }
 
     /// <summary>
@@ -125,20 +241,11 @@ public class UpdateService : IDisposable
         {
             return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                var owner = await WaitForDialogOwnerAsync();
-                if (!CanUseDialogOwner(owner))
-                {
-                    // Skip this prompt if the main window is not ready/visible yet.
-                    // Returning true prevents auto-update from being disabled as if user declined.
-                    DebugHelper.WriteLine("Cannot show update dialog: Main window is not visible yet.");
-                    return true;
-                }
-
                 var dialog = new UpdateMessageBox(updateChecker);
                 bool? result;
                 try
                 {
-                    result = await dialog.ShowDialog<bool?>(owner!);
+                    result = await ShowUpdateDialogWindowAsync(dialog);
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -196,23 +303,11 @@ public class UpdateService : IDisposable
     {
         await Dispatcher.UIThread.InvokeAsync(async () =>
         {
-            var owner = await WaitForDialogOwnerAsync();
-            if (!CanUseDialogOwner(owner))
-            {
-                DebugHelper.WriteLine("Cannot show downloader: Main window is not visible.");
-                // Fallback to opening URL in browser
-                if (!string.IsNullOrEmpty(updateChecker.DownloadURL))
-                {
-                    URLHelpers.OpenURL(updateChecker.DownloadURL);
-                }
-                return;
-            }
-
             var dialog = new DownloaderWindow(updateChecker);
             bool? result;
             try
             {
-                result = await dialog.ShowDialog<bool?>(owner!);
+                result = await ShowDownloaderWindowAsync(dialog, updateChecker);
             }
             catch (InvalidOperationException ex)
             {
@@ -242,35 +337,52 @@ public class UpdateService : IDisposable
         }
     }
 
-    private static Window? GetMainWindow()
+    private static Window? GetPreferredDialogOwner()
     {
-        return Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
+        if (Avalonia.Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            return null;
+        }
+
+        return desktop.Windows.FirstOrDefault(window => CanUseDialogOwner(window) && window.IsActive)
+            ?? desktop.Windows.LastOrDefault(CanUseDialogOwner)
+            ?? desktop.MainWindow;
     }
 
     private static bool CanUseDialogOwner(Window? owner)
     {
         return owner != null &&
                owner.IsVisible &&
-               owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
-               owner.ShowInTaskbar;
+               owner.WindowState != Avalonia.Controls.WindowState.Minimized;
     }
 
-    private static async Task<Window?> WaitForDialogOwnerAsync()
+    private static async Task<bool?> ShowUpdateDialogWindowAsync(UpdateMessageBox dialog)
     {
-        for (int i = 0; i < DialogOwnerRetryCount; i++)
+        var owner = GetPreferredDialogOwner();
+        if (CanUseDialogOwner(owner))
         {
-            var owner = GetMainWindow();
-            if (CanUseDialogOwner(owner))
-            {
-                return owner;
-            }
-
-            await Task.Delay(DialogOwnerRetryInterval);
+            return await dialog.ShowDialog<bool?>(owner!);
         }
 
-        return null;
+        DebugHelper.WriteLine("Showing update dialog without a visible owner window.");
+        return await dialog.ShowDetachedAsync();
+    }
+
+    private static async Task<bool?> ShowDownloaderWindowAsync(DownloaderWindow dialog, UpdateChecker updateChecker)
+    {
+        var owner = GetPreferredDialogOwner();
+        if (CanUseDialogOwner(owner))
+        {
+            return await dialog.ShowDialog<bool?>(owner!);
+        }
+
+        DebugHelper.WriteLine("Showing updater downloader without a visible owner window.");
+        if (string.IsNullOrEmpty(updateChecker.DownloadURL))
+        {
+            return false;
+        }
+
+        return await dialog.ShowDetachedAsync();
     }
 
     private static bool IsPortableBuild()
@@ -283,13 +395,24 @@ public class UpdateService : IDisposable
     /// <summary>
     /// Manually trigger an update check.
     /// </summary>
-    public async Task CheckForUpdatesAsync()
+    public async Task<UpdateStatus> CheckForUpdatesAsync()
     {
         if (_updateManager == null)
         {
-            DebugHelper.WriteLine("UpdateService not initialized. Call Initialize() first.");
-            return;
+            if (IsRuntimeManagedByFlatpak)
+            {
+                DebugHelper.WriteLine(
+                    "UpdateService: CheckForUpdatesAsync short-circuited inside Flatpak sandbox; " +
+                    "the Flatpak runtime owns upgrade delivery.");
+            }
+            else
+            {
+                DebugHelper.WriteLine("UpdateService not initialized. Call Initialize() first.");
+            }
+            return UpdateStatus.UpdateCheckFailed;
         }
+
+        RefreshConfigurationFromSettings();
 
         var updateChecker = _updateManager.CreateUpdateChecker();
         await updateChecker.CheckUpdateAsync();
@@ -306,6 +429,8 @@ public class UpdateService : IDisposable
         {
             DebugHelper.WriteLine($"Update check failed. Status: {updateChecker.Status}");
         }
+
+        return updateChecker.Status;
     }
 
     public void Dispose()

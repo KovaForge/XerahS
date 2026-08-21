@@ -127,7 +127,21 @@ namespace XerahS.Uploaders.FileUploaders
 
         public string GetHttpHomePath()
         {
-            string homePath = HttpHomePath.Replace("%host", Host, StringComparison.OrdinalIgnoreCase);
+            return GetHttpHomePath(out _);
+        }
+
+        private string GetHttpHomePath(out bool autoAddSubFolderPath)
+        {
+            autoAddSubFolderPath = HttpHomePathAutoAddSubFolderPath;
+
+            string homePath = HttpHomePath;
+            if (!string.IsNullOrEmpty(homePath) && homePath.StartsWith("@", StringComparison.Ordinal))
+            {
+                autoAddSubFolderPath = false;
+                homePath = homePath.Substring(1);
+            }
+
+            homePath = URLHelpers.RemovePrefixes(homePath).Replace("%host", Host, StringComparison.OrdinalIgnoreCase);
 
             ShareXCustomUploaderSyntaxParser parser = new ShareXCustomUploaderSyntaxParser
             {
@@ -164,7 +178,8 @@ namespace XerahS.Uploaders.FileUploaders
 
             UriBuilder httpHomeUri;
 
-            string httpHomePath = GetHttpHomePath();
+            string httpHomePath = GetHttpHomePath(out bool httpHomePathAutoAddSubFolderPath);
+            string? ipv6HttpHomeHost = null;
 
             if (string.IsNullOrEmpty(httpHomePath))
             {
@@ -175,7 +190,7 @@ namespace XerahS.Uploaders.FileUploaders
                     url = url.Substring(4);
                 }
 
-                if (HttpHomePathAutoAddSubFolderPath)
+                if (httpHomePathAutoAddSubFolderPath)
                 {
                     url = URLHelpers.CombineURL(url, subFolderPath);
                 }
@@ -190,20 +205,73 @@ namespace XerahS.Uploaders.FileUploaders
             else
             {
                 int firstSlash = httpHomePath.IndexOf('/');
-                string httpHome = firstSlash >= 0 ? httpHomePath.Substring(0, firstSlash) : httpHomePath;
-                int portSpecifiedAt = httpHome.LastIndexOf(':');
+                int firstQuestion = httpHomePath.IndexOf('?');
+                int firstEncodedQuestion = httpHomePath.IndexOf("%3F", StringComparison.OrdinalIgnoreCase);
+                int firstQuery = firstQuestion >= 0 && firstEncodedQuestion >= 0
+                    ? Math.Min(firstQuestion, firstEncodedQuestion)
+                    : Math.Max(firstQuestion, firstEncodedQuestion);
+                int firstPathOrQuery = firstSlash >= 0 && firstQuery >= 0
+                    ? Math.Min(firstSlash, firstQuery)
+                    : Math.Max(firstSlash, firstQuery);
+                string httpHome = firstPathOrQuery >= 0 ? httpHomePath.Substring(0, firstPathOrQuery) : httpHomePath;
 
-                string httpHomeHost = portSpecifiedAt >= 0 ? httpHome.Substring(0, portSpecifiedAt) : httpHome;
+                string httpHomeHost = httpHome;
                 int httpHomePort = -1;
-                string httpHomePathAndQuery = firstSlash >= 0 ? httpHomePath.Substring(firstSlash + 1) : string.Empty;
-                int querySpecifiedAt = httpHomePathAndQuery.LastIndexOf('?');
-                string httpHomeDir = querySpecifiedAt >= 0 ? httpHomePathAndQuery.Substring(0, querySpecifiedAt) : httpHomePathAndQuery;
-                string httpHomeQuery = querySpecifiedAt >= 0 ? httpHomePathAndQuery.Substring(querySpecifiedAt + 1) : string.Empty;
 
-                if (portSpecifiedAt >= 0)
+                if (httpHome.StartsWith("[", StringComparison.Ordinal))
                 {
-                    int.TryParse(httpHome.Substring(portSpecifiedAt + 1), out httpHomePort);
+                    int bracketEnd = httpHome.IndexOf(']');
+
+                    if (bracketEnd >= 0)
+                    {
+                        httpHomeHost = httpHome.Substring(1, bracketEnd - 1);
+                        ipv6HttpHomeHost = httpHomeHost;
+
+                        if (httpHome.Length > bracketEnd + 2 && httpHome[bracketEnd + 1] == ':' &&
+                            int.TryParse(httpHome.Substring(bracketEnd + 2), out int parsedPort))
+                        {
+                            httpHomePort = parsedPort;
+                        }
+                    }
                 }
+                else if (httpHome.StartsWith("%5B", StringComparison.OrdinalIgnoreCase))
+                {
+                    int bracketEnd = httpHome.IndexOf("%5D", StringComparison.OrdinalIgnoreCase);
+
+                    if (bracketEnd >= 0)
+                    {
+                        httpHomeHost = httpHome.Substring(3, bracketEnd - 3);
+                        ipv6HttpHomeHost = httpHomeHost;
+
+                        if (httpHome.Length > bracketEnd + 4 && httpHome[bracketEnd + 3] == ':' &&
+                            int.TryParse(httpHome.Substring(bracketEnd + 4), out int parsedPort))
+                        {
+                            httpHomePort = parsedPort;
+                        }
+                    }
+                }
+                else
+                {
+                    int portSpecifiedAt = httpHome.LastIndexOf(':');
+
+                    if (portSpecifiedAt >= 0 && int.TryParse(httpHome.Substring(portSpecifiedAt + 1), out int parsedPort))
+                    {
+                        httpHomeHost = httpHome.Substring(0, portSpecifiedAt);
+                        httpHomePort = parsedPort;
+                    }
+                }
+
+                string httpHomePathAndQuery = firstPathOrQuery >= 0
+                    ? httpHomePath.Substring(firstPathOrQuery + (httpHomePath[firstPathOrQuery] == '/' ? 1 : 0))
+                    : string.Empty;
+                int querySpecifiedAt = httpHomePathAndQuery.LastIndexOf('?');
+                int encodedQuerySpecifiedAt = httpHomePathAndQuery.LastIndexOf("%3F", StringComparison.OrdinalIgnoreCase);
+                int querySeparatorAt = querySpecifiedAt >= 0 && encodedQuerySpecifiedAt >= 0
+                    ? Math.Max(querySpecifiedAt, encodedQuerySpecifiedAt)
+                    : Math.Max(querySpecifiedAt, encodedQuerySpecifiedAt);
+                int querySeparatorLength = querySeparatorAt == encodedQuerySpecifiedAt ? 3 : 1;
+                string httpHomeDir = querySeparatorAt >= 0 ? httpHomePathAndQuery.Substring(0, querySeparatorAt) : httpHomePathAndQuery;
+                string httpHomeQuery = querySeparatorAt >= 0 ? httpHomePathAndQuery.Substring(querySeparatorAt + querySeparatorLength) : string.Empty;
 
                 httpHomeUri = new UriBuilder
                 {
@@ -212,7 +280,7 @@ namespace XerahS.Uploaders.FileUploaders
                     Query = httpHomeQuery
                 };
 
-                if (portSpecifiedAt >= 0)
+                if (httpHomePort >= 0)
                 {
                     httpHomeUri.Port = httpHomePort;
                 }
@@ -220,13 +288,14 @@ namespace XerahS.Uploaders.FileUploaders
                 if (httpHomeUri.Query.EndsWith("=", StringComparison.Ordinal))
                 {
                     string query = httpHomeUri.Query.TrimStart('?');
-                    httpHomeUri.Query = HttpHomePathAutoAddSubFolderPath
-                        ? URLHelpers.CombineURL(query, subFolderPath, fileName)
-                        : query + fileName;
+                    string queryValue = httpHomePathAutoAddSubFolderPath
+                        ? URLHelpers.CombineURL(subFolderPath, fileName)
+                        : fileName;
+                    httpHomeUri.Query = query + queryValue;
                 }
                 else
                 {
-                    if (HttpHomePathAutoAddSubFolderPath)
+                    if (httpHomePathAutoAddSubFolderPath)
                     {
                         httpHomeUri.Path = URLHelpers.CombineURL(httpHomeUri.Path, subFolderPath);
                     }
@@ -235,7 +304,23 @@ namespace XerahS.Uploaders.FileUploaders
                 }
             }
 
-            httpHomeUri.Scheme = EnumExtensions.GetDescription(BrowserProtocol);
+            string scheme = EnumExtensions.GetDescription(BrowserProtocol);
+            httpHomeUri.Scheme = scheme;
+
+            if (ipv6HttpHomeHost != null)
+            {
+                string path = httpHomeUri.Path;
+
+                if (!path.StartsWith("/", StringComparison.Ordinal))
+                {
+                    path = "/" + path;
+                }
+
+                string port = httpHomeUri.Port >= 0 ? ":" + httpHomeUri.Port.ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+                string schemePrefix = scheme.EndsWith("://", StringComparison.Ordinal) ? scheme : scheme + "://";
+                return $"{schemePrefix}[{ipv6HttpHomeHost}]{port}{path}{httpHomeUri.Query}";
+            }
+
             return httpHomeUri.Uri.OriginalString;
         }
 

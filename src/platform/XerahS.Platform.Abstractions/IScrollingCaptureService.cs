@@ -44,13 +44,13 @@ namespace XerahS.Platform.Abstractions
         /// <param name="windowHandle">Target window handle</param>
         /// <param name="method">Scroll method to use</param>
         /// <param name="amount">Number of scroll units</param>
-        Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount);
+        Task ScrollWindowAsync(IntPtr windowHandle, ScrollMethod method, int amount, System.Drawing.Point? targetPoint = null);
 
         /// <summary>
         /// Scrolls the specified window to the top of its content.
         /// </summary>
         /// <param name="windowHandle">Target window handle</param>
-        Task ScrollToTopAsync(IntPtr windowHandle);
+        Task ScrollToTopAsync(IntPtr windowHandle, System.Drawing.Point? targetPoint = null);
 
         /// <summary>
         /// Gets scroll bar position and range information for the specified window.

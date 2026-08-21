@@ -28,15 +28,34 @@ struct LoadingScreen: View {
     var onInitComplete: () -> Void
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 18) {
+            Image("Logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 92, height: 92)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+
             Text("XerahS")
-                .font(.largeTitle)
+                .font(.largeTitle.weight(.semibold))
+
             ProgressView()
-                .scaleEffect(1.5)
-            Text("Initializing XerahS…")
+
+            Text("Initializing uploads, history, and settings...")
                 .font(.body)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
         }
+        .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            if #available(iOS 17.0, *) {
+                Color(uiColor: .systemGroupedBackground)
+                    .ignoresSafeArea()
+            } else {
+                Color(uiColor: .systemBackground)
+                    .ignoresSafeArea()
+            }
+        }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                 onInitComplete()

@@ -69,6 +69,11 @@ namespace XerahS.Common
                 return FFmpegDownloadResult.CreateFailure("Destination folder was not provided.");
             }
 
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return FFmpegDownloadResult.CreateFailure("FFmpeg download was canceled.");
+            }
+
             Directory.CreateDirectory(destinationFolder);
 
             string? downloadedArchive = null;
@@ -78,7 +83,14 @@ namespace XerahS.Common
             try
             {
                 FFmpegUpdateChecker updateChecker = new FFmpegUpdateChecker(DefaultOwner, DefaultRepo, FFmpegUpdateChecker.ResolveArchitecture());
-                string? downloadUrl = await updateChecker.GetLatestDownloadURL(true);
+                // Propagate cancellation into GitHub URL discovery so a cancel
+                // mid-lookup does not continue into the archive download.
+                string? downloadUrl = await updateChecker.GetLatestDownloadURL(true, cancellationToken);
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return FFmpegDownloadResult.CreateFailure("FFmpeg download was canceled.");
+                }
 
                 if (string.IsNullOrWhiteSpace(downloadUrl))
                 {
@@ -92,8 +104,13 @@ namespace XerahS.Common
 
                 downloader = new FileDownloader(downloadUrl, downloadedArchive);
                 detachProgressHandlers = AttachProgressHandlers(downloader, progress);
-                bool downloadSuccess = await downloader.StartDownload();
+                bool downloadSuccess = await downloader.StartDownload(cancellationToken);
                 progress?.Report(100);
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return FFmpegDownloadResult.CreateFailure("FFmpeg download was canceled.");
+                }
 
                 if (!downloadSuccess || !File.Exists(downloadedArchive))
                 {
@@ -111,8 +128,16 @@ namespace XerahS.Common
 
                 return FFmpegDownloadResult.CreateSuccess(ffmpegPath);
             }
+            catch (OperationCanceledException)
+            {
+                return FFmpegDownloadResult.CreateFailure("FFmpeg download was canceled.");
+            }
             catch (Exception ex)
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return FFmpegDownloadResult.CreateFailure("FFmpeg download was canceled.");
+                }
                 DebugHelper.WriteException(ex, "FFmpeg download failed.");
                 return FFmpegDownloadResult.CreateFailure("FFmpeg download failed.");
             }
@@ -148,6 +173,11 @@ namespace XerahS.Common
                 return null;
             }
 
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return null;
+            }
+
             string ffprobeBinary = OperatingSystem.IsWindows() ? "ffprobe.exe" : "ffprobe";
             if (!OperatingSystem.IsWindows())
             {
@@ -162,7 +192,13 @@ namespace XerahS.Common
 
             try
             {
-                string? downloadUrl = await GetFFprobeFallbackDownloadUrlAsync();
+                string? downloadUrl = await GetFFprobeFallbackDownloadUrlAsync(cancellationToken);
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return null;
+                }
+
                 if (string.IsNullOrWhiteSpace(downloadUrl))
                 {
                     return null;
@@ -174,8 +210,13 @@ namespace XerahS.Common
 
                 downloader = new FileDownloader(downloadUrl, downloadedArchive);
                 detachProgressHandlers = AttachProgressHandlers(downloader, progress);
-                bool downloadSuccess = await downloader.StartDownload();
+                bool downloadSuccess = await downloader.StartDownload(cancellationToken);
                 progress?.Report(100);
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return null;
+                }
 
                 if (!downloadSuccess || !File.Exists(downloadedArchive))
                 {
@@ -187,8 +228,16 @@ namespace XerahS.Common
                 string extractedFFprobePath = Path.Combine(destinationFolder, ffprobeBinary);
                 return File.Exists(extractedFFprobePath) ? extractedFFprobePath : null;
             }
+            catch (OperationCanceledException)
+            {
+                return null;
+            }
             catch (Exception ex)
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return null;
+                }
                 DebugHelper.WriteException(ex, "FFprobe fallback download failed.");
                 return null;
             }
@@ -294,14 +343,22 @@ namespace XerahS.Common
             }
         }
 
-        private static async Task<string?> GetFFprobeFallbackDownloadUrlAsync()
+        private static Task<string?> GetFFprobeFallbackDownloadUrlAsync()
+        {
+            return GetFFprobeFallbackDownloadUrlAsync(CancellationToken.None);
+        }
+
+        private static async Task<string?> GetFFprobeFallbackDownloadUrlAsync(CancellationToken cancellationToken)
         {
             string response = await WebHelpers.DownloadStringAsync(
-                $"https://api.github.com/repos/{FFprobeFallbackOwner}/{FFprobeFallbackRepo}/releases/latest");
+                $"https://api.github.com/repos/{FFprobeFallbackOwner}/{FFprobeFallbackRepo}/releases/latest",
+                cancellationToken);
             if (string.IsNullOrWhiteSpace(response))
             {
                 return null;
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             using JsonDocument document = JsonDocument.Parse(response);
             if (!document.RootElement.TryGetProperty("assets", out JsonElement assetsElement))

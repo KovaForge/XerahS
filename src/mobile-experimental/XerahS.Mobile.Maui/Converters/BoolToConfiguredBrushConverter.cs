@@ -32,8 +32,21 @@ namespace XerahS.Mobile.Maui.Converters;
 /// </summary>
 public class BoolToConfiguredBrushConverter : IValueConverter
 {
-    private static readonly SolidColorBrush ConfiguredBrush = new(Colors.Green);
-    private static readonly SolidColorBrush NotConfiguredBrush = new(Colors.Orange);
+    private static readonly SolidColorBrush ConfiguredBrush = ResolveBrush("SuccessColor", Colors.Green);
+    private static readonly SolidColorBrush NotConfiguredBrush = ResolveBrush("WarningColor", Colors.Orange);
+
+    private static SolidColorBrush ResolveBrush(string resourceKey, Color fallback)
+    {
+        if (Application.Current?.Resources.TryGetValue(resourceKey, out var resource) == true)
+        {
+            if (resource is Color color)
+            {
+                return new SolidColorBrush(color);
+            }
+        }
+
+        return new SolidColorBrush(fallback);
+    }
 
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
@@ -46,6 +59,8 @@ public class BoolToConfiguredBrushConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        // One-way converter: returning null signals MAUI to leave the source value
+        // untouched for any accidental two-way binding instead of throwing.
+        return null;
     }
 }

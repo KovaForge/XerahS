@@ -25,11 +25,13 @@
 using XerahS.Common;
 using XerahS.Core.Helpers;
 using XerahS.Core.Tasks;
+using XerahS.Services.Abstractions;
 using System.Collections.Concurrent;
+using SkiaSharp;
 
 namespace XerahS.Core.Managers
 {
-    public class TaskManager
+    public class TaskManager : ITaskManager
     {
         private static readonly Lazy<TaskManager> _lazy = new(() => new TaskManager());
         public static TaskManager Instance => _lazy.Value;
@@ -128,6 +130,9 @@ namespace XerahS.Core.Managers
             task.Info.FilePath = filePath;
             task.Info.DataType = EDataType.File;
             task.Info.Job = TaskJob.FileUpload;
+
+            string extension = Path.GetExtension(filePath);
+            task.Info.SetFileName(TaskHelpers.GetFileName(safeTaskSettings, extension, task.Info.Metadata));
 
             // Add task and cleanup old tasks to prevent unbounded growth
             lock (_tasksLock)
@@ -287,6 +292,26 @@ namespace XerahS.Core.Managers
             {
                 task.Stop();
             }
+        }
+
+        async Task ITaskManager.StartTask(object? taskSettings, SKBitmap? inputImage)
+        {
+            await StartTask(taskSettings as TaskSettings, inputImage);
+        }
+
+        async Task ITaskManager.StartFileTask(object? taskSettings, string filePath)
+        {
+            await StartFileTask(taskSettings as TaskSettings, filePath);
+        }
+
+        async Task ITaskManager.StartImageUploadTask(object? taskSettings, SKBitmap image)
+        {
+            await StartImageUploadTask(taskSettings as TaskSettings, image);
+        }
+
+        async Task ITaskManager.StartTextTask(object? taskSettings, string text)
+        {
+            await StartTextTask(taskSettings as TaskSettings, text);
         }
     }
 }

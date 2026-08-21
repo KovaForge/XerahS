@@ -30,19 +30,26 @@ namespace XerahS.History
 {
     public static class HistoryHelpers
     {
+        private static string FormatCountWithPercentage<TKey>(IGrouping<TKey, HistoryItem> grouping, int totalCount)
+        {
+            float percentage = totalCount > 0 ? grouping.Count() / (float)totalCount * 100 : 0;
+            return string.Format("{0}: {1} ({2:N0}%)", grouping.Key, grouping.Count(), percentage);
+        }
+
         public static string OutputStats(List<HistoryItem> historyItems)
         {
             string empty = "(empty)";
+            int totalCount = historyItems.Count;
 
             StringBuilder sb = new StringBuilder();
 
             sb.AppendLine("History item counts");
-            sb.AppendLine("Total: " + historyItems.Count);
+            sb.AppendLine("Total: " + totalCount);
 
             IEnumerable<string> types = historyItems.
                 GroupBy(x => x.Type).
                 OrderByDescending(x => x.Count()).
-                Select(x => string.Format("{0}: {1} ({2:N0}%)", x.Key, x.Count(), x.Count() / (float)historyItems.Count * 100));
+                Select(x => FormatCountWithPercentage(x, totalCount));
 
             sb.AppendLine(string.Join(Environment.NewLine, types));
 
@@ -52,7 +59,7 @@ namespace XerahS.History
             IEnumerable<string> yearlyUsages = historyItems.
                 GroupBy(x => x.DateTime.Year).
                 OrderByDescending(x => x.Key).
-                Select(x => string.Format("{0}: {1} ({2:N0}%)", x.Key, x.Count(), x.Count() / (float)historyItems.Count * 100));
+                Select(x => FormatCountWithPercentage(x, totalCount));
 
             sb.AppendLine(string.Join(Environment.NewLine, yearlyUsages));
 

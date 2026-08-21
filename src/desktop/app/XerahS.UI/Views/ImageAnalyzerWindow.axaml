@@ -22,8 +22,8 @@
     <!-- Row 0: Input file -->
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
       <TextBox Grid.Column="0"
-               Text="{Binding InputFilePath}"
-               Watermark="Select an image file..."
+               Text="{Binding InputDisplayText}"
+               PlaceholderText="Select an image file..."
                IsReadOnly="True"
                AutomationProperties.Name="Input file path" />
       <Button Grid.Column="1"

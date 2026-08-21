@@ -42,9 +42,9 @@ internal static class RegionCaptureAnnotationOptionsStore
         return taskSettings.CaptureSettings.RegionCaptureOptions.AnnotationOptions;
     }
 
-    public static void Persist()
+    public static async Task<bool> PersistAsync()
     {
-        SettingsManager.SaveWorkflowsConfigAsync();
+        return await SettingsManager.SaveWorkflowsConfigAsync();
     }
 
     private static TaskSettings ResolveTaskSettings(string? workflowId, WorkflowType? workflowType)

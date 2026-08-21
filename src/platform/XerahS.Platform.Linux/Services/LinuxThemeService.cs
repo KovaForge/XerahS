@@ -29,6 +29,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Tmds.DBus;
+using XerahS.Common;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Platform.Linux.Services
@@ -155,24 +156,16 @@ namespace XerahS.Platform.Linux.Services
             try
             {
                 // Check GNOME color-scheme setting
-                using var process = Process.Start(new ProcessStartInfo
-                {
-                    FileName = "gsettings",
-                    Arguments = "get org.gnome.desktop.interface color-scheme",
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                });
+                var (output, exitCode) = RunGsettingsCapture(
+                    "gsettings",
+                    "get org.gnome.desktop.interface color-scheme",
+                    1000);
 
-                if (process == null) return null;
+                if (exitCode != 0 || string.IsNullOrEmpty(output)) return null;
 
-                string output = process.StandardOutput.ReadToEnd().Trim().Trim('\'');
-                process.WaitForExit(1000);
+                string trimmed = output.Trim().Trim('\'');
 
-                if (process.ExitCode != 0) return null;
-
-                return output switch
+                return trimmed switch
                 {
                     "prefer-dark" => ColorSchemeDark,
                     "prefer-light" => ColorSchemeLight,
@@ -195,25 +188,16 @@ namespace XerahS.Platform.Linux.Services
             try
             {
                 // Try gsettings for GTK theme
-                using var process = Process.Start(new ProcessStartInfo
+                var (output, exitCode) = RunGsettingsCapture(
+                    "gsettings",
+                    "get org.gnome.desktop.interface gtk-theme",
+                    1000);
+
+                if (exitCode == 0 && !string.IsNullOrEmpty(output))
                 {
-                    FileName = "gsettings",
-                    Arguments = "get org.gnome.desktop.interface gtk-theme",
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                });
-
-                if (process == null) return null;
-
-                string output = process.StandardOutput.ReadToEnd().Trim().Trim('\'');
-                process.WaitForExit(1000);
-
-                if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
-                {
-                    return output.Contains("dark", StringComparison.OrdinalIgnoreCase) ||
-                           output.Contains("Dark", StringComparison.Ordinal);
+                    string trimmed = output.Trim().Trim('\'');
+                    return trimmed.Contains("dark", StringComparison.OrdinalIgnoreCase) ||
+                           trimmed.Contains("Dark", StringComparison.Ordinal);
                 }
             }
             catch
@@ -225,8 +209,9 @@ namespace XerahS.Platform.Linux.Services
             try
             {
                 string settingsPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ".config", "gtk-3.0", "settings.ini");
+                    LinuxXdgDirectories.Detect().ConfigHome,
+                    "gtk-3.0",
+                    "settings.ini");
 
                 if (File.Exists(settingsPath))
                 {
@@ -248,6 +233,133 @@ namespace XerahS.Platform.Linux.Services
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Runs a synchronous CLI invocation and returns its captured stdout
+        /// plus exit code. Drains stderr asynchronously so a noisy child
+        /// process cannot deadlock on a full OS pipe buffer (the same
+        /// anti-pattern previously fixed in
+        /// <see cref="XerahS.Platform.Linux.Capture.Helpers.LinuxCliToolRunner"/>
+        /// for capture helpers and in
+        /// <see cref="LinuxScreenService"/> for screen enumeration). Reads
+        /// stdout asynchronously too, so a child that sleeps without
+        /// producing output (e.g. <c>sleep 5</c>) cannot stretch a 1-second
+        /// timeout into 5 seconds waiting for the child to close its stdout
+        /// pipe.
+        /// </summary>
+        /// <param name="fileName">Executable to run (e.g. "gsettings").</param>
+        /// <param name="arguments">Command-line arguments to pass.</param>
+        /// <param name="timeoutMs">Maximum time to wait for the process to exit.</param>
+        /// <returns>Tuple of (stdout, exitCode). stdout may be empty; exitCode is null on timeout.</returns>
+        internal static (string output, int? exitCode) RunGsettingsCapture(string fileName, string arguments, int timeoutMs)
+        {
+            Process? process = null;
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = fileName,
+                    Arguments = arguments,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                process = Process.Start(startInfo);
+                if (process == null)
+                    return (string.Empty, null);
+
+                // Drain stderr asynchronously so a chatty child process
+                // cannot block writing to a full 64KB OS pipe buffer. We
+                // deliberately discard stderr text — gsettings only writes
+                // to stdout for get-queries; any stderr line is a
+                // warning/error that we do not need to surface at the
+                // theme-parse layer.
+                var stderrDrain = process.StandardError.ReadToEndAsync().ContinueWith(
+                    _ => { },
+                    TaskScheduler.Default);
+
+                // Read stdout asynchronously too so a child that does not
+                // close its stdout pipe within the timeout (e.g. `sleep 5`
+                // with a 1s timeout) does not stretch the call to 5
+                // seconds. The ReadToEndAsync + Task.WhenAny(timeout)
+                // pattern bounds the wait.
+                var stdoutTask = process.StandardOutput.ReadToEndAsync();
+                var timeoutTask = Task.Delay(timeoutMs);
+
+                var completed = Task.WaitAny(stdoutTask, timeoutTask);
+                if (completed != 0)
+                {
+                    // Timeout: kill the child. After Kill, the child's
+                    // stdout and stderr handles are closed, so the async
+                    // drainers will unblock and complete on their own. We
+                    // use a bounded wait so we do not block forever if the
+                    // kernel delays the kill delivery.
+                    try { process.Kill(); } catch { /* best effort */ }
+                    try
+                    {
+                        Task.WaitAll(new Task[] { stdoutTask, stderrDrain }, 1000);
+                    }
+                    catch
+                    {
+                        // Drainer may have faulted on a closed stream; ignore.
+                    }
+                    return (string.Empty, null);
+                }
+
+                // stdout closed within the timeout — the child has exited
+                // (or is about to). Wait for exit to capture the exit
+                // code, with a bounded follow-up to handle the case where
+                // stdout is closed but the process has not yet fully
+                // released.
+                if (!process.WaitForExit(timeoutMs))
+                {
+                    try { process.Kill(); } catch { /* best effort */ }
+                    process.WaitForExit(1000);
+                    return (stdoutTask.Result, null);
+                }
+
+                // Best-effort: make sure the stderr drainer is done so it
+                // does not leak a task across process disposal. Bounded so
+                // a stuck drainer cannot hang us.
+                try
+                {
+                    Task.WaitAll(new Task[] { stderrDrain }, 1000);
+                }
+                catch
+                {
+                    // Drainer may have faulted on a closed stream; ignore.
+                }
+
+                return (stdoutTask.Result, process.ExitCode);
+            }
+            catch
+            {
+                return (string.Empty, null);
+            }
+            finally
+            {
+                // Manually dispose the process so we do not depend on
+                // `using` syntax to clean up after a return from a
+                // non-using block.
+                process?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Exposes <see cref="RunGsettingsCapture"/> for regression tests so
+        /// the test assembly can drive the run helper with synthetic
+        /// commands (e.g. <c>/bin/sh -c "..."</c>) without needing a real
+        /// gsettings binary on the test machine.
+        /// </summary>
+        internal static class TestAccessor
+        {
+            public static (string output, int? exitCode) RunGsettingsCapture(string fileName, string arguments, int timeoutMs)
+            {
+                return LinuxThemeService.RunGsettingsCapture(fileName, arguments, timeoutMs);
+            }
         }
 
         public void StartMonitoring()

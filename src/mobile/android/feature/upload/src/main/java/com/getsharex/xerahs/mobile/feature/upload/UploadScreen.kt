@@ -27,36 +27,47 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.getsharex.xerahs.mobile.core.data.HistoryRepository
 import com.getsharex.xerahs.mobile.core.data.SettingsRepository
 import com.getsharex.xerahs.mobile.core.data.UploadQueueWorker
+import com.getsharex.xerahs.mobile.core.domain.HistoryEntry
 import com.getsharex.xerahs.mobile.core.domain.UploadResultItem
 import com.getsharex.xerahs.mobile.core.domain.activeDestinationDisplayName
+import java.io.File
+
+private const val MAX_HOME_HISTORY_ITEMS = 100
 
 @Composable
 fun UploadScreen(
     worker: UploadQueueWorker,
-    onOpenHistory: () -> Unit,
-    onOpenSettings: () -> Unit,
     onPickFiles: (() -> Unit)? = null,
     onCopyToClipboard: (String) -> Unit = {},
+    onAutoShareUploadFinished: (List<UploadResultItem>) -> Unit = {},
     initialPaths: Array<String>? = null,
+    historyRepository: HistoryRepository? = null,
     settingsRepository: SettingsRepository? = null,
     viewModel: UploadViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
@@ -66,80 +77,191 @@ fun UploadScreen(
         }
     )
 ) {
+    var pendingAutoShareUploads by remember { mutableIntStateOf(0) }
+    var autoShareResults by remember { mutableStateOf<List<UploadResultItem>>(emptyList()) }
+
+    LaunchedEffect(viewModel) {
+        viewModel.completedResult.collect { result ->
+            if (pendingAutoShareUploads > 0) {
+                pendingAutoShareUploads -= 1
+                autoShareResults = autoShareResults + result
+                if (pendingAutoShareUploads == 0) {
+                    onAutoShareUploadFinished(autoShareResults)
+                    autoShareResults = emptyList()
+                }
+            }
+        }
+    }
+
     if (!initialPaths.isNullOrEmpty()) {
-        androidx.compose.runtime.LaunchedEffect(initialPaths) {
-            viewModel.processFiles(initialPaths)
+        LaunchedEffect(initialPaths) {
+            val expected = initialPaths.count { File(it).exists() }
+            if (expected > 0) pendingAutoShareUploads += expected
+            val added = viewModel.processFiles(initialPaths)
+            if (added < expected) {
+                pendingAutoShareUploads -= expected - added
+            }
         }
     }
     val statusText by viewModel.statusText.collectAsState()
     val isUploading by viewModel.isUploading.collectAsState()
     val results by viewModel.results.collectAsState()
+    val destinationLabel = settingsRepository?.load()?.activeDestinationDisplayName()
+    var historyEntries by remember(historyRepository) { mutableStateOf<List<HistoryEntry>>(emptyList()) }
+    var historyQuery by remember { mutableStateOf("") }
+    val refreshHistory: () -> Unit = {
+        historyEntries = historyRepository?.getRecentEntries(MAX_HOME_HISTORY_ITEMS).orEmpty()
+    }
+    val filteredHistory = remember(historyEntries, historyQuery) {
+        val query = historyQuery.trim()
+        if (query.isEmpty()) {
+            historyEntries
+        } else {
+            historyEntries.filter {
+                it.fileName.contains(query, ignoreCase = true) ||
+                    it.url.contains(query, ignoreCase = true) ||
+                    it.host.contains(query, ignoreCase = true)
+            }
+        }
+    }
 
-    Column(
+    LaunchedEffect(historyRepository) {
+        refreshHistory()
+    }
+
+    LaunchedEffect(results.size, isUploading) {
+        if (!isUploading) {
+            refreshHistory()
+        }
+    }
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp)
+            .padding(horizontal = 20.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        item {
             Text(
                 text = "XerahS",
                 style = MaterialTheme.typography.titleLarge
             )
-            Row {
-                OutlinedButton(onClick = onOpenHistory) { Text("History") }
-                Spacer(modifier = Modifier.padding(4.dp))
-                OutlinedButton(onClick = onOpenSettings) { Text("Settings") }
-            }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Share & Upload",
-                style = MaterialTheme.typography.titleMedium
+
+        item {
+            UploadStatusCard(
+                destinationLabel = destinationLabel,
+                statusText = statusText,
+                isUploading = isUploading,
+                hasResults = results.isNotEmpty(),
+                onPickFiles = onPickFiles
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            settingsRepository?.load()?.activeDestinationDisplayName()?.let { label ->
-                Text(
-                    text = "Uploading to: $label",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+        }
+
+        if (results.isNotEmpty()) {
+            item {
+                SectionHeader(title = "Current upload")
             }
-            Text(
-                text = statusText,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            if (onPickFiles != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(onClick = onPickFiles) { Text("Choose Photo or File") }
-            }
-            if (isUploading) {
-                Spacer(modifier = Modifier.height(16.dp))
-                CircularProgressIndicator()
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            results.forEach { item ->
+            items(results) { item ->
                 val itemUrl = item.url
                 val itemError = item.error
                 ResultCard(
                     item = item,
                     onCopyUrl = if (item.hasUrl && itemUrl != null) ({ onCopyToClipboard(itemUrl) }) else null,
-                    onCopyError = if (!item.success && itemError != null) ({ onCopyToClipboard(itemError) }) else null
+                    onCopyError = if (!item.success && itemError != null) ({ onCopyToClipboard(item.errorClipboardText ?: itemError) }) else null
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+
+        item {
+            HistoryHeader(
+                query = historyQuery,
+                onQueryChange = { historyQuery = it },
+                canClear = historyEntries.isNotEmpty(),
+                onRefresh = refreshHistory,
+                onClear = {
+                    historyRepository?.clearEntries()
+                    refreshHistory()
+                }
+            )
+        }
+
+        if (filteredHistory.isEmpty()) {
+            item {
+                EmptyHistoryCard(hasQuery = historyQuery.isNotBlank())
+            }
+        } else {
+            items(filteredHistory, key = { it.id }) { entry ->
+                HistoryCard(
+                    entry = entry,
+                    onCopyUrl = { onCopyToClipboard(entry.url) },
+                    onDelete = {
+                        historyRepository?.deleteEntry(entry.id)
+                        refreshHistory()
+                    }
+                )
             }
         }
     }
+}
+
+@Composable
+private fun UploadStatusCard(
+    destinationLabel: String?,
+    statusText: String,
+    isUploading: Boolean,
+    hasResults: Boolean,
+    onPickFiles: (() -> Unit)?
+) {
+    val readyText = if (destinationLabel.isNullOrBlank()) {
+        "Configure a destination in Settings before uploading."
+    } else {
+        "Ready for shared files."
+    }
+    val message = when {
+        isUploading -> statusText
+        hasResults && statusText != "Share files to XerahS to upload them." -> statusText
+        else -> readyText
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Home",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = if (destinationLabel.isNullOrBlank()) "Destination: Not configured" else "Destination: $destinationLabel",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            if (onPickFiles != null) {
+                Button(onClick = onPickFiles) { Text("Choose Photo or File") }
+            }
+            if (isUploading) {
+                CircularProgressIndicator()
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier.padding(top = 4.dp)
+    )
 }
 
 @Composable
@@ -178,6 +300,105 @@ private fun ResultCard(
                 if (onCopyError != null) {
                     OutlinedButton(onClick = { onCopyError(err) }) { Text("Copy Error") }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryHeader(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    canClear: Boolean,
+    onRefresh: () -> Unit,
+    onClear: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "History",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onRefresh) { Text("Refresh") }
+                OutlinedButton(
+                    enabled = canClear,
+                    onClick = onClear
+                ) {
+                    Text("Clear")
+                }
+            }
+        }
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Search history") },
+            singleLine = true
+        )
+    }
+}
+
+@Composable
+private fun EmptyHistoryCard(hasQuery: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors()
+    ) {
+        Text(
+            text = if (hasQuery) "No matching history items." else "Uploaded links will appear here.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Composable
+private fun HistoryCard(
+    entry: HistoryEntry,
+    onCopyUrl: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors()
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = entry.fileName.ifBlank { "Uploaded file" },
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (entry.url.isNotBlank()) {
+                Text(
+                    text = entry.url,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (entry.host.isNotBlank()) {
+                Text(
+                    text = entry.host,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (entry.url.isNotBlank()) {
+                    OutlinedButton(onClick = onCopyUrl) { Text("Copy URL") }
+                }
+                OutlinedButton(onClick = onDelete) { Text("Delete") }
             }
         }
     }

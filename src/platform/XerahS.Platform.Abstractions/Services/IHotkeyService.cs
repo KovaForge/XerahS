@@ -36,6 +36,12 @@ public interface IHotkeyService : IDisposable
     event EventHandler<HotkeyTriggeredEventArgs>? HotkeyTriggered;
 
     /// <summary>
+    /// Fired when hotkey metadata changes without a register/unregister action,
+    /// for example when a portal-backed compositor updates the effective binding.
+    /// </summary>
+    event EventHandler? HotkeysChanged;
+
+    /// <summary>
     /// Register a global hotkey
     /// </summary>
     /// <param name="hotkeyInfo">Hotkey to register</param>
@@ -79,6 +85,11 @@ public interface IHotkeyService : IDisposable
     /// The default implementation is a no-op.
     /// </summary>
     void NotifyWindowReady() { }
+
+    /// <summary>
+    /// Returns the current global-hotkey delivery state for settings UI and diagnostics (XIP0079 P1).
+    /// </summary>
+    HotkeyDiagnostics GetDiagnostics() => new(HotkeyBackendState.Native, "native", null);
 }
 
 /// <summary>

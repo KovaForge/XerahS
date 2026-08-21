@@ -27,9 +27,14 @@ public class PluginManifest
     public bool IsValid(out string? error)
     {
         if (string.IsNullOrWhiteSpace(PluginId)) { error = "PluginId is required"; return false; }
+        if (!IsSafePluginId(PluginId)) { error = "PluginId may only contain letters, digits, '.', '_' and '-' and must not be a path"; return false; }
         if (string.IsNullOrWhiteSpace(Name)) { error = "Name is required"; return false; }
         if (string.IsNullOrWhiteSpace(EntryPoint)) { error = "EntryPoint is required"; return false; }
         if (string.IsNullOrWhiteSpace(ApiVersion)) { error = "ApiVersion is required"; return false; }
+        if (!string.IsNullOrWhiteSpace(AssemblyFileName) && !IsSafeAssemblyFileName(AssemblyFileName)) { error = "AssemblyFileName must be a simple .dll file name"; return false; }
+        if (Dependencies == null) { error = "Dependencies must be a list when provided"; return false; }
+        if (Dependencies.Any(string.IsNullOrWhiteSpace)) { error = "Dependencies must not contain empty values"; return false; }
+        if (Dependencies.Any(dependency => !IsSafeDependencyPath(dependency))) { error = "Dependencies must be canonical relative file paths"; return false; }
         if (!SupportedCategories.Any()) { error = "At least one SupportedCategory is required"; return false; }
         error = null;
         return true;
@@ -51,5 +56,63 @@ public class PluginManifest
     public string GetAssemblyFileName()
     {
         return string.IsNullOrWhiteSpace(AssemblyFileName) ? $"{PluginId}.dll" : AssemblyFileName;
+    }
+
+    private static bool IsSafePluginId(string pluginId)
+    {
+        // ASCII-only whitelist: Unicode letters (e.g. Cyrillic/fullwidth) pass
+        // char.IsLetterOrDigit and can become spoofable assembly/file names via
+        // GetAssemblyFileName() when AssemblyFileName is omitted.
+        if (pluginId is "." or ".." || pluginId.Length is 0 or > 128)
+        {
+            return false;
+        }
+
+        foreach (char c in pluginId)
+        {
+            if (c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '.' or '_' or '-')
+            {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool IsSafeAssemblyFileName(string assemblyFileName)
+    {
+        if (assemblyFileName is "." or ".." || Path.IsPathRooted(assemblyFileName))
+        {
+            return false;
+        }
+
+        if (assemblyFileName.Contains('/') || assemblyFileName.Contains('\\'))
+        {
+            return false;
+        }
+
+        return string.Equals(Path.GetExtension(assemblyFileName), ".dll", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSafeDependencyPath(string dependencyPath)
+    {
+        if (Path.IsPathRooted(dependencyPath) || dependencyPath.Contains('\\') || dependencyPath.Contains(':'))
+        {
+            return false;
+        }
+
+        string[] segments = dependencyPath.Split('/');
+        for (int i = 0; i < segments.Length; i++)
+        {
+            string segment = segments[i];
+            if (segment.Length == 0 || segment == "." || segment == "..")
+            {
+                return false;
+            }
+        }
+
+        return !string.IsNullOrWhiteSpace(Path.GetFileName(dependencyPath));
     }
 }

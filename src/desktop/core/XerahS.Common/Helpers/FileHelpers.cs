@@ -37,7 +37,7 @@ public static class FileHelpers
 {
     public static readonly string[] ImageFileExtensions = { "jpg", "jpeg", "png", "gif", "bmp", "ico", "tif", "tiff" };
     public static readonly string[] TextFileExtensions = { "txt", "log", "nfo", "c", "cpp", "cc", "cxx", "h", "hpp", "hxx", "cs", "vb",
-        "html", "htm", "xhtml", "xht", "xml", "css", "js", "php", "bat", "java", "lua", "py", "pl", "cfg", "ini", "dart", "go", "gohtml" };
+        "xhtml", "xht", "xml", "css", "js", "php", "bat", "java", "lua", "py", "pl", "cfg", "ini", "dart", "go", "gohtml" };
     public static readonly string[] VideoFileExtensions = { "mp4", "webm", "mkv", "avi", "vob", "ogv", "ogg", "mov", "qt", "wmv", "m4p",
         "m4v", "mpg", "mp2", "mpeg", "mpe", "mpv", "m2v", "flv", "f4v" };
 
@@ -76,6 +76,23 @@ public static class FileHelpers
                     path = path.Replace(token, folderPath, StringComparison.OrdinalIgnoreCase);
                 }
             }
+
+            path = Regex.Replace(path, "%([A-Za-z0-9_]+)%", match =>
+            {
+                string variableName = match.Groups[1].Value;
+                string? variableValue = Environment.GetEnvironmentVariable(variableName);
+
+                if (string.IsNullOrEmpty(variableValue))
+                {
+                    variableValue = variableName.ToUpperInvariant() switch
+                    {
+                        "TEMP" or "TMP" => Path.GetTempPath(),
+                        _ => null
+                    };
+                }
+
+                return string.IsNullOrEmpty(variableValue) ? match.Value : variableValue;
+            });
         }
         catch
         {
@@ -122,37 +139,43 @@ public static class FileHelpers
 
     public static string GetFileNameExtension(string filePath, bool includeDot = false, bool checkSecondExtension = true)
     {
-        string extension = string.Empty;
-
-        if (!string.IsNullOrEmpty(filePath))
+        if (string.IsNullOrEmpty(filePath))
         {
-            int pos = filePath.LastIndexOf('.');
+            return string.Empty;
+        }
 
-            if (pos >= 0)
+        string fileName = Path.GetFileName(filePath);
+
+        if (string.IsNullOrEmpty(fileName))
+        {
+            return string.Empty;
+        }
+
+        string extension = Path.GetExtension(fileName);
+
+        if (string.IsNullOrEmpty(extension) || extension.Length == fileName.Length)
+        {
+            return string.Empty;
+        }
+
+        extension = includeDot ? extension : extension.TrimStart('.');
+
+        if (!checkSecondExtension)
+        {
+            return extension;
+        }
+
+        string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+        string extension2 = GetFileNameExtension(fileNameWithoutExtension, false, false);
+
+        if (!string.IsNullOrEmpty(extension2))
+        {
+            foreach (string knownExtension in new[] { "tar" })
             {
-                extension = filePath.Substring(pos + 1);
-
-                if (checkSecondExtension)
+                if (extension2.Equals(knownExtension, StringComparison.OrdinalIgnoreCase))
                 {
-                    filePath = filePath.Remove(pos);
-                    string extension2 = GetFileNameExtension(filePath, false, false);
-
-                    if (!string.IsNullOrEmpty(extension2))
-                    {
-                        foreach (string knownExtension in new[] { "tar" })
-                        {
-                            if (extension2.Equals(knownExtension, StringComparison.OrdinalIgnoreCase))
-                            {
-                                extension = extension2 + "." + extension;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (includeDot)
-                {
-                    extension = "." + extension;
+                    extension = includeDot ? $".{extension2}{extension}" : $"{extension2}.{extension}";
+                    break;
                 }
             }
         }
@@ -194,26 +217,28 @@ public static class FileHelpers
 
     public static string ChangeFileNameExtension(string fileName, string extension)
     {
-        if (!string.IsNullOrEmpty(fileName))
+        if (string.IsNullOrEmpty(fileName))
         {
-            int pos = fileName.LastIndexOf('.');
+            return fileName;
+        }
+
+        string currentExtension = GetFileNameExtension(fileName, includeDot: true, checkSecondExtension: false);
+
+        if (!string.IsNullOrEmpty(currentExtension))
+        {
+            fileName = fileName[..^currentExtension.Length];
+        }
+
+        if (!string.IsNullOrEmpty(extension))
+        {
+            int pos = extension.LastIndexOf('.');
 
             if (pos >= 0)
             {
-                fileName = fileName.Remove(pos);
+                extension = extension[(pos + 1)..];
             }
 
-            if (!string.IsNullOrEmpty(extension))
-            {
-                pos = extension.LastIndexOf('.');
-
-                if (pos >= 0)
-                {
-                    extension = extension[(pos + 1)..];
-                }
-
-                return $"{fileName}.{extension}";
-            }
+            return $"{fileName}.{extension}";
         }
 
         return fileName;
@@ -223,11 +248,11 @@ public static class FileHelpers
     {
         if (!string.IsNullOrEmpty(filePath))
         {
-            int pos = filePath.LastIndexOf('.');
+            string extension = GetFileNameExtension(filePath, includeDot: true, checkSecondExtension: false);
 
-            if (pos >= 0)
+            if (!string.IsNullOrEmpty(extension))
             {
-                return filePath[..pos] + text + filePath[pos..];
+                return filePath[..^extension.Length] + text + extension;
             }
         }
 
@@ -302,32 +327,38 @@ public static class FileHelpers
 
     public static string GetUniqueFilePath(string filePath)
     {
-        if (!File.Exists(filePath))
+        if (!Path.Exists(filePath))
         {
             return filePath;
         }
 
         string folderPath = Path.GetDirectoryName(filePath) ?? string.Empty;
-        string fileName = Path.GetFileNameWithoutExtension(filePath);
-        string fileExtension = Path.GetExtension(filePath);
-        int number = 1;
+        string fileName = Path.GetFileName(filePath);
+        string fileExtension = GetFileNameExtension(fileName, includeDot: true);
+
+        if (!string.IsNullOrEmpty(fileExtension))
+        {
+            fileName = fileName[..^fileExtension.Length];
+        }
+
+        long number = 0;
 
         Match regex = Regex.Match(fileName, @"^(.+) \((\d+)\)$");
 
-        if (regex.Success)
+        if (regex.Success && long.TryParse(regex.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out long parsedNumber))
         {
             fileName = regex.Groups[1].Value;
-            number = int.Parse(regex.Groups[2].Value, CultureInfo.InvariantCulture);
+            number = parsedNumber;
         }
 
         string newFilePath;
         do
         {
             number++;
-            string newFileName = $"{fileName} ({number}){fileExtension}";
+            string newFileName = $"{fileName} ({number.ToString(CultureInfo.InvariantCulture)}){fileExtension}";
             newFilePath = Path.Combine(folderPath, newFileName);
         }
-        while (File.Exists(newFilePath));
+        while (Path.Exists(newFilePath));
 
         return newFilePath;
     }
@@ -378,42 +409,64 @@ public static class FileHelpers
             return null;
         }
 
-        string fileName = Path.GetFileName(filePath);
-        string destinationFilePath = Path.Combine(destinationFolder, fileName);
-        Directory.CreateDirectory(destinationFolder);
-        File.Copy(filePath, destinationFilePath, overwrite);
-        return destinationFilePath;
+        try
+        {
+            string fileName = Path.GetFileName(filePath);
+            string destinationFilePath = Path.Combine(destinationFolder, fileName);
+
+            Directory.CreateDirectory(destinationFolder);
+            File.Copy(filePath, destinationFilePath, overwrite);
+            return destinationFilePath;
+        }
+        catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is DirectoryNotFoundException ||
+                                     e is ArgumentException || e is NotSupportedException)
+        {
+            // Destination already exists with overwrite=false, contains an invalid path,
+            // is locked/read-only, or was deleted between CreateDirectory and Copy —
+            // return null so callers can handle gracefully.
+            return null;
+        }
     }
 
     public static string? BackupFileWeekly(string filePath, string destinationFolder)
     {
-        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath) || string.IsNullOrWhiteSpace(destinationFolder))
         {
             return null;
         }
 
-        string fileName = Path.GetFileNameWithoutExtension(filePath);
-        DateTime dateTime = DateTime.Now;
-        string extension = Path.GetExtension(filePath);
-        string newFileName = $"{fileName}-{dateTime:yyyy-MM}-W{WeekOfYear(dateTime):00}{extension}";
-        string newFilePath = Path.Combine(destinationFolder, newFileName);
-
-        if (!File.Exists(newFilePath))
+        try
         {
+            string fileName = Path.GetFileNameWithoutExtension(filePath);
+            DateTime dateTime = DateTime.Now;
+            string extension = Path.GetExtension(filePath);
+            string newFileName = $"{fileName}-{dateTime:yyyy-MM}-W{WeekOfYear(dateTime):00}{extension}";
+            string newFilePath = Path.Combine(destinationFolder, newFileName);
+
             Directory.CreateDirectory(destinationFolder);
+
+            // Use overwrite=false; will throw IOException if destination already exists
+            // (TOCTOU race with the File.Exists check above — catch it and return null)
             File.Copy(filePath, newFilePath, false);
             return newFilePath;
         }
-
-        return null;
+        catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is DirectoryNotFoundException ||
+                                     e is ArgumentException || e is NotSupportedException)
+        {
+            // Backup folder cannot be created/accessed, contains an invalid path,
+            // or backup already exists (race/concurrent backup). Return null so callers can continue safely.
+            return null;
+        }
     }
 
     public static string? BackupFileZip(string filePath, string destinationFolder)
     {
-        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath) || string.IsNullOrWhiteSpace(destinationFolder))
         {
             return null;
         }
+
+        string? tempPath = null;
 
         try
         {
@@ -424,18 +477,15 @@ public static class FileHelpers
                 Directory.CreateDirectory(monthFolder);
             }
 
-            // Create zip file with date stamp: yyyy-MM-dd format
             string zipFileName = $"backup-{DateTime.Now:yyyy-MM-dd}.zip";
             string zipFilePath = Path.Combine(monthFolder, zipFileName);
 
-            // If a backup for today already exists, delete it (we're updating with latest)
-            if (File.Exists(zipFilePath))
-            {
-                File.Delete(zipFilePath);
-            }
+            // Write to a temp file first; only replace the existing backup after
+            // the new archive is fully written, so a crash/disk-full midway does
+            // not destroy the last good backup.
+            tempPath = Path.Combine(monthFolder, $"backup-{DateTime.Now:yyyy-MM-dd}-{Guid.NewGuid():N}.tmp");
 
-            // Create zip file containing the database file and its associated files
-            using (var archive = System.IO.Compression.ZipFile.Open(zipFilePath, System.IO.Compression.ZipArchiveMode.Create))
+            using (var archive = System.IO.Compression.ZipFile.Open(tempPath, System.IO.Compression.ZipArchiveMode.Create))
             {
                 string fileName = Path.GetFileName(filePath);
                 using (var fileStream = File.OpenRead(filePath))
@@ -447,41 +497,68 @@ public static class FileHelpers
                     }
                 }
 
-                // For SQLite databases, also backup WAL and SHM files if they exist
+                // For SQLite databases, also backup WAL and SHM files if they exist.
+                // These files are ephemeral — guard against TOCTOU races where the
+                // file disappears between Exists and OpenRead.
                 string walFile = filePath + "-wal";
                 string shmFile = filePath + "-shm";
 
-                if (File.Exists(walFile))
-                {
-                    using (var fileStream = File.OpenRead(walFile))
-                    {
-                        var entry = archive.CreateEntry(Path.GetFileName(walFile));
-                        using (var entryStream = entry.Open())
-                        {
-                            fileStream.CopyTo(entryStream);
-                        }
-                    }
-                }
-
-                if (File.Exists(shmFile))
-                {
-                    using (var fileStream = File.OpenRead(shmFile))
-                    {
-                        var entry = archive.CreateEntry(Path.GetFileName(shmFile));
-                        using (var entryStream = entry.Open())
-                        {
-                            fileStream.CopyTo(entryStream);
-                        }
-                    }
-                }
+                TryAddToArchive(archive, walFile);
+                TryAddToArchive(archive, shmFile);
             }
+
+            File.Move(tempPath, zipFilePath, overwrite: true);
+            tempPath = null;
 
             return zipFilePath;
         }
         catch (Exception e)
         {
             Debug.WriteLine($"Failed to create backup: {e}");
+            DeleteBackupTempFile(tempPath);
             return null;
+        }
+    }
+
+    private static void DeleteBackupTempFile(string? tempPath)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(tempPath) && File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to delete temporary backup file: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Best-effort add of a file to a zip archive. Silently skips when the file
+    /// does not exist, has been deleted (TOCTOU), or cannot be read.
+    /// </summary>
+    private static void TryAddToArchive(System.IO.Compression.ZipArchive archive, string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath))
+                return;
+
+            using (var fileStream = File.OpenRead(filePath))
+            {
+                var entry = archive.CreateEntry(Path.GetFileName(filePath));
+                using (var entryStream = entry.Open())
+                {
+                    fileStream.CopyTo(entryStream);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException ||
+                                     ex is FileNotFoundException || ex is DirectoryNotFoundException)
+        {
+            // Ephemeral file — silently skip
         }
     }
 
@@ -492,6 +569,11 @@ public static class FileHelpers
 
     public static bool IsFileLocked(string filePath)
     {
+        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        {
+            return false;
+        }
+
         try
         {
             using FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.None);

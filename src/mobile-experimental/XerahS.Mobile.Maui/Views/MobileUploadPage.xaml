@@ -5,7 +5,8 @@
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="XerahS.Mobile.Maui.Views.MobileUploadPage"
              x:DataType="vm:MobileUploadViewModel"
-             Title="XerahS">
+             Title="XerahS"
+             BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="History"
@@ -22,13 +23,7 @@
             <!-- Subtitle -->
             <Label Text="Share &amp; Upload"
                    FontSize="16"
-                   TextColor="{AppThemeBinding Light=#888888, Dark=#AAAAAA}"
-                   HorizontalOptions="Center"
-                   Margin="0,0,0,10"/>
-
-            <Label Text="Deployment ID: 7b84aa3a-6947-4f40-8f9f-bb61caad120f"
-                   FontSize="12"
-                   TextColor="Red"
+                   TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}"
                    HorizontalOptions="Center"
                    Margin="0,0,0,10"/>
 
@@ -53,7 +48,7 @@
                                  Spacing="4">
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="vm:UploadResultItem">
-                        <Border BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
+                        <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
                                 Stroke="Transparent"
                                 Padding="16"
                                 Margin="0,4">

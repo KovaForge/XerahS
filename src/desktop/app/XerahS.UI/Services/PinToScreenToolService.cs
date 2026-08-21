@@ -64,13 +64,64 @@ public static class PinToScreenToolService
         }
     }
 
+    public static Task PinFilesAsync(IEnumerable<string>? filePaths)
+    {
+        int pinnedCount = 0;
+        int skippedCount = 0;
+
+        foreach (string filePath in filePaths ?? Enumerable.Empty<string>())
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            {
+                skippedCount++;
+                continue;
+            }
+
+            try
+            {
+                using var bitmap = SKBitmap.Decode(filePath);
+                if (bitmap == null)
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                try
+                {
+                    PinToScreenManager.PinImage(bitmap, null, GetOptions());
+                    pinnedCount++;
+                }
+                finally
+                {
+                    bitmap.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                skippedCount++;
+                DebugHelper.WriteException(ex, $"PinToScreen: Failed to pin '{filePath}'.");
+            }
+        }
+
+        if (pinnedCount == 0)
+        {
+            ShowToast("Pin to Screen", "No compatible image files were available to pin.");
+        }
+        else if (skippedCount > 0)
+        {
+            ShowToast("Pin to Screen", $"Pinned {pinnedCount} image(s); skipped {skippedCount} item(s).");
+        }
+
+        return Task.CompletedTask;
+    }
+
     private static async Task PinToScreenAsync(Window? owner)
     {
         // Show startup dialog to let user choose source
         var dialog = new PinToScreenStartupDialog();
 
         dialog.SelectRegionRequested = SelectRegionWithLocationAsync;
-        dialog.BrowseFileRequested = () => BrowseImageFileAsync(owner);
+        dialog.BrowseFileRequested = () => BrowseImageFileAsync(dialog, owner);
 
         if (owner != null)
         {
@@ -83,7 +134,15 @@ public static class PinToScreenToolService
 
         if (dialog.Result != null)
         {
-            PinToScreenManager.PinImage(dialog.Result.Image, dialog.Result.Location, GetOptions());
+            var bitmap = dialog.Result.Image;
+            try
+            {
+                PinToScreenManager.PinImage(bitmap, dialog.Result.Location, GetOptions());
+            }
+            finally
+            {
+                bitmap.Dispose();
+            }
         }
     }
 
@@ -101,7 +160,14 @@ public static class PinToScreenToolService
         if (bitmap == null) return;
 
         var location = new PixelPoint(rect.Left, rect.Top);
-        PinToScreenManager.PinImage(bitmap, location, GetOptions());
+        try
+        {
+            PinToScreenManager.PinImage(bitmap, location, GetOptions());
+        }
+        finally
+        {
+            bitmap.Dispose();
+        }
     }
 
     private static void PinFromClipboard()
@@ -116,22 +182,36 @@ public static class PinToScreenToolService
             return;
         }
 
-        PinToScreenManager.PinImage(bitmap, null, GetOptions());
+        try
+        {
+            PinToScreenManager.PinImage(bitmap, null, GetOptions());
+        }
+        finally
+        {
+            bitmap.Dispose();
+        }
     }
 
     private static async Task PinFromFileAsync(Window? owner)
     {
-        var path = await BrowseImageFileAsync(owner);
+        var path = await BrowseImageFileAsync(null, owner);
         if (string.IsNullOrEmpty(path)) return;
 
-        var bitmap = SKBitmap.Decode(path);
+        using var bitmap = SKBitmap.Decode(path);
         if (bitmap == null)
         {
             ShowToast("Pin to Screen", "Failed to load image file.");
             return;
         }
 
-        PinToScreenManager.PinImage(bitmap, null, GetOptions());
+        try
+        {
+            PinToScreenManager.PinImage(bitmap, null, GetOptions());
+        }
+        finally
+        {
+            bitmap.Dispose();
+        }
     }
 
     internal static async Task<(SKBitmap? Bitmap, PixelPoint? Location)> SelectRegionWithLocationAsync()
@@ -153,10 +233,10 @@ public static class PinToScreenToolService
         return (bitmap, new PixelPoint(rect.Left, rect.Top));
     }
 
-    private static async Task<string?> BrowseImageFileAsync(Window? owner)
+    private static async Task<string?> BrowseImageFileAsync(Window? window, Window? owner)
     {
-        var topLevel = owner != null ? TopLevel.GetTopLevel(owner) : null;
-        if (topLevel == null) return null;
+        var storageProvider = StorageProviderResolver.Resolve(window, owner);
+        if (storageProvider == null) return null;
 
         var options = new FilePickerOpenOptions
         {
@@ -165,7 +245,7 @@ public static class PinToScreenToolService
             FileTypeFilter = new[] { ImageFileType }
         };
 
-        var files = await topLevel.StorageProvider.OpenFilePickerAsync(options);
+        var files = await storageProvider.OpenFilePickerAsync(options);
         if (files.Count < 1) return null;
 
         return files[0].TryGetLocalPath();
@@ -186,6 +266,8 @@ public static class PinToScreenToolService
         {
             UseModernCapture = captureSettings.UseModernCapture,
             LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
+            MacOSRegionSelectorPreference = captureSettings.MacOSRegionSelectorPreference,
+            MacOSPlayCaptureSound = captureSettings.MacOSPlayCaptureSound,
             ShowCursor = captureSettings.ShowCursor,
             CaptureTransparent = captureSettings.CaptureTransparent,
             CaptureShadow = captureSettings.CaptureShadow,

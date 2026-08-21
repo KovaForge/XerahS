@@ -38,7 +38,19 @@ namespace XerahS.Common
             }
             catch (JsonSerializationException)
             {
-                return existingValue;
+                if (existingValue != null)
+                {
+                    return existingValue;
+                }
+
+                Type? nullableType = Nullable.GetUnderlyingType(objectType);
+                if (nullableType != null)
+                {
+                    return null;
+                }
+
+                Type enumType = nullableType ?? objectType;
+                return Activator.CreateInstance(enumType);
             }
         }
     }

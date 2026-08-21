@@ -44,9 +44,9 @@ public partial class QrCodeGeneratorViewModel : ViewModelBase, IDisposable
     private Bitmap? _previewImage;
     private readonly IViewDialogService _dialogService;
 
-    public QrCodeGeneratorViewModel(IViewDialogService? dialogService = null)
+    public QrCodeGeneratorViewModel(IViewDialogService dialogService)
     {
-        _dialogService = dialogService ?? PlatformServices.RootProvider?.GetService(typeof(IViewDialogService)) as IViewDialogService ?? new AvaloniaDialogService();
+        _dialogService = dialogService;
     }
 
     [ObservableProperty]

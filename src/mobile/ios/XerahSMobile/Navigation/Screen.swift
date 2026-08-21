@@ -27,8 +27,8 @@ import Foundation
 enum Screen: Hashable {
     case loading
     case upload
-    case history
     case settings
     case s3Config
     case customUploaderConfig
+    case about
 }

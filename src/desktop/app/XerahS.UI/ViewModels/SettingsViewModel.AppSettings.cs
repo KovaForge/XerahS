@@ -64,6 +64,29 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+        public bool PersistClipboardAfterExit
+        {
+            get => SettingsManager.Settings.PersistClipboardAfterExit ?? ResolveDefaultPersistClipboardAfterExit();
+            set
+            {
+                bool current = SettingsManager.Settings.PersistClipboardAfterExit ?? ResolveDefaultPersistClipboardAfterExit();
+                if (current == value && SettingsManager.Settings.PersistClipboardAfterExit.HasValue)
+                {
+                    return;
+                }
+
+                SettingsManager.Settings.PersistClipboardAfterExit = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private static bool ResolveDefaultPersistClipboardAfterExit()
+        {
+            bool isWayland = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")) ||
+                             string.Equals(Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), "wayland", StringComparison.OrdinalIgnoreCase);
+            return isWayland;
+        }
+
         // Tray Click Actions
         public WorkflowType TrayLeftClickAction
         {
@@ -124,6 +147,19 @@ namespace XerahS.UI.ViewModels
             {
                 SettingsManager.Settings.HistoryCheckURL = value;
                 OnPropertyChanged();
+            }
+        }
+
+        public bool ScreenshotContentSearchEnabled
+        {
+            get => SettingsManager.Settings.ScreenshotContentSearchEnabled;
+            set
+            {
+                if (SettingsManager.Settings.ScreenshotContentSearchEnabled != value)
+                {
+                    SettingsManager.Settings.ScreenshotContentSearchEnabled = value;
+                    OnPropertyChanged();
+                }
             }
         }
 
@@ -273,6 +309,22 @@ namespace XerahS.UI.ViewModels
                     SettingsManager.Settings.EnableSendToIntegration = previousValue;
                     OnPropertyChanged(nameof(EnableSendToIntegration));
                 }
+            }
+        }
+
+        public bool EnableClipboardContentViewer
+        {
+            get => SettingsManager.Settings.ShowClipboardContentViewer;
+            set
+            {
+                if (SettingsManager.Settings.ShowClipboardContentViewer == value)
+                {
+                    return;
+                }
+
+                SettingsManager.Settings.ShowClipboardContentViewer = value;
+                OnPropertyChanged();
+                App.SetClipboardMonitorEnabled(value);
             }
         }
     }

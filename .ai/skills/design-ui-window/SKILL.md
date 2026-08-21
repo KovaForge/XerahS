@@ -77,6 +77,7 @@ Follow these instructions exactly and in order. Do not skip steps, do not add bu
 
 <constraints>
   <do_not_change>Do not change business logic. Do not change command bindings. Do not change view model public API.</do_not_change>
+  <do_not_change>Avoid rewriting binding markup extensions while doing visual-only work. In particular, keep Avalonia `#ElementName.Property` paths on `{Binding ...}` and never rewrite them to `{ReflectionBinding ...}`.</do_not_change>
   <do_not_break>Do not break keyboard navigation, screen reader semantics, or localisation readiness.</do_not_break>
   <do_not_remove>Do not remove existing controls or features unless a control is provably redundant.</do_not_remove>
 
@@ -107,6 +108,7 @@ Follow these instructions exactly and in order. Do not skip steps, do not add bu
     <rule>Introduce new reusable styles only when they reduce duplication or fix a true cross-view issue.</rule>
     <rule>Keep code-behind changes minimal. Prefer XAML changes.</rule>
     <rule>If the issue is structural across many windows, fix the shared theme/resource layer instead of repeating the same local patch.</rule>
+    <rule>When touching XAML around command/menu wiring, preserve Avalonia binding semantics: `#ElementName` paths must stay on `{Binding ...}`/compiled binding scope and must not use `ReflectionBinding`.</rule>
   </implementation_rules>
 </constraints>
 

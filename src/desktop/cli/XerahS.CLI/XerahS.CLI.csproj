@@ -11,12 +11,14 @@
     <TargetFramework>net10.0</TargetFramework>
     <TargetFramework Condition="'$(IsWindowsCliBuild)' == 'true'">net10.0-windows10.0.26100.0</TargetFramework>
     <OutputType>Exe</OutputType>
-    <AssemblyName>xerahs</AssemblyName>
+    <AssemblyName>xerahscli</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <DefineConstants Condition="'$(IsWindowsCliBuild)' == 'true'">$(DefineConstants);WINDOWS</DefineConstants>
     <DefineConstants Condition="'$(IsMacOSCliBuild)' == 'true'">$(DefineConstants);MACOS</DefineConstants>
     <DefineConstants Condition="'$(IsLinuxCliBuild)' == 'true'">$(DefineConstants);LINUX</DefineConstants>
+    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == '' And '$(BuildingSolutionFile)' == 'true'">false</VideoEditorProjectReferenceBuildWebUI>
+    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == ''">true</VideoEditorProjectReferenceBuildWebUI>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.CommandLine" />
@@ -29,15 +31,17 @@
                       Condition="!($(RuntimeIdentifier.StartsWith('win')) Or ('$(OS)' == 'Windows_NT' And '$(RuntimeIdentifier)' == ''))"
                       GlobalPropertiesToRemove="OS"
                       AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
+    <ProjectReference Include="..\..\app\XerahS.Assistant\XerahS.Assistant.csproj" />
     <ProjectReference Include="..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj"
                       ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true"
                       AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
+    <ProjectReference Include="..\..\core\XerahS.Indexer\XerahS.Indexer.csproj" />
     <ProjectReference Include="..\..\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
     <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj"
                       GlobalPropertiesToRemove="Platform"
-                      AdditionalProperties="BuildWebUI=false" />
+                      AdditionalProperties="BuildWebUI=$(VideoEditorProjectReferenceBuildWebUI)" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Windows\XerahS.Platform.Windows.csproj" Condition="'$(IsWindowsCliBuild)' == 'true'" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.MacOS\XerahS.Platform.MacOS.csproj" Condition="'$(IsMacOSCliBuild)' == 'true'" />
@@ -50,6 +54,50 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <!-- Auto-discover all plugin csproj files under src/desktop/plugins/*/ -->
+  <PropertyGroup>
+    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == '' And '$(BuildingSolutionFile)' == 'true'">false</EnableAppDrivenPluginBuild>
+    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == ''">true</EnableAppDrivenPluginBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <_DiscoveredPluginProjects Include="$(RepoRoot)src\desktop\plugins\*\*.csproj" />
+  </ItemGroup>
+
+  <Target Name="BuildPlugins" AfterTargets="Build" Condition="'$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true'">
+    <Message Text="[CLI Plugins] Auto-building discovered plugins: @(_DiscoveredPluginProjects->'%(Filename)', ', ')" Importance="High" />
+    <MSBuild Projects="@(_DiscoveredPluginProjects)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=" />
+  </Target>
+
+  <Target Name="CopyPluginsToOutput" AfterTargets="BuildPlugins" Condition="'$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true' And '@(_DiscoveredPluginProjects)' != ''">
+    <Message Text="[CLI Plugins] Copying discovered plugins to CLI output..." Importance="High" />
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="_CopyPluginFiles"
+             Properties="PluginProject=%(_DiscoveredPluginProjects.FullPath);PluginDestinationRoot=$(OutDir)Plugins" />
+  </Target>
+
+  <Target Name="_CopyPluginFiles" Condition="'$(PluginProject)' != '' And '$(PluginDestinationRoot)' != ''">
+    <PropertyGroup>
+      <_PluginProjectDirectory>$([System.IO.Path]::GetDirectoryName('$(PluginProject)'))</_PluginProjectDirectory>
+      <_PluginBundleName>$([System.IO.Path]::GetFileName('$(_PluginProjectDirectory)'))</_PluginBundleName>
+      <_PluginSourceDir>$(_PluginProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\</_PluginSourceDir>
+      <_PluginDestDir>$(PluginDestinationRoot)\$(_PluginBundleName)\</_PluginDestDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_PluginFilesToCopy Include="$(_PluginSourceDir)*.*"
+                          Exclude="$(_PluginSourceDir)*.pdb;$(_PluginSourceDir)*.xml" />
+      <_PluginFilesToCopy Include="$(_PluginSourceDir)runtimes\**\*.*"
+                          Exclude="$(_PluginSourceDir)runtimes\**\*.pdb;$(_PluginSourceDir)runtimes\**\*.xml" />
+    </ItemGroup>
+
+    <MakeDir Directories="$(_PluginDestDir)" Condition="'@(_PluginFilesToCopy)' != ''" />
+    <Copy SourceFiles="@(_PluginFilesToCopy)"
+          DestinationFiles="@(_PluginFilesToCopy->'$(_PluginDestDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="'@(_PluginFilesToCopy)' != ''" />
+    <Message Text="[CLI Plugins] Copied @(_PluginFilesToCopy->Count()) files for $(_PluginBundleName) to $(_PluginDestDir)" Importance="High" Condition="'@(_PluginFilesToCopy)' != ''" />
+  </Target>
 
   <Target Name="BuildWatchFolderDaemonForDev" AfterTargets="Build">
     <Message Text="Copying watch folder daemon artifacts to CLI output..." Importance="High" />
@@ -87,6 +135,16 @@
           SkipUnchangedFiles="true" />
   </Target>
 
+  <!-- Build and copy plugins into the publish output so the deployed CLI has uploader plugins. -->
+  <Target Name="BundlePluginsForPublish" AfterTargets="Publish" Condition="'$(SkipBundlePlugins)' != 'true' And '@(_DiscoveredPluginProjects)' != ''">
+    <Message Text="[CLI Publish] Building and bundling discovered plugins into publish output..." Importance="High" />
+
+    <MSBuild Projects="@(_DiscoveredPluginProjects)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=" />
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="_CopyPluginFiles"
+             Properties="PluginProject=%(_DiscoveredPluginProjects.FullPath);PluginDestinationRoot=$(PublishDir)Plugins" />
+  </Target>
+
   <Target Name="CopyVideoEditorWebUiForPublish" AfterTargets="Publish">
     <PropertyGroup>
       <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\frontend\dist\</_VideoEditorWebUiDistDir>
@@ -111,4 +169,3 @@
     </ItemGroup>
   </Target>
 </Project>
-

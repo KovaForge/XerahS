@@ -9,6 +9,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FREEDESKTOP_RUNTIME_VERSION: "25.08"
+
 jobs:
   validate-version:
     runs-on: ubuntu-24.04
@@ -74,6 +77,26 @@ jobs:
             throw "Inno Setup Compiler (ISCC.exe) was not found after installation."
           }
 
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          $wixVersion = "6.0.2"
+          $toolList = dotnet tool list --global 2>&1
+          if ($toolList | Select-String 'wix') {
+            dotnet tool update --global wix --version $wixVersion
+          } else {
+            dotnet tool install --global wix --version $wixVersion
+          }
+          # Ensure dotnet tools directory is on PATH for subsequent steps.
+          $dotnetTools = Join-Path $env:USERPROFILE ".dotnet\tools"
+          "$dotnetTools" | Out-File -Append -FilePath $env:GITHUB_PATH
+          $env:PATH = "$dotnetTools;$env:PATH"
+          wix --version
+          $extensions = wix extension list --global 2>&1
+          if (!($extensions | Select-String 'WixToolset.UI.wixext')) {
+            wix extension add --global "WixToolset.UI.wixext/$wixVersion"
+          }
+
       - name: Build Windows packages
         shell: pwsh
         run: |
@@ -95,6 +118,8 @@ jobs:
           path: |
             dist/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.exe
             dist/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.exe
+            dist/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.msi
+            dist/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.msi
 
       - name: Upload Windows build log
         if: always()
@@ -181,11 +206,13 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Install RPM tooling
+      - name: Install Linux packaging tools
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm desktop-file-utils
+          sudo apt-get install -y rpm desktop-file-utils squashfs-tools file xvfb \
+            libx11-6 libx11-xcb1 libice6 libsm6 libfontconfig1 libgl1 libxcursor1 \
+            libxrandr2 libxi6 libxinerama1
 
       - name: Build Linux packages
         shell: bash
@@ -207,6 +234,37 @@ jobs:
           grep -Eq '(^|/)xerahs-watchfolder-daemon.runtimeconfig.json$' "$ARCHIVE_LIST"
           rm -f "$ARCHIVE_LIST"
 
+      - name: Validate AppImage
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          APPIMAGE="dist/XerahS-${VERSION}-${{ matrix.rid }}.AppImage"
+          test -f "$APPIMAGE"
+          chmod +x "$APPIMAGE"
+          file "$APPIMAGE" | grep -Ei 'ELF|executable'
+          WORKDIR="$(mktemp -d)"
+          cp "$APPIMAGE" "$WORKDIR/XerahS.AppImage"
+          chmod +x "$WORKDIR/XerahS.AppImage"
+          (cd "$WORKDIR" && APPIMAGE_EXTRACT_AND_RUN=1 ./XerahS.AppImage --appimage-extract)
+          test -x "$WORKDIR/squashfs-root/AppRun"
+          test -x "$WORKDIR/squashfs-root/usr/lib/xerahs/XerahS"
+          test -f "$WORKDIR/squashfs-root/xerahs.desktop"
+          test -f "$WORKDIR/squashfs-root/xerahs.png"
+          grep -q '^Name=XerahS$' "$WORKDIR/squashfs-root/xerahs.desktop"
+          echo "Launching extracted AppImage payload under Xvfb..."
+          set +e
+          timeout 25s xvfb-run -a "$WORKDIR/squashfs-root/AppRun"
+          status=$?
+          set -e
+          # 0 = clean exit; 124 = still running when timeout fired (GUI started).
+          if [ "$status" -ne 0 ] && [ "$status" -ne 124 ]; then
+            echo "AppImage failed to start (exit $status)"
+            exit 1
+          fi
+          echo "AppImage start check passed (exit $status)."
+          rm -rf "$WORKDIR"
+
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -216,6 +274,7 @@ jobs:
             dist/XerahS-${{ needs.validate-version.outputs.version }}-${{ matrix.rid }}.tar.gz
             dist/XerahS-${{ needs.validate-version.outputs.version }}-${{ matrix.rid }}.deb
             dist/XerahS-${{ needs.validate-version.outputs.version }}-${{ matrix.rid }}.rpm
+            dist/XerahS-${{ needs.validate-version.outputs.version }}-${{ matrix.rid }}.AppImage
 
       - name: Upload Linux build log
         if: always()
@@ -225,6 +284,128 @@ jobs:
           if-no-files-found: warn
           path: build/logs/linux-${{ matrix.rid }}-build.log
 
+  build-flatpak:
+    needs: validate-version
+    runs-on: ubuntu-24.04
+    # NOTE: ARM64 Flatpak builds require an ARM64 runner (or QEMU) and are
+    # better handled by Flathub's infrastructure. This job produces the x86_64
+    # bundle only. To add ARM64: switch to ubuntu-24.04-arm and add QEMU user
+    # static (binfmt-support) for cross-building.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install Flatpak & flatpak-builder
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder desktop-file-utils
+
+      - name: Install FreeDesktop runtime (one-time)
+        shell: bash
+        run: |
+          set -euo pipefail
+          flatpak remote-add --user --if-not-exists --no-gpg-verify flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --or-update --noninteractive \
+            flathub \
+            "org.freedesktop.Platform//${FREEDESKTOP_RUNTIME_VERSION}" \
+            "org.freedesktop.Sdk//${FREEDESKTOP_RUNTIME_VERSION}"
+          flatpak list --user --runtime | grep -E "org\.freedesktop\.(Platform|Sdk).*${FREEDESKTOP_RUNTIME_VERSION}"
+
+      - name: Build Linux publish (staging for Flatpak)
+        shell: bash
+        run: |
+          set -o pipefail
+          chmod +x ./build/linux/package-linux.sh
+          XERAHS_SKIP_APPIMAGE=1 XERAHS_ARCHITECTURES="linux-x64" ./build/linux/package-linux.sh
+
+      - name: Extract tarball to Flatpak staging dir
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          # Remove any previous staging dir
+          rm -rf "dist/xerahs-flatpak-staging"
+          mkdir -p "dist/xerahs-flatpak-staging"
+          # Extract the self-contained publish into the staging dir.
+          # The tarball entries are already relative to the publish root.
+          tar -xzf "dist/XerahS-${VERSION}-linux-x64.tar.gz" \
+            -C "dist/xerahs-flatpak-staging"
+
+      - name: Validate WebUI dist is present
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -d "dist/xerahs-flatpak-staging/frontend/dist" ]; then
+            echo "Error: WebUI dist missing at dist/xerahs-flatpak-staging/frontend/dist"
+            echo "This means ShareX.VideoEditor was not built. Ensure git submodules are initialized."
+            exit 1
+          fi
+
+      - name: Validate and repair plugins in staging dir
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./build/linux/repair-flatpak-plugins.sh
+          ./build/linux/repair-flatpak-plugins.sh dist/xerahs-flatpak-staging linux-x64
+
+      - name: Build Flatpak
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build/logs dist/flatpak-repo
+          flatpak-builder --user --force-clean --ccache \
+            --repo=dist/flatpak-repo \
+            build/com.xerahs.XerahS \
+            flatpak/com.xerahs.XerahS.yml 2>&1 | tee build/logs/flatpak-build.log || {
+            echo "flatpak-builder failed. Logs:"
+            cat build/logs/flatpak-build.log
+            exit 1
+          }
+
+      - name: Validate Flatpak
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f build/com.xerahs.XerahS/metadata
+          test -x build/com.xerahs.XerahS/files/bin/xerahs
+          test -f build/com.xerahs.XerahS/files/share/applications/com.xerahs.XerahS.desktop
+          test -f build/com.xerahs.XerahS/files/share/icons/hicolor/512x512/apps/com.xerahs.XerahS.png
+          test -f build/com.xerahs.XerahS/files/share/metainfo/com.xerahs.XerahS.metainfo.xml
+          test -f dist/flatpak-repo/config
+
+      - name: Export Flatpak bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          flatpak build-bundle dist/flatpak-repo \
+            "dist/com.xerahs.XerahS-$VERSION-linux-x64.flatpak" \
+            com.xerahs.XerahS
+
+      - name: Upload Flatpak bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-release
+          if-no-files-found: error
+          path: |
+            dist/com.xerahs.XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.flatpak
+
+      - name: Upload Flatpak build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-build-log
+          if-no-files-found: warn
+          path: build/logs/flatpak-build.log
+
   release:
     if: github.ref_type == 'tag'
     needs:
@@ -232,6 +413,7 @@ jobs:
       - build-windows
       - build-macos
       - build-linux
+      - build-flatpak
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -256,17 +438,25 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ needs.validate-version.outputs.release_title }}
+          # ShareX/XerahS: always pre-release. KovaForge/XerahS: full release (latest).
+          prerelease: ${{ github.repository != 'KovaForge/XerahS' }}
+          make_latest: ${{ github.repository == 'KovaForge/XerahS' }}
           files: |
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.exe
+            release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.msi
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.exe
+            release-assets/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.msi
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-mac-arm64.tar.gz
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-mac-x64.tar.gz
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.tar.gz
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.deb
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.rpm
+            release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.AppImage
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.tar.gz
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.deb
             release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.rpm
+            release-assets/XerahS-${{ needs.validate-version.outputs.version }}-linux-arm64.AppImage
+            release-assets/com.xerahs.XerahS-${{ needs.validate-version.outputs.version }}-linux-x64.flatpak
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -297,6 +487,7 @@ jobs:
         run: |
           .\build\windows\chocolatey\Sync-ChocolateyPackage.ps1 `
             -Version "${{ needs.validate-version.outputs.version }}" `
+            -Repository "${{ github.repository }}" `
             -Pack `
             -OutputDirectory "dist\chocolatey"
 
@@ -318,6 +509,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.validate-version.outputs.version }}
+          # Keep Chocolatey upload aligned with the same repo release policy.
+          prerelease: ${{ github.repository != 'KovaForge/XerahS' }}
+          make_latest: ${{ github.repository == 'KovaForge/XerahS' }}
           files: dist/chocolatey/xerahs.${{ needs.validate-version.outputs.version }}.nupkg
           fail_on_unmatched_files: true
         env:

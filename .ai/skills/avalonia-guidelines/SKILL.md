@@ -420,6 +420,10 @@ Resolves once at startup. Use for desktop-vs-mobile differences that don't respo
 <TextBlock Text="{Binding IsEnabled, Converter={StaticResource BoolToStringConverter}}" />
 ```
 
+**Important**:
+- `#ElementName.Property` is an Avalonia binding-path extension and should be used with Avalonia `Binding` / compiled bindings.
+- Do **not** write `{ReflectionBinding #SomeElement.SomeCommand}`. `ReflectionBinding` treats the `#...` token as a plain path segment, so command/property lookup can fail at runtime.
+
 ### Compiled Bindings (Recommended)
 
 Compiled bindings provide **compile-time safety** and **better performance**.
@@ -436,15 +440,15 @@ Compiled bindings provide **compile-time safety** and **better performance**.
     <TextBox Text="{Binding FirstName}" />
     <TextBox Text="{Binding LastName}" />
     
-    <!-- Disable for specific binding -->
-    <Button Command="{ReflectionBinding OldCommand}" />
+    <!-- Disable compile-time checking for a dynamic path only -->
+    <Button Command="{ReflectionBinding DynamicCommandName}" />
 </Window>
 
 <!-- Or use CompiledBinding markup explicitly -->
 <TextBox Text="{CompiledBinding FirstName}" />
 ```
 
-**Best Practice**: Always use compiled bindings for type safety and performance.
+**Best Practice**: Always use compiled bindings for type safety and performance. Use `ReflectionBinding` only for truly dynamic paths that cannot be typed, and never with `#ElementName` syntax.
 
 ### DataContext Type Inference (v11.3+)
 
@@ -1203,7 +1207,7 @@ For apps targeting mobile (iOS/Android), WebAssembly, or NativeAOT:
 - Avoid `Activator.CreateInstance` for ViewModel/service resolution; use a DI container with AOT support (e.g. `Microsoft.Extensions.DependencyInjection` with source-generated registrations).
 - Avoid `Type.GetType()`, `PropertyInfo.SetValue()`, or runtime reflection in hot paths.
 - Use `[DynamicallyAccessedMembers]` annotations when reflection is unavoidable.
-- Use `{ReflectionBinding}` sparingly — it is **not** trimming-safe.
+- Use `{ReflectionBinding}` sparingly — it is **not** trimming-safe, and do not combine it with Avalonia `#ElementName` paths.
 
 ---
 
@@ -1240,17 +1244,18 @@ dotnet tool install --global AvaloniaUI.DeveloperTools
 | 8 | `Visibility` enum | Use `bool IsVisible` (`Opacity="0"` for hidden-but-spaced) |
 | 9 | Missing `x:DataType` | Always set it for compiled bindings |
 | 10 | `{ReflectionBinding}` by default | Enable compiled bindings globally |
-| 11 | `Avalonia.Diagnostics` | Use `AvaloniaUI.DiagnosticsSupport` + `AvaloniaUI.DeveloperTools` |
-| 12 | `ReactiveUI` / `Avalonia.ReactiveUI` | Use `CommunityToolkit.Mvvm` |
-| 13 | Manual `ContentControl.Content` page swapping | Use `NavigationPage` / `TabbedPage` / `DrawerPage` |
-| 14 | `VisualStateManager` | Use pseudo-class selectors or Container Queries |
-| 15 | `LayoutTransform` | Wrap in `LayoutTransformControl` |
-| 16 | `Dispatcher.Invoke()` | Use `Dispatcher.UIThread.InvokeAsync()` |
-| 17 | `ContextMenu` with FluentAvalonia | Use `ContextFlyout` + `MenuFlyout` |
-| 18 | `ScrollViewer Padding="N"` around a `StackPanel` | Move padding to inner element: `<StackPanel Margin="N">` — `ScrollViewer.Padding` shrinks the viewport only, not the scroll extent; bottow content stays permanently unreachable |
-| 19 | `SplitView` as a two-column non-pane shell | Use `Grid ColumnDefinitions="auto,*"` — `SplitView` inherits `ContentControl` whose default `VerticalContentAlignment=Top` passes `∞` height to children, breaking any nested `ScrollViewer` |
-| 20 | `TransitioningContentControl` as a page host containing a `ScrollViewer` | Use plain `ContentControl HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"` — `TransitioningContentControl`'s animation panel passes `∞` height during measure |
-| 21 | `TabControl` at default `VerticalContentAlignment` wrapping scrollable tabs | Set `VerticalContentAlignment="Stretch"` on the `TabControl` — the inner `ContentPresenter` templates to `{TemplateBinding VerticalContentAlignment}` and defaults to `Top`, passing `∞` height to tab bodies |
+| 11 | `{ReflectionBinding #MyRoot.SomeCommand}` | Use `{Binding #MyRoot.SomeCommand}` (or compiled binding scope) |
+| 12 | `Avalonia.Diagnostics` | Use `AvaloniaUI.DiagnosticsSupport` + `AvaloniaUI.DeveloperTools` |
+| 13 | `ReactiveUI` / `Avalonia.ReactiveUI` | Use `CommunityToolkit.Mvvm` |
+| 14 | Manual `ContentControl.Content` page swapping | Use `NavigationPage` / `TabbedPage` / `DrawerPage` |
+| 15 | `VisualStateManager` | Use pseudo-class selectors or Container Queries |
+| 16 | `LayoutTransform` | Wrap in `LayoutTransformControl` |
+| 17 | `Dispatcher.Invoke()` | Use `Dispatcher.UIThread.InvokeAsync()` |
+| 18 | `ContextMenu` with FluentAvalonia | Use `ContextFlyout` + `MenuFlyout` |
+| 19 | `ScrollViewer Padding="N"` around a `StackPanel` | Move padding to inner element: `<StackPanel Margin="N">` — `ScrollViewer.Padding` shrinks the viewport only, not the scroll extent; bottow content stays permanently unreachable |
+| 20 | `SplitView` as a two-column non-pane shell | Use `Grid ColumnDefinitions="auto,*"` — `SplitView` inherits `ContentControl` whose default `VerticalContentAlignment=Top` passes `∞` height to children, breaking any nested `ScrollViewer` |
+| 21 | `TransitioningContentControl` as a page host containing a `ScrollViewer` | Use plain `ContentControl HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"` — `TransitioningContentControl`'s animation panel passes `∞` height during measure |
+| 22 | `TabControl` at default `VerticalContentAlignment` wrapping scrollable tabs | Set `VerticalContentAlignment="Stretch"` on the `TabControl` — the inner `ContentPresenter` templates to `{TemplateBinding VerticalContentAlignment}` and defaults to `Top`, passing `∞` height to tab bodies |
 
 ---
 
@@ -1359,6 +1364,7 @@ public static void SetIsUnwired(Control control, bool value)
 - [ ] Apply consistent styling/theming
 - [ ] ⚠️ **Use `ContextFlyout` + `MenuFlyout`, NOT `ContextMenu`** (FluentAvalonia compatibility)
 - [ ] Use `$parent[UserControl].DataContext` for flyout bindings in DataTemplates
+- [ ] Use Avalonia `Binding` for `#ElementName` paths; never `{ReflectionBinding #...}`
 - [ ] Use `NavigationPage`/`TabbedPage`/`DrawerPage` for multi-page apps — not manual `ContentControl` swapping
 - [ ] AOT/trimming: prefer compiled bindings; avoid runtime reflection
 - [ ] Use `AvaloniaUI.DiagnosticsSupport` — never `Avalonia.Diagnostics`
@@ -1367,6 +1373,6 @@ public static void SetIsUnwired(Control control, bool value)
 
 ---
 
-**Last Updated**: March 16, 2026  
-**Version**: 1.3.0  
+**Last Updated**: March 17, 2026  
+**Version**: 1.3.1  
 **Maintained by**: XerahS Development Team

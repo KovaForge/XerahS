@@ -27,6 +27,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json;
 using ShareX.AmazonS3.Plugin;
+using ShareX.AmazonS3.Plugin.Multipart;
 using XerahS.Common;
 using XerahS.Uploaders.PluginSystem;
 using System;
@@ -43,6 +44,8 @@ namespace ShareX.AmazonS3.Plugin.ViewModels;
 /// </summary>
 public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfigViewModel, IProviderContextAware
 {
+    private const long BytesPerMiB = 1024L * 1024L;
+
     [ObservableProperty]
     private string _accessKeyId = string.Empty;
 
@@ -124,6 +127,15 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
     [ObservableProperty]
     private bool _removeExtensionText = false;
 
+    [ObservableProperty]
+    private int _multipartThresholdMiB = 50;
+
+    [ObservableProperty]
+    private int _multipartPartSizeMiB = 10;
+
+    [ObservableProperty]
+    private int _multipartMaxConcurrency = 4;
+
     private string _secretKey = Guid.NewGuid().ToString("N");
     private ISecretStore? _secrets;
     private string? _deviceCode;
@@ -147,10 +159,10 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
     public string[] StorageClasses { get; } = new[]
     {
         "STANDARD",
-        "REDUCED_REDUNDANCY",
         "STANDARD_IA",
         "ONEZONE_IA",
-        "INTELLIGENT_TIERING"
+        "GLACIER",
+        "DEEP_ARCHIVE"
     };
 
     partial void OnAuthModeIndexChanged(int value)
@@ -763,8 +775,6 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
             if (config != null)
             {
                 _secretKey = string.IsNullOrWhiteSpace(config.SecretKey) ? Guid.NewGuid().ToString("N") : config.SecretKey;
-                AccessKeyId = _secrets?.GetSecret("amazons3", _secretKey, "accessKeyId") ?? string.Empty;
-                SecretAccessKey = _secrets?.GetSecret("amazons3", _secretKey, "secretAccessKey") ?? string.Empty;
                 AuthModeIndex = config.AuthMode == S3AuthMode.AwsSso ? 1 : 0;
                 BucketName = config.BucketName ?? string.Empty;
 
@@ -785,6 +795,24 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
                 RemoveExtensionImage = config.RemoveExtensionImage;
                 RemoveExtensionVideo = config.RemoveExtensionVideo;
                 RemoveExtensionText = config.RemoveExtensionText;
+                MultipartThresholdMiB = ConvertBytesToMiB(config.MultipartThresholdBytes, 50);
+                MultipartPartSizeMiB = config.MultipartPartSizeBytes <= 0
+                    ? 10
+                    : ConvertBytesToMiB(config.MultipartPartSizeBytes, 10);
+                MultipartMaxConcurrency = config.MultipartMaxConcurrency <= 0 ? 4 : config.MultipartMaxConcurrency;
+
+                config.SecretKey = _secretKey;
+                if (_secrets != null &&
+                    S3CredentialSecrets.TryGetAccessKeyCredentials(_secrets, config, out string accessKeyId, out string secretAccessKey))
+                {
+                    AccessKeyId = accessKeyId;
+                    SecretAccessKey = secretAccessKey;
+                }
+                else
+                {
+                    AccessKeyId = string.Empty;
+                    SecretAccessKey = string.Empty;
+                }
 
                 if (_secrets != null)
                 {
@@ -847,6 +875,9 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
             RemoveExtensionImage = RemoveExtensionImage,
             RemoveExtensionVideo = RemoveExtensionVideo,
             RemoveExtensionText = RemoveExtensionText,
+            MultipartThresholdBytes = ConvertMiBToBytes(MultipartThresholdMiB),
+            MultipartPartSizeBytes = ConvertMiBToBytes(MultipartPartSizeMiB),
+            MultipartMaxConcurrency = MultipartMaxConcurrency,
             SsoStartUrl = SsoStartUrl,
             SsoRegion = IsSsoMode ? GetSelectedRegion(GetSelectedEndpoint()) : SsoRegion,
             SsoAccountId = SsoAccountId,
@@ -872,6 +903,15 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
             {
                 _secrets.SetSecret("amazons3", _secretKey, "secretAccessKey", SecretAccessKey);
             }
+
+            if (string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey))
+            {
+                S3CredentialSecrets.DeleteAccessKeyCredentials(_secrets, config);
+            }
+            else
+            {
+                S3CredentialSecrets.StoreAccessKeyCredentials(_secrets, config, AccessKeyId, SecretAccessKey);
+            }
         }
 
         return JsonConvert.SerializeObject(config, Formatting.Indented);
@@ -879,6 +919,25 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
 
     public bool Validate()
     {
+        if (MultipartThresholdMiB < 0)
+        {
+            StatusMessage = "Multipart threshold must be zero or greater.";
+            return false;
+        }
+
+        if (MultipartPartSizeMiB < S3MultipartUploader.MinimumPartSizeBytes / BytesPerMiB ||
+            MultipartPartSizeMiB > S3MultipartUploader.MaximumPartSizeBytes / BytesPerMiB)
+        {
+            StatusMessage = "Multipart part size must be between 5 MiB and 5120 MiB.";
+            return false;
+        }
+
+        if (MultipartMaxConcurrency <= 0)
+        {
+            StatusMessage = "Multipart concurrency must be greater than zero.";
+            return false;
+        }
+
         if (IsAccessKeysMode)
         {
             if (string.IsNullOrWhiteSpace(AccessKeyId))
@@ -958,5 +1017,20 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
             AwsSsoStoredToken? token = AwsSsoSecretStore.LoadToken(_secrets, _secretKey);
             IsSsoLoggedIn = token != null && !token.IsExpired();
         }
+    }
+
+    private static int ConvertBytesToMiB(long bytes, int fallbackMiB)
+    {
+        if (bytes < 0)
+        {
+            return fallbackMiB;
+        }
+
+        return (int)Math.Ceiling(bytes / (double)BytesPerMiB);
+    }
+
+    private static long ConvertMiBToBytes(int valueMiB)
+    {
+        return valueMiB * BytesPerMiB;
     }
 }

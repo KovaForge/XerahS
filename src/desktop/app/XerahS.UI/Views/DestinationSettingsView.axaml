@@ -24,7 +24,7 @@
                          Background="Transparent"
                          AutomationProperties.Name="Destination Categories">
                     <ListBox.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="vm:CategoryViewModel">
                             <TextBlock Text="{Binding Name}" Margin="0,4"/>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -43,12 +43,17 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
                     <Button Content="Import ShareX Config"
                             Command="{Binding ImportShareXConfigCommand}"
+                            IsVisible="{Binding ShowImportShareXConfig}"
                             ToolTip.Tip="Import legacy ShareX UploadersConfig.json and export custom uploaders to Plugins as .sxcu files"
                             AutomationProperties.Name="Import ShareX Config"/>
                     <Button Content="Plugins Folder"
                             Command="{Binding OpenPluginsFolderCommand}"
                             ToolTip.Tip="Open the plugins folder"
                             AutomationProperties.Name="Open Plugins Folder"/>
+                    <Button Content="Install Plugin"
+                            Command="{Binding OpenPluginInstallerCommand}"
+                            ToolTip.Tip="Install community plugins or import a local .xsdp package"
+                            AutomationProperties.Name="Install Plugin"/>
                     <Button Content="Add Custom Uploader"
                             Command="{Binding AddCustomUploaderCommand}"
                             ToolTip.Tip="Create a new custom uploader (.sxcu)"
@@ -75,7 +80,7 @@
                              Background="Transparent"
                              AutomationProperties.Name="Destination Instances">
                         <ListBox.ItemTemplate>
-                            <DataTemplate>
+                            <DataTemplate x:DataType="vm:UploaderInstanceViewModel">
                                 <Grid ColumnDefinitions="Auto, 12, *, 8, Auto" Margin="4">
                                     <Path Grid.Column="0" 
                                           Data="M12,0A12,12,0,1,0,24,12,12,12,0,0,0,12,0ZM10.8,18.6L4.2,12l1.68-1.68L10.8,15.24l7.32-7.32L19.8,9.6Z"
@@ -92,7 +97,7 @@
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
 
-                                    <Button Grid.Column="4" Content="⋮" Padding="8,4"
+                                    <Button Grid.Column="4" Content="..." Padding="8,4"
                                             AutomationProperties.Name="Instance Options">
                                         <Button.Flyout>
                                             <MenuFlyout>
@@ -101,6 +106,9 @@
                                                           CommandParameter="{Binding}"/>
                                                 <MenuItem Header="Duplicate" 
                                                           Command="{Binding $parent[ListBox].DataContext.SelectedCategory.DuplicateInstanceCommand}"
+                                                          CommandParameter="{Binding}"/>
+                                                <MenuItem Header="Export .xsdc"
+                                                          Command="{Binding $parent[ListBox].DataContext.ExportDestinationConfigCommand}"
                                                           CommandParameter="{Binding}"/>
                                                 <Separator/>
                                                 <MenuItem Header="Remove" 
@@ -171,7 +179,7 @@
                                 <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto, 16, Auto, 16, Auto">
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Name:" VerticalAlignment="Center"/>
                                     <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding SelectedCategory.SelectedInstance.DisplayName}" 
-                                             Watermark="Display Name" AutomationProperties.Name="Display Name"/>
+                                             PlaceholderText="Display Name" AutomationProperties.Name="Display Name"/>
                                     
                                     <TextBlock Grid.Row="2" Grid.Column="0" Text="Provider:" VerticalAlignment="Center"/>
                                     <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding SelectedCategory.SelectedInstance.ProviderId}" 
@@ -179,10 +187,53 @@
 
                                     <TextBlock Grid.Row="4" Grid.Column="0" Text="Instance ID:" VerticalAlignment="Center"/>
                                     <TextBox Grid.Row="4" Grid.Column="2" Text="{Binding SelectedCategory.SelectedInstance.InstanceId}"
-                                             IsReadOnly="True" FontFamily="{DynamicResource ShareX.FontFamily.Monospace}" 
+                                             IsReadOnly="True"
                                              Background="{DynamicResource ControlAltFillColorDefaultBrush}"
                                              AutomationProperties.Name="Instance ID"/>
                                 </Grid>
+                            </StackPanel>
+
+                            <StackPanel Spacing="12"
+                                        IsVisible="{Binding SelectedCategory.SelectedInstance.IsCustomUploaderInstance}">
+                                <TextBlock Text="Definition Binding" FontWeight="SemiBold" FontSize="16"/>
+                                <TextBlock Text="{Binding SelectedCategory.SelectedInstance.DefinitionSaveHelpText}"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           TextWrapping="Wrap"/>
+                                <Grid ColumnDefinitions="Auto, 16, *" RowDefinitions="Auto, 16, Auto">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Definition file:" VerticalAlignment="Top"/>
+                                    <TextBox Grid.Row="0" Grid.Column="2"
+                                             Text="{Binding SelectedCategory.SelectedInstance.DefinitionFilePath}"
+                                             PlaceholderText="This instance cannot be mapped back to a .sxcu source file."
+                                             IsReadOnly="True"
+                                             Background="{DynamicResource ControlAltFillColorDefaultBrush}"
+                                             TextWrapping="Wrap"
+                                             ToolTip.Tip="{Binding SelectedCategory.SelectedInstance.DefinitionBindingUnavailableReason}"
+                                             AutomationProperties.Name="Custom Uploader Definition File"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Bound instance ID(s):" VerticalAlignment="Top"/>
+                                    <TextBox Grid.Row="2" Grid.Column="2"
+                                             Text="{Binding SelectedCategory.SelectedInstance.BoundInstanceIdsDisplay}"
+                                             IsReadOnly="True"
+                                             AcceptsReturn="True"
+                                             MinHeight="68"
+                                             Background="{DynamicResource ControlAltFillColorDefaultBrush}"
+                                             TextWrapping="Wrap"
+                                             ToolTip.Tip="Reads XerahS.instanceIds when available, otherwise falls back to the current instance binding."
+                                             AutomationProperties.Name="Bound Instance IDs"/>
+                                </Grid>
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Button Content="Save Definition to Plugins"
+                                            Command="{Binding SelectedCategory.SelectedInstance.SaveDefinitionToPluginsCommand}"
+                                            IsEnabled="{Binding SelectedCategory.SelectedInstance.CanManageDefinition}"
+                                            Classes="accent"
+                                            ToolTip.Tip="{Binding SelectedCategory.SelectedInstance.DefinitionBindingUnavailableReason}"
+                                            AutomationProperties.Name="Save Definition to Plugins"/>
+                                    <Button Content="Save as New .sxcu"
+                                            Command="{Binding SelectedCategory.SelectedInstance.SaveDefinitionAsNewCommand}"
+                                            IsEnabled="{Binding SelectedCategory.SelectedInstance.CanManageDefinition}"
+                                            ToolTip.Tip="{Binding SelectedCategory.SelectedInstance.DefinitionBindingUnavailableReason}"
+                                            AutomationProperties.Name="Save Definition As New"/>
+                                </StackPanel>
                             </StackPanel>
 
                             <!-- File Type Scope -->
@@ -190,7 +241,7 @@
                                 <TextBlock Text="File Type Configuration" FontWeight="SemiBold" FontSize="16"/>
                                 <ContentControl Content="{Binding SelectedCategory.SelectedInstance}">
                                     <ContentControl.ContentTemplate>
-                                        <DataTemplate>
+                                        <DataTemplate x:DataType="vm:UploaderInstanceViewModel">
                                             <controls:FileTypeSelectorControl/>
                                         </DataTemplate>
                                     </ContentControl.ContentTemplate>
@@ -199,7 +250,20 @@
 
                             <!-- Custom Config -->
                             <StackPanel Spacing="8" IsVisible="{Binding SelectedCategory.SelectedInstance.ConfigView, Converter={x:Static ObjectConverters.IsNotNull}}">
-                                <TextBlock Text="Provider Settings" FontWeight="SemiBold" FontSize="16"/>
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <TextBlock Grid.Column="0"
+                                               Text="Provider Settings"
+                                               FontWeight="SemiBold"
+                                               FontSize="16"
+                                               VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1"
+                                            Content="Export .xsdc"
+                                            Command="{Binding ExportDestinationConfigCommand}"
+                                            CommandParameter="{Binding SelectedCategory.SelectedInstance}"
+                                            IsEnabled="{Binding SelectedCategory.SelectedInstance.CanExportDestinationConfig}"
+                                            ToolTip.Tip="Export this destination config for mobile import"
+                                            AutomationProperties.Name="Export Destination Config"/>
+                                </Grid>
                                 <ContentControl Content="{Binding SelectedCategory.SelectedInstance.ConfigView}"/>
                             </StackPanel>
 

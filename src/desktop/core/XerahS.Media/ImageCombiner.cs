@@ -152,7 +152,7 @@ namespace XerahS.Media
                         currentX += img.Width + spacing;
                     }
 
-                    canvas.DrawBitmap(img, drawX, drawY);
+                    canvas.DrawBitmap(img, drawX, drawY, SKSamplingOptions.Default);
                 }
             }
 

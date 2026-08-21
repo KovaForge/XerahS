@@ -1,5 +1,8 @@
 # XIP0013 MacOS Implementation
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0013: MacOS Implementation
 
 

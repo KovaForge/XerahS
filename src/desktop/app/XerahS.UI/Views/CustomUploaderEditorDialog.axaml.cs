@@ -72,7 +72,7 @@ public partial class CustomUploaderEditorDialog : SurfaceWindow
             }
         });
 
-        return files.Count > 0 ? files[0].Path.LocalPath : null;
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
     }
 
     private async Task<string?> SaveFileAsync(string? suggestedName, string? extension)
@@ -98,7 +98,7 @@ public partial class CustomUploaderEditorDialog : SurfaceWindow
             }
         });
 
-        return file?.Path.LocalPath;
+        return file?.TryGetLocalPath();
     }
 
     private void InitializeComponent()

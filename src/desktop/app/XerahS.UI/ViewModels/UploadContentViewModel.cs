@@ -29,6 +29,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json;
 using SkiaSharp;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Managers;
@@ -70,6 +71,9 @@ public partial class UploadQueueItem : ObservableObject
     private string? _errorMessage;
 
     [ObservableProperty]
+    private string? _resolvedUploadName;
+
+    [ObservableProperty]
     private bool _isPending = true;
 
     [ObservableProperty]
@@ -92,6 +96,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
     private CancellationTokenSource? _uploadCts;
     private Bitmap? _selectedPreviewImage;
     private string _selectedFileMetadata = "No file selected.";
+    private readonly IDesktopTaskManager _taskManager;
 
     public ObservableCollection<UploadQueueItem> Items { get; } = new();
 
@@ -159,8 +164,9 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
     public event EventHandler? TextInputRequested;
     public event EventHandler? URLInputRequested;
 
-    public UploadContentViewModel()
+    public UploadContentViewModel(IDesktopTaskManager taskManager)
     {
+        _taskManager = taskManager;
         Items.CollectionChanged += (_, _) => UpdateStatus();
     }
 
@@ -170,11 +176,40 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
-    private void LoadFromClipboard()
+    private async Task LoadFromClipboardAsync()
     {
-        if (!PlatformServices.IsInitialized || PlatformServices.Clipboard == null) return;
+        if (!PlatformServices.IsInitialized || PlatformServices.Clipboard == null)
+        {
+            return;
+        }
 
-        var content = ClipboardContentHelper.ParseClipboard(PlatformServices.Clipboard);
+        const int clipboardReadTimeoutMs = 5000;
+        ClipboardContent? content = null;
+
+        try
+        {
+            // Use the async path so clipboard I/O does not block the UI message
+            // loop.  On Linux/X11 the selection protocol is event-driven; calling
+            // the synchronous wrappers inside Task.Run caused a deadlock because
+            // the dispatched callback blocked the UI thread with
+            // .GetAwaiter().GetResult() while the X11 response still needed the
+            // message pump.
+            var parseTask = ClipboardContentHelper.ParseClipboardAsync(PlatformServices.Clipboard!);
+            var completedTask = await Task.WhenAny(parseTask, Task.Delay(clipboardReadTimeoutMs));
+            if (completedTask != parseTask)
+            {
+                DebugHelper.WriteLine($"UploadContent: Clipboard read timed out after {clipboardReadTimeoutMs}ms.");
+                return;
+            }
+
+            content = await parseTask;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "UploadContent: Clipboard parsing failed.");
+            return;
+        }
+
         if (content == null)
         {
             DebugHelper.WriteLine("UploadContent: Clipboard is empty or unsupported.");
@@ -265,16 +300,20 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
             DisplayName = Path.GetFileName(filePath),
             Description = FormatFileSize(fileInfo.Length),
             DataType = EDataType.File,
-            FilePath = filePath
+            FilePath = filePath,
+            ResolvedUploadName = ResolveUploadNamePreview(filePath)
         };
 
         Items.Add(item);
         return item;
     }
 
-    public void AddFolderFiles(string folderPath)
+    public UploadQueueItem? AddFolderFiles(string folderPath)
     {
-        if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath)) return;
+        if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
+        {
+            return null;
+        }
 
         var files = Directory.GetFiles(folderPath);
         UploadQueueItem? firstAddedItem = null;
@@ -293,6 +332,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
         }
 
         DebugHelper.WriteLine($"UploadContent: Added {files.Length} files from folder '{folderPath}'.");
+        return firstAddedItem;
     }
 
     public void AddTextItem(string text)
@@ -375,7 +415,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
         void OnTaskStarted(object? sender, WorkerTask task)
         {
             capturedTask = task;
-            TaskManager.Instance.TaskStarted -= OnTaskStarted;
+            _taskManager.TaskStarted -= OnTaskStarted;
 
             task.Info.UploadProgressChanged += progress =>
             {
@@ -386,7 +426,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
             };
         }
 
-        TaskManager.Instance.TaskStarted += OnTaskStarted;
+        _taskManager.TaskStarted += OnTaskStarted;
 
         try
         {
@@ -401,12 +441,12 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
             {
                 case EDataType.Image when item.Image != null:
                     settings.Job = WorkflowType.PrintScreen;
-                    await TaskManager.Instance.StartTask(settings, item.Image);
+                    await _taskManager.StartTask(settings, item.Image);
                     break;
 
                 case EDataType.File when !string.IsNullOrEmpty(item.FilePath):
                     settings.Job = WorkflowType.FileUpload;
-                    await TaskManager.Instance.StartFileTask(settings, item.FilePath);
+                    await _taskManager.StartFileTask(settings, item.FilePath);
                     break;
 
                 case EDataType.Text when !string.IsNullOrEmpty(item.TextContent):
@@ -414,7 +454,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
                     DebugHelper.WriteLine(
                         $"[UploadContentDebug] Starting text upload task. textLength={item.TextContent.Length}, " +
                         $"textPreview=\"{GetTextPreview(item.TextContent)}\"");
-                    await TaskManager.Instance.StartTextTask(settings, item.TextContent);
+                    await _taskManager.StartTextTask(settings, item.TextContent);
                     break;
 
                 case EDataType.URL when !string.IsNullOrEmpty(item.TextContent):
@@ -422,7 +462,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
                     DebugHelper.WriteLine(
                         $"[UploadContentDebug] Starting URL upload task. urlLength={item.TextContent.Length}, " +
                         $"urlPreview=\"{GetTextPreview(item.TextContent)}\"");
-                    await TaskManager.Instance.StartTextTask(settings, item.TextContent);
+                    await _taskManager.StartTextTask(settings, item.TextContent);
                     break;
 
                 default:
@@ -436,6 +476,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
                 item.Status = UploadQueueItemStatus.Completed;
                 item.ProgressPercent = 100;
                 item.ResultURL = capturedTask.Info?.Result?.URL ?? capturedTask.Info?.Metadata?.UploadURL;
+                item.ResolvedUploadName = capturedTask.Info?.FileName ?? item.ResolvedUploadName;
                 DebugHelper.WriteLine($"[UploadContentDebug] UploadItem success: resultUrl=\"{item.ResultURL ?? string.Empty}\"");
             }
             else
@@ -454,7 +495,7 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
         }
         finally
         {
-            TaskManager.Instance.TaskStarted -= OnTaskStarted;
+            _taskManager.TaskStarted -= OnTaskStarted;
         }
     }
 
@@ -499,6 +540,21 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
             $"urlShortenerInstanceId=\"{settings.UrlShortenerDestinationInstanceId ?? string.Empty}\"");
 
         return settings;
+    }
+
+    private static string ResolveUploadNamePreview(string filePath)
+    {
+        try
+        {
+            TaskSettings settings = CreateUploadTaskSettings(EDataType.File);
+            string extension = Path.GetExtension(filePath);
+            return XerahS.Core.TaskHelpers.GetFileName(settings, extension, new TaskMetadata());
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "UploadContent: Failed to resolve Send-to upload name preview.");
+            return Path.GetFileName(filePath);
+        }
     }
 
     private static TaskSettings CloneTaskSettings(TaskSettings source)
@@ -688,4 +744,3 @@ public partial class UploadContentViewModel : ViewModelBase, IDisposable
         Items.Clear();
     }
 }
-

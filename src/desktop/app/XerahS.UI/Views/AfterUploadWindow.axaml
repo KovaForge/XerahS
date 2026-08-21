@@ -21,7 +21,6 @@
     </Style>
     <Style Selector="ListBoxItem">
       <Setter Property="Padding" Value="10,8"/>
-      <Setter Property="IsEnabled" Value="{Binding IsSelectable}"/>
     </Style>
   </Window.Styles>
 
@@ -82,7 +81,7 @@
                    BorderThickness="0"
                    AutomationProperties.Name="Clipboard Formats List">
             <ListBox.ItemTemplate>
-              <DataTemplate>
+              <DataTemplate x:DataType="vm:AfterUploadFormatEntry">
                 <StackPanel Spacing="6">
                   <TextBlock Text="{Binding Label}"
                              IsVisible="{Binding IsHeader}"

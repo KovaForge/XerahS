@@ -1,0 +1,346 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:XerahS.UI.Onboarding"
+        xmlns:steps="using:XerahS.UI.Onboarding.ViewModels.Steps"
+        xmlns:hotkeyControls="using:XerahS.UI.Views.Controls"
+        xmlns:uiVm="using:XerahS.UI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="640" d:DesignHeight="520"
+        x:Class="XerahS.UI.Onboarding.OnboardingWizardWindow"
+        x:DataType="vm:OnboardingWizardViewModel"
+        Title="Welcome to XerahS"
+        Width="640"
+        Height="520"
+        MinWidth="520"
+        MinHeight="460"
+        MaxWidth="820"
+        MaxHeight="720"
+        WindowStartupLocation="CenterScreen"
+        SizeToContent="Manual"
+        WindowDecorations="Full"
+        CanResize="True"
+        Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
+
+  <Window.Styles>
+    <StyleInclude Source="/Onboarding/Styles/OnboardingStyles.axaml" />
+  </Window.Styles>
+
+  <Design.DataContext>
+    <vm:OnboardingWizardViewModel />
+  </Design.DataContext>
+
+  <Grid RowDefinitions="*,Auto,Auto" Margin="24">
+    <Border Grid.Row="0"
+            Classes="section-card"
+            Padding="24"
+            Margin="0,0,0,16"
+            AutomationProperties.LandmarkType="Main"
+            AutomationProperties.AccessibilityView="Control">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="16">
+          <StackPanel Spacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+              <StackPanel Spacing="2" VerticalAlignment="Center">
+                <TextBlock Text="{Binding CurrentStep.StepTitle}"
+                           Classes="section-header"
+                           AutomationProperties.HeadingLevel="1" />
+                <TextBlock Text="{Binding CurrentStep.StepSubtitle}"
+                           FontSize="14"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+              </StackPanel>
+            </StackPanel>
+
+            <TextBlock Text="{Binding CurrentStep.StepDescription}"
+                       FontSize="12"
+                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                       TextWrapping="Wrap" />
+          </StackPanel>
+
+          <Border Classes="status-error"
+                  Padding="12"
+                  IsVisible="{Binding CurrentStep.HasValidationError}">
+            <TextBlock Text="{Binding CurrentStep.ValidationError}"
+                       Foreground="{DynamicResource StatusErrorForegroundBrush}"
+                       TextWrapping="Wrap"
+                       AutomationProperties.LiveSetting="Assertive" />
+          </Border>
+
+          <ContentControl Content="{Binding CurrentStep}"
+                          AutomationProperties.LandmarkType="Form"
+                          AutomationProperties.AccessibilityView="Control">
+            <ContentControl.DataTemplates>
+              <DataTemplate DataType="steps:WelcomeStepViewModel"
+                            x:DataType="steps:WelcomeStepViewModel">
+                <ScrollViewer>
+                  <StackPanel Spacing="20" Margin="0,8,0,0">
+                    <StackPanel Spacing="8" HorizontalAlignment="Center" Margin="0,8,0,0">
+                      <TextBlock Text="Welcome to XerahS"
+                                 FontSize="22" FontWeight="SemiBold"
+                                 HorizontalAlignment="Center"
+                                 Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                      <TextBlock Text="A few quick steps to get started."
+                                 FontSize="13"
+                                 HorizontalAlignment="Center"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                 TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6" Margin="0,8,0,0">
+                      <TextBlock Text="We'll walk you through:"
+                                 FontSize="13"
+                                 FontWeight="Medium"
+                                 Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                      <TextBlock Text="• Where screenshots are saved"
+                                 FontSize="13"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                      <TextBlock Text="• Capture hotkeys"
+                                 FontSize="13"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                      <TextBlock Text="• Upload destination"
+                                 FontSize="13"
+                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <TextBlock Text="You can change any of these later in Settings."
+                               FontSize="12"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               TextWrapping="Wrap" />
+                  </StackPanel>
+                </ScrollViewer>
+              </DataTemplate>
+
+              <DataTemplate DataType="steps:SaveLocationStepViewModel"
+                            x:DataType="steps:SaveLocationStepViewModel">
+                <StackPanel Spacing="16">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Folder Path"
+                               Classes="WizardSectionHeader"
+                               Margin="0" />
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBox Grid.Column="0"
+                               Text="{Binding SelectedPath, Mode=TwoWay}"
+                               PlaceholderText="Select a folder..."
+                               Classes="WizardInput" />
+                      <Button Grid.Column="1"
+                              Content="Browse..."
+                              Command="{Binding BrowseCommand}"
+                              Classes="WizardGhostButton"
+                              Margin="8,0,0,0" />
+                    </Grid>
+                  </StackPanel>
+
+                  <StackPanel Spacing="4"
+                              IsVisible="{Binding HasPathPreview}">
+                    <TextBlock Text="Preview:"
+                               Classes="WizardSectionHint"
+                               Margin="0" />
+                    <TextBlock Text="{Binding PathPreview}"
+                               Classes="WizardPathPreview"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+
+                  <CheckBox Content="Create date subfolders"
+                            IsChecked="{Binding CreateDateSubfolders, Mode=TwoWay}"
+                            Classes="WizardCheckBox" />
+                </StackPanel>
+              </DataTemplate>
+
+              <DataTemplate DataType="steps:HotkeyStepViewModel"
+                            x:DataType="steps:HotkeyStepViewModel">
+                <StackPanel Spacing="16">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Primary Capture Hotkey"
+                               Classes="WizardSectionHeader"
+                               Margin="0" />
+                    <ListBox ItemsSource="{Binding PrimaryHotkeys}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Padding="0">
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="uiVm:HotkeyItemViewModel">
+                          <hotkeyControls:HotkeySelectionControl Margin="0,0,0,8"
+                                                                 RegisterOnCommit="False"
+                                                                 HotkeyChanged="OnOnboardingHotkeyChanged" />
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock Text="Click the hotkey button and press your preferred shortcut. Press Escape to cancel."
+                               FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               TextWrapping="Wrap" />
+                  </StackPanel>
+
+                  <Border Classes="status-warning"
+                          Padding="12"
+                          IsVisible="{Binding HasConflict}">
+                    <TextBlock Text="{Binding ConflictMessage}"
+                               Foreground="{DynamicResource StatusWarningForegroundBrush}"
+                               TextWrapping="Wrap" />
+                  </Border>
+
+                  <Expander Header="Additional Hotkeys"
+                            Classes="WizardExpander">
+                    <StackPanel Spacing="8" Margin="0,12,0,0">
+                      <ListBox ItemsSource="{Binding SecondaryHotkeyItems}"
+                               Background="Transparent"
+                               BorderThickness="0"
+                               Padding="0">
+                        <ListBox.ItemTemplate>
+                          <DataTemplate x:DataType="uiVm:HotkeyItemViewModel">
+                            <hotkeyControls:HotkeySelectionControl Margin="0,0,0,8"
+                                                                   RegisterOnCommit="False"
+                                                                   HotkeyChanged="OnOnboardingHotkeyChanged" />
+                          </DataTemplate>
+                        </ListBox.ItemTemplate>
+                      </ListBox>
+                    </StackPanel>
+                  </Expander>
+
+                  <Button Content="Test Hotkey"
+                          Command="{Binding TestHotkeyCommand}"
+                          Classes="WizardGhostButton"
+                          HorizontalAlignment="Left" />
+                </StackPanel>
+              </DataTemplate>
+
+              <DataTemplate DataType="steps:UploadStepViewModel"
+                            x:DataType="steps:UploadStepViewModel">
+                <StackPanel Spacing="16">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Upload Destination"
+                               Classes="WizardSectionHeader"
+                               Margin="0" />
+                    <ItemsControl ItemsSource="{Binding AvailableUploaders}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="steps:UploaderOption">
+                          <Border Classes="WizardRadioCard"
+                                  Margin="0,4"
+                                  Padding="12">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                              <RadioButton Grid.Column="0"
+                                           GroupName="UploaderSelection"
+                                           IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                           HorizontalAlignment="Stretch">
+                                <StackPanel Spacing="4">
+                                  <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                                  <TextBlock Text="{Binding Description}" FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
+                                </StackPanel>
+                              </RadioButton>
+                              <Button Grid.Column="1"
+                                      Content="Config..."
+                                      Command="{Binding $parent[ItemsControl].DataContext.ConfigureUploaderCommand}"
+                                      CommandParameter="{Binding}"
+                                      Classes="WizardGhostButton"
+                                      IsEnabled="{Binding IsSelected}"
+                                      IsVisible="{Binding CanConfigure}"
+                                      VerticalAlignment="Center" />
+                            </Grid>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+
+                  <Border Classes="section-card"
+                          Padding="12"
+                          IsVisible="{Binding HasTestResult}">
+                    <TextBlock Text="{Binding TestResult}"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               TextWrapping="Wrap" />
+                  </Border>
+
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Test Connection"
+                            Command="{Binding TestConnectionCommand}"
+                            Classes="WizardGhostButton"
+                            HorizontalAlignment="Left" />
+                    <ProgressBar IsIndeterminate="True"
+                                 IsVisible="{Binding IsTestingConnection}"
+                                 Width="72"
+                                 Height="8"
+                                 VerticalAlignment="Center" />
+                  </StackPanel>
+                </StackPanel>
+              </DataTemplate>
+
+              <DataTemplate DataType="steps:CompleteStepViewModel"
+                            x:DataType="steps:CompleteStepViewModel">
+                <StackPanel Spacing="16">
+                  <StackPanel Spacing="8"
+                              HorizontalAlignment="Center"
+                              Margin="0,16,0,0">
+                    <Border Width="64"
+                            Height="64"
+                            Background="{DynamicResource AccentFillColorSecondaryBrush}"
+                            CornerRadius="32"
+                            HorizontalAlignment="Center">
+                      <TextBlock Text="OK"
+                                 FontSize="24"
+                                 FontWeight="Bold"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"
+                                 Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                    </Border>
+                    <TextBlock Text="Setup complete"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center" />
+                  </StackPanel>
+
+                  <TextBlock Text="{Binding SummaryText}"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                  <CheckBox Content="Show tips on startup"
+                            IsChecked="{Binding ShowTipsOnStartup, Mode=TwoWay}"
+                            Classes="WizardCheckBox" />
+
+                  <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button Content="Take First Screenshot"
+                            Command="{Binding TakeFirstScreenshotCommand}"
+                            Classes="WizardPrimaryButton" />
+                    <Button Content="Open Settings"
+                            Command="{Binding OpenSettingsCommand}"
+                            Classes="WizardGhostButton" />
+                  </StackPanel>
+                </StackPanel>
+              </DataTemplate>
+            </ContentControl.DataTemplates>
+          </ContentControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <Button Grid.Row="1"
+            Content="Skip this step"
+            Command="{Binding SkipCommand}"
+            IsVisible="{Binding CurrentStep.CanSkip}"
+            Classes="WizardSkipLink"
+            HorizontalAlignment="Left"
+            Margin="0,0,0,8" />
+
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,Auto">
+      <Button Grid.Column="0"
+              Content="Back"
+              Command="{Binding BackCommand}"
+              Classes="WizardGhostButton"
+              IsVisible="{Binding CanGoBack}" />
+
+      <Button Grid.Column="2"
+              Content="Skip All"
+              Command="{Binding SkipAllCommand}"
+              Classes="WizardGhostButton"
+              IsVisible="{Binding CanSkipAll}"
+              Margin="0,0,8,0" />
+
+      <Button Grid.Column="3"
+              Content="{Binding NextButtonText}"
+              Command="{Binding NextCommand}"
+              IsEnabled="{Binding HasCurrentStep}"
+              Classes="WizardPrimaryButton" />
+    </Grid>
+  </Grid>
+
+</Window>

@@ -84,6 +84,9 @@ namespace XerahS.Media
                 string fileName = string.Format("{0}-{1}.{2}", mediaFileName, timeSliceElapsed, EnumExtensions.GetDescription(Options.ImageFormat));
                 string tempThumbnailPath = Path.Combine(GetOutputDirectory(), fileName);
 
+                FileHelpers.DeleteFile(tempThumbnailPath);
+                bool thumbnailCreated = false;
+
                 using (Process process = new Process())
                 {
                     ProcessStartInfo psi = new ProcessStartInfo()
@@ -96,10 +99,10 @@ namespace XerahS.Media
 
                     process.StartInfo = psi;
                     process.Start();
-                    process.WaitForExit(1000 * 30);
+                    thumbnailCreated = WaitForExitOrKill(process, TimeSpan.FromSeconds(30)) && process.ExitCode == 0 && File.Exists(tempThumbnailPath);
                 }
 
-                if (File.Exists(tempThumbnailPath))
+                if (thumbnailCreated)
                 {
                     VideoThumbnailInfo screenshotInfo = new VideoThumbnailInfo(tempThumbnailPath)
                     {
@@ -107,6 +110,10 @@ namespace XerahS.Media
                     };
 
                     tempThumbnails.Add(screenshotInfo);
+                }
+                else
+                {
+                    FileHelpers.DeleteFile(tempThumbnailPath);
                 }
 
                 OnProgressChanged(i + 1, Options.ThumbnailCount);
@@ -186,21 +193,91 @@ namespace XerahS.Media
             return (int)(VideoInfo!.Duration.TotalSeconds / count);
         }
 
-        private int GetRandomTimeSlice(int start)
+        private int GetRandomTimeSlice(int thumbnailIndex)
         {
-            List<int> mediaSeekTimes = new List<int>();
+            int thumbnailCount = Math.Max(1, Options.ThumbnailCount);
+            int totalSlots = thumbnailCount + 2;
+            int timeSlice = GetTimeSlice(totalSlots);
 
-            for (int i = 1; i < Options.ThumbnailCount + 2; i++)
+            if (timeSlice <= 0)
             {
-                mediaSeekTimes.Add(GetTimeSlice(Options.ThumbnailCount + 2) * i);
+                return 0;
             }
 
-            return (int)((RandomFast.NextDouble() * (mediaSeekTimes[start + 1] - mediaSeekTimes[start])) + mediaSeekTimes[start]);
+            int slot = Math.Clamp(thumbnailIndex, 0, thumbnailCount - 1);
+            int start = timeSlice * (slot + 1);
+            int end = timeSlice * (slot + 2) - 1;
+
+            return RandomFast.Next(start, Math.Max(start, end));
+        }
+
+        private static bool WaitForExitOrKill(Process process, TimeSpan timeout)
+        {
+            if (process.WaitForExit(timeout))
+            {
+                return true;
+            }
+
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
+            process.WaitForExit();
+            return false;
+        }
+
+        private sealed class LoadedThumbnail : IDisposable
+        {
+            public LoadedThumbnail(SKBitmap image, TimeSpan timestamp)
+            {
+                Image = image;
+                Timestamp = timestamp;
+            }
+
+            public SKBitmap Image { get; }
+            public TimeSpan Timestamp { get; }
+
+            public void Dispose()
+            {
+                Image.Dispose();
+            }
+        }
+
+        private List<LoadedThumbnail> LoadThumbnailImages(List<VideoThumbnailInfo> thumbnails)
+        {
+            List<LoadedThumbnail> images = new List<LoadedThumbnail>();
+
+            foreach (VideoThumbnailInfo thumbnail in thumbnails)
+            {
+                SKBitmap? bmp = ImageHelpers.LoadBitmap(thumbnail.FilePath);
+
+                if (bmp != null)
+                {
+                    if (Options.MaxThumbnailWidth > 0 && bmp.Width > Options.MaxThumbnailWidth)
+                    {
+                        int maxThumbnailHeight = (int)((float)Options.MaxThumbnailWidth / bmp.Width * bmp.Height);
+                        SKBitmap resized = ImageHelpers.ResizeImage(bmp, Options.MaxThumbnailWidth, maxThumbnailHeight);
+                        bmp.Dispose();
+                        bmp = resized;
+                    }
+
+                    images.Add(new LoadedThumbnail(bmp, thumbnail.Timestamp));
+                }
+            }
+
+            return images;
         }
 
         private SKBitmap? CombineScreenshots(List<VideoThumbnailInfo> thumbnails)
         {
-            List<SKBitmap> images = new List<SKBitmap>();
+            List<LoadedThumbnail> images = new List<LoadedThumbnail>();
             SKBitmap? finalImage = null;
 
             try
@@ -208,52 +285,53 @@ namespace XerahS.Media
                 string infoString = "";
                 int infoStringHeight = 0;
 
-                using (SKPaint fontPaint = new SKPaint { TextSize = 12, Typeface = SKTypeface.FromFamilyName("Arial"), Color = SKColors.Black, IsAntialias = true })
+                using (SKPaint fontPaint = new SKPaint { Color = SKColors.Black, IsAntialias = true })
+                using (SKFont infoFont = new SKFont(SKTypeface.FromFamilyName("Arial"), 12))
                 {
+                    SKFontMetrics infoMetrics = infoFont.Metrics;
+
                     if (Options.AddVideoInfo)
                     {
                         infoString = VideoInfo?.ToString() ?? string.Empty;
-                        SKRect textBounds = new SKRect();
-                        fontPaint.MeasureText(infoString, ref textBounds);
-                        infoStringHeight = (int)textBounds.Height + 5; // Add some padding
+                        infoStringHeight = (int)Math.Ceiling(infoMetrics.Descent - infoMetrics.Ascent) + 5;
                     }
 
-                    foreach (VideoThumbnailInfo thumbnail in thumbnails)
-                    {
-                        SKBitmap? bmp = ImageHelpers.LoadBitmap(thumbnail.FilePath);
-
-                        if (bmp != null)
-                        {
-                            if (Options.MaxThumbnailWidth > 0 && bmp.Width > Options.MaxThumbnailWidth)
-                            {
-                                int maxThumbnailHeight = (int)((float)Options.MaxThumbnailWidth / bmp.Width * bmp.Height);
-                                SKBitmap resized = ImageHelpers.ResizeImage(bmp, Options.MaxThumbnailWidth, maxThumbnailHeight);
-                                bmp.Dispose();
-                                bmp = resized;
-                            }
-
-                            images.Add(bmp);
-                        }
-                    }
+                    images = LoadThumbnailImages(thumbnails);
 
                     if (images.Count == 0) return null;
 
-                    int columnCount = Options.ColumnCount;
+                    int columnCount = Math.Max(1, Options.ColumnCount);
+                    int padding = Math.Max(0, Options.Padding);
+                    int spacing = Math.Max(0, Options.Spacing);
 
-                    int thumbWidth = images[0].Width;
+                    int thumbWidth = images.Max(x => x.Image.Width);
 
-                    int width = (Options.Padding * 2) +
+                    int width = (padding * 2) +
                                 (thumbWidth * columnCount) +
-                                ((columnCount - 1) * Options.Spacing);
+                                ((columnCount - 1) * spacing);
+
+                    if (Options.MaxCombinedWidth > 0 && width > Options.MaxCombinedWidth)
+                    {
+                        DebugHelper.WriteLine($"VideoThumbnailer: Combined thumbnail width {width} exceeds limit {Options.MaxCombinedWidth}, returning null.");
+                        foreach (var img in images) img.Image.Dispose();
+                        return null;
+                    }
 
                     int rowCount = (int)Math.Ceiling(images.Count / (float)columnCount);
 
-                    int thumbHeight = images[0].Height;
+                    int thumbHeight = images.Max(x => x.Image.Height);
 
-                    int height = (Options.Padding * 3) +
+                    int height = (padding * 3) +
                                  infoStringHeight +
                                  (thumbHeight * rowCount) +
-                                 ((rowCount - 1) * Options.Spacing);
+                                 ((rowCount - 1) * spacing);
+
+                    if (Options.MaxCombinedHeight > 0 && height > Options.MaxCombinedHeight)
+                    {
+                        DebugHelper.WriteLine($"VideoThumbnailer: Combined thumbnail height {height} exceeds limit {Options.MaxCombinedHeight}, returning null.");
+                        foreach (var img in images) img.Image.Dispose();
+                        return null;
+                    }
 
                     finalImage = new SKBitmap(width, height);
 
@@ -263,43 +341,47 @@ namespace XerahS.Media
 
                         if (!string.IsNullOrEmpty(infoString))
                         {
-                            g.DrawText(infoString, Options.Padding, Options.Padding + infoStringHeight - 5, fontPaint);
+                            float infoBaseline = padding - infoMetrics.Ascent;
+                            g.DrawText(infoString, padding, infoBaseline, SKTextAlign.Left, infoFont, fontPaint);
                         }
 
                         int i = 0;
-                        int offsetY = (Options.Padding * 2) + infoStringHeight;
+                        int offsetY = (padding * 2) + infoStringHeight;
 
                         using (SKPaint shadowPaint = new SKPaint { Color = new SKColor(0, 0, 0, 75) })
                         using (SKPaint borderPaint = new SKPaint { Color = SKColors.Black, IsStroke = true, StrokeWidth = 1 })
-                        using (SKPaint timestampPaint = new SKPaint { TextSize = 10, Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), Color = SKColors.White, IsAntialias = true })
+                        using (SKPaint timestampPaint = new SKPaint { Color = SKColors.White, IsAntialias = true })
+                        using (SKFont timestampFont = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 10))
                         {
+                            SKFontMetrics timestampMetrics = timestampFont.Metrics;
 
                             for (int y = 0; y < rowCount; y++)
                             {
-                                int offsetX = Options.Padding;
+                                int offsetX = padding;
 
                                 for (int x = 0; x < columnCount; x++)
                                 {
+                                    LoadedThumbnail thumbnail = images[i];
+
                                     if (Options.DrawShadow)
                                     {
                                         int shadowOffset = 3;
-                                        g.DrawRect(offsetX + shadowOffset, offsetY + shadowOffset, thumbWidth, thumbHeight, shadowPaint);
+                                        g.DrawRect(offsetX + shadowOffset, offsetY + shadowOffset, thumbnail.Image.Width, thumbnail.Image.Height, shadowPaint);
                                     }
 
-                                    g.DrawBitmap(images[i], offsetX, offsetY);
+                                    g.DrawBitmap(thumbnail.Image, offsetX, offsetY, SKSamplingOptions.Default);
 
                                     if (Options.DrawBorder)
                                     {
-                                        g.DrawRect(offsetX, offsetY, thumbWidth - 1, thumbHeight - 1, borderPaint);
+                                        g.DrawRect(offsetX, offsetY, thumbnail.Image.Width - 1, thumbnail.Image.Height - 1, borderPaint);
                                     }
 
                                     if (Options.AddTimestamp)
                                     {
                                         int timestampOffset = 10;
-                                        string timestampText = thumbnails[i].Timestamp.ToString();
-                                        // Simple text shadow/outline for readability? Original didn't have it explicit but usually good.
-                                        // Original used Brushes.White.
-                                        g.DrawText(timestampText, offsetX + timestampOffset, offsetY + timestampOffset + 10, timestampPaint); // +10 for approximate baseline
+                                        string timestampText = thumbnail.Timestamp.ToString();
+                                        float timestampBaseline = offsetY + timestampOffset - timestampMetrics.Ascent;
+                                        g.DrawText(timestampText, offsetX + timestampOffset, timestampBaseline, SKTextAlign.Left, timestampFont, timestampPaint);
                                     }
 
                                     i++;
@@ -309,10 +391,10 @@ namespace XerahS.Media
                                         return finalImage;
                                     }
 
-                                    offsetX += thumbWidth + Options.Spacing;
+                                    offsetX += thumbWidth + spacing;
                                 }
 
-                                offsetY += thumbHeight + Options.Spacing;
+                                offsetY += thumbHeight + spacing;
                             }
                         }
                     }
@@ -331,7 +413,7 @@ namespace XerahS.Media
             }
             finally
             {
-                foreach (SKBitmap image in images)
+                foreach (LoadedThumbnail image in images)
                 {
                     if (image != null)
                     {

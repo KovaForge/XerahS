@@ -64,6 +64,21 @@ public class S3ConfigModel
 
     public bool RemoveExtensionText { get; set; } = false;
 
+    /// <summary>
+    /// Minimum file size to trigger multipart upload. Default: 50 MiB.
+    /// </summary>
+    public long MultipartThresholdBytes { get; set; } = 50L * 1024 * 1024;
+
+    /// <summary>
+    /// Size of each multipart chunk. Default: 10 MiB.
+    /// </summary>
+    public long MultipartPartSizeBytes { get; set; } = 10L * 1024 * 1024;
+
+    /// <summary>
+    /// Maximum number of multipart chunks uploaded in parallel.
+    /// </summary>
+    public int MultipartMaxConcurrency { get; set; } = 4;
+
     public string SsoStartUrl { get; set; } = string.Empty;
 
     public string SsoRegion { get; set; } = "us-east-1";

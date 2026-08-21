@@ -24,8 +24,15 @@
 #endregion License Information (GPL v3)
 
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Media;
+using Avalonia.Platform;
 using Avalonia.Styling;
-using Avalonia.Platform; // Added this line
+using Avalonia.VisualTree;
+using ShareX.ImageEditor.Hosting;
+using ShareX.ImageEditor.Presentation.ViewModels;
+using ShareX.ImageEditor.Presentation.Views;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
@@ -37,6 +44,27 @@ namespace XerahS.UI.Services
     /// </summary>
     public static class ThemeService
     {
+        private const double AccentForegroundDarkSwitchRatio = 1.75;
+
+        public static ImageEditorOptions CreateImageEditorOptions(bool showExitConfirmation = true)
+        {
+            var options = new ImageEditorOptions
+            {
+                ShowExitConfirmation = showExitConfirmation
+            };
+
+            ApplyImageEditorThemeOptions(options, SettingsManager.Settings?.ThemeMode ?? AppThemeMode.System);
+            return options;
+        }
+
+        public static void ApplyImageEditorThemeOptions(ImageEditorOptions options, AppThemeMode mode)
+        {
+            ArgumentNullException.ThrowIfNull(options);
+
+            options.UseSystemTheme = mode == AppThemeMode.System;
+            options.UseSystemAccentColor = true;
+        }
+
         /// <summary>
         /// Applies the specified theme mode to the application
         /// </summary>
@@ -45,16 +73,20 @@ namespace XerahS.UI.Services
             try
             {
                 bool useDarkMode = ShouldUseDarkMode(mode);
+                ThemeVariant appTheme = GetApplicationTheme(useDarkMode);
+                ThemeVariant editorTheme = GetEditorTheme(useDarkMode);
 
                 if (Application.Current != null)
                 {
-                    var targetTheme = useDarkMode ? ShareX.ImageEditor.Presentation.Theming.ThemeManager.ShareXDark : ShareX.ImageEditor.Presentation.Theming.ThemeManager.ShareXLight;
-                    Application.Current.RequestedThemeVariant = targetTheme;
+                    Application.Current.RequestedThemeVariant = appTheme;
+                    UpdateAccentForeground(appTheme);
                     
-                    // Also update the ImageEditor's ThemeManager so windows subscribed to it get the update
-                    ShareX.ImageEditor.Presentation.Theming.ThemeManager.SetTheme(targetTheme);
+                    // Keep embedded editors aligned with the app theme mode, then let ImageEditor
+                    // own the actual theme and accent application inside EditorView.
+                    SyncOpenEditorThemeOptions(mode);
+                    ShareX.ImageEditor.Presentation.Theming.ThemeManager.SetTheme(editorTheme);
                     
-                    DebugHelper.WriteLine($"Applied theme mode: {mode} (Dark: {useDarkMode}) -> {targetTheme.Key}");
+                    DebugHelper.WriteLine($"Applied theme mode: {mode} (Dark: {useDarkMode}) -> app={appTheme.Key}, editor={editorTheme.Key}");
                 }
             }
             catch (Exception ex)
@@ -140,6 +172,9 @@ namespace XerahS.UI.Services
         
         private static void OnPlatformColorValuesChanged(object? sender, PlatformColorValues e)
         {
+            ThemeVariant appTheme = GetApplicationTheme(ShouldUseDarkMode(SettingsManager.Settings?.ThemeMode ?? AppThemeMode.System));
+            UpdateAccentForeground(appTheme, e);
+
             // Similar to OnSystemThemeChanged, but triggered by Avalonia
             var currentMode = SettingsManager.Settings?.ThemeMode ?? AppThemeMode.System;
             if (currentMode != AppThemeMode.System)
@@ -171,13 +206,15 @@ namespace XerahS.UI.Services
                 {
                     if (Application.Current != null)
                     {
-                        var targetTheme = isDark ? ShareX.ImageEditor.Presentation.Theming.ThemeManager.ShareXDark : ShareX.ImageEditor.Presentation.Theming.ThemeManager.ShareXLight;
-                        Application.Current.RequestedThemeVariant = targetTheme;
+                        ThemeVariant appTheme = GetApplicationTheme(isDark);
+                        ThemeVariant editorTheme = GetEditorTheme(isDark);
+                        Application.Current.RequestedThemeVariant = appTheme;
+                        UpdateAccentForeground(appTheme);
                         
-                        // Sync ImageEditor theme manager
-                        ShareX.ImageEditor.Presentation.Theming.ThemeManager.SetTheme(targetTheme);
+                        SyncOpenEditorThemeOptions(AppThemeMode.System);
+                        ShareX.ImageEditor.Presentation.Theming.ThemeManager.SetTheme(editorTheme);
                         
-                        DebugHelper.WriteLine($"System theme changed, applied: {(isDark ? "Dark" : "Light")}");
+                        DebugHelper.WriteLine($"System theme changed, applied: app={appTheme.Key}, editor={editorTheme.Key}");
                     }
                 });
             }
@@ -185,6 +222,178 @@ namespace XerahS.UI.Services
             {
                 DebugHelper.WriteException(ex, "Failed to apply system theme change");
             }
+        }
+
+        private static ThemeVariant GetApplicationTheme(bool useDarkMode)
+        {
+            return useDarkMode ? ThemeVariant.Dark : ThemeVariant.Light;
+        }
+
+        private static ThemeVariant GetEditorTheme(bool useDarkMode)
+        {
+            return useDarkMode
+                ? ShareX.ImageEditor.Presentation.Theming.ThemeManager.ShareXDark
+                : ShareX.ImageEditor.Presentation.Theming.ThemeManager.ShareXLight;
+        }
+
+        private static void UpdateAccentForeground(ThemeVariant appTheme, PlatformColorValues? colorValues = null)
+        {
+            if (Application.Current == null)
+            {
+                return;
+            }
+
+            Color accentColor = GetAccentColor(appTheme, colorValues);
+            if (accentColor.A == 0)
+            {
+                return;
+            }
+
+            Color foregroundColor = GetAccentForegroundColor(accentColor);
+
+            Application.Current.Resources["XerahS.Color.Accent.Foreground"] = foregroundColor;
+
+            if (Application.Current.TryGetResource("TextOnAccentFillColorPrimaryBrush", appTheme, out object? resourceValue) &&
+                resourceValue is SolidColorBrush foregroundBrush)
+            {
+                foregroundBrush.Color = foregroundColor;
+            }
+        }
+
+        private static Color GetAccentColor(ThemeVariant appTheme, PlatformColorValues? colorValues)
+        {
+            if (colorValues != null && colorValues.AccentColor1.A != 0)
+            {
+                return colorValues.AccentColor1;
+            }
+
+            if (Application.Current?.TryGetResource("SystemAccentColor", appTheme, out object? resourceValue) == true)
+            {
+                return resourceValue switch
+                {
+                    Color color => color,
+                    SolidColorBrush brush => brush.Color,
+                    _ => default
+                };
+            }
+
+            return default;
+        }
+
+        private static Color GetAccentForegroundColor(Color accentColor)
+        {
+            Color lightForeground = GetThemeColor(
+                ThemeVariant.Dark,
+                "XerahS.Color.Text.Primary",
+                Color.Parse("#F3F6F8"));
+
+            Color darkForeground = GetThemeColor(
+                ThemeVariant.Light,
+                "XerahS.Color.Text.Primary",
+                Color.Parse("#161B22"));
+
+            double lightContrast = GetContrastRatio(lightForeground, accentColor);
+            double darkContrast = GetContrastRatio(darkForeground, accentColor);
+
+            return darkContrast >= lightContrast * AccentForegroundDarkSwitchRatio
+                ? darkForeground
+                : lightForeground;
+        }
+
+        private static Color GetThemeColor(ThemeVariant theme, string resourceKey, Color fallback)
+        {
+            if (Application.Current?.TryGetResource(resourceKey, theme, out object? resourceValue) != true)
+            {
+                return fallback;
+            }
+
+            return resourceValue switch
+            {
+                Color color => color,
+                SolidColorBrush brush => brush.Color,
+                _ => fallback
+            };
+        }
+
+        private static double GetContrastRatio(Color firstColor, Color secondColor)
+        {
+            double firstLuminance = GetRelativeLuminance(firstColor);
+            double secondLuminance = GetRelativeLuminance(secondColor);
+
+            double lighter = Math.Max(firstLuminance, secondLuminance);
+            double darker = Math.Min(firstLuminance, secondLuminance);
+
+            return (lighter + 0.05) / (darker + 0.05);
+        }
+
+        private static double GetRelativeLuminance(Color color)
+        {
+            double red = LinearizeColorChannel(color.R);
+            double green = LinearizeColorChannel(color.G);
+            double blue = LinearizeColorChannel(color.B);
+
+            return (0.2126 * red) + (0.7152 * green) + (0.0722 * blue);
+        }
+
+        private static double LinearizeColorChannel(byte channel)
+        {
+            double normalized = channel / 255.0;
+
+            return normalized <= 0.03928
+                ? normalized / 12.92
+                : Math.Pow((normalized + 0.055) / 1.055, 2.4);
+        }
+
+        private static void SyncOpenEditorThemeOptions(AppThemeMode mode)
+        {
+            if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                return;
+            }
+
+            foreach (Window window in desktop.Windows)
+            {
+                foreach (EditorView editorView in EnumerateEditorViews(window))
+                {
+                    if (editorView.DataContext is not MainViewModel editorViewModel)
+                    {
+                        continue;
+                    }
+
+                    bool useSystemThemeChanged = editorViewModel.Options.UseSystemTheme != (mode == AppThemeMode.System);
+                    ApplyImageEditorThemeOptions(editorViewModel.Options, mode);
+
+                    if (useSystemThemeChanged && editorView.IsLoaded)
+                    {
+                        RefreshEditorViewThemeTracking(editorView, editorViewModel);
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<EditorView> EnumerateEditorViews(Visual root)
+        {
+            foreach (Visual child in root.GetVisualChildren())
+            {
+                if (child is EditorView editorView)
+                {
+                    yield return editorView;
+                }
+
+                foreach (EditorView descendant in EnumerateEditorViews(child))
+                {
+                    yield return descendant;
+                }
+            }
+        }
+
+        private static void RefreshEditorViewThemeTracking(EditorView editorView, MainViewModel editorViewModel)
+        {
+            // Toggling between explicit Light/Dark and System changes whether EditorView should
+            // subscribe to platform color notifications. Reapplying the DataContext triggers its
+            // existing DataContextChanged refresh path without duplicating theme logic here.
+            editorView.DataContext = null;
+            editorView.DataContext = editorViewModel;
         }
     }
 }

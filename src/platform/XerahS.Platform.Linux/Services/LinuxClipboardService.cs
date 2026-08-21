@@ -28,6 +28,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using XerahS.Common;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Platform.Linux.Services;
@@ -53,17 +54,12 @@ public sealed class LinuxClipboardService : IClipboardService
 
     public async Task SetTextAsync(string text)
     {
-        if (PreferWaylandClipboard)
+        if (await TrySetTextInternalAsync(text))
         {
-            if (await TryPipeAsync(WlCopy, string.Empty, Encoding.UTF8.GetBytes(text)))
-                return;
+            return;
         }
 
-        if (await TryPipeAsync(Xclip, "-selection clipboard", Encoding.UTF8.GetBytes(text)))
-            return;
-
-        if (!PreferWaylandClipboard)
-            await TryPipeAsync(WlCopy, string.Empty, Encoding.UTF8.GetBytes(text));
+        LogClipboardFailure("text");
     }
 
     public async Task<string?> GetTextAsync()
@@ -100,17 +96,57 @@ public sealed class LinuxClipboardService : IClipboardService
 
     public async Task SetImageAsync(byte[] pngBytes)
     {
+        if (await TrySetImageInternalAsync(pngBytes))
+        {
+            return;
+        }
+
+        LogClipboardFailure("image");
+    }
+
+    internal async Task<bool> TrySetTextInternalAsync(string text)
+    {
+        if (PreferWaylandClipboard)
+        {
+            if (await TryPipeAsync(WlCopy, string.Empty, Encoding.UTF8.GetBytes(text)))
+                return true;
+        }
+
+        if (await TryPipeAsync(Xclip, "-selection clipboard", Encoding.UTF8.GetBytes(text)))
+            return true;
+
+        if (!PreferWaylandClipboard && await TryPipeAsync(WlCopy, string.Empty, Encoding.UTF8.GetBytes(text)))
+            return true;
+
+        return false;
+    }
+
+    internal async Task<bool> TrySetImageInternalAsync(byte[] pngBytes)
+    {
         if (PreferWaylandClipboard)
         {
             if (await TryPipeAsync(WlCopy, "--type image/png", pngBytes))
-                return;
+                return true;
         }
 
         if (await TryPipeAsync(Xclip, "-selection clipboard -t image/png -i", pngBytes))
-            return;
+            return true;
 
-        if (!PreferWaylandClipboard)
-            await TryPipeAsync(WlCopy, "--type image/png", pngBytes);
+        if (!PreferWaylandClipboard && await TryPipeAsync(WlCopy, "--type image/png", pngBytes))
+            return true;
+
+        return false;
+    }
+
+    private static void LogClipboardFailure(string payloadKind)
+    {
+        string? hint = LinuxClipboardCapabilities.UserFacingWarning;
+        if (string.IsNullOrWhiteSpace(hint))
+        {
+            hint = "Install wl-clipboard (Wayland) or xclip (X11) for CLI clipboard support.";
+        }
+
+        DebugHelper.WriteLine($"LinuxClipboardService: Failed to copy {payloadKind} to clipboard. {hint}");
     }
 
     public async Task<SKBitmap?> GetImageAsync()
@@ -133,20 +169,26 @@ public sealed class LinuxClipboardService : IClipboardService
 
     public void SetFileDropList(string[] files)
     {
-        // GNOME/KDE expect text/uri-list; best-effort implementation.
-        var payload = string.Join("\n", files.Select(f => $"file://{f}"));
-        SetData("text/uri-list", payload);
+        if (files == null || files.Length == 0)
+        {
+            return;
+        }
+
+        // GNOME/KDE expect text/uri-list with properly escaped file URIs.
+        var payload = string.Join("\n", files
+            .Select(ToClipboardFileUri)
+            .Where(uri => !string.IsNullOrWhiteSpace(uri)));
+
+        if (!string.IsNullOrWhiteSpace(payload))
+        {
+            SetData("text/uri-list", payload);
+        }
     }
 
     public string[]? GetFileDropList()
     {
         var data = GetData("text/uri-list") as string;
-        if (string.IsNullOrWhiteSpace(data))
-            return Array.Empty<string>();
-
-        return data.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .Select(uri => uri.StartsWith("file://", StringComparison.OrdinalIgnoreCase) ? uri[7..] : uri)
-            .ToArray();
+        return ParseFileDropList(data);
     }
 
     public void Clear()
@@ -225,13 +267,52 @@ public sealed class LinuxClipboardService : IClipboardService
         return false;
     }
 
+    internal static string[] ParseFileDropList(string? data)
+    {
+        if (string.IsNullOrWhiteSpace(data))
+        {
+            return Array.Empty<string>();
+        }
+
+        return data
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(ParseClipboardFileUri)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .ToArray()!;
+    }
+
+    internal static string? ToClipboardFileUri(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        return Uri.TryCreate(path, UriKind.Absolute, out var absoluteUri)
+            ? absoluteUri.IsFile ? absoluteUri.AbsoluteUri : null
+            : new Uri(Path.GetFullPath(path)).AbsoluteUri;
+    }
+
+    internal static string? ParseClipboardFileUri(string? uriText)
+    {
+        if (string.IsNullOrWhiteSpace(uriText))
+        {
+            return null;
+        }
+
+        return Uri.TryCreate(uriText.Trim(), UriKind.Absolute, out var uri) && uri.IsFile
+            ? uri.LocalPath
+            : uriText.Trim();
+    }
+
     private async Task<bool> TryPipeAsync(string tool, string args, byte[] data)
     {
+        Process? process = null;
         try
         {
             StopClipboardOwnerProcess();
 
-            var process = CreateProcess(tool, args);
+            process = CreateProcess(tool, args);
             if (process == null)
                 return false;
 
@@ -255,6 +336,7 @@ public sealed class LinuxClipboardService : IClipboardService
         }
         catch
         {
+            process?.Dispose();
             return false;
         }
     }
@@ -267,6 +349,8 @@ public sealed class LinuxClipboardService : IClipboardService
 
     private static async Task<byte[]?> ReadBytesAsync(string tool, string args)
     {
+        const int clipboardReadTimeoutMs = 2000;
+
         try
         {
             using var process = CreateProcess(tool, args);
@@ -274,9 +358,29 @@ public sealed class LinuxClipboardService : IClipboardService
                 return null;
 
             await using var ms = new MemoryStream();
-            await process.StandardOutput.BaseStream.CopyToAsync(ms);
-            var exited = await Task.Run(() => process.WaitForExit(2000));
-            return exited && process.ExitCode == 0 ? ms.ToArray() : null;
+            using var timeoutCts = new CancellationTokenSource(clipboardReadTimeoutMs);
+
+            try
+            {
+                await process.StandardOutput.BaseStream.CopyToAsync(ms, timeoutCts.Token);
+                await process.WaitForExitAsync(timeoutCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                try
+                {
+                    if (!process.HasExited)
+                        process.Kill(entireProcessTree: true);
+                }
+                catch
+                {
+                    // Ignore kill failures when read timed out.
+                }
+
+                return null;
+            }
+
+            return process.ExitCode == 0 ? ms.ToArray() : null;
         }
         catch
         {
@@ -295,7 +399,6 @@ public sealed class LinuxClipboardService : IClipboardService
                 UseShellExecute = false,
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
-                RedirectStandardError = true,
                 CreateNoWindow = true
             };
 
@@ -318,10 +421,18 @@ public sealed class LinuxClipboardService : IClipboardService
             {
                 if (!_clipboardOwnerProcess.HasExited)
                     _clipboardOwnerProcess.Kill(entireProcessTree: true);
+
+                // WaitForExit ensures the process has fully terminated before we dispose,
+                // preventing orphaned/killed processes from lingering as zombie handles.
+                if (!_clipboardOwnerProcess.WaitForExit(500))
+                {
+                    // Process did not exit within 500ms; it will be reaped by the OS.
+                    // Still dispose the handle so it is not left dangling.
+                }
             }
             catch
             {
-                // Ignore kill failures.
+                // Ignore kill/WaitForExit failures.
             }
             finally
             {

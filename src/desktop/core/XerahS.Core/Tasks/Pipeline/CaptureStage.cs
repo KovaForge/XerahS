@@ -121,13 +121,16 @@ namespace XerahS.Core.Tasks.Pipeline
             var isScreenCaptureDelay = workflowCategory == EnumExtensions.WorkflowType_Category_ScreenCapture && captureDelaySeconds > 0;
             var isScreenRecordDelay = workflowCategory == EnumExtensions.WorkflowType_Category_ScreenRecord && captureDelaySeconds > 0;
 
-            // UseTransparentOverlay is true only for RectangleTransparent workflow
-            var useTransparentOverlay = taskSettings.Job == WorkflowType.RectangleTransparent;
+            var useTransparentOverlay = ShouldUseTransparentOverlay(taskSettings.Job);
+            var linuxRegionSelectorPreference = ResolveLinuxRegionSelectorPreference(captureSettings);
+            var macOSRegionSelectorPreference = ResolveMacOSRegionSelectorPreference(captureSettings);
 
             var captureOptions = new CaptureOptions
             {
                 UseModernCapture = captureSettings.UseModernCapture,
-                LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
+                LinuxRegionSelectorPreference = linuxRegionSelectorPreference,
+                MacOSRegionSelectorPreference = macOSRegionSelectorPreference,
+                MacOSPlayCaptureSound = captureSettings.MacOSPlayCaptureSound,
                 ShowCursor = captureSettings.ShowCursor,
                 UseTransparentOverlay = useTransparentOverlay,
                 CaptureShadow = captureSettings.CaptureShadow,
@@ -314,10 +317,13 @@ namespace XerahS.Core.Tasks.Pipeline
 
                 // Screen Recording Workflow Cases (Extracted for brevity, calling internal helpers)
                 case WorkflowType.ScreenRecorder:
-                case WorkflowType.StartScreenRecorder:
                 case WorkflowType.ScreenRecorderGIF:
-                case WorkflowType.StartScreenRecorderGIF:
                     await HandleScreenRecorderRegionAsync(context, captureOptions, isScreenRecordDelay, captureDelaySeconds, workflowCategory, token);
+                    return PipelineStageResult.Stop;
+
+                case WorkflowType.StartScreenRecorder:
+                case WorkflowType.StartScreenRecorderGIF:
+                    await HandleScreenRecorderLastRegionAsync(context, isScreenRecordDelay, captureDelaySeconds, workflowCategory, token);
                     return PipelineStageResult.Stop;
 
                 case WorkflowType.ScreenRecorderActiveWindow:
@@ -327,7 +333,7 @@ namespace XerahS.Core.Tasks.Pipeline
 
                 case WorkflowType.ScreenRecorderCustomRegion:
                 case WorkflowType.ScreenRecorderGIFCustomRegion:
-                    await HandleScreenRecorderCustomRegionAsync(context, isScreenRecordDelay, captureDelaySeconds, workflowCategory, token);
+                    await HandleScreenRecorderCustomRegionAsync(context, captureOptions, isScreenRecordDelay, captureDelaySeconds, workflowCategory, token);
                     return PipelineStageResult.Stop;
 
                 case WorkflowType.StopScreenRecording:
@@ -361,11 +367,9 @@ namespace XerahS.Core.Tasks.Pipeline
                         return PipelineStageResult.Stop;
                     }
                     var customRect = taskSettings!.CaptureSettings.CaptureCustomRegion;
-                    if (!customRect.IsEmpty)
+                    if (TryCreateConfiguredCaptureRect(customRect, out var customCaptureRect))
                     {
-                        image = await PlatformServices.ScreenCapture.CaptureRectAsync(
-                            new SKRect(customRect.X, customRect.Y, customRect.Right, customRect.Bottom),
-                            captureOptions);
+                        image = await PlatformServices.ScreenCapture.CaptureRectAsync(customCaptureRect, captureOptions);
                     }
                     break;
 
@@ -375,12 +379,9 @@ namespace XerahS.Core.Tasks.Pipeline
                         return PipelineStageResult.Stop;
                     }
                     var lastRegionRect = taskSettings!.CaptureSettings.CaptureCustomRegion;
-                    if (!lastRegionRect.IsEmpty)
+                    if (TryCreateConfiguredCaptureRect(lastRegionRect, out var lastRegionCaptureRect))
                     {
-                        image = await PlatformServices.ScreenCapture.CaptureRectAsync(
-                            new SKRect(lastRegionRect.X, lastRegionRect.Y,
-                                lastRegionRect.Right, lastRegionRect.Bottom),
-                            captureOptions);
+                        image = await PlatformServices.ScreenCapture.CaptureRectAsync(lastRegionCaptureRect, captureOptions);
                     }
                     break;
 
@@ -531,7 +532,13 @@ namespace XerahS.Core.Tasks.Pipeline
             }
         }
 
-        private async Task HandleScreenRecorderCustomRegionAsync(PipelineContext context, bool isDelay, double delay, string category, CancellationToken token)
+        private async Task HandleScreenRecorderCustomRegionAsync(
+            PipelineContext context,
+            CaptureOptions captureOptions,
+            bool isDelay,
+            double delay,
+            string category,
+            CancellationToken token)
         {
             if (context.Info.Metadata.Image != null)
             {
@@ -539,11 +546,24 @@ namespace XerahS.Core.Tasks.Pipeline
                 context.Info.Metadata.Image = null;
             }
 
-            var configuredRegion = context.Info.TaskSettings!.CaptureSettings.CaptureCustomRegion;
+            var captureSettings = context.Info.TaskSettings!.CaptureSettings;
+            var configuredRegion = captureSettings.CaptureCustomRegion;
             if (configuredRegion.IsEmpty || configuredRegion.Width <= 0 || configuredRegion.Height <= 0)
             {
-                context.Status = TaskStatus.Stopped;
-                return;
+                var selectedRegion = await PlatformServices.ScreenCapture.SelectRegionAsync(captureOptions);
+                if (selectedRegion.IsEmpty || selectedRegion.Width <= 0 || selectedRegion.Height <= 0)
+                {
+                    context.Status = TaskStatus.Stopped;
+                    return;
+                }
+
+                configuredRegion = new Rectangle(
+                    selectedRegion.Left,
+                    selectedRegion.Top,
+                    selectedRegion.Width,
+                    selectedRegion.Height);
+
+                captureSettings.CaptureCustomRegion = configuredRegion;
             }
 
             int customAdjustedWidth = configuredRegion.Width - (configuredRegion.Width % VideoDimensionAlignment);
@@ -565,6 +585,231 @@ namespace XerahS.Core.Tasks.Pipeline
                 return;
 
             await _workerTask.HandleStartRecordingAsync(CaptureMode.Region, region: configuredRecordingRegion);
+        }
+
+        private async Task HandleScreenRecorderLastRegionAsync(
+            PipelineContext context,
+            bool isDelay,
+            double delay,
+            string category,
+            CancellationToken token)
+        {
+            if (context.Info.Metadata.Image != null)
+            {
+                context.Info.Metadata.Image.Dispose();
+                context.Info.Metadata.Image = null;
+            }
+
+            var lastRegion = context.Info.TaskSettings!.CaptureSettings.CaptureCustomRegion;
+            if (lastRegion.IsEmpty || lastRegion.Width <= 0 || lastRegion.Height <= 0)
+            {
+                context.Status = TaskStatus.Stopped;
+                return;
+            }
+
+            int adjustedWidth = lastRegion.Width - (lastRegion.Width % VideoDimensionAlignment);
+            int adjustedHeight = lastRegion.Height - (lastRegion.Height % VideoDimensionAlignment);
+
+            if (adjustedWidth < MinVideoWidth || adjustedHeight < MinVideoHeight)
+            {
+                context.Status = TaskStatus.Stopped;
+                return;
+            }
+
+            var recordingRegion = new Rectangle(lastRegion.X, lastRegion.Y, adjustedWidth, adjustedHeight);
+
+            if (isDelay && !await _workerTask.ApplyCaptureStartDelayAsync(context.Info.TaskSettings!, category, delay, token))
+                return;
+
+            await _workerTask.HandleStartRecordingAsync(CaptureMode.Region, region: recordingRegion);
+        }
+
+        internal static bool TryCreateConfiguredCaptureRect(Rectangle configuredRegion, out SKRect captureRect)
+        {
+            captureRect = default;
+
+            if (configuredRegion.IsEmpty || configuredRegion.Width <= 0 || configuredRegion.Height <= 0)
+            {
+                return false;
+            }
+
+            long right = (long)configuredRegion.X + configuredRegion.Width;
+            long bottom = (long)configuredRegion.Y + configuredRegion.Height;
+
+            if (right > int.MaxValue || bottom > int.MaxValue)
+            {
+                return false;
+            }
+
+            captureRect = new SKRect(configuredRegion.X, configuredRegion.Y, right, bottom);
+            return true;
+        }
+
+        private static LinuxInteractiveRegionSelectorPreference ResolveLinuxRegionSelectorPreference(TaskSettingsCapture captureSettings)
+        {
+            var taskPreference = captureSettings.LinuxRegionSelectorPreference;
+            var defaultPreference = SettingsManager.DefaultTaskSettings.CaptureSettings?.LinuxRegionSelectorPreference ?? taskPreference;
+
+            if (!OperatingSystem.IsLinux())
+            {
+                return taskPreference;
+            }
+
+            bool shouldUseDefaultPreference = ShouldUseDefaultLinuxRegionSelectorPreferenceForDesktop();
+            DebugHelper.WriteLine(
+                $"CaptureStage: Linux selector preference source={(shouldUseDefaultPreference ? "default task settings" : "task settings")} (task={taskPreference}, default={defaultPreference}).");
+
+            return shouldUseDefaultPreference ? defaultPreference : taskPreference;
+        }
+
+        private static MacOSInteractiveRegionSelectorPreference ResolveMacOSRegionSelectorPreference(TaskSettingsCapture captureSettings)
+        {
+            var taskPreference = captureSettings.MacOSRegionSelectorPreference;
+            var defaultPreference = SettingsManager.DefaultTaskSettings.CaptureSettings?.MacOSRegionSelectorPreference ??
+                MacOSInteractiveRegionSelectorPreference.Automatic;
+
+            if (!OperatingSystem.IsMacOS())
+            {
+                return taskPreference;
+            }
+
+            var effectivePreference = taskPreference == MacOSInteractiveRegionSelectorPreference.Automatic
+                ? defaultPreference
+                : taskPreference;
+
+            if (effectivePreference == MacOSInteractiveRegionSelectorPreference.Automatic)
+            {
+                effectivePreference = MacOSInteractiveRegionSelectorPreference.XerahSOverlay;
+            }
+
+            DebugHelper.WriteLine(
+                $"CaptureStage: macOS selector preference source={(taskPreference == MacOSInteractiveRegionSelectorPreference.Automatic ? "default task settings" : "task settings")} (task={taskPreference}, default={defaultPreference}, effective={effectivePreference}).");
+
+            return effectivePreference;
+        }
+
+        private static bool ShouldUseTransparentOverlay(WorkflowType workflowType)
+        {
+            if (workflowType == WorkflowType.RectangleTransparent)
+            {
+                return true;
+            }
+
+            if (workflowType != WorkflowType.RectangleRegion)
+            {
+                return false;
+            }
+
+            if (!OperatingSystem.IsLinux())
+            {
+                return false;
+            }
+
+            if (RequiresLinuxTransparentOverlayForMixedDpi())
+            {
+                DebugHelper.WriteLine(
+                    $"CaptureStage: forcing UseTransparentOverlay=true for workflow '{workflowType}' on Fedora GNOME mixed-DPI path.");
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool RequiresLinuxTransparentOverlayForMixedDpi()
+        {
+            string? distroId = TryGetLinuxDistroId();
+            if (!string.Equals(distroId, "fedora", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            string[] desktopHints =
+            {
+                Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? string.Empty,
+                Environment.GetEnvironmentVariable("XDG_SESSION_DESKTOP") ?? string.Empty,
+                Environment.GetEnvironmentVariable("DESKTOP_SESSION") ?? string.Empty
+            };
+
+            foreach (string hint in desktopHints)
+            {
+                foreach (string token in hint.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    string normalized = token.ToUpperInvariant();
+                    if (normalized.Contains("GNOME", StringComparison.Ordinal) ||
+                        normalized.Contains("UBUNTU", StringComparison.Ordinal) ||
+                        normalized.Contains("UNITY", StringComparison.Ordinal) ||
+                        normalized.Contains("BUDGIE", StringComparison.Ordinal) ||
+                        normalized.Contains("PANTHEON", StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static string? TryGetLinuxDistroId()
+        {
+            const string osReleasePath = "/etc/os-release";
+            if (!File.Exists(osReleasePath))
+            {
+                return null;
+            }
+
+            try
+            {
+                foreach (string rawLine in File.ReadLines(osReleasePath))
+                {
+                    if (!rawLine.StartsWith("ID=", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    string value = rawLine["ID=".Length..].Trim().Trim('"', '\'');
+                    return value;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"CaptureStage: unable to parse {osReleasePath}: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        private static bool ShouldUseDefaultLinuxRegionSelectorPreferenceForDesktop()
+        {
+            string[] hints =
+            {
+                Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? string.Empty,
+                Environment.GetEnvironmentVariable("XDG_SESSION_DESKTOP") ?? string.Empty,
+                Environment.GetEnvironmentVariable("DESKTOP_SESSION") ?? string.Empty
+            };
+
+            foreach (string hint in hints)
+            {
+                foreach (string token in hint.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    string normalized = token.ToUpperInvariant();
+
+                    if (normalized.Contains("KDE", StringComparison.Ordinal) || normalized.Contains("PLASMA", StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+
+                    if (normalized.Contains("GNOME", StringComparison.Ordinal) ||
+                        normalized.Contains("UBUNTU", StringComparison.Ordinal) ||
+                        normalized.Contains("UNITY", StringComparison.Ordinal) ||
+                        normalized.Contains("BUDGIE", StringComparison.Ordinal) ||
+                        normalized.Contains("PANTHEON", StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }

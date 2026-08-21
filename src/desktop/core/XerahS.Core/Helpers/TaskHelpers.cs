@@ -195,6 +195,26 @@ public static partial class TaskHelpers
     }
 
     /// <summary>
+    /// Convert a capture start delay from seconds to milliseconds for Task.Delay without overflow or invalid values.
+    /// </summary>
+    public static int GetCaptureStartDelayMilliseconds(double delaySeconds)
+    {
+        if (double.IsNaN(delaySeconds) || double.IsInfinity(delaySeconds) || delaySeconds <= 0)
+        {
+            return 0;
+        }
+
+        var delayMilliseconds = Math.Round(delaySeconds * 1000d, MidpointRounding.AwayFromZero);
+
+        if (delayMilliseconds >= int.MaxValue)
+        {
+            return int.MaxValue;
+        }
+
+        return Math.Max(0, (int)delayMilliseconds);
+    }
+
+    /// <summary>
     /// Check if a job is image-related
     /// </summary>
     public static bool IsImageJob(WorkflowType job)
@@ -340,12 +360,30 @@ public static partial class TaskHelpers
     {
         if (!string.IsNullOrWhiteSpace(fileName))
         {
-            return fileName;
+            // fileName may be a local path on a different platform; reduce to basename
+            // to avoid leaking path segments across platforms in history display.
+            string basename = fileName;
+            int lastSlash = Math.Max(basename.LastIndexOf('/'), basename.LastIndexOf('\\'));
+            if (lastSlash >= 0)
+            {
+                basename = basename.Substring(lastSlash + 1);
+            }
+
+            return !string.IsNullOrWhiteSpace(basename) ? basename : fileName;
         }
 
         if (!string.IsNullOrWhiteSpace(filePath))
         {
-            return Path.GetFileName(filePath);
+            string basename = Path.GetFileName(filePath);
+            // Path.GetFileName only splits on the platform separator; on non-Windows
+            // a Windows-style path would return the full string. Apply multi-separator
+            // cleanup so history never stores cross-platform path fragments.
+            int lastSlash = Math.Max(basename.LastIndexOf('/'), basename.LastIndexOf('\\'));
+            if (lastSlash >= 0)
+            {
+                basename = basename.Substring(lastSlash + 1);
+            }
+            return !string.IsNullOrWhiteSpace(basename) ? basename : filePath;
         }
 
         if (!string.IsNullOrWhiteSpace(url) && Uri.TryCreate(url, UriKind.Absolute, out var uri))
@@ -396,6 +434,11 @@ public static partial class TaskHelpers
         {
             screenshotsFolder = nameParser.Parse(taskSettings.ScreenshotsFolder);
         }
+        else if (!settings.UseSaveImageSubFolderPattern)
+        {
+            // Subfolder creation disabled - write directly into the screenshots parent folder.
+            screenshotsFolder = GetScreenshotsParentFolder(taskSettings);
+        }
         else
         {
             string subFolderPattern;
@@ -427,7 +470,7 @@ public static partial class TaskHelpers
         // Check if custom path is configured
         if (settings.UseCustomScreenshotsPath && !string.IsNullOrEmpty(settings.CustomScreenshotsPath))
         {
-            return settings.CustomScreenshotsPath;
+            return FileHelpers.GetAbsolutePath(settings.CustomScreenshotsPath);
         }
 
         // Determine folder based on job category

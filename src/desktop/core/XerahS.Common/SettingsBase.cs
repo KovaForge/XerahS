@@ -25,6 +25,7 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using XerahS.Common.Utilities;
 using System.ComponentModel;
 using System.IO.Compression;
 using System.Text;
@@ -38,6 +39,15 @@ namespace XerahS.Common
 
         public delegate void SettingsSaveFailedEventHandler(Exception e);
         public event SettingsSaveFailedEventHandler? SettingsSaveFailed;
+
+        /// <summary>
+        /// Phase tag for <see cref="SettingsBackupFailed"/>: "create" when
+        /// <c>CreateBackupZip</c> fails, "prune" when the outer
+        /// <c>PruneOldBackups</c> scan fails, "pruneFolder" when an individual
+        /// month folder cannot be deleted during pruning.
+        /// </summary>
+        public delegate void SettingsBackupFailedEventHandler(T settings, string phase, string? backupFolder, Exception e);
+        public event SettingsBackupFailedEventHandler? SettingsBackupFailed;
 
         [Browsable(false), JsonIgnore]
         public string? FilePath { get; protected set; }
@@ -61,12 +71,61 @@ namespace XerahS.Common
         public bool CreateWeeklyBackup { get; set; }
 
         [Browsable(false), JsonIgnore]
+        public int BackupRetentionDays { get; set; } = 90;
+
+        [Browsable(false), JsonIgnore]
         public bool SupportDPAPIEncryption { get; set; }
 
         public bool IsUpgradeFrom(string version)
         {
-            // TODO: Implement Helpers.CompareVersion logic if needed
-            return IsUpgrade && String.Compare(ApplicationVersion, version, StringComparison.Ordinal) <= 0;
+            return IsUpgrade && CompareVersion(ApplicationVersion, version) <= 0;
+        }
+
+        private static int CompareVersion(string? currentVersion, string targetVersion)
+        {
+            if (string.IsNullOrWhiteSpace(currentVersion))
+            {
+                return string.IsNullOrWhiteSpace(targetVersion) ? 0 : -1;
+            }
+
+            if (string.IsNullOrWhiteSpace(targetVersion))
+            {
+                return 1;
+            }
+
+            string[] currentParts = currentVersion.Split('.');
+            string[] targetParts = targetVersion.Split('.');
+            int count = Math.Max(currentParts.Length, targetParts.Length);
+
+            for (int i = 0; i < count; i++)
+            {
+                long currentPart = i < currentParts.Length ? ParseVersionPart(currentParts[i]) : 0;
+                long targetPart = i < targetParts.Length ? ParseVersionPart(targetParts[i]) : 0;
+
+                int result = currentPart.CompareTo(targetPart);
+                if (result != 0)
+                {
+                    return result;
+                }
+            }
+
+            return 0;
+        }
+
+        private static long ParseVersionPart(string part)
+        {
+            if (string.IsNullOrEmpty(part))
+            {
+                return 0;
+            }
+
+            int length = 0;
+            while (length < part.Length && char.IsDigit(part[length]))
+            {
+                length++;
+            }
+
+            return length > 0 && long.TryParse(part.AsSpan(0, length), out long value) ? value : 0;
         }
 
         protected virtual void OnSettingsSaved(string filePath, bool result)
@@ -79,10 +138,15 @@ namespace XerahS.Common
             SettingsSaveFailed?.Invoke(e);
         }
 
+        protected virtual void OnSettingsBackupFailed(string phase, Exception e)
+        {
+            SettingsBackupFailed?.Invoke((T)this, phase, BackupFolder, e);
+        }
+
         public bool Save(string filePath)
         {
             FilePath = filePath;
-            // ApplicationVersion = Helpers.GetApplicationVersion(); // TODO: Implement version retrieval
+            ApplicationVersion = SystemInfo.GetApplicationVersion();
 
             bool result = SaveInternal(FilePath);
 
@@ -97,25 +161,28 @@ namespace XerahS.Common
             return Save(FilePath);
         }
 
-        public void SaveAsync(string filePath)
+        public Task<bool> SaveAsync(string filePath)
         {
-            Task.Run(() => Save(filePath));
+            return Task.Run(() => Save(filePath));
         }
 
-        public void SaveAsync()
+        public Task<bool> SaveAsync()
         {
-            if (FilePath != null)
+            if (FilePath == null)
             {
-                SaveAsync(FilePath);
+                return Task.FromResult(false);
             }
+
+            return SaveAsync(FilePath);
         }
 
         public MemoryStream SaveToMemoryStream(bool supportDPAPIEncryption = false)
         {
-            // ApplicationVersion = Helpers.GetApplicationVersion();
+            ApplicationVersion = SystemInfo.GetApplicationVersion();
 
             MemoryStream ms = new MemoryStream();
             SaveToStream(ms, supportDPAPIEncryption, true);
+            ms.Position = 0;
             return ms;
         }
 
@@ -149,7 +216,7 @@ namespace XerahS.Common
 
                         if (File.Exists(filePath))
                         {
-                            if (CreateBackup && !string.IsNullOrEmpty(BackupFolder))
+                            if ((CreateBackup || CreateWeeklyBackup) && !string.IsNullOrEmpty(BackupFolder))
                             {
                                 CreateBackupZip(filePath);
                             }
@@ -175,10 +242,15 @@ namespace XerahS.Common
                             File.Move(tempFilePath, filePath);
                         }
 
-                        // TODO: Weekly backup logic
-
                         isSuccess = true;
                     }
+                }
+
+                // Prune old backup folders outside the lock to avoid blocking
+                // concurrent save callers on backup cleanup I/O.
+                if (isSuccess)
+                {
+                    PruneOldBackups();
                 }
             }
             catch (Exception e)
@@ -214,21 +286,6 @@ namespace XerahS.Common
                 // Get machine name for machine-specific backups
                 string machineName = Environment.MachineName;
 
-                string zipFileName;
-
-                if (CreateWeeklyBackup)
-                {
-                    // Create zip file with year, week number, and machine name: yyyy-Www-MACHINENAME format
-                    zipFileName = $"backup-{DateTime.Now.Year}-W{FileHelpers.WeekOfYear(DateTime.Now):00}-{machineName}.zip";
-                }
-                else
-                {
-                    // Create zip file with date stamp and machine name: yyyy-MM-dd-MACHINENAME format
-                    zipFileName = $"backup-{DateTime.Now:yyyy-MM-dd}-{machineName}.zip";
-                }
-
-                string zipFilePath = Path.Combine(monthFolder, zipFileName);
-
                 // Get the directory containing the settings file
                 string? settingsDirectory = Path.GetDirectoryName(filePath);
                 if (string.IsNullOrEmpty(settingsDirectory))
@@ -236,36 +293,104 @@ namespace XerahS.Common
                     return;
                 }
 
-                // Create or update zip file containing ALL JSON files in the settings directory
-                using (var archive = ZipFile.Open(zipFilePath, ZipArchiveMode.Update))
-                {
-                    // Find all JSON files in the settings directory
-                    var jsonFiles = Directory.GetFiles(settingsDirectory, "*.json");
-                    foreach (var jsonFile in jsonFiles)
-                    {
-                        string entryName = Path.GetFileName(jsonFile);
-                        
-                        // Remove existing entry if it exists (we're updating with latest)
-                        var existingEntry = archive.GetEntry(entryName);
-                        existingEntry?.Delete();
+                List<string> zipFileNames = new List<string>();
 
-                        // Add the file to the archive
-                        using (var fileStream = File.OpenRead(jsonFile))
+                if (CreateBackup)
+                {
+                    // Create zip file with date stamp and machine name: yyyy-MM-dd-MACHINENAME format
+                    zipFileNames.Add($"backup-{DateTime.Now:yyyy-MM-dd}-{machineName}.zip");
+                }
+
+                if (CreateWeeklyBackup)
+                {
+                    // Create zip file with year, week number, and machine name: yyyy-Www-MACHINENAME format
+                    zipFileNames.Add($"backup-{DateTime.Now.Year}-W{FileHelpers.WeekOfYear(DateTime.Now):00}-{machineName}.zip");
+                }
+
+                foreach (string zipFileName in zipFileNames.Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    string zipFilePath = Path.Combine(monthFolder, zipFileName);
+
+                    // Create or update zip file containing ALL JSON files in the settings directory
+                    using (var archive = ZipFile.Open(zipFilePath, ZipArchiveMode.Update))
+                    {
+                        // Find all JSON files in the settings directory
+                        var jsonFiles = Directory.GetFiles(settingsDirectory, "*.json");
+                        foreach (var jsonFile in jsonFiles)
                         {
-                            var entry = archive.CreateEntry(entryName);
-                            using (var entryStream = entry.Open())
+                            string entryName = Path.GetFileName(jsonFile);
+
+                            // Remove existing entry if it exists (we're updating with latest)
+                            var existingEntry = archive.GetEntry(entryName);
+                            existingEntry?.Delete();
+
+                            // Add the file to the archive
+                            using (var fileStream = File.OpenRead(jsonFile))
                             {
-                                fileStream.CopyTo(entryStream);
+                                var entry = archive.CreateEntry(entryName);
+                                using (var entryStream = entry.Open())
+                                {
+                                    fileStream.CopyTo(entryStream);
+                                }
                             }
                         }
                     }
-                }
 
-                System.Diagnostics.Debug.WriteLine($"Backup created: {zipFilePath} with all JSON files");
+                    System.Diagnostics.Debug.WriteLine($"Backup created: {zipFilePath} with all JSON files");
+                }
             }
             catch (Exception e)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to create backup: {e}");
+                OnSettingsBackupFailed("create", e);
+            }
+        }
+
+        /// <summary>
+        /// Removes backup month folders older than <see cref="BackupRetentionDays"/> days.
+        /// Does nothing when BackupFolder is not set or BackupRetentionDays is zero or negative.
+        /// </summary>
+        internal void PruneOldBackups()
+        {
+            if (string.IsNullOrEmpty(BackupFolder) || !Directory.Exists(BackupFolder) || BackupRetentionDays <= 0)
+            {
+                return;
+            }
+
+            try
+            {
+                DateTime cutoff = DateTime.Now.AddDays(-BackupRetentionDays);
+
+                foreach (string monthDir in Directory.GetDirectories(BackupFolder))
+                {
+                    string dirName = Path.GetFileName(monthDir);
+
+                    // Month folders are named yyyy-MM; parse the first-of-month date.
+                    if (DateTime.TryParseExact(dirName, "yyyy-MM", null,
+                        System.Globalization.DateTimeStyles.AssumeLocal | System.Globalization.DateTimeStyles.AllowWhiteSpaces,
+                        out DateTime dirDate))
+                    {
+                        // Delete only when the entire month is older than the cutoff.
+                        if (dirDate.AddMonths(1) < cutoff)
+                        {
+                            try
+                            {
+                                Directory.Delete(monthDir, recursive: true);
+                                System.Diagnostics.Debug.WriteLine($"Pruned old backup folder: {monthDir}");
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Failed to prune backup folder '{monthDir}': {ex.Message}");
+                                OnSettingsBackupFailed("pruneFolder", ex);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to prune old backups: {e}");
+                OnSettingsBackupFailed("prune", e);
             }
         }
 
@@ -279,7 +404,7 @@ namespace XerahS.Common
                 // TODO: DPAPI resolver if needed
                 // if (supportDPAPIEncryption) ...
 
-                serializer.Converters.Add(new StringEnumConverter());
+                serializer.Converters.Add(new SafeStringEnumConverter());
                 serializer.Converters.Add(new XerahS.Common.Converters.SkColorJsonConverter());
                 serializer.TypeNameHandling = TypeNameHandling.Auto;
                 serializer.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
@@ -308,20 +433,41 @@ namespace XerahS.Common
                 }
             }
 
-            T setting = LoadInternal(filePath, fallbackFilePaths);
+            T setting = LoadInternal(filePath, fallbackFilePaths, backupFolder, Path.GetFileName(filePath));
 
             if (setting != null)
             {
+                string previousApplicationVersion = setting.ApplicationVersion ?? string.Empty;
                 setting.FilePath = filePath;
-                setting.IsFirstTimeRun = string.IsNullOrEmpty(setting.ApplicationVersion);
-                // setting.IsUpgrade = ... 
+                setting.IsFirstTimeRun = string.IsNullOrEmpty(previousApplicationVersion);
+                setting.IsUpgrade = !setting.IsFirstTimeRun && CompareVersion(previousApplicationVersion, SystemInfo.GetApplicationVersion()) < 0;
                 setting.BackupFolder = backupFolder;
             }
 
             return setting!;
         }
 
-        private static T LoadInternal(string filePath, List<string>? fallbackFilePaths = null)
+        /// <summary>
+        /// Marks first-run state as completed by stamping <see cref="ApplicationVersion"/>
+        /// and flipping <see cref="IsFirstTimeRun"/> to false.
+        /// </summary>
+        public void MarkFirstTimeRunCompleted(bool persist = true)
+        {
+            if (!IsFirstTimeRun)
+                return;
+
+            ApplicationVersion = SystemInfo.GetApplicationVersion();
+            IsFirstTimeRun = false;
+
+            if (persist)
+                _ = Save();
+        }
+
+        private static T LoadInternal(
+            string filePath,
+            List<string>? fallbackFilePaths = null,
+            string? backupFolder = null,
+            string? originalFileName = null)
         {
             string typeName = typeof(T).Name;
 
@@ -351,25 +497,7 @@ namespace XerahS.Common
                         {
                             T settings;
 
-                            using (StreamReader streamReader = new StreamReader(fileStream))
-                            using (JsonTextReader jsonReader = new JsonTextReader(streamReader))
-                            {
-                                JsonSerializer serializer = new JsonSerializer();
-                                // serializer.ContractResolver = ...
-                                serializer.Converters.Add(new StringEnumConverter());
-                                serializer.Converters.Add(new XerahS.Common.Converters.SkColorJsonConverter());
-                                serializer.TypeNameHandling = TypeNameHandling.Auto;
-                                serializer.DateTimeZoneHandling = DateTimeZoneHandling.Local;
-                                serializer.ObjectCreationHandling = ObjectCreationHandling.Replace;
-                                serializer.Error += (sender, args) =>
-                                {
-                                    DebugHelper.WriteLine($"[SettingsBase] JSON Error: {args.ErrorContext.Error.Message} at path: {args.ErrorContext.Path}");
-                                    args.ErrorContext.Handled = true;
-                                };
-                                
-                                // DebugHelper.WriteLine($"[SettingsBase] Starting deserialization for {typeName}");
-                                settings = serializer.Deserialize<T>(jsonReader) ?? throw new Exception($"{typeName} object is null.");
-                            }
+                            settings = DeserializeFromStream(fileStream, typeName);
 
                             System.Diagnostics.Debug.WriteLine($"{typeName} load finished: {filePath}");
                             // DebugHelper.WriteLine($"[SettingsBase] {typeName} load finished successfully");
@@ -405,12 +533,77 @@ namespace XerahS.Common
             {
                 filePath = fallbackFilePaths[0];
                 fallbackFilePaths.RemoveAt(0);
-                return LoadInternal(filePath, fallbackFilePaths);
+                return LoadInternal(filePath, fallbackFilePaths, backupFolder, originalFileName);
+            }
+
+            T? backupSettings = LoadFromBackupArchive(backupFolder, originalFileName);
+            if (backupSettings != null)
+            {
+                return backupSettings;
             }
 
             System.Diagnostics.Debug.WriteLine($"Loading new {typeName} instance.");
 
             return new T();
+        }
+
+        private static T DeserializeFromStream(Stream stream, string typeName)
+        {
+            using (StreamReader streamReader = new StreamReader(stream))
+            using (JsonTextReader jsonReader = new JsonTextReader(streamReader))
+            {
+                JsonSerializer serializer = new JsonSerializer();
+                // serializer.ContractResolver = ...
+                serializer.Converters.Add(new SafeStringEnumConverter());
+                serializer.Converters.Add(new XerahS.Common.Converters.SkColorJsonConverter());
+                serializer.TypeNameHandling = TypeNameHandling.Auto;
+                serializer.DateTimeZoneHandling = DateTimeZoneHandling.Local;
+                serializer.ObjectCreationHandling = ObjectCreationHandling.Replace;
+                serializer.Error += (sender, args) =>
+                {
+                    DebugHelper.WriteLine($"[SettingsBase] JSON Error: {args.ErrorContext.Error.Message} at path: {args.ErrorContext.Path}");
+                    args.ErrorContext.Handled = true;
+                };
+
+                return serializer.Deserialize<T>(jsonReader) ?? throw new Exception($"{typeName} object is null.");
+            }
+        }
+
+        private static T? LoadFromBackupArchive(string? backupFolder, string? fileName)
+        {
+            if (string.IsNullOrEmpty(backupFolder) || string.IsNullOrEmpty(fileName) || !Directory.Exists(backupFolder))
+            {
+                return null;
+            }
+
+            string typeName = typeof(T).Name;
+
+            foreach (string zipFilePath in Directory.EnumerateFiles(backupFolder, "*.zip", SearchOption.AllDirectories)
+                .OrderByDescending(path => File.GetLastWriteTimeUtc(path))
+                .ThenByDescending(path => path, StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    using ZipArchive archive = ZipFile.OpenRead(zipFilePath);
+                    ZipArchiveEntry? entry = archive.GetEntry(fileName);
+
+                    if (entry == null || entry.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    using Stream entryStream = entry.Open();
+                    T settings = DeserializeFromStream(entryStream, typeName);
+                    DebugHelper.WriteLine($"[SettingsBase] {typeName} loaded from backup archive: {zipFilePath}");
+                    return settings;
+                }
+                catch (Exception e)
+                {
+                    DebugHelper.WriteLine($"[SettingsBase] Failed to load {typeName} backup archive '{zipFilePath}': {e.Message}");
+                }
+            }
+
+            return null;
         }
 
         private static void Serializer_Error(object? sender, Newtonsoft.Json.Serialization.ErrorEventArgs e)

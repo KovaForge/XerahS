@@ -33,14 +33,16 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun PlaceholderSettingsScreen(
-    onBack: () -> Unit
+    onBack: (() -> Unit)?
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(20.dp)
     ) {
-        Button(onClick = onBack) { Text("Back") }
+        if (onBack != null) {
+            Button(onClick = onBack) { Text("Back") }
+        }
         Text(
             text = "Settings",
             style = MaterialTheme.typography.titleLarge,

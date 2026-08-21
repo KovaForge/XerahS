@@ -55,21 +55,40 @@ public partial class OverlayWindow
         var bounds = annotation.GetBounds();
         float fontSize = annotation is TextAnnotation t ? t.FontSize :
                          annotation is SpeechBalloonAnnotation s ? s.FontSize : 16;
+        string existingText = annotation is TextAnnotation textAnnotation
+            ? textAnnotation.Text
+            : annotation is SpeechBalloonAnnotation speechBalloonAnnotation
+                ? speechBalloonAnnotation.Text
+                : string.Empty;
 
         _inlineTextBox = new TextBox
         {
             Width = Math.Max(200, bounds.Width),
             Height = Math.Max(40, bounds.Height),
             FontSize = fontSize,
-            Foreground = new SolidColorBrush(Color.Parse(annotation.StrokeColor)),
+            FontWeight = annotation is TextAnnotation text && text.IsBold ? FontWeight.Bold : FontWeight.Normal,
+            FontStyle = annotation is TextAnnotation italicText && italicText.IsItalic ? FontStyle.Italic : FontStyle.Normal,
+            Foreground = new SolidColorBrush(GetInlineTextColor(annotation)),
             Background = new SolidColorBrush(Color.FromArgb(220, 255, 255, 255)),
             BorderBrush = new SolidColorBrush(Colors.DodgerBlue),
             BorderThickness = new Thickness(2),
             AcceptsReturn = false,
             TextWrapping = TextWrapping.Wrap,
             Padding = new Thickness(4),
-            Watermark = "Type text here..."
+            Text = existingText,
+            PlaceholderText = "Type text here..."
         };
+
+        if (annotation.ShadowEnabled)
+        {
+            _inlineTextBox.Effect = new DropShadowEffect
+            {
+                OffsetX = 3,
+                OffsetY = 3,
+                BlurRadius = 4,
+                Color = Color.FromArgb(128, 0, 0, 0)
+            };
+        }
 
         Canvas.SetLeft(_inlineTextBox, bounds.Left);
         Canvas.SetTop(_inlineTextBox, bounds.Top);
@@ -174,5 +193,19 @@ public partial class OverlayWindow
             _inlineTextBox = null;
         }
         _editingAnnotation = null;
+    }
+
+    private static Color GetInlineTextColor(Annotation annotation)
+    {
+        string? colorHex = annotation switch
+        {
+            TextAnnotation text when !string.IsNullOrWhiteSpace(text.TextColor) => text.TextColor,
+            SpeechBalloonAnnotation balloon when !string.IsNullOrWhiteSpace(balloon.TextColor) => balloon.TextColor,
+            _ => annotation.StrokeColor
+        };
+
+        return Color.TryParse(colorHex, out Color color) && color.A > 0
+            ? color
+            : Colors.Black;
     }
 }

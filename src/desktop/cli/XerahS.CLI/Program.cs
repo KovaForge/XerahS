@@ -25,11 +25,11 @@
 
 using System.CommandLine;
 using XerahS.Bootstrap;
-using XerahS.CLI;
 using XerahS.CLI.Commands;
 using XerahS.CLI.Services;
-using System.CommandLine.Parsing;
+using Microsoft.Extensions.DependencyInjection;
 using XerahS.Common;
+using XerahS.Assistant.Services;
 
 namespace XerahS.CLI
 {
@@ -39,11 +39,14 @@ namespace XerahS.CLI
         {
             try
             {
+                bool isAssistantMode = TryGetAssistantPrompt(args, out _);
+                bool needsRecording = CommandNeedsRecording(args);
+
                 // Initialize in headless mode
                 var bootstrapOptions = new BootstrapOptions
                 {
-                    EnableLogging = true,
-                    InitializeRecording = true, // Wait for recording init (critical for ScreenRecorder)
+                    EnableLogging = !isAssistantMode,
+                    InitializeRecording = needsRecording,
                     UIService = new HeadlessUIService(),
                     ToastService = new HeadlessToastService()
                 };
@@ -62,23 +65,15 @@ namespace XerahS.CLI
                     return 1;
                 }
 
-                // Build command tree
-                var rootCommand = new RootCommand("XerahS CLI - ShareX workflow automation");
+                IServiceProvider services = result.ServiceProvider
+                    ?? throw new InvalidOperationException("Bootstrap completed without a service provider.");
 
-                // Add commands
-                rootCommand.Add(WorkflowCommand.Create());
-                rootCommand.Add(RecordCommand.Create());
-                rootCommand.Add(CaptureCommand.Create());
-                rootCommand.Add(ListCommand.Create());
-                rootCommand.Add(ConfigCommand.Create());
-                rootCommand.Add(BackupSettingsCommand.Create());
-                rootCommand.Add(VerifyRegionCaptureCommand.Create());
-                rootCommand.Add(CompareCaptureCommand.Create());
-                rootCommand.Add(VerifyRecordingCommand.Create());
-                rootCommand.Add(VerifyGifRecordingCommand.Create());
-                rootCommand.Add(VerifyVideoEditorCommand.Create());
-                rootCommand.Add(OpenVideoEditorCommand.Create());
-                rootCommand.Add(WatchFolderDaemonCommand.Create());
+                var taskManager = services.GetRequiredService<IDesktopTaskManager>();
+                var recordingCoordinator = services.GetRequiredService<IScreenRecordingCoordinator>();
+                var assistantCliService = new AssistantCliService(new AssistantService());
+
+                // Build command tree
+                var rootCommand = BuildRootCommand(taskManager, recordingCoordinator, assistantCliService);
 
                 // Execute
                 return await rootCommand.Parse(args).InvokeAsync();
@@ -89,6 +84,84 @@ namespace XerahS.CLI
                 DebugHelper.WriteException(ex);
                 return 1;
             }
+        }
+
+        private static bool CommandNeedsRecording(string[] args)
+        {
+            string? command = args.FirstOrDefault(arg => !arg.StartsWith("-", StringComparison.Ordinal));
+            return command is "record" or "verify-recording" or "verify-gif-recording";
+        }
+
+        private static bool TryGetAssistantPrompt(string[] args, out string? prompt)
+        {
+            prompt = null;
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (!string.Equals(args[i], "--assistant", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (i + 1 >= args.Length)
+                {
+                    return false;
+                }
+
+                prompt = args[i + 1];
+                return !string.IsNullOrWhiteSpace(prompt);
+            }
+
+            return false;
+        }
+
+        private static RootCommand BuildRootCommand(
+            IDesktopTaskManager taskManager,
+            IScreenRecordingCoordinator recordingCoordinator,
+            AssistantCliService assistantCliService)
+        {
+            var rootCommand = new RootCommand("XerahS CLI - ShareX workflow automation");
+            var assistantOption = new Option<string?>("--assistant")
+            {
+                Description = "Run the intelligent assistant prompt in headless mode."
+            };
+
+            rootCommand.Add(assistantOption);
+            rootCommand.Add(WorkflowCommand.Create(taskManager, recordingCoordinator));
+            rootCommand.Add(RecordCommand.Create(recordingCoordinator));
+            rootCommand.Add(CaptureCommand.Create(taskManager));
+            rootCommand.Add(ListCommand.Create());
+            rootCommand.Add(ConfigCommand.Create());
+            rootCommand.Add(BackupSettingsCommand.Create());
+            rootCommand.Add(VerifyRegionCaptureCommand.Create());
+            rootCommand.Add(VerifyMacOSNativeCrosshairCommand.Create(taskManager));
+            rootCommand.Add(CompareCaptureCommand.Create());
+            rootCommand.Add(VerifyRecordingCommand.Create(recordingCoordinator));
+            rootCommand.Add(VerifyGifRecordingCommand.Create(recordingCoordinator));
+            rootCommand.Add(VerifyVideoEditorCommand.Create());
+            rootCommand.Add(OpenVideoEditorCommand.Create());
+            rootCommand.Add(WatchFolderDaemonCommand.Create());
+            rootCommand.Add(UploadCommand.Create(taskManager));
+            rootCommand.Add(IndexCommand.Create());
+            rootCommand.Add(ReClipCommand.Create());
+            rootCommand.Add(DoctorCommand.Create());
+            rootCommand.Add(BootstrapCommand.Create());
+            rootCommand.Add(OpenClawCommand.Create());
+
+            rootCommand.SetAction(async parseResult =>
+            {
+                string? prompt = parseResult.GetValue(assistantOption);
+                if (string.IsNullOrWhiteSpace(prompt))
+                {
+                    Console.Error.WriteLine("No command specified. Use --help to see available commands.");
+                    Environment.ExitCode = 1;
+                    return;
+                }
+
+                Environment.ExitCode = await assistantCliService.RunAsync(prompt, CancellationToken.None);
+            });
+
+            return rootCommand;
         }
     }
 }

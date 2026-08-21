@@ -24,26 +24,59 @@
 #endregion License Information (GPL v3)
 
 using Avalonia;
+using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using System.Security.Cryptography;
+using System.Text;
+using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Managers;
+using XerahS.Core.SendTo;
 using XerahS.Platform.Abstractions;
+using XerahS.Services.Abstractions;
 
 namespace XerahS.App
 {
     internal class Program
     {
         private static XerahS.Common.SingleInstanceManager? _singleInstanceManager;
+        private static string[] _startupArguments = Array.Empty<string>();
 
-        private const string MutexName = "XerahS-82E6AC09-0FFC-4992-B793-3F79E1F71E70";
-        private const string PipeName = "XerahS-Pipe-1F42DA49-7B2A-4E6F-8A3C-D56F09E0C481";
+        private sealed class StartupOptions
+        {
+            public string[] ForwardedArguments { get; init; } = Array.Empty<string>();
 
+            public string? PersonalFolderOverride { get; init; }
+        }
+
+        private sealed class IncomingPathSet
+        {
+            public List<string> Files { get; } = [];
+
+            public List<string> Folders { get; } = [];
+        }
+
+        private sealed class IncomingPluginPackageSet
+        {
+            public List<string> PackagePaths { get; } = [];
+        }
         [STAThread]
         public static void Main(string[] args)
         {
             try
             {
+                StartupOptions startupOptions = ParseStartupOptions(args ?? Array.Empty<string>());
+                _startupArguments = startupOptions.ForwardedArguments;
+
+                if (!string.IsNullOrWhiteSpace(startupOptions.PersonalFolderOverride))
+                {
+                    SettingsManager.PersonalFolder = startupOptions.PersonalFolderOverride;
+                }
+
+                (string mutexName, string pipeName) = GetSingleInstanceIdentifiers(startupOptions.PersonalFolderOverride);
+
                 // Single instance enforcement
-                _singleInstanceManager = new XerahS.Common.SingleInstanceManager(MutexName, PipeName, args);
+                _singleInstanceManager = new XerahS.Common.SingleInstanceManager(mutexName, pipeName, _startupArguments);
 
                 if (!_singleInstanceManager.IsFirstInstance)
                 {
@@ -77,6 +110,10 @@ namespace XerahS.App
 
                 dh.WriteLine($"Command line: \"{Environment.ProcessPath}\"");
                 dh.WriteLine($"Personal path: {XerahS.Common.PathsManager.GetLogsFolderForMonth()}");
+                if (!string.IsNullOrWhiteSpace(startupOptions.PersonalFolderOverride))
+                {
+                    dh.WriteLine($"Personal folder override: {startupOptions.PersonalFolderOverride}");
+                }
                 dh.WriteLine($"Operating system: {System.Runtime.InteropServices.RuntimeInformation.OSDescription} ({System.Runtime.InteropServices.RuntimeInformation.OSArchitecture})");
                 dh.WriteLine($".NET version: {System.Environment.Version}");
 
@@ -115,10 +152,10 @@ namespace XerahS.App
                 ApplyInitialWatchFolderRuntimePolicy();
 
                 // Register callback for post-UI async initialization
-                XerahS.UI.App.PostUIInitializationCallback = InitializeBackgroundServicesAsync;
+                XerahS.UI.App.PostUIInitializationCallback = OnPostUIInitialization;
 
                 BuildAvaloniaApp()
-                    .StartWithClassicDesktopLifetime(args);
+                    .StartWithClassicDesktopLifetime(_startupArguments);
             }
             catch (Exception ex)
             {
@@ -138,17 +175,7 @@ namespace XerahS.App
                     var isFlatpak = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FLATPAK_ID")) || 
                                    System.IO.File.Exists("/.flatpak-info");
                     
-                    if (isFlatpak)
-                    {
-                        Console.Error.WriteLine("Running inside Flatpak sandbox detected.");
-                        Console.Error.WriteLine("\nSOLUTION: Run from host system using one of these methods:");
-                        Console.Error.WriteLine("  1. Use flatpak-spawn:");
-                        Console.Error.WriteLine("     flatpak-spawn --host bash -c \"export PATH=\\\"$HOME/.dotnet:$PATH\\\" && ");
-                        Console.Error.WriteLine("       cd /home/Public/GitHub/ShareXteam/XerahS && ");
-                        Console.Error.WriteLine("       dotnet run --project src/desktop/app/XerahS.App/XerahS.App.csproj\"");
-                        Console.Error.WriteLine("\n  2. Run from a non-sandboxed terminal (recommended)");
-                    }
-                    else if (string.IsNullOrEmpty(displayVar) && string.IsNullOrEmpty(waylandDisplay))
+                    if (string.IsNullOrEmpty(displayVar) && string.IsNullOrEmpty(waylandDisplay))
                     {
                         Console.Error.WriteLine("No display environment variables found.");
                         Console.Error.WriteLine("\nSOLUTION: Set the DISPLAY environment variable:");
@@ -163,9 +190,30 @@ namespace XerahS.App
                         Console.Error.WriteLine("Possible issues:");
                         Console.Error.WriteLine("  - X11 server not running");
                         Console.Error.WriteLine("  - Permission denied to access display");
-                        Console.Error.WriteLine("  - Running in restricted environment (container/sandbox)");
+                        if (isFlatpak)
+                        {
+                            Console.Error.WriteLine("  - Flatpak sandbox is missing the --socket=x11 permission");
+                        }
                     }
                     Console.Error.WriteLine(new string('=', 70) + "\n");
+                }
+                else if (OperatingSystem.IsLinux())
+                {
+                    Console.Error.WriteLine("\n" + new string('=', 70));
+                    Console.Error.WriteLine("ERROR: XerahS terminated due to an unexpected startup failure");
+                    Console.Error.WriteLine(new string('=', 70));
+                    Console.Error.WriteLine($"{ex.GetType().FullName}: {ex.Message}");
+                }
+
+                // Always tell the user where the full crash details were written.
+                try
+                {
+                    Console.Error.WriteLine($"Full details were logged to: {XerahS.Common.PathsManager.GetMainLogFilePath()}");
+                    Console.Error.WriteLine("Please attach this log file when reporting the problem at https://github.com/ShareX/XerahS/issues");
+                }
+                catch
+                {
+                    // Log path resolution must never mask the original failure.
                 }
 
 #if DEBUG
@@ -177,6 +225,82 @@ namespace XerahS.App
             }
         }
 
+        private static StartupOptions ParseStartupOptions(string[] args)
+        {
+            if (args.Length == 0)
+            {
+                return new StartupOptions();
+            }
+
+            List<string> forwardedArguments = new List<string>(args.Length);
+            string? personalFolderOverride = null;
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                string arg = args[i];
+
+                if (arg.Equals(AppContracts.Cli.SettingsFolderFlag, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (i + 1 >= args.Length || string.IsNullOrWhiteSpace(args[i + 1]))
+                    {
+                        throw new ArgumentException($"{AppContracts.Cli.SettingsFolderFlag} requires a folder path.");
+                    }
+
+                    personalFolderOverride = NormalizePersonalFolder(args[++i]);
+                    continue;
+                }
+
+                string prefix = AppContracts.Cli.SettingsFolderFlag + "=";
+                if (arg.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    string value = arg.Substring(prefix.Length);
+                    if (string.IsNullOrWhiteSpace(value))
+                    {
+                        throw new ArgumentException($"{AppContracts.Cli.SettingsFolderFlag} requires a folder path.");
+                    }
+
+                    personalFolderOverride = NormalizePersonalFolder(value);
+                    continue;
+                }
+
+                forwardedArguments.Add(arg);
+            }
+
+            return new StartupOptions
+            {
+                ForwardedArguments = forwardedArguments.ToArray(),
+                PersonalFolderOverride = personalFolderOverride
+            };
+        }
+
+        private static string NormalizePersonalFolder(string path)
+        {
+            string fullPath = Path.GetFullPath(path);
+            return fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+
+        private static (string MutexName, string PipeName) GetSingleInstanceIdentifiers(string? personalFolderOverride)
+        {
+            if (string.IsNullOrWhiteSpace(personalFolderOverride))
+            {
+                return (AppContracts.SingleInstance.MutexName, AppContracts.SingleInstance.PipeName);
+            }
+
+            string normalizedPath = NormalizePersonalFolder(personalFolderOverride);
+
+            if (OperatingSystem.IsWindows())
+            {
+                normalizedPath = normalizedPath.ToUpperInvariant();
+            }
+
+            byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedPath));
+            string suffix = Convert.ToHexString(hashBytes).Substring(0, 16);
+
+            return (
+                $"{AppContracts.SingleInstance.MutexName}-{suffix}",
+                $"{AppContracts.SingleInstance.PipeName}-{suffix}");
+        }
+
         private static bool IsLinuxDisplayError(Exception ex)
         {
             if (!OperatingSystem.IsLinux())
@@ -184,9 +308,23 @@ namespace XerahS.App
                 return false;
             }
 
-            return ex.Message.Contains("XOpenDisplay", StringComparison.OrdinalIgnoreCase) ||
-                   ex.Message.Contains("display", StringComparison.OrdinalIgnoreCase) ||
-                   ex.ToString().Contains("Avalonia.X11", StringComparison.OrdinalIgnoreCase);
+            // Only inspect exception messages, never the stack trace. Any exception that
+            // escapes the Avalonia run loop contains "Avalonia.X11" frames, which previously
+            // misclassified unrelated failures (e.g. DBus tray errors) as display errors and
+            // printed misleading "cannot connect to display" guidance (issue #270).
+            for (Exception? current = ex; current != null; current = current.InnerException)
+            {
+                if (current.Message.Contains("XOpenDisplay", StringComparison.OrdinalIgnoreCase) ||
+                    current.Message.Contains("Unable to open display", StringComparison.OrdinalIgnoreCase) ||
+                    current.Message.Contains("Could not connect to display", StringComparison.OrdinalIgnoreCase) ||
+                    (current.Message.Contains("display", StringComparison.OrdinalIgnoreCase) &&
+                     current.Message.Contains("connect", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -246,9 +384,8 @@ namespace XerahS.App
 
             if (isFlatpak)
             {
-                XerahS.Common.DebugHelper.WriteLine("WARNING: Running inside Flatpak sandbox.");
-                XerahS.Common.DebugHelper.WriteLine("  Display access may be restricted. If XerahS fails to start,");
-                XerahS.Common.DebugHelper.WriteLine("  run from a host terminal or use 'flatpak-spawn --host dotnet run ...'");
+                XerahS.Common.DebugHelper.WriteLine("Running inside Flatpak sandbox. Desktop integration (capture, recording,");
+                XerahS.Common.DebugHelper.WriteLine("  notifications, hotkeys) is portal-first; native CLI fallbacks are disabled.");
             }
 
             if (string.IsNullOrEmpty(displayVar) && string.IsNullOrEmpty(waylandDisplay))
@@ -342,8 +479,16 @@ namespace XerahS.App
             {
                 try
                 {
-                    XerahS.Common.DebugHelper.WriteException(eventArgs.Exception, "Unobserved task exception");
-                    XerahS.Common.DebugHelper.Flush();
+                    bool isIgnorableAvaloniaDbusException = 
+                        eventArgs.Exception?.InnerException != null &&
+                        eventArgs.Exception.InnerException.GetType().FullName == "Tmds.DBus.Protocol.DBusException" &&
+                        eventArgs.Exception.InnerException.Message.Contains("ServiceUnknown");
+
+                    if (!isIgnorableAvaloniaDbusException)
+                    {
+                        XerahS.Common.DebugHelper.WriteException(eventArgs.Exception!, "Unobserved task exception");
+                        XerahS.Common.DebugHelper.Flush();
+                    }
                 }
                 catch
                 {
@@ -630,10 +775,21 @@ namespace XerahS.App
         }
 
         public static AppBuilder BuildAvaloniaApp()
-            => AppBuilder.Configure<XerahS.UI.App>()
+        {
+            return AppBuilder.Configure<XerahS.UI.App>()
                 .UsePlatformDetect()
                 .WithInterFont()
                 .LogToTrace();
+        }
+
+        /// <summary>
+        /// Runs once after the Avalonia UI completes initialization.
+        /// </summary>
+        private static void OnPostUIInitialization()
+        {
+            InitializeBackgroundServicesAsync();
+            ProcessIncomingArguments(_startupArguments, source: "startup");
+        }
 
         /// <summary>
         /// Handles arguments received from subsequent application instances.
@@ -642,6 +798,12 @@ namespace XerahS.App
         private static void OnArgumentsReceived(string[] args)
         {
             XerahS.Common.DebugHelper.WriteLine($"Arguments received from another instance: {string.Join(" ", args)}");
+
+            if (AppContracts.Cli.IsPassiveStartupInvocation(args))
+            {
+                XerahS.Common.DebugHelper.WriteLine("Ignoring passive startup relay from a secondary instance.");
+                return;
+            }
 
             // Process the arguments on the UI thread to handle any UI-related actions
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -660,8 +822,10 @@ namespace XerahS.App
                             mainWindow.WindowState = Avalonia.Controls.WindowState.Normal;
                         }
                         
-                        // Show in taskbar and bring to front
-                        mainWindow.ShowInTaskbar = true;
+                        // Show in taskbar and bring to front. On macOS, SilentRun is also
+                        // the menu-bar-only mode, so the Dock icon should stay hidden.
+                        mainWindow.ShowInTaskbar = !OperatingSystem.IsMacOS() ||
+                            !XerahS.Core.SettingsManager.Settings.SilentRun;
                         mainWindow.Show();
                         mainWindow.Activate();
                         mainWindow.Topmost = true;
@@ -673,7 +837,7 @@ namespace XerahS.App
                     if (args.Length > 0)
                     {
                         XerahS.Common.DebugHelper.WriteLine($"Processing {args.Length} argument(s) from secondary instance");
-                        // Future: Handle specific arguments like file paths for upload, capture commands, etc.
+                        ProcessIncomingArguments(args, source: "secondary-instance");
                     }
                 }
                 catch (Exception ex)
@@ -681,6 +845,324 @@ namespace XerahS.App
                     XerahS.Common.DebugHelper.WriteException(ex, "Failed to handle arguments from secondary instance");
                 }
             });
+        }
+
+        private static void ProcessIncomingArguments(string[]? args, string source)
+        {
+            if (args == null || args.Length == 0)
+            {
+                return;
+            }
+
+            IncomingPluginPackageSet pluginPackages = ExtractIncomingPluginPackages(args);
+            if (pluginPackages.PackagePaths.Count > 0)
+            {
+                XerahS.Common.DebugHelper.WriteLine(
+                    $"Plugin integration ({source}): Scheduling installer for {pluginPackages.PackagePaths.Count} package(s).");
+                OpenPluginPackageInstallers(pluginPackages.PackagePaths, source);
+            }
+
+            bool isSendToInvocation = IsSendToInvocation(args);
+            IncomingPathSet pathSet = ExtractIncomingPaths(args, includeDirectories: isSendToInvocation);
+
+            if (pathSet.Files.Count == 0 && pathSet.Folders.Count == 0)
+            {
+                if (pluginPackages.PackagePaths.Count > 0)
+                {
+                    return;
+                }
+
+                XerahS.Common.DebugHelper.WriteLine(
+                    isSendToInvocation
+                        ? $"Shell integration ({source}): No valid file or folder paths found in Send-to arguments."
+                        : $"Shell integration ({source}): No valid file paths found in arguments.");
+                return;
+            }
+
+            if (isSendToInvocation)
+            {
+                SendToSelection selection = SendToSelectionClassifier.Create(pathSet.Files, pathSet.Folders);
+
+                XerahS.Common.DebugHelper.WriteLine(
+                    $"Shell integration ({source}): Scheduling Send-to prompt for {selection.ItemCount} item(s).");
+
+                _ = Task.Run(() => HandleSendToInvocationAsync(selection, source));
+                return;
+            }
+
+            XerahS.Common.DebugHelper.WriteLine(
+                $"Shell integration ({source}): Scheduling upload for {pathSet.Files.Count} file(s).");
+            _ = Task.Run(() => UploadFilesFromIntegrationAsync(pathSet.Files));
+        }
+
+        private static void OpenPluginPackageInstallers(IReadOnlyList<string> packagePaths, string source)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+            {
+                try
+                {
+                    var factory = XerahS.UI.Services.UiViewModelFactoryAccessor.GetRequired();
+
+                    foreach (string packagePath in packagePaths)
+                    {
+                        var viewModel = factory.CreatePluginInstallerViewModel();
+                        await viewModel.LoadPackageAsync(packagePath).ConfigureAwait(true);
+                        await factory.ViewDialogService.ShowPluginInstallerAsync(viewModel).ConfigureAwait(true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    XerahS.Common.DebugHelper.WriteException(ex, $"Failed to open plugin installer from {source}");
+                }
+            });
+        }
+
+        private static bool IsSendToInvocation(IEnumerable<string> args)
+        {
+            foreach (string rawArg in args)
+            {
+                if (string.IsNullOrWhiteSpace(rawArg))
+                {
+                    continue;
+                }
+
+                if (rawArg.Trim().Equals(AppContracts.Cli.SendToFlag, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static IncomingPathSet ExtractIncomingPaths(IEnumerable<string> args, bool includeDirectories)
+        {
+            var comparer = OperatingSystem.IsWindows()
+                ? StringComparer.OrdinalIgnoreCase
+                : StringComparer.Ordinal;
+            var uniquePaths = new HashSet<string>(comparer);
+            IncomingPathSet paths = new();
+
+            bool skipNextAsPluginPath = false;
+
+            foreach (string rawArg in args)
+            {
+                if (skipNextAsPluginPath)
+                {
+                    skipNextAsPluginPath = false;
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(rawArg))
+                {
+                    continue;
+                }
+
+                string arg = rawArg.Trim();
+
+                if (arg.Equals(AppContracts.Cli.SendToFlag, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (arg.Equals(AppContracts.Cli.LegacyInstallPluginFlag, StringComparison.OrdinalIgnoreCase))
+                {
+                    skipNextAsPluginPath = true;
+                    continue;
+                }
+
+                if (!TryNormalizeLocalPath(arg, out string normalizedPath))
+                {
+                    continue;
+                }
+
+                if (File.Exists(normalizedPath))
+                {
+                    if (IsPluginPackagePath(normalizedPath))
+                    {
+                        continue;
+                    }
+
+                    if (uniquePaths.Add(normalizedPath))
+                    {
+                        paths.Files.Add(normalizedPath);
+                    }
+                }
+                else if (includeDirectories && Directory.Exists(normalizedPath) && uniquePaths.Add(normalizedPath))
+                {
+                    paths.Folders.Add(normalizedPath);
+                }
+            }
+
+            return paths;
+        }
+
+        private static IncomingPluginPackageSet ExtractIncomingPluginPackages(IEnumerable<string> args)
+        {
+            var comparer = OperatingSystem.IsWindows()
+                ? StringComparer.OrdinalIgnoreCase
+                : StringComparer.Ordinal;
+            var uniquePaths = new HashSet<string>(comparer);
+            IncomingPluginPackageSet packages = new();
+            bool nextArgIsPluginPath = false;
+
+            foreach (string rawArg in args)
+            {
+                if (string.IsNullOrWhiteSpace(rawArg))
+                {
+                    continue;
+                }
+
+                string arg = rawArg.Trim();
+                if (nextArgIsPluginPath)
+                {
+                    nextArgIsPluginPath = false;
+                    AddPluginPackagePath(arg, uniquePaths, packages);
+                    continue;
+                }
+
+                if (arg.Equals(AppContracts.Cli.LegacyInstallPluginFlag, StringComparison.OrdinalIgnoreCase))
+                {
+                    nextArgIsPluginPath = true;
+                    continue;
+                }
+
+                AddPluginPackagePath(arg, uniquePaths, packages);
+            }
+
+            return packages;
+        }
+
+        private static void AddPluginPackagePath(
+            string candidate,
+            HashSet<string> uniquePaths,
+            IncomingPluginPackageSet packages)
+        {
+            if (!TryNormalizeLocalPath(candidate, out string normalizedPath))
+            {
+                return;
+            }
+
+            if (!IsPluginPackagePath(normalizedPath))
+            {
+                return;
+            }
+
+            if (uniquePaths.Add(normalizedPath))
+            {
+                packages.PackagePaths.Add(normalizedPath);
+            }
+        }
+
+        private static bool IsPluginPackagePath(string path)
+        {
+            return File.Exists(path) &&
+                Path.GetExtension(path).Equals(".xsdp", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryNormalizeLocalPath(string input, out string normalizedPath)
+        {
+            normalizedPath = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return false;
+            }
+
+            string candidate = input.Trim();
+
+            if (Uri.TryCreate(candidate, UriKind.Absolute, out Uri? absoluteUri) && absoluteUri.IsFile)
+            {
+                candidate = absoluteUri.LocalPath;
+            }
+
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                return false;
+            }
+
+            try
+            {
+                normalizedPath = Path.GetFullPath(candidate);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static async Task UploadFilesFromIntegrationAsync(IReadOnlyCollection<string> files)
+        {
+            try
+            {
+                var taskManager = PlatformServices.RootProvider?.GetService<ITaskManager>();
+                if (taskManager == null)
+                {
+                    XerahS.Common.DebugHelper.WriteLine("Shell integration: Task manager unavailable for incoming files.");
+                    return;
+                }
+
+                foreach (string file in files)
+                {
+                    TaskSettings settings = CreateFileUploadTaskSettings();
+                    settings.Job = WorkflowType.FileUpload;
+                    await taskManager.StartFileTask(settings, file);
+                }
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, "Shell integration: Failed to upload incoming files.");
+            }
+        }
+
+        private static async Task HandleSendToInvocationAsync(SendToSelection selection, string source)
+        {
+            try
+            {
+                var taskManager = PlatformServices.RootProvider?.GetService<ITaskManager>();
+                if (taskManager == null)
+                {
+                    XerahS.Common.DebugHelper.WriteLine("Shell integration: Task manager unavailable for Send-to items.");
+                    return;
+                }
+
+                SendToIntegrationCoordinator coordinator = new(
+                    PlatformServices.UI,
+                    taskManager,
+                    CreateFileUploadTaskSettings);
+
+                await coordinator.HandleAsync(selection, source);
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, "Shell integration: Failed to process Send-to items.");
+            }
+        }
+
+        private static TaskSettings CreateFileUploadTaskSettings()
+        {
+            var uploadWorkflow = SettingsManager.GetFirstWorkflow(WorkflowType.FileUpload);
+            if (uploadWorkflow?.TaskSettings != null)
+            {
+                TaskSettings cloned = CloneTaskSettings(uploadWorkflow.TaskSettings);
+                cloned.WorkflowId = uploadWorkflow.Id;
+                return cloned;
+            }
+
+            return CloneTaskSettings(SettingsManager.DefaultTaskSettings ?? new TaskSettings());
+        }
+
+        private static TaskSettings CloneTaskSettings(TaskSettings source)
+        {
+            JsonSerializerSettings settings = new()
+            {
+                TypeNameHandling = TypeNameHandling.Auto,
+                ObjectCreationHandling = ObjectCreationHandling.Replace
+            };
+
+            string json = JsonConvert.SerializeObject(source, settings);
+            return JsonConvert.DeserializeObject<TaskSettings>(json, settings) ?? new TaskSettings();
         }
     }
 }

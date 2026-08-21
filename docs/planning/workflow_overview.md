@@ -22,7 +22,6 @@ The core of a workflow is the `TaskSettings` class. It orchestrates the entire p
 **Available Tasks:**
 1.  **ShowQuickTaskMenu**: Show a menu to select further actions.
 2.  **ShowAfterCaptureWindow**: Show a dedicated post-capture window.
-3.  **BeautifyImage**: Apply beautification settings (e.g., background, padding).
 4.  **AddImageEffects**: Apply configured `ImageEffectPresets`. **(See Image Effects Configuration)**
 5.  **AnnotateImage**: Open the image in the annotation editor.
 6.  **CopyImageToClipboard**: Copy the image data to the system clipboard.

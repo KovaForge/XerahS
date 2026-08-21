@@ -36,6 +36,8 @@ namespace XerahS.Indexer
         [Description("XML")]
         Xml,
         [Description("JSON")]
-        Json
+        Json,
+        [Description("Markdown")]
+        Markdown
     }
 }

@@ -31,7 +31,6 @@ public enum AfterCaptureTasks // Localized
     None = 0,
     ShowQuickTaskMenu = 1,
     ShowAfterCaptureWindow = 1 << 1,
-    BeautifyImage = 1 << 2,
     AddImageEffects = 1 << 3,
     AnnotateMedia = 1 << 4,
     [Obsolete("Renamed to AnnotateMedia. Kept for JSON backwards-compatibility.")]
@@ -51,7 +50,8 @@ public enum AfterCaptureTasks // Localized
     DoOCR = 1 << 17,
     ShowBeforeUploadWindow = 1 << 18,
     UploadImageToHost = 1 << 19,
-    DeleteFile = 1 << 20
+    DeleteFile = 1 << 20,
+    CopyOcrTextToClipboard = 1 << 21
 }
 
 [Flags]
@@ -64,4 +64,11 @@ public enum AfterUploadTasks // Localized
     CopyURLToClipboard = 1 << 3,
     OpenURL = 1 << 4,
     ShowQRCode = 1 << 5
+}
+
+public enum AfterCaptureQuickAction
+{
+    None,
+    CopyImage,
+    CopyFilePath
 }

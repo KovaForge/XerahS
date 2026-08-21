@@ -31,7 +31,7 @@
                       IsChecked="{Binding UseCustomCNAME}"
                       IsEnabled="{Binding IsAccessKeysMode}"/>
             <TextBox Text="{Binding CustomDomain, UpdateSourceTrigger=PropertyChanged}" 
-                     Watermark="https://cdn.example.com"
+                     PlaceholderText="https://cdn.example.com"
                      Width="400"
                      HorizontalAlignment="Left"
                      IsEnabled="{Binding UseCustomCNAME}"/>
@@ -50,7 +50,7 @@
         <StackPanel Spacing="5" IsVisible="{Binding IsAccessKeysMode}">
             <TextBlock Text="Access Key ID *" FontWeight="Medium"/>
             <TextBox Text="{Binding AccessKeyId, UpdateSourceTrigger=PropertyChanged}" 
-                     Watermark="Enter AWS Access Key ID"
+                     PlaceholderText="Enter AWS Access Key ID"
                      Width="400"
                      HorizontalAlignment="Left"/>
         </StackPanel>
@@ -59,7 +59,7 @@
         <StackPanel Spacing="5" IsVisible="{Binding IsAccessKeysMode}">
             <TextBlock Text="Secret Access Key *" FontWeight="Medium"/>
             <TextBox Text="{Binding SecretAccessKey, UpdateSourceTrigger=PropertyChanged}" 
-                     Watermark="Enter AWS Secret Access Key"
+                     PlaceholderText="Enter AWS Secret Access Key"
                      PasswordChar="●"
                      Width="400"
                      HorizontalAlignment="Left"/>
@@ -72,7 +72,7 @@
             <StackPanel Spacing="5">
                 <TextBlock Text="Start URL *" FontWeight="Medium"/>
                 <TextBox Text="{Binding SsoStartUrl, UpdateSourceTrigger=PropertyChanged}" 
-                         Watermark="https://d-xxxxxxxxxx.awsapps.com/start"
+                         PlaceholderText="https://d-xxxxxxxxxx.awsapps.com/start"
                          Width="400"
                          HorizontalAlignment="Left"/>
                 <Button Content="Find Start URL" Command="{Binding OpenSsoStartUrlHelpCommand}" HorizontalAlignment="Left"/>
@@ -181,7 +181,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Bucket Name *" FontWeight="Medium"/>
             <TextBox Text="{Binding BucketName, UpdateSourceTrigger=PropertyChanged}" 
-                     Watermark="my-bucket-name"
+                     PlaceholderText="my-bucket-name"
                      IsReadOnly="{Binding IsSsoMode}"
                      Width="300"
                      HorizontalAlignment="Left"/>
@@ -213,7 +213,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Object Prefix (Optional)" FontWeight="Medium"/>
             <TextBox Text="{Binding ObjectPrefix, UpdateSourceTrigger=PropertyChanged}" 
-                     Watermark="uploads/"
+                     PlaceholderText="uploads/"
                      Width="300"
                      HorizontalAlignment="Left"/>
             <TextBlock Text="Example: 'uploads/%y/%mo/' will save files as uploads/2026/01/filename.png" 
@@ -227,16 +227,65 @@
         <!-- Storage Class -->
         <StackPanel Spacing="5">
             <TextBlock Text="Storage Class" FontWeight="Medium"/>
-            <ComboBox SelectedIndex="{Binding StorageClassIndex}"
+            <ComboBox ItemsSource="{Binding StorageClasses}"
+                      SelectedIndex="{Binding StorageClassIndex}"
                       Width="200"
                       HorizontalAlignment="Left"
-                      IsDropDownOpen="False">
-                <ComboBoxItem Content="STANDARD"/>
-                <ComboBoxItem Content="REDUCED_REDUNDANCY"/>
-                <ComboBoxItem Content="STANDARD_IA"/>
-                <ComboBoxItem Content="ONEZONE_IA"/>
-                <ComboBoxItem Content="INTELLIGENT_TIERING"/>
-            </ComboBox>
+                      IsDropDownOpen="False"/>
+        </StackPanel>
+
+        <!-- Multipart Upload -->
+        <StackPanel Spacing="8">
+            <TextBlock Text="Multipart Upload" FontWeight="Medium"/>
+            <TextBlock Text="Large files switch to the AWS SDK multipart flow automatically. Smaller files keep the existing single PUT path."
+                       FontSize="11"
+                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                       TextWrapping="Wrap"
+                       MaxWidth="460"/>
+
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="14" RowSpacing="10">
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="Threshold (MiB)"
+                           FontWeight="Medium"
+                           VerticalAlignment="Center"/>
+                <NumericUpDown Grid.Row="0" Grid.Column="1"
+                               Value="{Binding MultipartThresholdMiB}"
+                               Minimum="0"
+                               Maximum="512000"
+                               Increment="10"
+                               Width="140"
+                               HorizontalAlignment="Left"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           Text="Part Size (MiB)"
+                           FontWeight="Medium"
+                           VerticalAlignment="Center"/>
+                <NumericUpDown Grid.Row="1" Grid.Column="1"
+                               Value="{Binding MultipartPartSizeMiB}"
+                               Minimum="5"
+                               Maximum="5120"
+                               Increment="5"
+                               Width="140"
+                               HorizontalAlignment="Left"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0"
+                           Text="Max Concurrency"
+                           FontWeight="Medium"
+                           VerticalAlignment="Center"/>
+                <NumericUpDown Grid.Row="2" Grid.Column="1"
+                               Value="{Binding MultipartMaxConcurrency}"
+                               Minimum="1"
+                               Maximum="32"
+                               Increment="1"
+                               Width="140"
+                               HorizontalAlignment="Left"/>
+            </Grid>
+
+            <TextBlock Text="Default settings use multipart at 50 MiB with 10 MiB parts and up to 4 parallel uploads."
+                       FontSize="11"
+                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                       TextWrapping="Wrap"
+                       MaxWidth="460"/>
         </StackPanel>
 
         <StackPanel Spacing="5">

@@ -121,12 +121,16 @@
           <TextBlock Text="Preview" Classes="section-header" AutomationProperties.Name="Preview Heading"/>
           <TextBlock Text="Inspect the capture before applying tasks." Classes="caption" AutomationProperties.Name="Preview Description"/>
         </StackPanel>
-        <Border Grid.Row="1" Classes="card" Padding="{StaticResource CardPadding}" MinHeight="{StaticResource PreviewMinHeight}">
-          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="Transparent">
-            <Image Source="{Binding PreviewImage}"
-                   Stretch="Uniform"
-                   AutomationProperties.Name="Capture Preview"/>
-          </ScrollViewer>
+        <Border Grid.Row="1"
+                Classes="card"
+                Padding="{StaticResource CardPadding}"
+                MinHeight="{StaticResource PreviewMinHeight}"
+                ClipToBounds="True">
+          <Image Source="{Binding PreviewImage}"
+                 Stretch="Uniform"
+                 HorizontalAlignment="Stretch"
+                 VerticalAlignment="Stretch"
+                 AutomationProperties.Name="Capture Preview"/>
         </Border>
       </Grid>
 
@@ -154,12 +158,18 @@
               <CheckBox Content="Copy image to clipboard"
                         IsChecked="{Binding CopyImageToClipboard}"
                         AutomationProperties.Name="Copy Image to Clipboard"/>
+              <CheckBox Content="Copy file path to clipboard"
+                        IsChecked="{Binding CopyFilePathToClipboard}"
+                        AutomationProperties.Name="Copy File Path to Clipboard"/>
               <CheckBox Content="Annotate media"
                         IsChecked="{Binding AnnotateMedia}"
                         AutomationProperties.Name="Annotate Media"/>
               <CheckBox Content="Upload image to host"
                         IsChecked="{Binding UploadImageToHost}"
                         AutomationProperties.Name="Upload Image to Host"/>
+              <CheckBox Content="Copy OCR text to clipboard"
+                        IsChecked="{Binding CopyOcrTextToClipboard}"
+                        AutomationProperties.Name="Copy OCR Text to Clipboard"/>
             </StackPanel>
           </Border>
 
@@ -189,9 +199,21 @@
 
     <!-- Action Bar -->
     <Border Grid.Row="2" Classes="card" Padding="{StaticResource CardPaddingCompact}">
-      <Grid ColumnDefinitions="*, Auto" ColumnSpacing="{StaticResource SpaceM}" VerticalAlignment="Center">
-        <TextBlock Text="You can adjust these later in task settings." Classes="caption" AutomationProperties.Name="After Capture Footer Note"/>
-        <StackPanel Grid.Column="1"
+      <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="{StaticResource SpaceM}" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal"
+                    Spacing="{StaticResource SpaceS}">
+          <Button Content="Copy image"
+                  Command="{Binding CopyImageCommand}"
+                  AutomationProperties.Name="Copy Image"/>
+          <Button Content="Copy file path"
+                  Command="{Binding CopyFilePathCommand}"
+                  AutomationProperties.Name="Copy File Path"/>
+        </StackPanel>
+        <TextBlock Grid.Column="1"
+                   Text="Quick actions finish the workflow without a notification."
+                   Classes="caption"
+                   AutomationProperties.Name="After Capture Footer Note"/>
+        <StackPanel Grid.Column="2"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="{StaticResource SpaceS}">

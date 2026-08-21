@@ -27,7 +27,11 @@ packages/
 # IDE
 .vs/
 .vscode/
-.cursor/
+.cursor/*
+# Track graphify Cursor rule so agents on fresh clones get the pointer
+!.cursor/rules/
+.cursor/rules/*
+!.cursor/rules/graphify.mdc
 *.rsuser
 
 # OS
@@ -41,13 +45,37 @@ debug/
 # Local tooling
 .dotnet/
 .tmp/
+.tools/
+.env
+*.env
+secrets.json
+credentials.*
+
+# graphify rebuild cache (canonical graph lives in docs/architecture/graphify-out/)
+docs/architecture/graphify-out/cache/
+# Convenience symlink at repo root (targets docs/architecture/graphify-out/)
+/graphify-out
+
+# Clawpatch — track reports (durable audit trail), ignore runtime artefacts
+# (per-feature JSON blobs, lock files, workspace config, in-progress patches).
+# See docs/technical/clawpatch-report-tracking.md for the policy.
+.clawpatch/features/
+.clawpatch/findings/
+.clawpatch/locks/
+.clawpatch/patches/
+.clawpatch/runs/
+.clawpatch/config.json
+.clawpatch/project.json
 
 # Local build logs
 *.log
+*.binlog
+release-run-*.log
 errors.md
 
 # Local packaging output
 dist/
+.flatpak-builder/
 .claude/
 .SRCINFO
 artifacts/
@@ -63,6 +91,15 @@ build_log.txt
 /build/publish-temp-win-arm64
 /build/publish-temp-win-x64
 
+# AUR build artifacts (makepkg outputs)
+/build/linux/aur/xerahs-git/src/
+/build/linux/aur/xerahs-git/pkg/
+/build/linux/aur/xerahs-git/XerahS/
+/build/linux/aur/xerahs-git/*.pkg.tar.zst
+/build/linux/aur/xerahs-git/.PKGINFO
+/build/linux/aur/xerahs-git/.BUILDINFO
+/build/linux/aur/xerahs-git/.MTREE
+
 # Local iOS bundle id override files
 src/XerahS.Mobile.iOS/Main.BundleId.plist
 src/XerahS.Mobile.iOS.ShareExtension/ShareExtension.BundleId.plist
@@ -74,6 +111,11 @@ src/XerahS.Mobile.iOS.ShareExtension/ShareExtension.BundleId.plist
 *.class
 .gradle/
 **/build/
+!src/mobile/ios/build/
+src/mobile/ios/build/*
+!src/mobile/ios/build/AppStoreScreenshots/
+!src/mobile/ios/build/AppStoreScreenshots/**
+src/mobile/ios/build/AppStoreScreenshots/.DS_Store
 !build/
 !build/windows/
 !build/windows/chocolatey/
@@ -136,3 +178,10 @@ SwiftPackageManager.build/
 /build/logs
 /build/r2r-eval-no-r2r
 /build/r2r-eval-r2r
+
+# Autoresearch bundle and generated run state
+.autoresearch/*
+!.autoresearch/AUTORESEARCH_PS1.md
+!.autoresearch/autoresearch.ps1
+!.autoresearch/missions/
+!.autoresearch/missions/*.md

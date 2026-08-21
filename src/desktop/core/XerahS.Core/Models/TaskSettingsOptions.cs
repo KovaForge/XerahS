@@ -39,7 +39,13 @@ public class ImageEffectPreset
 {
     public string Name { get; set; } = "";
 
-    [JsonProperty(ItemTypeNameHandling = TypeNameHandling.Auto)]
+    /// <summary>
+    /// Effect chain. Deserialization is constrained to known ShareX.ImageEditor
+    /// ImageEffect types via <see cref="Helpers.ImageEffectListJsonConverter"/> so
+    /// settings/import JSON cannot instantiate arbitrary $type payloads even when
+    /// the parent SettingsBase serializer uses TypeNameHandling.Auto.
+    /// </summary>
+    [JsonConverter(typeof(Helpers.ImageEffectListJsonConverter))]
     public List<ImageEffect> Effects { get; set; } = new();
 
     /// <summary>
@@ -204,6 +210,15 @@ public class ScrollingCaptureOptions
 public class OCROptions
 {
     public string Language { get; set; } = "en";
+    /// <summary>
+    /// Full list of languages the user selected in the onboarding wizard.
+    /// The current OCR runtime only supports a single language per
+    /// <see cref="RecognizeAsync"/> call, so <see cref="Language"/> carries
+    /// the primary/active language for the tool. The full list is preserved
+    /// here so it can be surfaced in a multi-language picker once the runtime
+    /// supports it, and so the user's onboarding choice is not silently lost.
+    /// </summary>
+    public List<string> PreferredLanguages { get; set; } = new();
     public float ScaleFactor { get; set; } = 2f;
     public bool SingleLine { get; set; } = false;
     public bool Silent { get; set; } = false;
@@ -307,6 +322,20 @@ public class GradientInfo
 
     public GradientInfo(LinearGradientMode type, params Color[] colors) : this(type)
     {
+        if (colors == null || colors.Length == 0)
+        {
+            return;
+        }
+
+        // Single-color input used to divide by (Length - 1) == 0 and produce
+        // Infinity/NaN stop locations. Place the sole stop at 0 so solid-color
+        // gradients stay finite and within 0..100.
+        if (colors.Length == 1)
+        {
+            Colors.Add(new GradientStop(colors[0], 0));
+            return;
+        }
+
         for (int i = 0; i < colors.Length; i++)
         {
             Colors.Add(new GradientStop(colors[i], (int)Math.Round(100f / (colors.Length - 1) * i)));
@@ -407,7 +436,7 @@ public class FFmpegOptions
     public string VideoSource { get; set; } = FFmpegCaptureDevice.GDIGrab.Value;
     public string AudioSource { get; set; } = FFmpegCaptureDevice.None.Value;
     public FFmpegVideoCodec VideoCodec { get; set; } = FFmpegVideoCodec.libx264;
-    public FFmpegAudioCodec AudioCodec { get; set; } = FFmpegAudioCodec.libvoaacenc;
+    public FFmpegAudioCodec AudioCodec { get; set; } = FFmpegAudioCodec.aac;
     public string UserArgs { get; set; } = "";
     public bool UseCustomCommands { get; set; } = false;
     public string CustomCommands { get; set; } = "";

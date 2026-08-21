@@ -59,7 +59,7 @@ public class TaskSettings
 
     public WorkflowType Job = WorkflowType.None;
 
-    public AfterCaptureTasks AfterCaptureJob = AfterCaptureTasks.AnnotateMedia | AfterCaptureTasks.CopyImageToClipboard | AfterCaptureTasks.SaveImageToFile;
+    public AfterCaptureTasks AfterCaptureJob = AfterCaptureTasks.CopyImageToClipboard | AfterCaptureTasks.SaveImageToFile;
 
     public AfterUploadTasks AfterUploadJob = AfterUploadTasks.CopyURLToClipboard;
 
@@ -278,6 +278,13 @@ public class TaskSettingsCapture
     [Category("Capture"), DefaultValue(LinuxInteractiveRegionSelectorPreference.Automatic), Description("Preferred Linux interactive region selector.")]
     public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference { get; set; } =
         LinuxInteractiveRegionSelectorPreference.Automatic;
+
+    [Category("Capture"), DefaultValue(MacOSInteractiveRegionSelectorPreference.Automatic), Description("Preferred macOS interactive region selector.")]
+    public MacOSInteractiveRegionSelectorPreference MacOSRegionSelectorPreference { get; set; } =
+        MacOSInteractiveRegionSelectorPreference.Automatic;
+
+    [Category("Capture"), DefaultValue(true), Description("Play the native macOS capture sound when using screencapture.")]
+    public bool MacOSPlayCaptureSound { get; set; } = true;
 
     [Category("Capture"), DefaultValue(null), Description("Preferred Linux screen recording backend.")]
     public LinuxRecordingBackendPreference? LinuxRecordingBackendPreference { get; set; } = null;

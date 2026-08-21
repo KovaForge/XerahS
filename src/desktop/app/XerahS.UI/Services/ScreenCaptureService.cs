@@ -35,6 +35,7 @@ using System;
 using System.Drawing;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using XerahS.UI.Services.Capture;
 
 namespace XerahS.UI.Services
@@ -42,6 +43,7 @@ namespace XerahS.UI.Services
     public class ScreenCaptureService : IScreenCaptureService, ILinuxRegionCaptureCapabilityProvider, ILinuxRegionSelectorDiagnosticsProvider
     {
         private const string LinuxOverlayProviderId = "xerahs-overlay";
+        private static readonly SemaphoreSlim MacOSInteractiveRegionCaptureGate = new(1, 1);
         private readonly IScreenCaptureService _platformImpl;
         private readonly LinuxRegionSelectorResolver _linuxResolver;
 
@@ -58,6 +60,24 @@ namespace XerahS.UI.Services
 
         public async Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
         {
+            if (!TryBeginMacOSInteractiveRegionCapture(nameof(SelectRegionAsync), out var macOSCaptureScope))
+            {
+                return SKRectI.Empty;
+            }
+
+            using (macOSCaptureScope)
+            {
+                return await SelectRegionCoreAsync(options);
+            }
+        }
+
+        private async Task<SKRectI> SelectRegionCoreAsync(CaptureOptions? options)
+        {
+            if (ShouldUseMacOSNativeRegionCapture(options))
+            {
+                DebugHelper.WriteLine("[RegionSelection] macOS native crosshair returns a bitmap, not coordinates; using XerahS overlay for rectangle selection.");
+            }
+
             LinuxRegionCaptureCapability? linuxCapability =
                 OperatingSystem.IsLinux() ? _linuxResolver.GetCapability(_platformImpl, options) : null;
             var effectiveLinuxPreference = _linuxResolver.ResolveEffectivePreference(options, linuxCapability, _platformImpl);
@@ -104,77 +124,8 @@ namespace XerahS.UI.Services
                 }
             }
 
-            SKRectI selection = SKRectI.Empty;
-
-            try
-            {
-                await Dispatcher.UIThread.InvokeAsync(async () =>
-                {
-                    XerahS.Platform.Abstractions.CursorInfo? cursorInfo = null;
-                    if (options?.ShowCursor == true)
-                    {
-                        try
-                        {
-                            cursorInfo = await _platformImpl.CaptureCursorAsync();
-                        }
-                        catch
-                        {
-                            // Ignore cursor capture errors
-                        }
-                    }
-
-                    bool useFastOverlay = OperatingSystem.IsLinux() || (options?.UseTransparentOverlay ?? false);
-
-                    SkiaSharp.SKBitmap? backgroundForMagnifier = null;
-                    if (!useFastOverlay)
-                    {
-                        try
-                        {
-                            backgroundForMagnifier = await _platformImpl.CaptureFullScreenAsync(new CaptureOptions
-                            {
-                                ShowCursor = false,
-                                UseModernCapture = options?.UseModernCapture ?? true,
-                                LinuxRegionSelectorPreference = LinuxCaptureOptionsResolver.GetLinuxRegionSelectorPreference(options)
-                            });
-                        }
-                        catch
-                        {
-                            // Ignore
-                        }
-                    }
-
-                    var captureService = new RegionCaptureService
-                    {
-                        Options = new XerahS.RegionCapture.RegionCaptureOptions
-                        {
-                            ShowCursor = options?.ShowCursor ?? false,
-                            BackgroundImage = backgroundForMagnifier,
-                            UseTransparentOverlay = useFastOverlay,
-                            EditorOptions = RegionCaptureAnnotationOptionsStore.GetEditorOptions(options?.WorkflowId),
-                        }
-                    };
-
-                    XerahS.RegionCapture.Models.RegionSelectionResult? result;
-                    try
-                    {
-                        result = await captureService.CaptureRegionAsync(cursorInfo);
-                    }
-                    finally
-                    {
-                        RegionCaptureAnnotationOptionsStore.Persist();
-                    }
-
-                    if (result is not null)
-                    {
-                        var r = result.Value.Region;
-                        selection = new SKRectI((int)r.X, (int)r.Y, (int)r.Right, (int)r.Bottom);
-                    }
-                });
-            }
-            catch
-            {
-                // Ignore errors to ensure robustness
-            }
+            bool useFastOverlay = options?.UseTransparentOverlay ?? false;
+            SKRectI selection = await OverlayRegionCaptureSession.SelectRegionAsync(_platformImpl, options, useFastOverlay);
 
             if (OperatingSystem.IsLinux())
             {
@@ -213,6 +164,64 @@ namespace XerahS.UI.Services
 
         public async Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
+            if (!TryBeginMacOSInteractiveRegionCapture(nameof(CaptureRegionAsync), out var macOSCaptureScope))
+            {
+                return null;
+            }
+
+            using (macOSCaptureScope)
+            {
+                return await CaptureRegionCoreAsync(options);
+            }
+        }
+
+        private async Task<SKBitmap?> CaptureRegionCoreAsync(CaptureOptions? options)
+        {
+            if (OperatingSystem.IsMacOS())
+            {
+                var requestedPreference = options?.MacOSRegionSelectorPreference ??
+                    MacOSInteractiveRegionSelectorPreference.Automatic;
+                DebugHelper.WriteLine($"[RegionCapture] macOS selector preference received: {requestedPreference}.");
+            }
+
+            if (!EnsurePlatformCaptureAccess(
+                _platformImpl,
+                OperatingSystem.IsMacOS(),
+                ShowMacOSCapturePermissionDeniedNotification))
+            {
+                DebugHelper.WriteLine("[RegionCapture] macOS region capture stopped before opening selector UI because Screen Recording permission is denied.");
+                DebugHelper.Flush();
+                return null;
+            }
+
+            if (ShouldUseMacOSNativeRegionCapture(options))
+            {
+                DebugHelper.WriteLine("[RegionCapture] macOS native crosshair selected; using platform region capture without XerahS overlay.");
+                try
+                {
+                    await WaitForMacOSNativeSelectorReadinessAsync();
+                    var nativeBitmap = await _platformImpl.CaptureRegionAsync(options);
+                    DebugHelper.WriteLine(nativeBitmap == null
+                        ? "[RegionCapture] macOS native region capture returned null."
+                        : $"[RegionCapture] macOS native region capture returned {nativeBitmap.Width}x{nativeBitmap.Height}.");
+                    DebugHelper.WriteLine("[RegionCapture] macOS native crosshair path completed; XerahS overlay fallback is intentionally not run for an explicit native request.");
+                    DebugHelper.Flush();
+                    return nativeBitmap;
+                }
+                catch (OperationCanceledException)
+                {
+                    DebugHelper.WriteLine("[RegionCapture] macOS native region capture cancelled by user.");
+                    DebugHelper.Flush();
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteLine($"[RegionCapture] macOS native region capture failed ({ex.Message}).");
+                    DebugHelper.Flush();
+                    return null;
+                }
+            }
+
             LinuxRegionCaptureCapability? linuxCapability =
                 OperatingSystem.IsLinux() ? _linuxResolver.GetCapability(_platformImpl, options) : null;
             var effectiveLinuxPreference = _linuxResolver.ResolveEffectivePreference(options, linuxCapability, _platformImpl);
@@ -302,7 +311,7 @@ namespace XerahS.UI.Services
                 }
             }
 
-            bool useFastOverlay = OperatingSystem.IsLinux() || (effectiveOptions?.UseTransparentOverlay ?? false);
+            bool useFastOverlay = effectiveOptions?.UseTransparentOverlay ?? false;
             SKBitmap? fullScreenBitmap = null;
             if (!useFastOverlay)
             {
@@ -313,7 +322,10 @@ namespace XerahS.UI.Services
                         ShowCursor = false,
                         UseModernCapture = effectiveOptions?.UseModernCapture ?? true,
                         LinuxRegionSelectorPreference = effectiveOptions?.LinuxRegionSelectorPreference ??
-                            LinuxInteractiveRegionSelectorPreference.Automatic
+                            LinuxInteractiveRegionSelectorPreference.Automatic,
+                        MacOSRegionSelectorPreference = effectiveOptions?.MacOSRegionSelectorPreference ??
+                            MacOSInteractiveRegionSelectorPreference.Automatic,
+                        MacOSPlayCaptureSound = false
                     });
                     if (fullScreenBitmap != null)
                     {
@@ -331,50 +343,18 @@ namespace XerahS.UI.Services
             }
 
             DebugHelper.WriteLine($"[RegionCapture] Milestone: region capture UI invoked (+{(DateTime.UtcNow - sessionStartUtc).TotalMilliseconds:F0} ms)");
-            SKRectI selection = SKRectI.Empty;
-            SKBitmap? annotationLayer = null;
-            XerahS.RegionCapture.Models.PixelPoint annotationMonitorOrigin = default;
-            try
-            {
-                await Dispatcher.UIThread.InvokeAsync(async () =>
-                {
-                    var captureService = new RegionCaptureService
-                    {
-                        Options = new XerahS.RegionCapture.RegionCaptureOptions
-                        {
-                            ShowCursor = effectiveOptions?.ShowCursor ?? false,
-                            BackgroundImage = fullScreenBitmap,
-                            UseTransparentOverlay = useFastOverlay,
-                            EditorOptions = RegionCaptureAnnotationOptionsStore.GetEditorOptions(effectiveOptions?.WorkflowId),
-                            SessionStartUtc = sessionStartUtc,
-                        }
-                    };
-
-                    XerahS.RegionCapture.Models.RegionSelectionResult? result;
-                    try
-                    {
-                        result = await captureService.CaptureRegionAsync(ghostCursor);
-                    }
-                    finally
-                    {
-                        RegionCaptureAnnotationOptionsStore.Persist();
-                    }
-
-                    if (result is not null)
-                    {
-                        var r = result.Value.Region;
-                        selection = new SKRectI((int)r.X, (int)r.Y, (int)r.Right, (int)r.Bottom);
-                        annotationLayer = result.Value.AnnotationLayer;
-                        annotationMonitorOrigin = result.Value.MonitorOrigin;
-                    }
-                });
-                double elapsedMs = (DateTime.UtcNow - sessionStartUtc).TotalMilliseconds;
-                DebugHelper.WriteLine($"[RegionCapture] Milestone: region UI returned (+{elapsedMs:F0} ms)");
-            }
-            catch
-            {
-                // Ignore errors
-            }
+            OverlayRegionCaptureSession.OverlayRegionCaptureResult overlayResult =
+                await OverlayRegionCaptureSession.CaptureRegionAsync(
+                    effectiveOptions,
+                    sessionStartUtc,
+                    useFastOverlay,
+                    fullScreenBitmap,
+                    ghostCursor);
+            SKRectI selection = overlayResult.Selection;
+            SKBitmap? annotationLayer = overlayResult.AnnotationLayer;
+            XerahS.RegionCapture.Models.PixelPoint annotationMonitorOrigin = overlayResult.AnnotationMonitorOrigin;
+            double elapsedMs = (DateTime.UtcNow - sessionStartUtc).TotalMilliseconds;
+            DebugHelper.WriteLine($"[RegionCapture] Milestone: region UI returned (+{elapsedMs:F0} ms)");
 
             if (selection.IsEmpty || selection.Width <= 0 || selection.Height <= 0)
             {
@@ -402,7 +382,7 @@ namespace XerahS.UI.Services
 
             if (effectiveOptions?.CaptureStartDelaySeconds > 0)
             {
-                var delayMs = (int)Math.Round(effectiveOptions.CaptureStartDelaySeconds * 1000, MidpointRounding.AwayFromZero);
+                var delayMs = XerahS.Core.TaskHelpers.GetCaptureStartDelayMilliseconds(effectiveOptions.CaptureStartDelaySeconds);
                 var workflowId = string.IsNullOrWhiteSpace(effectiveOptions.WorkflowId) ? "none" : effectiveOptions.WorkflowId;
                 var workflowCategory = string.IsNullOrWhiteSpace(effectiveOptions.WorkflowCategory) ? "Unknown" : effectiveOptions.WorkflowCategory;
                 TroubleshootingHelper.Log("CaptureDelay", "REGION", $"WorkflowId={workflowId}, Category={workflowCategory}, DelaySeconds={effectiveOptions.CaptureStartDelaySeconds:F3}, DelayMs={delayMs}");
@@ -429,6 +409,11 @@ namespace XerahS.UI.Services
                 UseModernCapture = effectiveOptions?.UseModernCapture ?? true,
                 LinuxRegionSelectorPreference = effectiveOptions?.LinuxRegionSelectorPreference ??
                     LinuxInteractiveRegionSelectorPreference.Automatic,
+                MacOSRegionSelectorPreference = effectiveOptions?.MacOSRegionSelectorPreference ??
+                    MacOSInteractiveRegionSelectorPreference.Automatic,
+                MacOSPlayCaptureSound = effectiveOptions?.MacOSPlayCaptureSound ?? true,
+                LinuxDisallowPortalAfterOverlaySelection = OperatingSystem.IsLinux(),
+                UseTransparentOverlay = effectiveOptions?.UseTransparentOverlay ?? false,
                 WorkflowId = effectiveOptions?.WorkflowId,
                 WorkflowCategory = effectiveOptions?.WorkflowCategory
             };
@@ -670,6 +655,161 @@ namespace XerahS.UI.Services
                 (int)Math.Round(right),
                 (int)Math.Round(bottom));
             DebugHelper.WriteLine($"[RegionCapture] Virtual bounds (physical, PhysicalBounds union): L={left:F0}, T={top:F0}, R={right:F0}, B={bottom:F0}, Size={right - left:F0}x{bottom - top:F0}");
+        }
+
+        private static bool ShouldUseMacOSNativeRegionCapture(CaptureOptions? options)
+        {
+            return OperatingSystem.IsMacOS() &&
+                options?.MacOSRegionSelectorPreference == MacOSInteractiveRegionSelectorPreference.NativeCrosshair;
+        }
+
+        internal static bool EnsurePlatformCaptureAccess(
+            IScreenCaptureService platformImpl,
+            bool isMacOS,
+            Action? permissionDenied = null)
+        {
+            if (!isMacOS || platformImpl is not IScreenCapturePermissionService permissionService)
+            {
+                return true;
+            }
+
+            bool permissionGranted = permissionService.EnsureScreenCaptureAccess();
+            if (!permissionGranted)
+            {
+                permissionDenied?.Invoke();
+            }
+
+            return permissionGranted;
+        }
+
+        internal static ToastConfig CreateMacOSCapturePermissionDeniedToastConfig()
+        {
+            return new ToastConfig
+            {
+                Title = "Screen Recording permission required",
+                Text = "Enable XerahS in System Settings > Privacy & Security > Screen Recording, then restart XerahS.",
+                Duration = 10f,
+                Size = new SizeI(520, 140),
+                AutoHide = true,
+                IgnoreGlobalDisable = true,
+                LeftClickAction = ToastClickAction.CloseNotification
+            };
+        }
+
+        private static void ShowMacOSCapturePermissionDeniedNotification()
+        {
+            const string title = "Screen Recording permission required";
+            const string message = "Enable XerahS in System Settings > Privacy & Security > Screen Recording, then restart XerahS.";
+
+            try
+            {
+                if (PlatformServices.IsToastServiceInitialized)
+                {
+                    PlatformServices.Toast.ShowToast(CreateMacOSCapturePermissionDeniedToastConfig());
+                    DebugHelper.WriteLine("[RegionCapture] Displayed Screen Recording permission guidance toast.");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "[RegionCapture] Failed to show Screen Recording permission guidance toast");
+            }
+
+            try
+            {
+                PlatformServices.GetNotificationIfAvailable()?.ShowNotification(title, message);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "[RegionCapture] Failed to show Screen Recording permission notification fallback");
+            }
+        }
+
+        private static async Task WaitForMacOSNativeSelectorReadinessAsync()
+        {
+            // The native screencapture selector is very sensitive to being launched while
+            // the hotkey event tap is still unwinding. Give the macOS hotkey service time
+            // to stop SharpHook after suspension before starting /usr/sbin/screencapture.
+            await Task.Delay(300);
+        }
+
+        private static bool TryBeginMacOSInteractiveRegionCapture(string operation, out IDisposable? captureScope)
+        {
+            captureScope = null;
+
+            if (!OperatingSystem.IsMacOS())
+            {
+                return true;
+            }
+
+            if (!MacOSInteractiveRegionCaptureGate.Wait(0))
+            {
+                DebugHelper.WriteLine($"[RegionCapture] macOS interactive selector '{operation}' ignored because another selector is already active.");
+                DebugHelper.Flush();
+                return false;
+            }
+
+            captureScope = new MacOSInteractiveRegionCaptureScope(operation);
+            return true;
+        }
+
+        private sealed class MacOSInteractiveRegionCaptureScope : IDisposable
+        {
+            private readonly string _operation;
+            private bool _restoreHotkeys;
+            private bool _previousHotkeySuspended;
+            private bool _disposed;
+
+            public MacOSInteractiveRegionCaptureScope(string operation)
+            {
+                _operation = operation;
+
+                try
+                {
+                    if (PlatformServices.IsInitialized)
+                    {
+                        // macOS has two mutually exclusive interactive selectors: /usr/sbin/screencapture
+                        // and the XerahS overlay. Keep global hotkeys suspended while either selector is
+                        // active so the initiating shortcut cannot start a second selector underneath it.
+                        var hotkeyService = PlatformServices.Hotkey;
+                        _previousHotkeySuspended = hotkeyService.IsSuspended;
+                        hotkeyService.IsSuspended = true;
+                        _restoreHotkeys = true;
+                        DebugHelper.WriteLine($"[RegionCapture] macOS interactive selector '{_operation}' suspended global hotkeys (previous={_previousHotkeySuspended}).");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteLine($"[RegionCapture] macOS interactive selector '{_operation}' could not suspend hotkeys: {ex.Message}");
+                }
+            }
+
+            public void Dispose()
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _disposed = true;
+
+                try
+                {
+                    if (_restoreHotkeys && PlatformServices.IsInitialized)
+                    {
+                        PlatformServices.Hotkey.IsSuspended = _previousHotkeySuspended;
+                        DebugHelper.WriteLine($"[RegionCapture] macOS interactive selector '{_operation}' restored global hotkeys (suspended={_previousHotkeySuspended}).");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.WriteLine($"[RegionCapture] macOS interactive selector '{_operation}' could not restore hotkeys: {ex.Message}");
+                }
+                finally
+                {
+                    MacOSInteractiveRegionCaptureGate.Release();
+                }
+            }
         }
     }
 }

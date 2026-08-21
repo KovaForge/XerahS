@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
 using XerahS.Core;
 using XerahS.Services.Abstractions;
@@ -98,7 +99,7 @@ public static class MonitorTestToolService
                     }
                 });
 
-                return file?.Path.LocalPath;
+                return file?.TryGetLocalPath();
             }
             catch (Exception ex)
             {

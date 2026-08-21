@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>XerahS MCP Configuration Guideline</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f8fafc;
+      --fg: #172033;
+      --muted: #526070;
+      --panel: #ffffff;
+      --border: #d8e0ea;
+      --accent: #0f766e;
+      --warn: #92400e;
+      --bad: #991b1b;
+      --code-bg: #111827;
+      --code-fg: #f9fafb;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1120;
+        --fg: #e5e7eb;
+        --muted: #a8b3c2;
+        --panel: #111827;
+        --border: #263244;
+        --accent: #2dd4bf;
+        --warn: #fbbf24;
+        --bad: #f87171;
+        --code-bg: #020617;
+        --code-fg: #e5e7eb;
+      }
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.55;
+    }
+
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 40px 24px 64px;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.2;
+      margin: 0 0 12px;
+    }
+
+    h1 {
+      font-size: 2rem;
+    }
+
+    h2 {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 1.4rem;
+    }
+
+    h3 {
+      margin-top: 24px;
+      font-size: 1.05rem;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    code {
+      font-family: "Cascadia Code", Consolas, "Liberation Mono", monospace;
+      font-size: 0.95em;
+    }
+
+    pre {
+      overflow-x: auto;
+      padding: 16px;
+      border-radius: 8px;
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border: 1px solid var(--border);
+    }
+
+    pre code {
+      color: inherit;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    th {
+      background: color-mix(in srgb, var(--panel) 86%, var(--accent));
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 18px 0;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .ok {
+      border-left: 4px solid var(--accent);
+    }
+
+    .warning {
+      border-left: 4px solid var(--warn);
+    }
+
+    .danger {
+      border-left: 4px solid var(--bad);
+    }
+
+    .checklist li {
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="muted">XerahS Developer Guideline</p>
+      <h1>XerahS MCP Configuration Guideline</h1>
+      <p>
+        This guideline tells contributors, friends, and MCP users what must be configured to use
+        the XerahS Model Context Protocol server correctly.
+      </p>
+    </header>
+
+    <section class="card danger">
+      <h2>Scope Rule</h2>
+      <p>
+        The current XerahS MCP implementation is a <strong>user-desktop MCP server</strong>.
+        It must run on the same machine whose screen, clipboard, history, settings, and uploader
+        configuration are being controlled.
+      </p>
+      <p>
+        Cloudflare, GitHub Pages, and other edge/static hosts can publish discovery metadata or
+        proxy requests to a reachable <code>xerahs-mcp</code> process. They do not run XerahS,
+        cannot capture a user's screen, and cannot access that user's local history or uploader
+        secrets by themselves.
+      </p>
+    </section>
+
+    <section>
+      <h2>Recommended Configuration</h2>
+      <p>
+        For ordinary users, including friends trying XerahS from an MCP-compatible host, configure
+        local stdio mode. This is the default and safest integration path.
+      </p>
+
+      <ol class="checklist">
+        <li>Install a released XerahS build that includes <code>xerahs-mcp</code>, or build the MCP server from source.</li>
+        <li>Run the MCP client on the same desktop account that can use XerahS capture, clipboard, and upload features.</li>
+        <li>Configure the MCP client to launch <code>xerahs-mcp --mcp</code>.</li>
+        <li>Grant OS screen capture, window capture, clipboard, and accessibility permissions where the platform requires them.</li>
+        <li>Configure XerahS uploader destinations locally if the user wants upload tools to return URLs.</li>
+      </ol>
+
+      <h3>Generic MCP Client JSON</h3>
+      <p>
+        Use the installed path on the user's machine. Do not point ordinary users at
+        <code>mcp.xerahs.com</code>.
+      </p>
+      <pre><code>{
+  "mcpServers": {
+    "xerahs": {
+      "command": "C:/Program Files/XerahS/xerahs-mcp.exe",
+      "args": ["--mcp"]
+    }
+  }
+}</code></pre>
+
+      <h3>Development Build JSON</h3>
+      <pre><code>{
+  "mcpServers": {
+    "xerahs": {
+      "command": "C:/Users/&lt;user&gt;/source/repos/KovaForge/XerahS/src/tools/XerahS.McpServer/bin/Release/net10.0/xerahs-mcp.exe",
+      "args": ["--mcp"]
+    }
+  }
+}</code></pre>
+    </section>
+
+    <section>
+      <h2>Build and Smoke Test</h2>
+      <p>Build the MCP server from the repository root:</p>
+      <pre><code>dotnet build .\src\tools\XerahS.McpServer\XerahS.McpServer.csproj -c Release</code></pre>
+
+      <p>Run the focused MCP tests:</p>
+      <pre><code>dotnet test .\src\tools\XerahS.McpServer.Tests\XerahS.McpServer.Tests.csproj --configuration Release</code></pre>
+
+      <p>Smoke test stdio initialization and tool discovery:</p>
+      <pre><code>$exe = ".\src\tools\XerahS.McpServer\bin\Release\net10.0\xerahs-mcp.exe"
+$input = @(
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}',
+  '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}',
+  '{"jsonrpc":"2.0","id":3,"method":"shutdown","params":{}}'
+) -join "`n"
+$input | &amp; $exe --mcp</code></pre>
+
+      <p>
+        A successful smoke test returns an <code>initialize</code> result with server name
+        <code>xerahs</code> and a <code>tools/list</code> result that includes capture, annotation,
+        upload, history, workflow, and settings tools.
+      </p>
+    </section>
+
+    <section>
+      <h2>HTTP Mode</h2>
+      <p>
+        HTTP mode is optional. Use it only when the operator has a user-controlled desktop session
+        or dedicated desktop/VM host running the real XerahS runtime.
+      </p>
+
+      <pre><code>xerahs-mcp --mcp-server --transport http --port 7890</code></pre>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Endpoint</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>POST /mcp/</code></td>
+            <td>JSON-RPC MCP requests.</td>
+          </tr>
+          <tr>
+            <td><code>GET /mcp/events/</code></td>
+            <td>Server-Sent Events notifications and heartbeats.</td>
+          </tr>
+          <tr>
+            <td><code>GET /health</code></td>
+            <td>Health check for the running HTTP process.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        HTTP transport requires <code>Authorization: Bearer &lt;mcp-api-key&gt;</code>. The key is
+        stored in <code>ApplicationConfig.McpApiKey</code> and can be generated or copied from
+        XerahS settings under <code>Integration - MCP Server</code>.
+      </p>
+    </section>
+
+    <section>
+      <h2>Public Manifest and Cloudflare</h2>
+      <p>
+        The public manifest may be available at
+        <code>https://xerahs.com/.well-known/mcp/manifest.json</code>. It can advertise an optional
+        HTTP endpoint such as <code>https://mcp.xerahs.com/mcp/</code>.
+      </p>
+
+      <div class="card warning">
+        <p>
+          The public manifest and Cloudflare Worker are not enough to use XerahS MCP. They are
+          discovery/proxy infrastructure only. The endpoint works only when it has been configured
+          to forward to a running <code>xerahs-mcp --transport http</code> backend.
+        </p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Correct configuration</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Friend wants to use XerahS MCP on their desktop.</td>
+            <td>They install XerahS locally and configure <code>xerahs-mcp --mcp</code> in their MCP client.</td>
+          </tr>
+          <tr>
+            <td>Contributor wants to test the repo build.</td>
+            <td>They build the MCP project and point the MCP client at the repo's Release executable.</td>
+          </tr>
+          <tr>
+            <td>Operator wants a public HTTP endpoint.</td>
+            <td>They run <code>xerahs-mcp --transport http</code> on a desktop/VM backend and configure Cloudflare to proxy to it.</td>
+          </tr>
+          <tr>
+            <td>No desktop/runtime backend exists.</td>
+            <td>Do not advertise the HTTP endpoint as functional. Use local stdio mode.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Security Rules</h2>
+      <ul>
+        <li>Never publish a user's MCP API key in docs, issues, logs, screenshots, commits, or chat transcripts.</li>
+        <li>Do not expose HTTP mode to the internet without bearer authentication and a deliberate backend host.</li>
+        <li>Do not imply that Cloudflare can run screen capture, clipboard, history, settings, or uploader tools without a XerahS desktop runtime.</li>
+        <li>Use local stdio mode unless there is a specific reason to operate a network endpoint.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Troubleshooting</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Symptom</th>
+            <th>Likely cause</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Client cannot start MCP server.</td>
+            <td>Wrong executable path or missing build.</td>
+            <td>Verify the <code>command</code> path and build/install XerahS.</td>
+          </tr>
+          <tr>
+            <td><code>tools/list</code> returns no XerahS tools.</td>
+            <td>Client is not launching <code>xerahs-mcp --mcp</code>.</td>
+            <td>Check MCP client JSON and restart the client.</td>
+          </tr>
+          <tr>
+            <td>Capture tools fail.</td>
+            <td>No interactive desktop session or missing OS permissions.</td>
+            <td>Log into the desktop and grant screen/window capture permissions.</td>
+          </tr>
+          <tr>
+            <td>Upload tools fail.</td>
+            <td>No local uploader destination configured.</td>
+            <td>Configure upload destinations in XerahS on the same user account.</td>
+          </tr>
+          <tr>
+            <td>Public <code>/mcp/</code> returns backend configuration errors.</td>
+            <td>Cloudflare has no reachable <code>xerahs-mcp</code> HTTP backend.</td>
+            <td>Use local stdio mode or configure a real desktop/VM backend.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer class="muted">
+      <p>
+        Related docs:
+        <a href="../../docs/mcp/usage-guide.md">docs/mcp/usage-guide.md</a>,
+        <a href="../../docs/proposals/xip/XIP0064-xerahs-mcp-server.md">XIP0064</a>.
+      </p>
+    </footer>
+  </main>
+</body>
+</html>

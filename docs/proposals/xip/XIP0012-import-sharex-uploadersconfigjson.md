@@ -1,5 +1,8 @@
 # XIP0012 Import ShareX UploadersConfig.json
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0012: Import ShareX UploadersConfig.json
 
 

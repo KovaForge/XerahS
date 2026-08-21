@@ -34,13 +34,16 @@
         </Grid>
 
         <!-- Main Content -->
-        <ScrollViewer Grid.Row="1" Classes="adaptive-scroll">
+        <ScrollViewer Grid.Row="1"
+                      Classes="adaptive-scroll"
+                      AutomationProperties.LandmarkType="Main"
+                      AutomationProperties.AccessibilityView="Control">
             <StackPanel Margin="20" Spacing="16">
 
                 <!-- Subtitle -->
                 <TextBlock Text="Share &amp; Upload"
                            FontSize="16"
-                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                           Classes="adaptive-muted"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,10" />
 
@@ -48,7 +51,8 @@
                 <TextBlock Text="{Binding StatusText}"
                            HorizontalAlignment="Center"
                            TextWrapping="Wrap"
-                           TextAlignment="Center" />
+                           TextAlignment="Center"
+                           AutomationProperties.LiveSetting="Polite" />
 
                 <Button Content="Choose Photo or File"
                         Click="OnChooseFilesClick"
@@ -77,7 +81,7 @@
                                     <!-- URL (if success) -->
                                     <TextBlock Text="{Binding Url}"
                                                IsVisible="{Binding HasUrl}"
-                                               Foreground="{DynamicResource SystemAccentColor}"
+                                               Classes="adaptive-accent"
                                                TextWrapping="Wrap" />
 
                                     <!-- Error (if failed) -->

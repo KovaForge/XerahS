@@ -13,10 +13,11 @@
         Width="850" Height="650"
         WindowStartupLocation="CenterOwner">
 
-    <Grid RowDefinitions="*,Auto" Margin="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-        
-        <!-- Main Tabs -->
-        <TabControl Grid.Row="0" Margin="0,0,0,12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+    <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" Padding="16">
+        <Grid RowDefinitions="*,Auto" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+
+            <!-- Main Tabs -->
+            <TabControl Grid.Row="0" Margin="0,0,0,16" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             
             <!-- Tab 1: Task (Trigger & Job) -->
             <TabItem Header="Task">
@@ -26,15 +27,13 @@
                             <TextBlock Text="Workflow ID" Theme="{StaticResource BodyStrongTextBlockStyle}"/>
                             <TextBox Text="{Binding WorkflowId}"
                                      IsReadOnly="True"
-                                     FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
-                                     Theme="{StaticResource SimpleTextBoxStyle}"
                                      AutomationProperties.Name="Workflow ID (ReadOnly)"/>
                         </StackPanel>
 
                         <StackPanel Spacing="8">
                             <TextBlock Text="Description" Theme="{StaticResource BodyStrongTextBlockStyle}"/>
                             <TextBox Text="{Binding Description}" 
-                                     Watermark="Optional description"
+                                     PlaceholderText="Optional description"
                                      AutomationProperties.Name="Workflow Description"/>
                         </StackPanel>
 
@@ -48,7 +47,7 @@
                                           PlaceholderText="Select Category"
                                           AutomationProperties.Name="Job Category Selection">
                                     <ComboBox.ItemTemplate>
-                                        <DataTemplate>
+                                        <DataTemplate x:DataType="vm:JobCategoryViewModel">
                                             <TextBlock Text="{Binding Name}"/>
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
@@ -62,7 +61,7 @@
                                           PlaceholderText="Select Task"
                                           AutomationProperties.Name="Job Task Selection">
                                     <ComboBox.ItemTemplate>
-                                        <DataTemplate>
+                                        <DataTemplate x:DataType="vm:HotkeyItemViewModel">
                                             <TextBlock Text="{Binding Description}"/>
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
@@ -87,7 +86,6 @@
                                             Content="{Binding KeyText}"
                                             Background="Transparent"
                                             BorderThickness="0"
-                                            FontFamily="{DynamicResource ShareX.FontFamily.Monospace}"
                                             HorizontalContentAlignment="Center"
                                             VerticalContentAlignment="Center"
                                             Padding="10,6"
@@ -141,8 +139,9 @@
 
         <!-- Bottom Buttons -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
-            <Button Content="OK" Click="OkButton_Click" IsDefault="True" Width="80" Classes="accent" AutomationProperties.Name="OK"/>
+            <Button Content="OK" Click="OkButton_Click" IsDefault="True" Width="80" AutomationProperties.Name="OK"/>
             <Button Content="Cancel" Click="CancelButton_Click" IsCancel="True" Width="80" AutomationProperties.Name="Cancel"/>
         </StackPanel>
-    </Grid>
+        </Grid>
+    </Border>
 </ui:SurfaceWindow>

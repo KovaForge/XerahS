@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Overview · XerahS Developer Dashboard{% endblock %}
+{% block content %}
+<section class="kpis">
+  <a class="kpi" href="{{ url_for('candidates') }}">
+    <span class="kpi-n">{{ n_candidates }}</span>
+    <span class="kpi-l">Candidates in queue</span>
+    <span class="kpi-sub">{{ matched }} matched to clawpatch · {{ unmatched }} unmatched</span>
+  </a>
+  <a class="kpi" href="{{ url_for('areas') }}">
+    <span class="kpi-n">{{ n_areas }}</span>
+    <span class="kpi-l">Areas tracked</span>
+    <span class="kpi-sub">
+      {% for st, n in area_status_counts.items() %}
+        <span class="pill {{ status_color(st) }}">{{ st }} {{ n }}</span>
+      {% endfor %}
+    </span>
+  </a>
+  <a class="kpi" href="{{ url_for('runs') }}">
+    <span class="kpi-n">{{ n_runs }}</span>
+    <span class="kpi-l">Recent runs</span>
+    <span class="kpi-sub">outcome: {{ state.last_run_outcome or '—' }}</span>
+  </a>
+</section>
+
+<section class="grid-2">
+  <div class="card">
+    <h2>Severity distribution (current queue)</h2>
+    {% if sev_counts %}
+      <table class="t">
+        <thead><tr><th>Severity</th><th class="num">Count</th><th></th></tr></thead>
+        <tbody>
+          {% for sev, n in sev_counts.items() %}
+            <tr>
+              <td><span class="pill {{ severity_color(sev) }}">{{ sev }}</span></td>
+              <td class="num">{{ n }}</td>
+              <td>
+                <a class="btn" href="{{ url_for('candidates', severity=sev) }}">view</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">No severity data available — run <code>xerahs-review</code> to populate.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Recent activity (last 5 runs)</h2>
+    {% if last_runs_recent %}
+      <ul class="runs-mini">
+        {% for r in last_runs_recent %}
+          <li>
+            <span class="ts">{{ r.get('timestamp','—') }}</span>
+            <span class="pill {{ status_color(r.get('outcome')) }}">{{ r.get('outcome','—') }}</span>
+            <span class="area">{{ r.get('area','—') }}</span>
+            {% if r.get('version_bump') %}<span class="muted">{{ r.get('version_bump') }}</span>{% endif %}
+            {% if r.get('commit') and r.get('commit') != 'pending' %}
+              <code>{{ r.get('commit')[:7] }}</code>
+            {% elif r.get('commit') == 'pending' %}
+              <span class="err">commit pending</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No runs yet.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="card">
+  <h2>Newest clawpatch reports</h2>
+  {% if reports %}
+    <table class="t">
+      <thead><tr><th>Generated</th><th>File</th><th></th></tr></thead>
+      <tbody>
+        {% for r in reports %}
+          <tr>
+            <td><span class="ts">{{ r.ts_compact }}</span></td>
+            <td><code>{{ r.filename }}</code></td>
+            <td><a class="btn" href="{{ url_for('report_view', filename=r.filename) }}">open</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="muted">No clawpatch reports found under <code>.clawpatch/reports/</code>.</p>
+  {% endif %}
+</section>
+{% endblock %}

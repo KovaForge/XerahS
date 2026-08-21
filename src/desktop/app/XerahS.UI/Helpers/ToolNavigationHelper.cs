@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
+using XerahS.Bootstrap;
 using XerahS.Core;
 using XerahS.UI.Services;
 using XerahS.UI.Views;
@@ -40,8 +41,12 @@ public static class ToolNavigationHelper
         string tag,
         Window? owner,
         ContentControl contentFrame,
-        Func<WorkflowType, Task> executeWorkflowFromNavigationAsync)
+        IDesktopTaskManager taskManager,
+        Func<WorkflowType, Task> executeWorkflowFromNavigationAsync,
+        out bool openedExternalWindow)
     {
+        openedExternalWindow = false;
+
         if (string.IsNullOrEmpty(tag) || !tag.StartsWith("Tools", StringComparison.Ordinal))
         {
             return false;
@@ -54,6 +59,7 @@ public static class ToolNavigationHelper
                 return true;
             case "Tools_IndexFolder":
                 ShowIndexFolderWindow(owner);
+                openedExternalWindow = true;
                 return true;
         }
 
@@ -65,12 +71,14 @@ public static class ToolNavigationHelper
         if (route.DispatchMode == ToolNavigationDispatchMode.ExecuteWorkflow)
         {
             _ = executeWorkflowFromNavigationAsync(route.WorkflowType);
+            openedExternalWindow = true;
             return true;
         }
 
-        if (ToolWorkflowDispatcher.TryDispatch(route.WorkflowType, owner, null, out var dispatchTask))
+        if (ToolWorkflowDispatcher.TryDispatch(route.WorkflowType, owner, null, taskManager, out var dispatchTask))
         {
             _ = dispatchTask;
+            openedExternalWindow = true;
             return true;
         }
 

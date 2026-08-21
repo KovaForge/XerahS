@@ -51,7 +51,7 @@ public class WindowsOcrService : IOcrService
     {
         try
         {
-            float scaleFactor = Math.Max(options.ScaleFactor, 1f);
+            float scaleFactor = GetEffectiveScaleFactor(image, options.ScaleFactor);
             string text = await Task.Run(async () =>
             {
                 using var scaledBitmap = ScaleBitmap(image, scaleFactor);
@@ -77,17 +77,30 @@ public class WindowsOcrService : IOcrService
 
     private static SKBitmap ScaleBitmap(SKBitmap source, float scaleFactor)
     {
-        if (scaleFactor <= 1f)
+        if (Math.Abs(scaleFactor - 1f) < 0.001f)
         {
             return source.Copy();
         }
 
-        int newWidth = (int)(source.Width * scaleFactor);
-        int newHeight = (int)(source.Height * scaleFactor);
+        int newWidth = Math.Max(1, (int)Math.Round(source.Width * scaleFactor));
+        int newHeight = Math.Max(1, (int)Math.Round(source.Height * scaleFactor));
         var info = new SKImageInfo(newWidth, newHeight, source.ColorType, source.AlphaType);
         var scaled = new SKBitmap(info);
-        source.ScalePixels(scaled, SKFilterQuality.High);
+        source.ScalePixels(scaled, new SKSamplingOptions(SKCubicResampler.Mitchell));
         return scaled;
+    }
+
+    private static float GetEffectiveScaleFactor(SKBitmap source, float requestedScaleFactor)
+    {
+        float requested = float.IsFinite(requestedScaleFactor) ? Math.Max(requestedScaleFactor, 1f) : 1f;
+        int largestDimension = Math.Max(source.Width, source.Height);
+        if (largestDimension <= 0)
+        {
+            return 1f;
+        }
+
+        float maximumSupportedScale = (float)OcrEngine.MaxImageDimension / largestDimension;
+        return Math.Min(requested, maximumSupportedScale);
     }
 
     private static async Task<string> RecognizeInternal(SKBitmap bitmap, string languageTag, bool singleLine)

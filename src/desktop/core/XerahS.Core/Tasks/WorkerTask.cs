@@ -28,6 +28,7 @@ using XerahS.Core.Helpers;
 using XerahS.Core.Managers;
 using XerahS.Core.Tasks.Processors;
 using XerahS.Platform.Abstractions;
+using XerahS.Services.Abstractions;
 using XerahS.RegionCapture.ScreenRecording;
 using SkiaSharp;
 using System.Diagnostics;
@@ -120,6 +121,12 @@ namespace XerahS.Core.Tasks
         /// <summary>Callback to toggle hotkey registration from the UI layer.</summary>
         public static Action? ToggleHotkeysCallback { get; set; }
 
+        /// <summary>
+        /// Screen recording abstraction used by recording workflows.
+        /// Defaults to the singleton manager for compatibility.
+        /// </summary>
+        public static IScreenRecordingManager RecordingManagerService { get; set; } = ScreenRecordingManager.Instance;
+
         private WorkerTask(TaskSettings taskSettings, SKBitmap? inputImage = null)
         {
             Status = TaskStatus.InQueue;
@@ -190,7 +197,7 @@ namespace XerahS.Core.Tasks
             }
             finally
             {
-                if (Status != TaskStatus.Failed && Status != TaskStatus.Stopped)
+                if (Status != TaskStatus.Failed && Status != TaskStatus.Stopped && Status != TaskStatus.Canceled)
                 {
                     Status = TaskStatus.Completed;
                 }

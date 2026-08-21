@@ -36,6 +36,18 @@ namespace XerahS.Platform.Abstractions
         bool IsDesktopWallpaperSupported { get; }
 
         /// <summary>
+        /// Gets whether the current platform can run as a menu-bar-only application.
+        /// </summary>
+        bool IsMenuBarOnlyModeSupported => false;
+
+        /// <summary>
+        /// Enables or disables menu-bar-only presentation when supported.
+        /// </summary>
+        /// <param name="enabled">True to hide the application from the Dock/taskbar equivalent; false to restore the regular app presentation.</param>
+        /// <returns>True when the mode was applied or no platform action was needed; otherwise false.</returns>
+        bool SetMenuBarOnlyMode(bool enabled) => true;
+
+        /// <summary>
         /// Opens the file explorer with the specified file selected.
         /// </summary>
         /// <param name="filePath">The full path to the file.</param>

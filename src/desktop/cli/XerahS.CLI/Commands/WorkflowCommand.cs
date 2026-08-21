@@ -24,20 +24,17 @@
 #endregion License Information (GPL v3)
 
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using XerahS.CLI;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Helpers;
-using XerahS.Core.Managers;
 using XerahS.Core.Tasks;
-using System.Runtime.InteropServices;
 
 namespace XerahS.CLI.Commands
 {
     public static class WorkflowCommand
     {
-        public static Command Create()
+        public static Command Create(IDesktopTaskManager taskManager, IScreenRecordingCoordinator recordingCoordinator)
         {
             var runCommand = new Command("run", "Execute a workflow by ID");
 
@@ -69,16 +66,40 @@ namespace XerahS.CLI.Commands
                 var exitOnComplete = parseResult.GetValue(exitOnCompleteOption);
                 var region = parseResult.GetValue(regionOption);
 
-                Environment.ExitCode = RunWorkflowAsync(workflowId, duration, dumpFrame, exitOnComplete, region).GetAwaiter().GetResult();
+                Environment.ExitCode = RunWorkflowAsync(taskManager, recordingCoordinator, workflowId, duration, dumpFrame, exitOnComplete, region).GetAwaiter().GetResult();
             });
 
             return runCommand;
         }
 
-        private static async Task<int> RunWorkflowAsync(string workflowId, int duration, bool dumpFrame, bool exitOnComplete, string? region)
+        internal static bool TryValidateDuration(int duration, out string? error)
+        {
+            error = null;
+
+            if (duration < 0)
+            {
+                error = "Duration must be zero or greater.";
+                return false;
+            }
+
+            return true;
+        }
+
+        internal static bool TryParseRegion(string? region, out SkiaSharp.SKRect rect, out string? error)
+        {
+            return CaptureCommand.TryParseRegion(region, out rect, out error);
+        }
+
+        private static async Task<int> RunWorkflowAsync(IDesktopTaskManager taskManager, IScreenRecordingCoordinator recordingCoordinator, string workflowId, int duration, bool dumpFrame, bool exitOnComplete, string? region)
         {
             try
             {
+                if (!TryValidateDuration(duration, out var durationError))
+                {
+                    Console.Error.WriteLine(durationError);
+                    return 1;
+                }
+
                 var workflow = SettingsManager.WorkflowsConfig?.Hotkeys?
                     .FirstOrDefault(w => w.Id == workflowId);
 
@@ -118,15 +139,15 @@ namespace XerahS.CLI.Commands
                         (expectedTaskId == null && task.Info.TaskSettings.WorkflowId == workflowId))
                     {
                         // Check if it's a recording task and handle duration
-                        if (task.Info.TaskSettings.Job == WorkflowType.ScreenRecorderActiveWindow && duration > 0)
+                        if (XerahS.Core.TaskHelpers.IsScreenRecordStartJob(task.Info.TaskSettings.Job) && duration > 0)
                         {
                             Console.WriteLine($"Recording started. Waiting for {duration} seconds...");
                             await Task.Delay(duration * 1000);
                             Console.WriteLine("Stopping recording...");
-                            await ScreenRecordingManager.Instance.StopRecordingAsync();
+                            await recordingCoordinator.StopRecordingAsync();
                         }
 
-                        TaskManager.Instance.TaskCompleted -= handler;
+                        taskManager.TaskCompleted -= handler;
                         bool success = task.Status == Core.TaskStatus.Completed;
                         tcs.SetResult(success);
 
@@ -138,27 +159,28 @@ namespace XerahS.CLI.Commands
                     }
                 };
 
-                TaskManager.Instance.TaskCompleted += handler;
+                taskManager.TaskCompleted += handler;
                 
                 if (!string.IsNullOrEmpty(region))
                 {
-                     // Region Override Mode
+                    // Region Override Mode
+                    WorkerTask? worker = null;
                     try 
                     {
-                        var parts = region.Split(',');
-                        if (parts.Length != 4) throw new ArgumentException("Region must be x,y,width,height");
-                        int x = int.Parse(parts[0]);
-                        int y = int.Parse(parts[1]);
-                        int w = int.Parse(parts[2]);
-                        int h = int.Parse(parts[3]);
-                        
+                        if (!TryParseRegion(region, out var rect, out var regionError))
+                        {
+                            Console.Error.WriteLine(regionError);
+                            taskManager.TaskCompleted -= handler;
+                            return 1;
+                        }
+
                         Console.WriteLine($"Capturing override region: {region}");
-                        var rect = new SkiaSharp.SKRect(x, y, x + w, y + h);
                         var image = await XerahS.Platform.Abstractions.PlatformServices.ScreenCapture.CaptureRectAsync(rect);
                         
                         if (image == null)
                         {
                             Console.Error.WriteLine("Region capture failed (returned null)");
+                            taskManager.TaskCompleted -= handler;
                             return 1;
                         }
                         
@@ -167,38 +189,46 @@ namespace XerahS.CLI.Commands
                         // Ensure WorkflowId is set in settings
                         workflow.TaskSettings.WorkflowId = workflowId;
                         
-                        var worker = WorkerTask.Create(workflow.TaskSettings, image);
+                        worker = WorkerTask.Create(workflow.TaskSettings, image);
                         expectedTaskId = worker.Info.CorrelationId;
                         
-                        // We must start it manually since we bypassed TaskManager.StartTask(settings)
-                        // But we want TaskManager events to fire? 
-                        // WorkerTask triggers TaskManager events via TaskManager instance usually? No, TaskManager listens to new tasks?
-                        // TaskManager.Instance doesn't automatically pick up manually created tasks unless we add them
-                        // BUT WorkerTask internally calls TaskManager events? No.
-                        // TaskManager wraps WorkerTask.
-                        
-                        // Workaround: Use TaskManager logic if possible.
-                        // TaskManager doesn't expose "StartTask(settings, image)".
-                        // So we will just run the worker and manually fire/wait.
-                        // Wait, my handler listens to TaskManager.Instance.TaskCompleted.
-                        // Does WorkerTask fire TaskManager.TaskCompleted?
-                        // WorkerTask fires its own TaskCompleted event.
-                        
-                        // Let's attach to the worker directly
-                        worker.TaskCompleted += (s, e) => 
+                        // In region override mode, we bypass TaskManager and run the worker directly.
+                        // Use a TCS with a bool result field to communicate the outcome safely.
+                        var completionResult = new TaskCompletionSource<bool>();
+                        EventHandler? workerHandler = null;
+                        workerHandler = (s, e) =>
                         {
-                             // Bridge to our handler logic if needed, or just set tcs directly
-                             bool success = worker.Status == Core.TaskStatus.Completed;
-                             tcs.TrySetResult(success);
+                            worker.TaskCompleted -= workerHandler;
+                            completionResult.TrySetResult(worker.Status == Core.TaskStatus.Completed);
                         };
+                        worker.TaskCompleted += workerHandler;
                         
                         await worker.StartAsync();
+                        
+                        // Wait for the worker to complete, with a reasonable timeout
+                        var timedOut = await Task.WhenAny(completionResult.Task, Task.Delay(30000)) != completionResult.Task;
+                        if (timedOut)
+                        {
+                            Console.Error.WriteLine("Region workflow timed out");
+                            taskManager.TaskCompleted -= handler;
+                            return 1;
+                        }
+                        
+                        bool workerSuccess = completionResult.Task.Result;
+                        if (!workerSuccess)
+                        {
+                            var errorMsg = worker.Error?.Message ?? worker.Status.ToString();
+                            Console.Error.WriteLine($"Region workflow failed: {errorMsg}");
+                        }
+                        
+                        return workerSuccess ? 0 : 1;
                     }
                     catch (Exception ex)
                     {
-                         Console.Error.WriteLine($"Region capture/execution error: {ex.Message}");
-                         DebugHelper.WriteException(ex);
-                         return 1;
+                        Console.Error.WriteLine($"Region capture/execution error: {ex.Message}");
+                        DebugHelper.WriteException(ex);
+                        taskManager.TaskCompleted -= handler;
+                        return 1;
                     }
                 }
                 else
@@ -221,11 +251,11 @@ namespace XerahS.CLI.Commands
                 if (success)
                 {
                     // If manually stopped via duration, it might already be stopped.
-                    if (ScreenRecordingManager.Instance.IsRecording && duration == 0)
+                    if (recordingCoordinator.IsRecording && duration == 0)
                     {
                         Console.WriteLine("Recording active. Waiting 5 seconds before stopping (default)...");
                         await Task.Delay(5000);
-                        await ScreenRecordingManager.Instance.StopRecordingAsync();
+                        await recordingCoordinator.StopRecordingAsync();
                     }
 
                     Console.WriteLine($"Workflow completed successfully: {workflowId}");

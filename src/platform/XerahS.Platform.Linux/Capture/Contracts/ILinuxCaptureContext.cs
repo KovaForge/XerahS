@@ -35,6 +35,8 @@ internal interface ILinuxCaptureContext
 
     bool IsSandboxed { get; }
 
+    bool IsFlatpak { get; }
+
     bool HasScreenshotPortal { get; }
 
     bool ShouldTryPortal { get; }

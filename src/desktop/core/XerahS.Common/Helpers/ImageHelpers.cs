@@ -53,7 +53,7 @@ public static class ImageHelpers
         if (bitmap is null) throw new ArgumentNullException(nameof(bitmap));
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
 
-        Directory.CreateDirectory(Path.GetDirectoryName(filePath) ?? string.Empty);
+        FileHelpers.CreateDirectoryFromFilePath(filePath);
 
         SKEncodedImageFormat format = GetEncodedFormat(filePath);
         using SKImage image = SKImage.FromBitmap(bitmap);
@@ -62,14 +62,14 @@ public static class ImageHelpers
         data.SaveTo(stream);
     }
 
-    public static SKBitmap ResizeImage(SKBitmap bitmap, int width, int height, SKFilterQuality quality = SKFilterQuality.High)
+    public static SKBitmap ResizeImage(SKBitmap bitmap, int width, int height, SKSamplingOptions? sampling = null)
     {
         if (bitmap is null) throw new ArgumentNullException(nameof(bitmap));
         if (width <= 0 && height <= 0) return bitmap;
 
         (int targetWidth, int targetHeight) = ApplyAspectRatio(width, height, bitmap.Width, bitmap.Height);
         SKImageInfo info = new SKImageInfo(targetWidth, targetHeight, bitmap.ColorType, bitmap.AlphaType, bitmap.ColorSpace);
-        SKBitmap? resized = bitmap.Resize(info, quality);
+        SKBitmap? resized = bitmap.Resize(info, sampling ?? new SKSamplingOptions(SKCubicResampler.Mitchell));
         return resized ?? new SKBitmap(info);
     }
 
@@ -127,7 +127,7 @@ public static class ImageHelpers
         canvas.Translate(rotated.Width / 2f, rotated.Height / 2f);
         canvas.RotateDegrees(angle);
         canvas.Translate(-bitmap.Width / 2f, -bitmap.Height / 2f);
-        canvas.DrawBitmap(bitmap, 0, 0);
+        canvas.DrawBitmap(bitmap, 0, 0, SKSamplingOptions.Default);
 
         return rotated;
     }

@@ -7,16 +7,24 @@
              x:Class="XerahS.UI.Controls.PropertyGrid">
     <UserControl.Styles>
         <Style Selector="Grid.propertyRow">
-            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="Margin" Value="0,4"/>
         </Style>
         <Style Selector="TextBlock.propertyName">
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style Selector="TextBlock.propertyCategoryHeader">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+            <Setter Property="Margin" Value="0,10,0,4"/>
+            <Setter Property="FontSize" Value="12"/>
         </Style>
     </UserControl.Styles>
     
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Name="PropertiesPanel" Spacing="4" Margin="5"/>
+        <StackPanel Name="PropertiesPanel" Spacing="6" Margin="6"/>
     </ScrollViewer>
 </UserControl>

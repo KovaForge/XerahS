@@ -114,6 +114,16 @@ public partial class ColorPickerViewModel : ViewModelBase
     public bool HasRecentColors => RecentColors.Count > 0;
     public bool HasNoRecentColors => !HasRecentColors;
 
+    partial void OnSelectedColorChanging(AvaloniaColor value)
+    {
+        if (value == SelectedColor)
+        {
+            return;
+        }
+
+        PreviousColor = SelectedColor;
+    }
+
     partial void OnSelectedColorChanged(AvaloniaColor value)
     {
         if (_isUpdating)
@@ -327,7 +337,7 @@ public partial class ColorPickerViewModel : ViewModelBase
         }
 
         LoadRecentColors();
-        SettingsManager.SaveApplicationConfigAsync();
+        _ = SettingsManager.SaveApplicationConfigAsync();
     }
 
     [RelayCommand]

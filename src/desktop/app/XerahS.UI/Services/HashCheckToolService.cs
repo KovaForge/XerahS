@@ -46,14 +46,14 @@ public static class HashCheckToolService
     {
         var viewModel = new HashCheckViewModel(filePath);
 
-        viewModel.BrowseFileRequested = async () =>
-        {
-            return await BrowseForFileAsync(owner);
-        };
-
         var window = new HashCheckWindow
         {
             DataContext = viewModel
+        };
+
+        viewModel.BrowseFileRequested = async () =>
+        {
+            return await BrowseForFileAsync(window, owner);
         };
 
         if (owner != null)
@@ -68,10 +68,10 @@ public static class HashCheckToolService
         return Task.CompletedTask;
     }
 
-    private static async Task<string?> BrowseForFileAsync(Window? owner)
+    private static async Task<string?> BrowseForFileAsync(Window? window, Window? owner)
     {
-        var topLevel = owner != null ? TopLevel.GetTopLevel(owner) : null;
-        if (topLevel == null) return null;
+        var storageProvider = StorageProviderResolver.Resolve(window, owner);
+        if (storageProvider == null) return null;
 
         var options = new FilePickerOpenOptions
         {
@@ -79,7 +79,7 @@ public static class HashCheckToolService
             AllowMultiple = false
         };
 
-        var files = await topLevel.StorageProvider.OpenFilePickerAsync(options);
+        var files = await storageProvider.OpenFilePickerAsync(options);
         if (files.Count < 1) return null;
 
         return files[0].TryGetLocalPath();

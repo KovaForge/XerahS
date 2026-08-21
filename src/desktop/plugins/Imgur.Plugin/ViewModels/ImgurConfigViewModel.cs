@@ -39,8 +39,10 @@ namespace ShareX.Imgur.Plugin.ViewModels;
 /// </summary>
 public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigViewModel, IProviderContextAware
 {
+    private const string LegacyPlaceholderClientId = "30d41ft9z9r8jtt";
+
     [ObservableProperty]
-    private string _clientId = "30d41ft9z9r8jtt"; // Default ShareX client ID
+    private string _clientId = string.Empty;
 
     [ObservableProperty]
     private int _accountTypeIndex = 0;
@@ -73,7 +75,7 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
     private string? _statusMessage;
 
     [ObservableProperty]
-    private string _pin = string.Empty;
+    private string _authCallbackUrl = string.Empty;
 
     [ObservableProperty]
     private bool _isLoggedIn;
@@ -91,42 +93,48 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
     [RelayCommand]
     private void OpenLoginUrl()
     {
-        EnsureUploader();
+        ClientId = NormalizeClientId(ClientId);
+
+        if (string.IsNullOrWhiteSpace(ClientId) || string.Equals(ClientId, LegacyPlaceholderClientId, StringComparison.Ordinal))
+        {
+            StatusMessage = "Enter your own Imgur Client ID from https://api.imgur.com/oauth2/addclient before logging in.";
+            return;
+        }
+
+        EnsureUploader(rebuild: true);
         if (_uploader == null) return;
         string url = _uploader.GetAuthorizationURL();
-        try
+
+        if (TryOpenUrl(url))
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-            }
+            StatusMessage = "Opened Imgur login in browser. If no tab appeared, copy and open this URL manually: " + url;
         }
-        catch (Exception ex)
+        else
         {
-            StatusMessage = "Failed to open browser: " + ex.Message;
+            StatusMessage = "Could not open browser automatically. Open this URL manually: " + url;
         }
     }
 
     [RelayCommand]
     private void CompleteLogin()
     {
-        EnsureUploader();
-        if (_uploader == null || string.IsNullOrWhiteSpace(Pin))
+        EnsureUploader(rebuild: true);
+        if (_uploader == null || string.IsNullOrWhiteSpace(AuthCallbackUrl))
         {
-            StatusMessage = "Please enter the PIN from Imgur";
+            StatusMessage = "Please paste the full callback URL from Imgur (including the #access_token fragment).";
             return;
         }
 
-        if (_uploader.GetAccessToken(Pin))
+        if (_uploader.GetAccessToken(AuthCallbackUrl))
         {
             IsLoggedIn = true;
             StatusMessage = "Logged in successfully!";
-            Pin = string.Empty;
+            AuthCallbackUrl = string.Empty;
             PersistToken();
         }
         else
         {
-            StatusMessage = "Login failed. Please check the PIN.";
+            StatusMessage = "Login failed. Verify your Client ID and paste the full callback URL returned by Imgur.";
         }
     }
 
@@ -172,21 +180,19 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
             {
                 _config = config;
                 _secretKey = string.IsNullOrWhiteSpace(_config.SecretKey) ? Guid.NewGuid().ToString("N") : _config.SecretKey;
-                _uploader = BuildUploader();
 
-                ClientId = _config.ClientId ?? "30d41ft9z9r8jtt";
-                AccountTypeIndex = (int)_config.AccountType;
-                ThumbnailTypeIndex = (int)_config.ThumbnailType;
+                ClientId = NormalizeClientId(_config.ClientId);
+                _config.ClientId = ClientId;
+                AccountTypeIndex = NormalizeAccountTypeIndex(_config.AccountType);
+                ThumbnailTypeIndex = NormalizeThumbnailTypeIndex(_config.ThumbnailType);
                 UseDirectLink = _config.DirectLink;
                 UseGifv = _config.UseGIFV;
                 UploadToSelectedAlbum = _config.UploadToSelectedAlbum;
-                IsLoggedIn = HasToken();
+                SyncAccountSessionState();
+                _uploader = BuildUploader();
 
-                // Load selected album if exists
-                if (_config.SelectedAlbum != null)
-                {
-                    SelectedAlbum = _config.SelectedAlbum;
-                }
+                // Always refresh selected album state so reused view-model instances do not keep a stale album.
+                SelectedAlbum = _config.SelectedAlbum;
             }
         }
         catch
@@ -197,6 +203,11 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
 
     public string ToJson()
     {
+        AccountTypeIndex = NormalizeAccountTypeIndex((AccountType)AccountTypeIndex);
+        ThumbnailTypeIndex = NormalizeThumbnailTypeIndex((ImgurThumbnailType)ThumbnailTypeIndex);
+
+        ClientId = NormalizeClientId(ClientId);
+
         _config.ClientId = ClientId;
         _config.AccountType = (AccountType)AccountTypeIndex;
         _config.ThumbnailType = (ImgurThumbnailType)ThumbnailTypeIndex;
@@ -221,6 +232,8 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
 
     public bool Validate()
     {
+        ClientId = NormalizeClientId(ClientId);
+
         if (string.IsNullOrWhiteSpace(ClientId))
         {
             StatusMessage = "Client ID is required";
@@ -249,23 +262,119 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
             ?? "98871f37e179e496a0149e9c8558487779d424ft";
         var authInfo = new OAuth2Info(ClientId, clientSecret);
         var tokenJson = _secrets?.GetSecret("imgur", _secretKey, "oauthToken");
-        if (!string.IsNullOrWhiteSpace(tokenJson))
+        var token = TryDeserializeToken(tokenJson);
+        if (token != null)
         {
-            var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
-            if (token != null)
-            {
-                authInfo.Token = token;
-            }
+            authInfo.Token = token;
         }
 
         return new ImgurUploader(_config, authInfo);
     }
 
-    private void EnsureUploader()
+    private void EnsureUploader(bool rebuild = false)
     {
-        if (_uploader == null)
+        if (rebuild || _uploader == null)
         {
+            AccountTypeIndex = NormalizeAccountTypeIndex((AccountType)AccountTypeIndex);
+            ThumbnailTypeIndex = NormalizeThumbnailTypeIndex((ImgurThumbnailType)ThumbnailTypeIndex);
+
+            ClientId = NormalizeClientId(ClientId);
+
+            _config.ClientId = ClientId;
+            _config.AccountType = (AccountType)AccountTypeIndex;
+            _config.ThumbnailType = (ImgurThumbnailType)ThumbnailTypeIndex;
+            _config.DirectLink = UseDirectLink;
+            _config.UseGIFV = UseGifv;
+            _config.UploadToSelectedAlbum = UploadToSelectedAlbum;
+            _config.SelectedAlbum = UploadToSelectedAlbum ? SelectedAlbum : null;
+            _config.SecretKey = _secretKey;
             _uploader = BuildUploader();
+        }
+    }
+
+    private static string NormalizeClientId(string? clientId)
+    {
+        return clientId?.Trim() ?? string.Empty;
+    }
+
+    private static int NormalizeAccountTypeIndex(AccountType accountType)
+    {
+        return Enum.IsDefined(accountType) ? (int)accountType : (int)AccountType.Anonymous;
+    }
+
+    private static int NormalizeThumbnailTypeIndex(ImgurThumbnailType thumbnailType)
+    {
+        return Enum.IsDefined(thumbnailType) ? (int)thumbnailType : (int)ImgurThumbnailType.Medium_Thumbnail;
+    }
+
+    partial void OnAccountTypeIndexChanged(int value)
+    {
+        AccountType accountType = Enum.IsDefined((AccountType)value) ? (AccountType)value : AccountType.Anonymous;
+        if (accountType != AccountType.User)
+        {
+            IsLoggedIn = false;
+            ClearAlbumSessionState();
+        }
+    }
+
+    private void SyncAccountSessionState()
+    {
+        IsLoggedIn = AccountTypeIndex == (int)AccountType.User && HasToken();
+
+        if (!IsLoggedIn)
+        {
+            ClearAlbumSessionState();
+        }
+    }
+
+    private void ClearAlbumSessionState()
+    {
+        Albums.Clear();
+        AlbumStatusMessage = null;
+    }
+
+    private static bool TryOpenUrl(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+            return true;
+        }
+        catch
+        {
+            try
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    Process.Start(new ProcessStartInfo("cmd", $"/c start {url.Replace("&", "^&")}")
+                    {
+                        CreateNoWindow = true
+                    });
+                    return true;
+                }
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    Process.Start("xdg-open", url);
+                    return true;
+                }
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    Process.Start("open", url);
+                    return true;
+                }
+            }
+            catch
+            {
+                // Fall through and report failure to caller.
+            }
+
+            return false;
         }
     }
 
@@ -301,12 +410,24 @@ public partial class ImgurConfigViewModel : ObservableObject, IUploaderConfigVie
         }
 
         var tokenJson = _secrets.GetSecret("imgur", _secretKey, "oauthToken");
+        var token = TryDeserializeToken(tokenJson);
+        return token != null && !string.IsNullOrEmpty(token.access_token);
+    }
+
+    private static OAuth2Token? TryDeserializeToken(string? tokenJson)
+    {
         if (string.IsNullOrWhiteSpace(tokenJson))
         {
-            return false;
+            return null;
         }
 
-        var token = JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
-        return token != null && !string.IsNullOrEmpty(token.access_token);
+        try
+        {
+            return JsonConvert.DeserializeObject<OAuth2Token>(tokenJson);
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

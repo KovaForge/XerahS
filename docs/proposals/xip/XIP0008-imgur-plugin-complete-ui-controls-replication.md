@@ -1,5 +1,8 @@
 # XIP0008 Imgur Plugin - Complete UI Controls Replication
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0008: Imgur Plugin - Complete UI Controls Replication
 
 

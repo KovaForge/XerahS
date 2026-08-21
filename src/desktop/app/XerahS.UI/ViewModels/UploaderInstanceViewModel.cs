@@ -25,8 +25,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using XerahS.Common;
+using XerahS.Uploaders.CustomUploader;
 using XerahS.Uploaders.PluginSystem;
 using System.Collections.ObjectModel;
+using XerahS.UI.Services;
 
 namespace XerahS.UI.ViewModels;
 
@@ -35,10 +37,14 @@ namespace XerahS.UI.ViewModels;
 /// </summary>
 public partial class UploaderInstanceViewModel : ViewModelBase
 {
+    private bool _isSynchronizingConfigViewModel;
+
     [ObservableProperty]
     private string _instanceId = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCustomUploaderInstance))]
+    [NotifyPropertyChangedFor(nameof(CanExportDestinationConfig))]
     private string _providerId = string.Empty;
 
     [ObservableProperty]
@@ -58,10 +64,27 @@ public partial class UploaderInstanceViewModel : ViewModelBase
     private string _settingsJson = "{}";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanManageDefinition))]
     private IUploaderConfigViewModel? _configViewModel;
 
     [ObservableProperty]
     private object? _configView;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanManageDefinition))]
+    private bool _hasDefinitionBinding;
+
+    [ObservableProperty]
+    private string _definitionFilePath = string.Empty;
+
+    [ObservableProperty]
+    private string _boundInstanceIdsDisplay = string.Empty;
+
+    [ObservableProperty]
+    private int _boundInstanceCount;
+
+    [ObservableProperty]
+    private string _definitionBindingUnavailableReason = "This instance cannot be mapped back to a .sxcu source file.";
 
     [ObservableProperty]
     private string _fileTypeScopeDisplay = string.Empty;
@@ -107,6 +130,15 @@ public partial class UploaderInstanceViewModel : ViewModelBase
     /// </summary>
     public bool IsExplorerEnabled =>
         SupportsExplorer && (ProviderCatalog.GetProvider(ProviderId)?.ValidateSettings(SettingsJson) == true);
+
+    public bool IsCustomUploaderInstance => ProviderId.StartsWith("custom_", StringComparison.OrdinalIgnoreCase);
+
+    public bool CanExportDestinationConfig => string.Equals(ProviderId, "amazons3", StringComparison.OrdinalIgnoreCase);
+
+    public bool CanManageDefinition => HasDefinitionBinding && ConfigViewModel is CustomUploaderEditorViewModel;
+
+    public string DefinitionSaveHelpText =>
+        "Instance-only edits update uploader-instances.json until you use Save definition to Plugins.";
 
     /// <summary>
     /// The actual instance model
@@ -159,7 +191,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
             VerifyPluginConfiguration();
 
             // Update status message to show success
-            VerificationMessage = $"✓ Cleaned {deletedCount} duplicate DLL(s) - Please restart the application";
+            VerificationMessage = $"Cleaned {deletedCount} duplicate DLL(s). Please restart the application.";
         }
         else
         {
@@ -202,6 +234,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
 
             // Set explorer support flag after provider is resolved
             SupportsExplorer = provider is IUploaderExplorer;
+            RefreshDefinitionBindingInfo(provider as CustomUploaderProvider);
 
             if (ConfigViewModel is IProviderContextAware contextAware)
             {
@@ -215,6 +248,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         else
         {
             Common.DebugHelper.WriteLine($"[UploaderInstanceVM] WARNING: Provider not found for ProviderId: {ProviderId}");
+            RefreshDefinitionBindingInfo();
         }
 
         if (ConfigViewModel != null)
@@ -227,12 +261,17 @@ public partial class UploaderInstanceViewModel : ViewModelBase
                 customUploaderConfigViewModel.IsNameReadOnly = true;
             }
 
-            ConfigViewModel.LoadFromJson(SettingsJson);
+            SynchronizeConfigViewModel(() => ConfigViewModel.LoadFromJson(SettingsJson));
 
             if (ConfigViewModel is ObservableObject obs)
             {
                 obs.PropertyChanged += (s, e) =>
                 {
+                    if (_isSynchronizingConfigViewModel)
+                    {
+                        return;
+                    }
+
                     // Sync settings back to JSON when any property changes
                     SettingsJson = ConfigViewModel.ToJson();
                     Instance.SettingsJson = SettingsJson;
@@ -374,7 +413,12 @@ public partial class UploaderInstanceViewModel : ViewModelBase
             customUploaderConfigViewModel.SetFallbackName(ProviderCatalog.GetProvider(ProviderId)?.Name);
         }
 
-        ConfigViewModel?.LoadFromJson(SettingsJson);
+        if (ConfigViewModel != null)
+        {
+            SynchronizeConfigViewModel(() => ConfigViewModel.LoadFromJson(SettingsJson));
+        }
+
+        RefreshDefinitionBindingInfo();
     }
 
     partial void OnDisplayNameChanged(string value)
@@ -383,12 +427,235 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         InstanceManager.Instance.UpdateInstance(Instance);
     }
 
+    partial void OnProviderIdChanged(string value)
+    {
+        SupportsExplorer = ProviderCatalog.GetProvider(value) is IUploaderExplorer;
+        RefreshDefinitionBindingInfo();
+        OnPropertyChanged(nameof(IsExplorerEnabled));
+    }
+
+    [RelayCommand]
+    private async Task SaveDefinitionToPluginsAsync()
+    {
+        try
+        {
+            if (!TryGetCustomUploaderDefinitionContext(out var factory, out var provider, out var editorViewModel))
+            {
+                var unavailableFactory = UiViewModelFactoryAccessor.GetRequired();
+                await unavailableFactory.CoreDialogService.ShowWarningAsync("Save Unavailable", DefinitionBindingUnavailableReason);
+                return;
+            }
+
+            if (!editorViewModel.Validate())
+            {
+                await factory.CoreDialogService.ShowWarningAsync(
+                    "Validation Failed",
+                    "Fix the current validation errors before saving the shared .sxcu definition.");
+                return;
+            }
+
+            var bindingInfo = CustomUploaderDefinitionBindingService.GetBindingInfo(provider, InstanceId);
+            if (bindingInfo.HasMultipleBindings)
+            {
+                bool confirmed = await factory.CoreDialogService.ShowConfirmationAsync(
+                    "Save Shared Definition",
+                    $"This definition is shared by {bindingInfo.BoundInstanceIds.Count} instances. Saving it will update the shared .sxcu file for all of them.{Environment.NewLine}{Environment.NewLine}Continue?");
+
+                if (!confirmed)
+                {
+                    return;
+                }
+            }
+
+            var item = editorViewModel.ToItem();
+            if (!CustomUploaderDefinitionBindingService.SaveDefinition(
+                    item,
+                    provider.FilePath,
+                    bindingInfo.BoundInstanceIds,
+                    bindingInfo.PrimaryInstanceId))
+            {
+                await factory.CoreDialogService.ShowErrorAsync("Save Failed", "Failed to write the .sxcu definition to disk.");
+                return;
+            }
+
+            if (!ProviderCatalog.ReloadCustomUploader(provider.FilePath))
+            {
+                await factory.CoreDialogService.ShowWarningAsync(
+                    "Saved with Warning",
+                    "The .sxcu file was saved, but the provider catalog did not reload immediately.");
+            }
+
+            RefreshDefinitionBindingInfo();
+            await factory.CoreDialogService.ShowMessageAsync("Definition Saved", $"Saved changes to:{Environment.NewLine}{provider.FilePath}");
+        }
+        catch (Exception ex)
+        {
+            Common.DebugHelper.WriteException(ex, "Failed to save custom uploader definition");
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveDefinitionAsNewAsync()
+    {
+        try
+        {
+            if (!TryGetCustomUploaderDefinitionContext(out var factory, out var provider, out var editorViewModel))
+            {
+                var unavailableFactory = UiViewModelFactoryAccessor.GetRequired();
+                await unavailableFactory.CoreDialogService.ShowWarningAsync("Save Unavailable", DefinitionBindingUnavailableReason);
+                return;
+            }
+
+            if (!editorViewModel.Validate())
+            {
+                await factory.CoreDialogService.ShowWarningAsync(
+                    "Validation Failed",
+                    "Fix the current validation errors before saving a new .sxcu definition.");
+                return;
+            }
+
+            string newFilePath = CustomUploaderDefinitionBindingService.BuildForkFilePath(provider.FilePath, InstanceId);
+            var item = editorViewModel.ToItem();
+
+            if (!CustomUploaderDefinitionBindingService.SaveDefinition(item, newFilePath, new[] { InstanceId }, InstanceId))
+            {
+                await factory.CoreDialogService.ShowErrorAsync("Save Failed", "Failed to create the new .sxcu definition.");
+                return;
+            }
+
+            if (!ProviderCatalog.ReloadCustomUploader(newFilePath))
+            {
+                await factory.CoreDialogService.ShowErrorAsync(
+                    "Reload Failed",
+                    "The new .sxcu definition was written, but the provider catalog could not load it.");
+                return;
+            }
+
+            var newProvider = CustomUploaderDefinitionBindingService.GetProviderByFilePath(newFilePath);
+            if (newProvider == null)
+            {
+                await factory.CoreDialogService.ShowErrorAsync(
+                    "Reload Failed",
+                    "The new .sxcu definition was written, but no matching provider was found after reload.");
+                return;
+            }
+
+            var previousBindingInfo = CustomUploaderDefinitionBindingService.GetBindingInfo(provider, InstanceId);
+            var remainingInstanceIds = previousBindingInfo.BoundInstanceIds
+                .Where(instanceId => !string.Equals(instanceId, InstanceId, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            string? remainingPrimaryInstanceId =
+                string.Equals(previousBindingInfo.PrimaryInstanceId, InstanceId, StringComparison.OrdinalIgnoreCase)
+                    ? null
+                    : previousBindingInfo.PrimaryInstanceId;
+
+            if (!CustomUploaderDefinitionBindingService.SaveDefinition(
+                    provider.Item,
+                    provider.FilePath,
+                    remainingInstanceIds,
+                    remainingPrimaryInstanceId))
+            {
+                await factory.CoreDialogService.ShowWarningAsync(
+                    "Fork Saved with Warning",
+                    "A new .sxcu definition was created for this instance, but the original file metadata could not be updated.");
+            }
+            else
+            {
+                ProviderCatalog.ReloadCustomUploader(provider.FilePath);
+            }
+
+            editorViewModel.SetFallbackName(newProvider.Name);
+            SettingsJson = CustomUploaderSettingsSerializer.SerializeForInstance(item, newProvider.Name);
+            Instance.ProviderId = newProvider.ProviderId;
+            Instance.SettingsJson = SettingsJson;
+            ProviderId = newProvider.ProviderId;
+            InstanceManager.Instance.UpdateInstance(Instance);
+            RefreshDefinitionBindingInfo();
+
+            await factory.CoreDialogService.ShowMessageAsync(
+                "Definition Saved As New",
+                $"Saved a dedicated .sxcu definition for this instance:{Environment.NewLine}{newFilePath}");
+        }
+        catch (Exception ex)
+        {
+            Common.DebugHelper.WriteException(ex, "Failed to fork custom uploader definition");
+        }
+    }
+
+    private void SynchronizeConfigViewModel(Action action)
+    {
+        _isSynchronizingConfigViewModel = true;
+
+        try
+        {
+            action();
+        }
+        finally
+        {
+            _isSynchronizingConfigViewModel = false;
+        }
+    }
+
+    private void RefreshDefinitionBindingInfo(CustomUploaderProvider? provider = null)
+    {
+        provider ??= ProviderCatalog.GetProvider(ProviderId) as CustomUploaderProvider;
+
+        if (provider == null || string.IsNullOrWhiteSpace(provider.FilePath))
+        {
+            HasDefinitionBinding = false;
+            DefinitionFilePath = string.Empty;
+            BoundInstanceIdsDisplay = InstanceId;
+            BoundInstanceCount = string.IsNullOrWhiteSpace(InstanceId) ? 0 : 1;
+            DefinitionBindingUnavailableReason = "This instance cannot be mapped back to a .sxcu source file.";
+            return;
+        }
+
+        var bindingInfo = CustomUploaderDefinitionBindingService.GetBindingInfo(provider, InstanceId);
+
+        HasDefinitionBinding = true;
+        DefinitionFilePath = bindingInfo.FilePath;
+        BoundInstanceIdsDisplay = bindingInfo.BoundInstanceIds.Count > 0
+            ? string.Join(Environment.NewLine, bindingInfo.BoundInstanceIds)
+            : InstanceId;
+        BoundInstanceCount = bindingInfo.BoundInstanceIds.Count > 0 ? bindingInfo.BoundInstanceIds.Count : 1;
+        DefinitionBindingUnavailableReason = string.Empty;
+    }
+
+    private bool TryGetCustomUploaderDefinitionContext(
+        out IUiViewModelFactory factory,
+        out CustomUploaderProvider provider,
+        out CustomUploaderEditorViewModel editorViewModel)
+    {
+        factory = null!;
+        provider = null!;
+        editorViewModel = null!;
+
+        if (ConfigViewModel is not CustomUploaderEditorViewModel customUploaderEditorViewModel)
+        {
+            return false;
+        }
+
+        if (ProviderCatalog.GetProvider(ProviderId) is not CustomUploaderProvider customUploaderProvider ||
+            string.IsNullOrWhiteSpace(customUploaderProvider.FilePath))
+        {
+            return false;
+        }
+
+        factory = UiViewModelFactoryAccessor.GetRequired();
+        provider = customUploaderProvider;
+        editorViewModel = customUploaderEditorViewModel;
+        return true;
+    }
+
     [RelayCommand]
     private void OpenPluginsFolder()
     {
         try
         {
-            var pluginsPath = Path.Combine(PathsManager.PluginsFolder, ProviderId);
+            var customUploaderProvider = ProviderCatalog.GetProvider(ProviderId) as CustomUploaderProvider;
+            var pluginsPath = customUploaderProvider != null
+                ? Path.GetDirectoryName(customUploaderProvider.FilePath) ?? PathsManager.PluginsFolder
+                : ProviderCatalog.GetPluginMetadata(ProviderId)?.PluginDirectory ?? PathsManager.GetUserPluginDirectory(ProviderId);
             Common.DebugHelper.WriteLine($"[UploaderInstanceVM] Opening plugins folder: {pluginsPath}");
 
             if (!Directory.Exists(pluginsPath))
@@ -416,16 +683,16 @@ public partial class UploaderInstanceViewModel : ViewModelBase
     /// The provider must implement <see cref="IUploaderExplorer"/>.
     /// </summary>
     [RelayCommand]
-    private void OpenExplorer()
+    private async Task OpenExplorer()
     {
         var provider = ProviderCatalog.GetProvider(ProviderId);
         if (provider is not IUploaderExplorer explorer) return;
 
         try
         {
-            var vm = new ProviderExplorerViewModel(Instance, explorer);
-            var window = new Views.ProviderExplorerWindow { DataContext = vm };
-            window.Show();
+            var factory = UiViewModelFactoryAccessor.GetRequired();
+            var viewModel = factory.CreateProviderExplorerViewModel(Instance, explorer);
+            await factory.ViewDialogService.ShowProviderExplorerAsync(viewModel);
         }
         catch (Exception ex)
         {

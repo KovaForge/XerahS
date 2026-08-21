@@ -26,6 +26,7 @@ using XerahS.RegionCapture.Models;
 using XerahS.RegionCapture;
 using XerahS.RegionCapture.UI;
 using XerahS.Common;
+using XerahS.RegionCapture.ViewModels;
 
 namespace XerahS.RegionCapture.Services;
 
@@ -39,12 +40,14 @@ public sealed class OverlayManager : IDisposable
     private readonly List<OverlayWindow> _overlays = [];
     private readonly TaskCompletionSource<RegionSelectionResult?> _completionSource;
     private readonly CoordinateTranslationService _coordinateService;
+    private readonly RegionCaptureAnnotationToolCoordinator _annotationToolCoordinator;
     private bool _disposed;
 
     public OverlayManager()
     {
         _completionSource = new TaskCompletionSource<RegionSelectionResult?>();
         _coordinateService = new CoordinateTranslationService();
+        _annotationToolCoordinator = new RegionCaptureAnnotationToolCoordinator();
     }
 
     /// <summary>
@@ -80,7 +83,7 @@ public sealed class OverlayManager : IDisposable
             // Create one overlay per monitor
             foreach (var monitor in monitors)
             {
-                var overlay = new OverlayWindow(monitor, _completionSource, onSelectionChanged, initialCursor, options);
+                var overlay = new OverlayWindow(monitor, _completionSource, onSelectionChanged, initialCursor, options, _annotationToolCoordinator);
                 _overlays.Add(overlay);
             }
 
@@ -105,12 +108,8 @@ public sealed class OverlayManager : IDisposable
                 primaryOverlay.Show();
                 primaryOverlay.Activate();
                 primaryOverlay.Focus();
-#if WINDOWS
-                if (primaryOverlay.TryGetPlatformHandle()?.Handle is { } primaryHandle)
-                {
-                    Platform.Windows.NativeWindowService.ExcludeHandle(primaryHandle);
-                }
-#endif
+                var primaryHandle = primaryOverlay.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+                WindowDetectionService.ExcludeHandle(primaryHandle);
             }
 
             // Show remaining overlays
@@ -120,12 +119,8 @@ public sealed class OverlayManager : IDisposable
                     continue;
                 overlay.Show();
                 overlay.Activate();
-#if WINDOWS
-                if (overlay.TryGetPlatformHandle()?.Handle is { } handle)
-                {
-                    Platform.Windows.NativeWindowService.ExcludeHandle(handle);
-                }
-#endif
+                var handle = overlay.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+                WindowDetectionService.ExcludeHandle(handle);
             }
 
             if (options?.SessionStartUtc is { } start)
@@ -147,12 +142,8 @@ public sealed class OverlayManager : IDisposable
     {
         foreach (var overlay in _overlays)
         {
-#if WINDOWS
-            if (overlay.TryGetPlatformHandle()?.Handle is { } handle)
-            {
-                Platform.Windows.NativeWindowService.RemoveExcludedHandle(handle);
-            }
-#endif
+            var handle = overlay.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+            WindowDetectionService.RemoveExcludedHandle(handle);
 
             try
             {

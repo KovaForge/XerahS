@@ -30,10 +30,13 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Avalonia.Layout;
 using Avalonia.Media;
+using System.IO;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
+using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
@@ -44,8 +47,23 @@ namespace XerahS.UI.Services
 {
     public class AvaloniaUIService : IUIService
     {
+        private IDesktopTaskManager? _taskManager;
         private bool _wasMainWindowVisible;
         private Avalonia.Controls.WindowState _previousWindowState;
+
+        public AvaloniaUIService()
+        {
+        }
+
+        public AvaloniaUIService(IDesktopTaskManager taskManager)
+        {
+            _taskManager = taskManager;
+        }
+
+        public void Configure(IDesktopTaskManager taskManager)
+        {
+            _taskManager = taskManager;
+        }
 
         public async Task HideMainWindowAsync()
         {
@@ -93,9 +111,27 @@ namespace XerahS.UI.Services
             });
         }
 
-        public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image, bool taskMode = false)
+        public async Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false)
         {
-            var tcs = new TaskCompletionSource<SKBitmap?>();
+            ImageEditorSessionResult? result = await ShowEditorSessionAsync(image, sourceFilePath, taskMode);
+            result?.SourceImage?.Dispose();
+            return result?.RenderedImage;
+        }
+
+        public async Task<ImageEditorSessionResult?> ShowEditorSessionAsync(
+            SKBitmap image,
+            string? sourceFilePath = null,
+            bool taskMode = false,
+            IReadOnlyList<Annotation>? annotations = null,
+            bool restoredAnnotations = false)
+        {
+            if (_taskManager == null)
+            {
+                throw new InvalidOperationException("AvaloniaUIService requires an IDesktopTaskManager before showing the editor.");
+            }
+
+            var tcs = new TaskCompletionSource<ImageEditorSessionResult?>();
+            var restoredAnnotationSnapshot = annotations?.Select(annotation => annotation.Clone()).ToList();
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -103,14 +139,21 @@ namespace XerahS.UI.Services
                 var editorWindow = new Views.EditorWindow();
 
                 // Create independent ViewModel for this editor instance
-                var editorOptions = taskMode ? new ImageEditorOptions { ShowExitConfirmation = false } : null;
+                var editorOptions = ThemeService.CreateImageEditorOptions(showExitConfirmation: !taskMode);
                 var editorViewModel = new MainViewModel(editorOptions);
-                editorViewModel.ShowTaskModeButtons = taskMode;
-                editorViewModel.TaskMode = taskMode;
+                editorViewModel.ShowFileMenu = !taskMode;
+                editorViewModel.ShowTaskButtons = true;
+                editorViewModel.UseContinueWorkflow = taskMode;
+                editorViewModel.ShowBottomToolbar = true;
+                editorViewModel.ShowStartScreen = !taskMode;
                 editorViewModel.ApplicationName = AppResources.AppName;
 
                 // Wire up UploadRequested to trigger host app upload workflow
-                MainViewModelHelper.WireUploadRequested(editorViewModel);
+                MainViewModelHelper.WireUploadRequested(editorViewModel, _taskManager, () =>
+                {
+                    var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
+                    return editorView?.GetSnapshot();
+                });
 
                 // Wire up CopyRequested to copy edited image (with annotations) to clipboard
                 MainViewModelHelper.WireCopyRequested(editorViewModel, () =>
@@ -131,26 +174,48 @@ namespace XerahS.UI.Services
 
                 // Initialize the preview image
                 editorViewModel.UpdatePreview(image);
+                if (!string.IsNullOrWhiteSpace(sourceFilePath))
+                {
+                    editorViewModel.ImageFilePath = sourceFilePath;
+                    editorViewModel.IsDirty = false;
+                }
+
+                if (restoredAnnotationSnapshot?.Count > 0)
+                {
+                    editorWindow.Opened += (_, _) =>
+                    {
+                        var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
+                        editorView?.RestoreAnnotations(restoredAnnotationSnapshot, resetHistory: true);
+                        editorViewModel.IsDirty = false;
+                    };
+                }
 
                 // Handle window closing to capture result
                 editorWindow.Closing += (s, e) =>
                 {
+                    if (ShouldReturnNullForEditorClose(taskMode, editorWindow.IsCloseRequestedByViewModel, editorViewModel.TaskResult))
+                    {
+                        tcs.TrySetResult(null);
+                        return;
+                    }
+
                     try
                     {
                         var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
 
-                        bool continueWithoutSave = editorViewModel.TaskResult == MainViewModel.EditorTaskResult.ContinueNoSave
-                            || (editorWindow.IsCloseRequestedByViewModel &&
-                                editorViewModel.TaskResult == MainViewModel.EditorTaskResult.Cancel);
-
-                        if (taskMode && continueWithoutSave)
-                        {
-                            tcs.TrySetResult(null);
-                        }
-                        else if (editorView != null)
+                        if (editorView != null)
                         {
                             var snapshot = editorView.GetSnapshot();
-                            tcs.TrySetResult(snapshot);
+                            if (snapshot == null)
+                            {
+                                tcs.TrySetResult(null);
+                            }
+                            else
+                            {
+                                var source = editorView.GetSource();
+                                var annotationSnapshot = editorView.GetAnnotationSnapshot().ToList();
+                                tcs.TrySetResult(new ImageEditorSessionResult(snapshot, source, annotationSnapshot));
+                            }
                         }
                         else
                         {
@@ -171,6 +236,22 @@ namespace XerahS.UI.Services
             return await tcs.Task;
         }
 
+        internal static bool ShouldReturnNullForEditorClose(
+            bool taskMode,
+            bool closeRequestedByViewModel,
+            MainViewModel.EditorTaskResult taskResult)
+        {
+            if (!closeRequestedByViewModel)
+            {
+                return true;
+            }
+
+            bool continueWithoutSave = taskResult == MainViewModel.EditorTaskResult.ContinueNoSave
+                || taskResult == MainViewModel.EditorTaskResult.Cancel;
+
+            return taskMode && continueWithoutSave;
+        }
+
         public async Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
         {
             string detectedFfmpegPath = await Dispatcher.UIThread.InvokeAsync(PathsManager.GetFFmpegPath);
@@ -180,6 +261,13 @@ namespace XerahS.UI.Services
                 try
                 {
                     Exception? startupFailure = null;
+                    VideoEditorLaunchPolicy launchPolicy = VideoEditorLaunchPolicyResolver.GetCurrentPolicy();
+                    if (!launchPolicy.AllowInteractiveLaunch)
+                    {
+                        await ShowVideoEditorStartupErrorAsync("The video editor is unavailable on this platform/session.");
+                        return null;
+                    }
+
                     var ffmpegResolution = VideoEditorFfmpegResolver.Resolve(ffmpegPath, detectedFfmpegPath);
                     LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
 
@@ -208,7 +296,10 @@ namespace XerahS.UI.Services
                         VideoPath = videoPath,
                         FFmpegPath = ffmpegResolution.ConfiguredPath,
                         FFprobePath = ffprobePath,
+                        WindowTitle = AppResources.AppName,
                         Theme = ResolveTheme(),
+                        WatermarkSettings = VideoEditorWatermarkMapper.FromDefaultTaskSettings(),
+                        EnableLinuxWaylandExplicitSyncMitigation = launchPolicy.EnableLinuxWaylandExplicitSyncMitigation
                     };
 
                     var events = new VideoEditorEvents
@@ -296,7 +387,7 @@ namespace XerahS.UI.Services
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                var dialog = new Window
+                var dialog = new Views.SurfaceWindow
                 {
                     Title = "Video Editor Unavailable",
                     Width = 680,
@@ -369,7 +460,7 @@ namespace XerahS.UI.Services
             owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
             owner.ShowInTaskbar;
 
-        public async Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel)> ShowAfterCaptureWindowAsync(
+        public async Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel, AfterCaptureQuickAction QuickAction)> ShowAfterCaptureWindowAsync(
             SKBitmap image,
             AfterCaptureTasks afterCapture,
             AfterUploadTasks afterUpload)
@@ -406,7 +497,7 @@ namespace XerahS.UI.Services
                     await closedTcs.Task;
                 }
 
-                return (viewModel.AfterCaptureTasks, viewModel.AfterUploadTasks, viewModel.Cancelled);
+                return (viewModel.AfterCaptureTasks, viewModel.AfterUploadTasks, viewModel.Cancelled, viewModel.QuickAction);
             });
         }
 
@@ -422,6 +513,310 @@ namespace XerahS.UI.Services
 
                 viewModel.RequestClose += () => window.Close();
                 window.Closed += (_, _) => viewModel.Dispose();
+
+                Window? owner = null;
+                if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                {
+                    owner = desktop.MainWindow;
+                }
+
+                bool canUseOwner = owner != null && owner.IsVisible &&
+                                   owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
+                                   owner.ShowInTaskbar;
+
+                if (canUseOwner)
+                {
+                    window.Show(owner!);
+                }
+                else
+                {
+                    window.Show();
+                }
+            });
+        }
+
+        public async Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection)
+        {
+            return await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                var viewModel = new SendToPromptViewModel(selection, SettingsManager.Settings);
+                var window = new Views.SendToPromptWindow
+                {
+                    DataContext = viewModel
+                };
+
+                Window? owner = TryGetDialogOwner();
+                if (CanUseDialogOwner(owner))
+                {
+                    await window.ShowDialog(owner!);
+                }
+                else
+                {
+                    var closedTcs = new TaskCompletionSource<bool>();
+                    window.Closed += (_, _) => closedTcs.TrySetResult(true);
+                    window.Show();
+                    await closedTcs.Task;
+                }
+
+                return viewModel.Result;
+            });
+        }
+
+        public async Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection, SendToPromptResult? decision = null)
+        {
+            if (action is SendToAction.Cancel or SendToAction.UploadNow)
+            {
+                return;
+            }
+
+            Window? owner = TryGetDialogOwner();
+            SendToPromptResult effectiveDecision = decision ?? new SendToPromptResult
+            {
+                Action = action,
+                FolderPolicy = SettingsManager.Settings.SendToFolderPolicy,
+                RememberScope = XerahS.Core.SendTo.SendToPolicyResolver.GetRememberScope(selection),
+                BatchExecutionPolicy = SettingsManager.Settings.SendToBatchExecutionPolicy,
+                BatchConfirmThreshold = SettingsManager.Settings.SendToBatchConfirmThreshold
+            };
+
+            switch (action)
+            {
+                case SendToAction.OpenUploadContent:
+                    await UploadContentToolService.ShowSelectionAsync(
+                        selection.FilePaths,
+                        selection.FolderPaths,
+                        owner,
+                        effectiveDecision.FolderPolicy);
+                    break;
+
+                case SendToAction.OpenImageEditor:
+                    await OpenSelectedImagesInEditorAsync(selection, effectiveDecision);
+                    break;
+
+                case SendToAction.PinToScreen:
+                    await PinSelectedImagesAsync(selection, effectiveDecision);
+                    break;
+
+                case SendToAction.IndexFolders:
+                    await OpenSelectedFoldersInIndexFolderAsync(selection, owner);
+                    break;
+            }
+        }
+
+        private async Task OpenSelectedImagesInEditorAsync(SendToSelection selection, SendToPromptResult decision)
+        {
+            if (!selection.CanOpenImageEditor)
+            {
+                return;
+            }
+
+            if (!ShouldRunImageBatch(selection, decision, "Image Editor"))
+            {
+                return;
+            }
+
+            if (decision.BatchExecutionPolicy == SendToBatchExecutionPolicy.OpenAllImmediately)
+            {
+                List<Task> editorTasks = [];
+                foreach (var filePath in selection.FilePaths ?? Array.Empty<string>())
+                {
+                    editorTasks.Add(OpenImageFileInEditorAsync(filePath, (bitmap, path) => ShowEditorAsync(bitmap, path)));
+                }
+
+                await Task.WhenAll(editorTasks);
+                return;
+            }
+
+            foreach (var filePath in selection.FilePaths ?? Array.Empty<string>())
+            {
+                await OpenImageFileInEditorAsync(filePath, (bitmap, path) => ShowEditorAsync(bitmap, path));
+            }
+        }
+
+        private static async Task OpenImageFileInEditorAsync(
+            string? filePath,
+            Func<SKBitmap, string?, Task<SKBitmap?>> showEditorAsync)
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            {
+                return;
+            }
+
+            using SKBitmap? bitmap = SkiaSharp.SKBitmap.Decode(filePath);
+            if (bitmap == null)
+            {
+                return;
+            }
+
+            using SKBitmap? renderedImage = await showEditorAsync(bitmap, filePath);
+        }
+
+        private static async Task PinSelectedImagesAsync(SendToSelection selection, SendToPromptResult decision)
+        {
+            if (!selection.CanPinToScreen)
+            {
+                return;
+            }
+
+            if (!ShouldRunImageBatch(selection, decision, "Pin to Screen"))
+            {
+                return;
+            }
+
+            await PinToScreenToolService.PinFilesAsync(selection.FilePaths);
+            DebugHelper.WriteLine($"Shell integration: Pin-to-screen Send-to batch requested {selection.FilePaths.Count} image(s).");
+
+            if (PlatformServices.IsInitialized && PlatformServices.IsToastServiceInitialized)
+            {
+                PlatformServices.Toast.ShowToast(new ToastConfig
+                {
+                    Title = "Send-to complete",
+                    Text = $"Pinned {selection.FilePaths.Count} image(s).",
+                    Duration = 3f,
+                    AutoHide = true
+                });
+            }
+        }
+
+        private static bool ShouldRunImageBatch(SendToSelection selection, SendToPromptResult decision, string actionName)
+        {
+            int itemCount = selection.FilePaths.Count;
+            int threshold = XerahS.Core.SendTo.SendToPolicyResolver.NormalizeBatchThreshold(decision.BatchConfirmThreshold);
+
+            if (decision.BatchExecutionPolicy == SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold &&
+                itemCount > threshold &&
+                decision.IsRemembered)
+            {
+                DebugHelper.WriteLine(
+                    $"Shell integration: Skipped remembered Send-to {actionName} batch because {itemCount} item(s) exceed threshold {threshold}.");
+
+                if (PlatformServices.IsInitialized && PlatformServices.IsToastServiceInitialized)
+                {
+                    PlatformServices.Toast.ShowToast(new ToastConfig
+                    {
+                        Title = "Send-to needs confirmation",
+                        Text = $"Open XerahS and choose the action for {itemCount} image(s).",
+                        Duration = 5f,
+                        AutoHide = true
+                    });
+                }
+
+                return false;
+            }
+
+            return true;
+        }
+
+        private async Task OpenSelectedFoldersInIndexFolderAsync(SendToSelection selection, Window? owner)
+        {
+            if (!selection.CanIndexFolders)
+            {
+                return;
+            }
+
+            foreach (var folderPath in selection.FolderPaths ?? Array.Empty<string>())
+            {
+                if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
+                {
+                    continue;
+                }
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var viewModel = UiViewModelFactoryAccessor.GetRequired().CreateIndexFolderViewModel();
+                    viewModel.FolderPath = folderPath;
+
+                    var window = new Views.IndexFolderView
+                    {
+                        DataContext = viewModel
+                    };
+
+                    if (CanUseDialogOwner(owner))
+                    {
+                        window.Show(owner!);
+                    }
+                    else
+                    {
+                        window.Show();
+                    }
+
+                    if (viewModel.CanStartIndexing)
+                    {
+                        _ = viewModel.IndexFolderCommand.ExecuteAsync(null);
+                    }
+                });
+            }
+        }
+
+        public async Task ShowOcrWindowAsync(SKBitmap image)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var viewModel = new OcrViewModel(image);
+
+                // Wire the SelectRegion callback so users can re-capture inside the OCR window
+                viewModel.SelectRegionRequested = async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(300); // Allow window to minimize
+                        var captureSettings = SettingsManager.DefaultTaskSettings?.CaptureSettings
+                            ?? new TaskSettingsCapture();
+                        var captureOptions = new CaptureOptions
+                        {
+                            UseModernCapture = captureSettings.UseModernCapture,
+                            LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
+                            MacOSRegionSelectorPreference = captureSettings.MacOSRegionSelectorPreference,
+                            MacOSPlayCaptureSound = captureSettings.MacOSPlayCaptureSound,
+                            ShowCursor = captureSettings.ShowCursor,
+                            CaptureTransparent = captureSettings.CaptureTransparent,
+                            CaptureShadow = captureSettings.CaptureShadow,
+                            CaptureClientArea = captureSettings.CaptureClientArea
+                        };
+                        return await PlatformServices.ScreenCapture.CaptureRegionAsync(captureOptions);
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.WriteException(ex, "OCR region capture");
+                        return null;
+                    }
+                };
+
+                var window = new Views.OcrWindow
+                {
+                    DataContext = viewModel
+                };
+
+                Window? owner = null;
+                if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                {
+                    owner = desktop.MainWindow;
+                }
+
+                bool canUseOwner = owner != null && owner.IsVisible &&
+                                   owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
+                                   owner.ShowInTaskbar;
+
+                if (canUseOwner)
+                {
+                    window.Show(owner!);
+                }
+                else
+                {
+                    window.Show();
+                }
+            });
+        }
+
+        public async Task ShowAnalyzerWindowAsync(SKBitmap image)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var viewModel = new ImageAnalyzerViewModel();
+                viewModel.SetInputImage(image);
+
+                var window = new Views.ImageAnalyzerWindow();
+                window.Initialize(viewModel);
 
                 Window? owner = null;
                 if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

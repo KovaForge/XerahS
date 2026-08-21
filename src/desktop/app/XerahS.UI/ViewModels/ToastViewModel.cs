@@ -30,8 +30,10 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SkiaSharp;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.UI.ViewModels;
@@ -42,6 +44,7 @@ namespace XerahS.UI.ViewModels;
 public partial class ToastViewModel : ObservableObject, IDisposable
 {
     private readonly ToastConfig _config;
+    private readonly IDesktopTaskManager? _taskManager;
     private readonly DispatcherTimer _durationTimer;
     private readonly DispatcherTimer _fadeTimer;
     private readonly int _fadeInterval = 50;
@@ -74,6 +77,12 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     private bool _hasUrl;
 
     [ObservableProperty]
+    private string? _headerText;
+
+    [ObservableProperty]
+    private bool _hasHeaderText;
+
+    [ObservableProperty]
     private string? _errorDetails;
 
     [ObservableProperty]
@@ -91,10 +100,14 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     public ICommand CopyErrorsCommand { get; }
     public ICommand OpenURLCommand { get; }
     public ICommand DeleteItemCommand { get; }
+    public bool CanCopyImage => !string.IsNullOrWhiteSpace(_config.FilePath) && File.Exists(_config.FilePath) && FileHelpers.IsImageFile(_config.FilePath);
+    internal string? FilePath => _config.FilePath;
+    internal bool HasExistingFile => !string.IsNullOrWhiteSpace(_config.FilePath) && File.Exists(_config.FilePath);
 
-    public ToastViewModel(ToastConfig config)
+    public ToastViewModel(ToastConfig config, IDesktopTaskManager? taskManager = null)
     {
         _config = config;
+        _taskManager = taskManager;
 
         // Try to load image from path
         if (!string.IsNullOrEmpty(config.ImagePath) && File.Exists(config.ImagePath))
@@ -115,6 +128,8 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         Url = config.URL;
         HasImage = Image != null;
         HasUrl = !string.IsNullOrEmpty(config.URL);
+        HeaderText = !string.IsNullOrWhiteSpace(config.URL) ? config.URL : config.FilePath;
+        HasHeaderText = !string.IsNullOrWhiteSpace(HeaderText);
         ErrorDetails = config.ErrorDetails;
         HasErrors = !string.IsNullOrWhiteSpace(config.ErrorDetails);
 
@@ -122,7 +137,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         EditImageCommand = new RelayCommand(AnnotateMedia);
         CopyImageToClipboardCommand = new RelayCommand(CopyImageToClipboard);
         OpenFileCommand = new RelayCommand(OpenFile);
-        UploadItemCommand = new RelayCommand(UploadFile);
+        UploadItemCommand = new AsyncRelayCommand(UploadFileAsync);
         OpenFolderCommand = new RelayCommand(OpenFolder);
         CopyFilePathCommand = new RelayCommand(CopyFilePath);
         CopyUrlCommand = new RelayCommand(CopyUrl);
@@ -151,11 +166,37 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         };
         _fadeTimer.Tick += OnFadeTick;
 
-        // Start duration timer if auto-hide is enabled
-        if (config.AutoHide && config.Duration > 0)
+        // Start duration timer if auto-hide is enabled. A zero display duration means the
+        // toast should begin fading immediately instead of staying visible forever.
+        switch (GetAutoHideStartMode(config))
         {
-            _durationTimer.Start();
+            case ToastAutoHideStartMode.WaitForDuration:
+                _durationTimer.Start();
+                break;
+            case ToastAutoHideStartMode.StartFade:
+                _isDurationEnd = true;
+                CheckFade();
+                break;
         }
+    }
+
+    internal static ToastAutoHideStartMode GetAutoHideStartMode(ToastConfig config)
+    {
+        if (!config.AutoHide)
+        {
+            return ToastAutoHideStartMode.None;
+        }
+
+        return config.Duration > 0
+            ? ToastAutoHideStartMode.WaitForDuration
+            : ToastAutoHideStartMode.StartFade;
+    }
+
+    internal enum ToastAutoHideStartMode
+    {
+        None,
+        WaitForDuration,
+        StartFade
     }
 
     public void OnMenuOpened()
@@ -171,7 +212,15 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     public void OnMenuClosed()
     {
         _isMenuOpen = false;
-        CheckFade();
+
+        // When the user dismisses the menu, resume fade immediately regardless of duration state.
+        // CheckFade() gates on _isDurationEnd which is only set when the duration timer fires.
+        // If the user opens the context menu during the visible-duration window (before _isDurationEnd
+        // is set), CheckFade() does nothing on close and the toast appears stuck.
+        if (_config.AutoHide && !_isMouseInside)
+        {
+            StartFade();
+        }
     }
 
     public void OnMouseEnter()
@@ -226,16 +275,25 @@ public partial class ToastViewModel : ObservableObject, IDisposable
 
     private void OnFadeTick(object? sender, EventArgs e)
     {
-        if (_opacity > _opacityDecrement)
+        var nextOpacity = GetNextFadeOpacity(_opacity, _opacityDecrement);
+
+        if (nextOpacity > 0)
         {
-            _opacity -= _opacityDecrement;
+            _opacity = nextOpacity;
             OpacityChanged?.Invoke(this, _opacity);
         }
         else
         {
+            _opacity = 0;
+            OpacityChanged?.Invoke(this, _opacity);
             _fadeTimer.Stop();
             CloseRequested?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    internal static double GetNextFadeOpacity(double opacity, double opacityDecrement)
+    {
+        return opacity > opacityDecrement ? opacity - opacityDecrement : 0;
     }
 
     private void StartFade()
@@ -292,7 +350,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
                 break;
 
             case ToastClickAction.Upload:
-                UploadFile();
+                _ = UploadFileAsync();
                 break;
 
             case ToastClickAction.PinToScreen:
@@ -425,11 +483,24 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         }
     }
 
+    internal static string BuildMarkdownImage(string url, string? altText = null)
+    {
+        string escapedAltText = string.IsNullOrWhiteSpace(altText)
+            ? "Image"
+            : altText.Replace("\\", "\\\\").Replace("[", "\\[").Replace("]", "\\]");
+
+        string markdownUrl = url.IndexOfAny([' ', '(', ')']) >= 0
+            ? $"<{url}>"
+            : url;
+
+        return $"![{escapedAltText}]({markdownUrl})";
+    }
+
     private void CopyMarkdownImage()
     {
         if (string.IsNullOrEmpty(_config.URL)) return;
 
-        var markdownImage = $"[img]{_config.URL}[/img]";
+        var markdownImage = BuildMarkdownImage(_config.URL, _config.Title);
         try
         {
             PlatformServices.Clipboard.SetText(markdownImage);
@@ -470,7 +541,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
                 using var bitmap = SKBitmap.Decode(_config.FilePath);
                 if (bitmap != null)
                 {
-                    await PlatformServices.UI.ShowEditorAsync(bitmap);
+                    await PlatformServices.UI.ShowEditorAsync(bitmap, sourceFilePath: _config.FilePath);
                 }
             }
             else
@@ -487,20 +558,50 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void UploadFile()
+    private async Task UploadFileAsync()
     {
-        if (!string.IsNullOrEmpty(_config.FilePath))
+        if (string.IsNullOrWhiteSpace(_config.FilePath))
         {
-            try
-            {
-                // TODO: Implement upload through TaskManager
-                DebugHelper.WriteLine($"Upload requested for: {_config.FilePath}");
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.WriteException(ex, "Failed to upload file from toast");
-            }
+            return;
         }
+
+        if (!File.Exists(_config.FilePath))
+        {
+            DebugHelper.WriteLine($"Toast upload skipped, file not found: {_config.FilePath}");
+            return;
+        }
+
+        var taskManager = _taskManager
+            ?? PlatformServices.RootProvider?.GetService(typeof(IDesktopTaskManager)) as IDesktopTaskManager;
+        if (taskManager == null)
+        {
+            DebugHelper.WriteLine("Toast upload skipped, desktop task manager is not available.");
+            return;
+        }
+
+        try
+        {
+            var settings = GetUploadTaskSettings();
+            settings.Job = WorkflowType.FileUpload;
+            await taskManager.StartFileTask(settings, _config.FilePath);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "Failed to upload file from toast");
+        }
+    }
+
+    private static TaskSettings GetUploadTaskSettings()
+    {
+        var uploadWorkflow = SettingsManager.GetFirstWorkflow(WorkflowType.FileUpload);
+        if (uploadWorkflow?.TaskSettings != null)
+        {
+            var settings = WatchFolderManager.CloneTaskSettings(uploadWorkflow.TaskSettings);
+            settings.WorkflowId = uploadWorkflow.Id;
+            return settings;
+        }
+
+        return WatchFolderManager.CloneTaskSettings(SettingsManager.DefaultTaskSettings ?? new TaskSettings());
     }
 
     private void PinToScreen()
@@ -509,7 +610,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         {
             try
             {
-                var bitmap = SKBitmap.Decode(_config.FilePath);
+                using var bitmap = SKBitmap.Decode(_config.FilePath);
                 if (bitmap != null)
                 {
                     var options = SettingsManager.DefaultTaskSettings?.ToolsSettings?.PinToScreenOptions

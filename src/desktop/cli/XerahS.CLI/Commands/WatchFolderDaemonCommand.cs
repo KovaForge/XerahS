@@ -76,9 +76,17 @@ namespace XerahS.CLI.Commands
 
         private static WatchFolderDaemonScope ParseScope(string scopeStr)
         {
-            return scopeStr.Equals("system", StringComparison.OrdinalIgnoreCase)
-                ? WatchFolderDaemonScope.System
-                : WatchFolderDaemonScope.User;
+            if (scopeStr.Equals("system", StringComparison.OrdinalIgnoreCase))
+            {
+                return WatchFolderDaemonScope.System;
+            }
+
+            if (scopeStr.Equals("user", StringComparison.OrdinalIgnoreCase))
+            {
+                return WatchFolderDaemonScope.User;
+            }
+
+            throw new ArgumentException($"Invalid value for --scope: {scopeStr}. Expected 'user' or 'system'.");
         }
 
         private static async Task<int> StatusAsync(WatchFolderDaemonScope scope)

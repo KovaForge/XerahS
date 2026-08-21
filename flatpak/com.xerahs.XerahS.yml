@@ -1,0 +1,91 @@
+app-id: com.xerahs.XerahS
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+command: xerahs
+
+finish-args:
+  # Display. The Wayland native socket is preferred so the XDG GlobalShortcuts
+  # portal dialog renders with native chrome on GNOME/KDE/Hyprland. The
+  # fallback-x11 socket allows XWayland when only X11 is available. Both
+  # sockets together pass flatpak-builder-lint (x11+wayland together would
+  # not). Native .deb/.rpm/AUR installs are not sandboxed and continue to
+  # use the direct-evdev hotkey path via the udev rule in
+  # build/linux/packaging/99-xerahs-input.rules.
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc       # required by Flathub lint whenever any x11 variant is present
+
+  # GPU / Skia acceleration.
+  - --device=dri
+
+  # Network is required for upload destinations, update checks, and connected integrations.
+  - --share=network
+
+  # XDG Desktop Portals — Capture/Hotkeys/Notification via the standard
+  # portal path. No explicit portal bus-name grants: the Flatpak session-bus
+  # proxy (xdg-dbus-proxy) auto-routes calls to
+  # org.freedesktop.portal.{Desktop,GlobalShortcuts,ScreenCast,Notification}
+  # whenever the running app's app_id matches a known .desktop file.
+  # `App.axaml.cs:70` sets `Name = "xerahs"` to align the Wayland app_id with
+  # flatpak/com.xerahs.XerahS.desktop's StartupWMClass=xerahs, so the proxy
+  # forwards the portal calls without us needing `--talk-name=…portal.*`.
+
+  # StatusNotifierItem tray integration. On GNOME this still depends on a
+  # compatible AppIndicator/KStatusNotifier extension.
+  - --talk-name=org.kde.StatusNotifierWatcher
+
+  # Avalonia's tray implementation follows the StatusNotifierItem spec and owns
+  # org.kde.StatusNotifierItem-{pid}-{id} on the session bus before registering
+  # with the watcher. Without this grant the session-bus proxy rejects the
+  # RequestName call (issue #270: startup crash on KDE Plasma). The app also
+  # tolerates the rejection at runtime, but the grant is required for the tray
+  # icon to appear. NOTE: Flathub lint blocks own-name wildcards; a Flathub
+  # submission must either drop this (no tray icon) or negotiate an exception.
+  - --own-name=org.kde.*
+
+# NOTE: Flatpak builds do not rely on host CLI capture tools such as grim,
+# slurp, hyprshot, wl-clipboard, xclip, or xdotool. Sandboxed capture and
+# recording are portal-first; native CLI fallbacks are reserved for non-sandboxed
+# Linux installs.
+
+modules:
+  - name: xerahs
+    buildsystem: simple
+    build-commands:
+      # Install self-contained publish to /app
+      - cp -rT self-contained /app
+
+      # Flatpak application commands must be installed under /app.
+      - mkdir -p /app/bin
+      - ln -s ../XerahS /app/bin/XerahS
+      - ln -s ../XerahS /app/bin/xerahs
+
+      # Install app icon
+      - install -Dm644 com.xerahs.XerahS.png /app/share/icons/hicolor/512x512/apps/com.xerahs.XerahS.png
+
+      # Install .desktop file (converted to use the /usr/bin symlink)
+      - install -Dm644 com.xerahs.XerahS.desktop /app/share/applications/com.xerahs.XerahS.desktop
+
+      # Install AppStream metainfo (for software-center compliance)
+      - install -Dm644 com.xerahs.XerahS.metainfo.xml /app/share/metainfo/com.xerahs.XerahS.metainfo.xml
+
+      # WebUI dist must exist (copied into publish dir by CopyWebUIDist MSBuild target)
+      # Validate it was included
+      - test -d /app/frontend/dist || (echo "error: WebUI dist missing at /app/frontend/dist" && exit 1)
+
+      # Fix executable permissions
+      - chmod 755 /app/XerahS
+      - test -f /app/xerahs-watchfolder-daemon && chmod 755 /app/xerahs-watchfolder-daemon || true
+
+    sources:
+      - type: dir
+        path: ../dist/xerahs-flatpak-staging
+        dest: self-contained
+      - type: file
+        path: ../src/desktop/app/XerahS.UI/Assets/ShareX.iconset/icon_512x512.png
+        dest-filename: com.xerahs.XerahS.png
+      - type: file
+        path: com.xerahs.XerahS.desktop
+      - type: file
+        path: com.xerahs.XerahS.metainfo.xml

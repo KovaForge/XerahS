@@ -113,6 +113,7 @@ namespace XerahS.CLI.Commands
                 Console.WriteLine($"  ApplicationConfig: {SettingsManager.ApplicationConfigFilePath}");
                 Console.WriteLine($"  WorkflowsConfig:   {SettingsManager.WorkflowsConfigFilePath}");
                 Console.WriteLine($"  UploadersConfig:   {SettingsManager.UploadersConfigFilePath}");
+                Console.WriteLine($"  ReClipConfig:      {ReClipCommand.ConfigFilePath}");
                 Console.WriteLine();
 
                 Console.WriteLine($"Backup Folder:");

@@ -32,6 +32,15 @@ namespace XerahS.Platform.Windows.Services;
 public sealed class WindowsStartupService : IStartupService
 {
     private const string StartupRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    private const string XerahSExecutableBaseName = "XerahS";
+
+    public WindowsStartupService()
+    {
+        if (IsXerahSProcess(Environment.ProcessPath))
+        {
+            MigrateLegacyStartupShortcut();
+        }
+    }
 
     public bool IsRunAtStartupEnabled()
     {
@@ -44,7 +53,8 @@ public sealed class WindowsStartupService : IStartupService
         {
             using RegistryKey? key = Registry.CurrentUser.OpenSubKey(StartupRegistryPath);
             string? value = key?.GetValue(AppResources.AppName) as string;
-            return string.Equals(value, GetStartupCommand(), StringComparison.OrdinalIgnoreCase);
+            return string.Equals(value, GetStartupCommand(), StringComparison.OrdinalIgnoreCase) ||
+                File.Exists(GetLegacyStartupShortcutPath());
         }
         catch (Exception ex)
         {
@@ -77,6 +87,8 @@ public sealed class WindowsStartupService : IStartupService
                 key.DeleteValue(AppResources.AppName, false);
             }
 
+            DeleteLegacyStartupShortcut();
+
             return IsRunAtStartupEnabled() == enable;
         }
         catch (Exception ex)
@@ -86,9 +98,67 @@ public sealed class WindowsStartupService : IStartupService
         }
     }
 
+    private static void MigrateLegacyStartupShortcut()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        string shortcutPath = GetLegacyStartupShortcutPath();
+        if (!File.Exists(shortcutPath))
+        {
+            return;
+        }
+
+        try
+        {
+            using RegistryKey? key = Registry.CurrentUser.CreateSubKey(StartupRegistryPath);
+            if (key == null)
+            {
+                return;
+            }
+
+            key.SetValue(AppResources.AppName, GetStartupCommand(), RegistryValueKind.String);
+            File.Delete(shortcutPath);
+            DebugHelper.WriteLine("WindowsStartupService: Migrated legacy Startup-folder shortcut to the Run registry key.");
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "WindowsStartupService: Failed to migrate legacy Startup-folder shortcut.");
+        }
+    }
+
+    private static void DeleteLegacyStartupShortcut()
+    {
+        string shortcutPath = GetLegacyStartupShortcutPath();
+        if (File.Exists(shortcutPath))
+        {
+            File.Delete(shortcutPath);
+        }
+    }
+
+    private static string GetLegacyStartupShortcutPath()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Startup),
+            $"{AppResources.AppName}.lnk");
+    }
+
+    internal static string GetStartupCommand(string processPath)
+    {
+        return $"\"{processPath}\" {AppContracts.Cli.SilentStartupFlag}";
+    }
+
+    internal static bool IsXerahSProcess(string? processPath)
+    {
+        return !string.IsNullOrWhiteSpace(processPath) &&
+            Path.GetFileNameWithoutExtension(processPath).Equals(XerahSExecutableBaseName, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static string GetStartupCommand()
     {
         string processPath = Environment.ProcessPath ?? string.Empty;
-        return $"\"{processPath}\" -silent";
+        return GetStartupCommand(processPath);
     }
 }

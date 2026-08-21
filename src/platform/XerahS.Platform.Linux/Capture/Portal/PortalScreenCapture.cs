@@ -63,7 +63,8 @@ internal static class PortalScreenCapture
             LogPortalDiagnosticsOnce();
 
             using var connection = new Connection(Address.Session);
-            await connection.ConnectAsync().ConfigureAwait(false);
+            var connectionInfo = await connection.ConnectAsync().ConfigureAwait(false);
+            global::XerahS.Platform.Linux.Capture.PortalRequestExtensions.CacheLocalConnectionName(connection, connectionInfo);
 
             var portal = connection.CreateProxy<IScreenshotPortal>(PortalBusName, PortalObjectPath);
 
@@ -116,13 +117,17 @@ internal static class PortalScreenCapture
     {
         var requestStartUtc = DateTime.UtcNow;
         using var monitor = PortalBusMonitor.TryStart("LinuxScreenCaptureService");
-        var requestPath = await portal.ScreenshotAsync(string.Empty, options).ConfigureAwait(false);
-        var request = connection.CreateProxy<IPortalRequest>(PortalBusName, requestPath);
         using var cts = new CancellationTokenSource(PortalResponseTimeout);
         (uint response, IDictionary<string, object> results) result;
         try
         {
-            result = await request.WaitForResponseAsync(cts.Token).ConfigureAwait(false);
+            result = await connection
+                .SendPortalRequestAsync(
+                    PortalBusName,
+                    options,
+                    () => portal.ScreenshotAsync(string.Empty, options),
+                    cts.Token)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -248,19 +253,9 @@ internal static class PortalScreenCapture
 
     private static string GetPortalsConfigSummary()
     {
-        var configHome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
-        if (string.IsNullOrWhiteSpace(configHome))
-        {
-            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            configHome = string.IsNullOrWhiteSpace(userProfile) ? null : Path.Combine(userProfile, ".config");
-        }
-        var userConfigPath = string.IsNullOrWhiteSpace(configHome)
-            ? string.Empty
-            : Path.Combine(configHome, "xdg-desktop-portal", "portals.conf");
+        var userConfigPath = Path.Combine(LinuxXdgDirectories.Detect().ConfigHome, "xdg-desktop-portal", "portals.conf");
         var systemConfigPath = "/etc/xdg-desktop-portal/portals.conf";
-        var userConfigState = string.IsNullOrWhiteSpace(userConfigPath)
-            ? "user=unresolved"
-            : $"user={(File.Exists(userConfigPath) ? "present" : "missing")}";
+        var userConfigState = $"user={(File.Exists(userConfigPath) ? "present" : "missing")}";
         var systemConfigState = $"system={(File.Exists(systemConfigPath) ? "present" : "missing")}";
         return $"{userConfigState}, {systemConfigState}";
     }

@@ -24,26 +24,23 @@
 #endregion License Information (GPL v3)
 
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using XerahS.CLI;
-using System.CommandLine.Binding;
-using System.CommandLine.Parsing;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Helpers;
-using XerahS.Core.Managers;
 using XerahS.Core.Tasks;
 using XerahS.History;
 using XerahS.Platform.Abstractions;
+using XerahS.Services.Abstractions;
 
 namespace XerahS.CLI.Commands
 {
     public static class CaptureCommand
     {
-        public static Command Create()
+        public static Command Create(IDesktopTaskManager taskManager)
         {
             var captureCommand = new Command("capture", "Screen capture operations");
-            
+
             var uploadOption = new Option<bool>("--upload") { Description = "Upload the captured image/file" };
 
             // Screen capture subcommand
@@ -55,7 +52,7 @@ namespace XerahS.CLI.Commands
             {
                 var output = parseResult.GetValue(outputOption);
                 var upload = parseResult.GetValue(uploadOption);
-                Environment.ExitCode = CaptureScreenAsync(output, upload).GetAwaiter().GetResult();
+                Environment.ExitCode = CaptureScreenAsync(taskManager, output, upload).GetAwaiter().GetResult();
             });
 
             // Window capture subcommand
@@ -66,12 +63,12 @@ namespace XerahS.CLI.Commands
             {
                 var output = parseResult.GetValue(outputOption);
                 var upload = parseResult.GetValue(uploadOption);
-                Environment.ExitCode = CaptureWindowAsync(output, upload).GetAwaiter().GetResult();
+                Environment.ExitCode = CaptureWindowAsync(taskManager, output, upload).GetAwaiter().GetResult();
             });
 
             // Region capture subcommand
             var regionCommand = new Command("region", "Capture specific region");
-            var regionOption = new Option<string>("--region") { Description = "Region in format 'x,y,width,height' (e.g. '0,0,400,400')" };
+            var regionOption = new Option<string?>("--region") { Description = "Region in format 'x,y,width,height' (e.g. '0,0,400,400')", Required = true };
             regionCommand.Add(regionOption);
             regionCommand.Add(outputOption);
             regionCommand.Add(uploadOption);
@@ -80,7 +77,7 @@ namespace XerahS.CLI.Commands
                 var region = parseResult.GetValue(regionOption);
                 var output = parseResult.GetValue(outputOption);
                 var upload = parseResult.GetValue(uploadOption);
-                Environment.ExitCode = CaptureRegionAsync(region!, output, upload).GetAwaiter().GetResult();
+                Environment.ExitCode = CaptureRegionAsync(taskManager, region, output, upload).GetAwaiter().GetResult();
             });
 
             // Transparent region capture subcommand
@@ -91,7 +88,7 @@ namespace XerahS.CLI.Commands
             {
                 var output = parseResult.GetValue(outputOption);
                 var upload = parseResult.GetValue(uploadOption);
-                Environment.ExitCode = CaptureTransparentAsync(output, upload).GetAwaiter().GetResult();
+                Environment.ExitCode = CaptureTransparentAsync(taskManager, output, upload).GetAwaiter().GetResult();
             });
 
             captureCommand.Add(screenCommand);
@@ -106,12 +103,9 @@ namespace XerahS.CLI.Commands
         {
             if (!string.IsNullOrEmpty(output))
             {
-                settings.AfterCaptureJob |= AfterCaptureTasks.SaveImageToFile;
-                settings.OverrideScreenshotsFolder = true;
-                settings.ScreenshotsFolder = Path.GetDirectoryName(output) ?? string.Empty;
-                settings.UploadSettings.NameFormatPattern = Path.GetFileNameWithoutExtension(output);
+                ApplyOutputOverride(settings, output);
             }
-            
+
             if (upload)
             {
                 settings.AfterCaptureJob |= AfterCaptureTasks.UploadImageToHost;
@@ -119,14 +113,53 @@ namespace XerahS.CLI.Commands
             }
         }
 
-        private static async Task<int> RunTask(TaskSettings taskSettings, SkiaSharp.SKBitmap? image = null)
+        internal static void ApplyOutputOverride(TaskSettings settings, string output)
+        {
+            string fullOutputPath = Path.GetFullPath(output);
+
+            settings.AfterCaptureJob |= AfterCaptureTasks.SaveImageToFile;
+            settings.OverrideScreenshotsFolder = true;
+            settings.ScreenshotsFolder = Path.GetDirectoryName(fullOutputPath) ?? Environment.CurrentDirectory;
+            settings.UploadSettings.NameFormatPattern = Path.GetFileNameWithoutExtension(fullOutputPath);
+
+            if (TryGetImageFormat(Path.GetExtension(fullOutputPath), out var imageFormat))
+            {
+                settings.ImageSettings.ImageFormat = imageFormat;
+            }
+        }
+
+        internal static bool TryGetImageFormat(string? extension, out EImageFormat imageFormat)
+        {
+            EImageFormat? parsedFormat = extension?.Trim().TrimStart('.').ToLowerInvariant() switch
+            {
+                "png" => EImageFormat.PNG,
+                "jpg" or "jpeg" => EImageFormat.JPEG,
+                "gif" => EImageFormat.GIF,
+                "bmp" => EImageFormat.BMP,
+                "tif" or "tiff" => EImageFormat.TIFF,
+                "webp" => EImageFormat.WEBP,
+                "avif" => EImageFormat.AVIF,
+                _ => null
+            };
+
+            if (parsedFormat.HasValue)
+            {
+                imageFormat = parsedFormat.Value;
+                return true;
+            }
+
+            imageFormat = default;
+            return false;
+        }
+
+        private static async Task<int> RunTask(IDesktopTaskManager taskManager, TaskSettings taskSettings, SkiaSharp.SKBitmap? image = null)
         {
             var tcs = new TaskCompletionSource<bool>();
 
             EventHandler<WorkerTask>? handler = null;
             handler = (sender, task) =>
             {
-                TaskManager.Instance.TaskCompleted -= handler;
+                taskManager.TaskCompleted -= handler;
                 
                 // Wait a bit for async history/clipboard ops (though they should be awaited in task)
                 // But History is added at end of task.
@@ -138,7 +171,7 @@ namespace XerahS.CLI.Commands
                     if (!string.IsNullOrEmpty(task.Info.FilePath))
                         Console.WriteLine($"Saved: {task.Info.FilePath}");
                     
-                    if (!string.IsNullOrEmpty(task.Info.Metadata.UploadURL))
+                    if (task.Info.Metadata != null && !string.IsNullOrEmpty(task.Info.Metadata.UploadURL))
                         Console.WriteLine($"URL: {task.Info.Metadata.UploadURL}");
                         
                     // Check History
@@ -153,7 +186,9 @@ namespace XerahS.CLI.Commands
                             var latest = items[0];
                             Console.WriteLine($"[History Verification] Latest Item: {latest.FileName}");
                             Console.WriteLine($"[History Verification] URL: '{latest.URL}'");
-                            if (latest.FilePath == task.Info.FilePath && latest.URL == task.Info.Metadata.UploadURL)
+                            if (latest.FilePath == task.Info.FilePath && 
+                                task.Info.Metadata != null && 
+                                latest.URL == task.Info.Metadata.UploadURL)
                             {
                                  Console.WriteLine($"[History Verification] SUCCESS: History matches task output.");
                             }
@@ -177,7 +212,7 @@ namespace XerahS.CLI.Commands
                 tcs.SetResult(success);
             };
 
-            TaskManager.Instance.TaskCompleted += handler;
+            taskManager.TaskCompleted += handler;
 
             // Execute
             if (image != null)
@@ -203,7 +238,7 @@ namespace XerahS.CLI.Commands
             return await tcs.Task ? 0 : 1;
         }
 
-        private static async Task<int> CaptureScreenAsync(string? output, bool upload)
+        private static async Task<int> CaptureScreenAsync(IDesktopTaskManager taskManager, string? output, bool upload)
         {
             try
             {
@@ -211,7 +246,7 @@ namespace XerahS.CLI.Commands
                 var taskSettings = new TaskSettings();
                 taskSettings.Job = WorkflowType.PrintScreen;
                 ConfigureTask(taskSettings, output, upload);
-                return await RunTask(taskSettings);
+                return await RunTask(taskManager, taskSettings);
             }
             catch (Exception ex)
             {
@@ -221,7 +256,7 @@ namespace XerahS.CLI.Commands
             }
         }
 
-        private static async Task<int> CaptureWindowAsync(string? output, bool upload)
+        private static async Task<int> CaptureWindowAsync(IDesktopTaskManager taskManager, string? output, bool upload)
         {
             try
             {
@@ -229,7 +264,7 @@ namespace XerahS.CLI.Commands
                 var taskSettings = new TaskSettings();
                 taskSettings.Job = WorkflowType.ActiveWindow;
                 ConfigureTask(taskSettings, output, upload);
-                return await RunTask(taskSettings);
+                return await RunTask(taskManager, taskSettings);
             }
             catch (Exception ex)
             {
@@ -239,21 +274,63 @@ namespace XerahS.CLI.Commands
             }
         }
 
-        private static async Task<int> CaptureRegionAsync(string region, string? output, bool upload)
+        public static bool TryParseRegion(string? region, out SkiaSharp.SKRect rect, out string? error)
+        {
+            rect = default;
+            error = null;
+
+            if (string.IsNullOrWhiteSpace(region))
+            {
+                error = "Region must be specified as x,y,width,height.";
+                return false;
+            }
+
+            var parts = region.Split(',', StringSplitOptions.TrimEntries);
+            if (parts.Length != 4)
+            {
+                error = "Region must be in format x,y,width,height.";
+                return false;
+            }
+
+            if (!int.TryParse(parts[0], out int x) ||
+                !int.TryParse(parts[1], out int y) ||
+                !int.TryParse(parts[2], out int width) ||
+                !int.TryParse(parts[3], out int height))
+            {
+                error = "Region values must be integers in format x,y,width,height.";
+                return false;
+            }
+
+            if (width <= 0 || height <= 0)
+            {
+                error = "Region width and height must be greater than zero.";
+                return false;
+            }
+
+            long right = (long)x + width;
+            long bottom = (long)y + height;
+            if (right > int.MaxValue || bottom > int.MaxValue)
+            {
+                error = "Region bounds are outside supported coordinate range.";
+                return false;
+            }
+
+            rect = new SkiaSharp.SKRect(x, y, (int)right, (int)bottom);
+            return true;
+        }
+
+        private static async Task<int> CaptureRegionAsync(IDesktopTaskManager taskManager, string? region, string? output, bool upload)
         {
             try
             {
                 Console.WriteLine($"Capturing region: {region}");
-                
-                var parts = region.Split(',');
-                if (parts.Length != 4) throw new ArgumentException("Region must be x,y,width,height");
-                
-                int x = int.Parse(parts[0]);
-                int y = int.Parse(parts[1]);
-                int w = int.Parse(parts[2]);
-                int h = int.Parse(parts[3]);
-                
-                var rect = new SkiaSharp.SKRect(x, y, x + w, y + h);
+
+                if (!TryParseRegion(region, out var rect, out var error))
+                {
+                    Console.Error.WriteLine(error);
+                    return 1;
+                }
+
                 var image = await PlatformServices.ScreenCapture.CaptureRectAsync(rect);
                 
                 if (image == null)
@@ -266,7 +343,7 @@ namespace XerahS.CLI.Commands
                 taskSettings.Job = WorkflowType.RectangleRegion;
                 ConfigureTask(taskSettings, output, upload);
                 
-                return await RunTask(taskSettings, image);
+                return await RunTask(taskManager, taskSettings, image);
             }
             catch (Exception ex)
             {
@@ -276,7 +353,7 @@ namespace XerahS.CLI.Commands
             }
         }
 
-        private static async Task<int> CaptureTransparentAsync(string? output, bool upload)
+        private static async Task<int> CaptureTransparentAsync(IDesktopTaskManager taskManager, string? output, bool upload)
         {
             try
             {
@@ -284,7 +361,7 @@ namespace XerahS.CLI.Commands
                 var taskSettings = new TaskSettings();
                 taskSettings.Job = WorkflowType.RectangleTransparent;
                 ConfigureTask(taskSettings, output, upload);
-                return await RunTask(taskSettings);
+                return await RunTask(taskManager, taskSettings);
             }
             catch (Exception ex)
             {

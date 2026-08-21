@@ -120,7 +120,7 @@ internal static class PortalScreenshotFallback
     {
         var dirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        var runtimeDir = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
+        var runtimeDir = LinuxXdgDirectories.Detect().RuntimeDirectory;
         if (!string.IsNullOrWhiteSpace(runtimeDir))
         {
             dirs.Add(runtimeDir);
@@ -146,53 +146,14 @@ internal static class PortalScreenshotFallback
             return special;
         }
 
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (string.IsNullOrWhiteSpace(home))
-        {
-            return string.Empty;
-        }
-
-        var configPath = Path.Combine(home, ".config", "user-dirs.dirs");
-        if (!File.Exists(configPath))
-        {
-            return Path.Combine(home, "Pictures");
-        }
-
-        try
-        {
-            foreach (var line in File.ReadLines(configPath))
-            {
-                if (!line.StartsWith("XDG_PICTURES_DIR", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                var parts = line.Split('=', 2);
-                if (parts.Length != 2)
-                {
-                    continue;
-                }
-
-                var raw = parts[1].Trim().Trim('"');
-                var expanded = raw.Replace("$HOME", home, StringComparison.Ordinal);
-                if (!string.IsNullOrWhiteSpace(expanded))
-                {
-                    return expanded;
-                }
-            }
-        }
-        catch
-        {
-        }
-
-        return Path.Combine(home, "Pictures");
+        return LinuxXdgDirectories.Detect().PicturesDirectory;
     }
 
     private static void TryDeleteIfTemporary(string path)
     {
         try
         {
-            var runtimeDir = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR") ?? string.Empty;
+            var runtimeDir = LinuxXdgDirectories.Detect().RuntimeDirectory ?? string.Empty;
             if (path.StartsWith("/tmp/", StringComparison.Ordinal) ||
                 (!string.IsNullOrWhiteSpace(runtimeDir) && path.StartsWith(runtimeDir, StringComparison.Ordinal)))
             {

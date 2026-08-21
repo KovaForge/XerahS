@@ -108,6 +108,33 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+        public bool DoOCR
+        {
+            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR);
+            set
+            {
+                if (DoOCR != value)
+                {
+                    UpdateAfterCaptureTask(AfterCaptureTasks.DoOCR, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool CopyOcrTextToClipboard
+        {
+            get => _settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyOcrTextToClipboard);
+            set
+            {
+                if (CopyOcrTextToClipboard != value)
+                {
+                    UpdateAfterCaptureTask(AfterCaptureTasks.CopyOcrTextToClipboard, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+
         private void UpdateAfterCaptureTask(AfterCaptureTasks task, bool enabled)
         {
             if (enabled)

@@ -279,6 +279,14 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
         SharePassword = string.Empty;
         DisplayName = string.Empty;
         UserId = string.Empty;
+        ServerVersion = string.Empty;
+        ServerProductName = "Nextcloud";
+        ThemingName = string.Empty;
+        SupportsPublicShares = false;
+        SupportsSharePasswords = false;
+        SupportsExpireDate = false;
+        SupportsChunking = false;
+        SupportsSearch = false;
         IsConnected = false;
         ClearPendingLoginFlow();
         UpdateConnectionSummary();
@@ -299,8 +307,9 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
             _config = config;
             _secretKey = string.IsNullOrWhiteSpace(config.SecretKey) ? Guid.NewGuid().ToString("N") : config.SecretKey;
             ServerUrl = config.ServerUrl ?? string.Empty;
-            LoginName = config.LoginName ?? string.Empty;
-            UserId = config.UserId ?? string.Empty;
+            string normalizedLoginName = NormalizeLoginIdentity(config.LoginName, config.UserId);
+            LoginName = normalizedLoginName;
+            UserId = string.IsNullOrWhiteSpace(config.UserId) ? normalizedLoginName : config.UserId;
             DisplayName = config.DisplayName ?? string.Empty;
             RemotePath = string.IsNullOrWhiteSpace(config.RemotePath) ? "ShareX/%y/%mo" : config.RemotePath;
             CreatePublicShare = config.CreatePublicShare;
@@ -368,15 +377,39 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
             return false;
         }
 
+        LoginName = NormalizeLoginIdentity(LoginName, UserId);
         if (string.IsNullOrWhiteSpace(LoginName))
         {
             StatusMessage = "Nextcloud login name is required.";
             return false;
         }
 
+        if (string.IsNullOrWhiteSpace(UserId))
+        {
+            UserId = LoginName;
+        }
+
         if (string.IsNullOrWhiteSpace(AppPassword))
         {
             StatusMessage = "Nextcloud app password is required. Use browser login or create an app password in Nextcloud security settings.";
+            return false;
+        }
+
+        if (CreatePublicShare && !SupportsPublicShares)
+        {
+            StatusMessage = "This Nextcloud server does not support public shares. Disable public share creation or refresh the server profile.";
+            return false;
+        }
+
+        if (CreatePublicShare && AutoExpireShare && !SupportsExpireDate)
+        {
+            StatusMessage = "This Nextcloud server does not support share expiry. Disable auto-expire or refresh the server profile.";
+            return false;
+        }
+
+        if (CreatePublicShare && !string.IsNullOrWhiteSpace(SharePassword) && !SupportsSharePasswords)
+        {
+            StatusMessage = "This Nextcloud server does not support share passwords. Clear the share password or refresh the server profile.";
             return false;
         }
 
@@ -437,9 +470,26 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
 
     private void UpdateConnectionState()
     {
+        LoginName = NormalizeLoginIdentity(LoginName, UserId);
+        if (string.IsNullOrWhiteSpace(UserId))
+        {
+            UserId = LoginName;
+        }
+
         IsConnected = !string.IsNullOrWhiteSpace(LoginName) && !string.IsNullOrWhiteSpace(AppPassword);
         UpdateConnectionSummary();
         UpdateCapabilitiesSummary();
+    }
+
+    private static string NormalizeLoginIdentity(string? loginName, string? userId)
+    {
+        string normalizedLoginName = loginName?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(normalizedLoginName))
+        {
+            return normalizedLoginName;
+        }
+
+        return userId?.Trim() ?? string.Empty;
     }
 
     private void UpdateConnectionSummary()
@@ -498,11 +548,15 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
     {
         if (_secrets == null || string.IsNullOrWhiteSpace(_secretKey))
         {
+            AppPassword = string.Empty;
+            SharePassword = string.Empty;
             return;
         }
 
-        AppPassword = _secrets.GetSecret("nextcloud", _secretKey, "appPassword") ?? AppPassword;
-        SharePassword = _secrets.GetSecret("nextcloud", _secretKey, "sharePassword") ?? SharePassword;
+        AppPassword = _secrets.GetSecret("nextcloud", _secretKey, "appPassword") ?? string.Empty;
+        SharePassword = CreatePublicShare
+            ? _secrets.GetSecret("nextcloud", _secretKey, "sharePassword") ?? string.Empty
+            : string.Empty;
     }
 
     private void PersistSecrets()
@@ -521,13 +575,14 @@ public partial class NextcloudConfigViewModel : ObservableObject, IUploaderConfi
             _secrets.SetSecret("nextcloud", _secretKey, "appPassword", AppPassword);
         }
 
-        if (string.IsNullOrWhiteSpace(SharePassword))
+        string effectiveSharePassword = CreatePublicShare ? SharePassword : string.Empty;
+        if (string.IsNullOrWhiteSpace(effectiveSharePassword))
         {
             _secrets.DeleteSecret("nextcloud", _secretKey, "sharePassword");
         }
         else
         {
-            _secrets.SetSecret("nextcloud", _secretKey, "sharePassword", SharePassword);
+            _secrets.SetSecret("nextcloud", _secretKey, "sharePassword", effectiveSharePassword);
         }
     }
 

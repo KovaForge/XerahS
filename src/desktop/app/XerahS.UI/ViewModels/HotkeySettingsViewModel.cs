@@ -22,10 +22,17 @@
 */
 
 #endregion License Information (GPL v3)
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using XerahS.Common;
 using XerahS.Core;
+using XerahS.Platform.Abstractions;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Runtime.InteropServices;
 
 namespace XerahS.UI.ViewModels;
 
@@ -34,6 +41,15 @@ public partial class HotkeySettingsViewModel : ViewModelBase
     public ObservableCollection<HotkeyItemViewModel> Hotkeys { get; } = new();
 
     public Func<XerahS.Core.Hotkeys.WorkflowSettings, Task<bool>>? EditHotkeyRequester { get; set; }
+
+    [ObservableProperty]
+    private bool _showHotkeyBackendWarning;
+
+    [ObservableProperty]
+    private string? _hotkeyBackendWarningText;
+
+    [ObservableProperty]
+    private string? _hotkeyBackendName;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RemoveCommand))]
@@ -50,9 +66,44 @@ public partial class HotkeySettingsViewModel : ViewModelBase
         if (global::Avalonia.Application.Current is App app)
         {
             _manager = app.WorkflowManager;
+            if (_manager != null)
+            {
+                _manager.WorkflowsChanged += OnManagerWorkflowsChanged;
+            }
         }
 
         LoadHotkeys();
+        RefreshHotkeyDiagnostics();
+    }
+
+    private void RefreshHotkeyDiagnostics()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            ShowHotkeyBackendWarning = false;
+            HotkeyBackendWarningText = null;
+            HotkeyBackendName = null;
+            return;
+        }
+
+        if (!PlatformServices.IsInitialized)
+        {
+            return;
+        }
+
+        HotkeyDiagnostics diagnostics = PlatformServices.Hotkey.GetDiagnostics();
+        HotkeyBackendName = diagnostics.BackendName;
+        HotkeyBackendWarningText = diagnostics.UserFacingWarning;
+        ShowHotkeyBackendWarning = !string.IsNullOrWhiteSpace(diagnostics.UserFacingWarning);
+    }
+
+    private void OnManagerWorkflowsChanged(object? sender, EventArgs e)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            LoadHotkeys();
+            RefreshHotkeyDiagnostics();
+        });
     }
 
     private void LoadHotkeys()
@@ -89,7 +140,7 @@ public partial class HotkeySettingsViewModel : ViewModelBase
         {
             SettingsManager.WorkflowsConfig.Hotkeys = _manager.Workflows;
             // Save to disk
-            SettingsManager.SaveWorkflowsConfigAsync();
+            _ = SettingsManager.SaveWorkflowsConfigAsync();
         }
     }
 
@@ -150,20 +201,43 @@ public partial class HotkeySettingsViewModel : ViewModelBase
     {
         if (SelectedHotkey != null && _manager != null)
         {
-            // Shallow copy for now, deep would be better
             var cloneJob = SelectedHotkey.Model.Job == WorkflowType.None
                 ? WorkflowType.RectangleRegion
                 : SelectedHotkey.Model.Job;
+
+            TaskSettings clonedTaskSettings = DeepCopyTaskSettings(SelectedHotkey.Model.TaskSettings);
+
             var clone = new XerahS.Core.Hotkeys.WorkflowSettings(cloneJob,
                 new Platform.Abstractions.HotkeyInfo(
                     SelectedHotkey.Model.HotkeyInfo.Key,
-                    SelectedHotkey.Model.HotkeyInfo.Modifiers));
+                    SelectedHotkey.Model.HotkeyInfo.Modifiers))
+            {
+                TaskSettings = clonedTaskSettings
+            };
+            clone.EnsureId();
 
             // Just add to list, user needs to change key
             _manager.Workflows.Add(clone);
             LoadHotkeys();
             SaveHotkeys();
         }
+    }
+
+    private static TaskSettings DeepCopyTaskSettings(TaskSettings source)
+    {
+        if (source == null) return new TaskSettings();
+        var jsonSettings = new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            ObjectCreationHandling = ObjectCreationHandling.Replace,
+            Converters = new List<JsonConverter>
+            {
+                new StringEnumConverter(),
+                new XerahS.Common.Converters.SkColorJsonConverter()
+            }
+        };
+        string json = JsonConvert.SerializeObject(source, jsonSettings);
+        return JsonConvert.DeserializeObject<TaskSettings>(json, jsonSettings) ?? new TaskSettings();
     }
 
     [RelayCommand(CanExecute = nameof(CanModifyHotkey))]

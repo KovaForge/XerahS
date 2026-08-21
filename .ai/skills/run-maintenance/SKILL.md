@@ -1,320 +1,135 @@
-# Maintenance Chores Skill
-
-**Objective**: Automate periodic maintenance tasks for XerahS including version bumps, changelog updates, and repository synchronization.
-
-**Scope**: This skill manages routine operations across all XerahS repositories (main, ShareX.ImageEditor, website) to keep versions and documentation in sync.
-
+---
+name: run-maintenance
+description: Repository maintenance preparation for XerahS. Use before release or changelog work to sync repositories, inspect submodule state, identify version/changelog needs, and hand off commit/push/version rules to git-workflow.
 ---
 
-## 📋 Chore Workflow
+# Maintenance Prep Skill
 
-### Phase 1: Repository Synchronization
+This skill prepares the XerahS workspace for release, changelog, or routine repository maintenance. It is not the source of truth for commit, push, tag, or version-prefix rules.
 
-**Purpose**: Ensure all local repositories are up-to-date with remote branches.
+Canonical references:
+- Git/version/commit/push rules: [git-workflow](../git-workflow/SKILL.md)
+- Changelog generation and grouping rules: [update-changelog](../update-changelog/SKILL.md)
+- Full release bump/tag automation: [publish-release](../publish-release/SKILL.md)
+- General repository policy: [AGENTS.md](../../../AGENTS.md)
 
-#### 1.1 Pull Main Repository
-```powershell
-git pull origin develop
-```
-- Pulls the latest changes from the `develop` branch of the main XerahS repository
-- Verify exit code is 0 (success)
+## Scope
 
-#### 1.2 Pull ShareX.ImageEditor Repository
-```powershell
-git -C ShareX.ImageEditor pull origin develop
-```
-- Pulls the latest changes from the `ShareX.ImageEditor` submodule
-- This tracks the `develop` branch in the current repo configuration
-- Verify exit code is 0 (success)
+Use this skill to:
+- Sync the main repository and submodules.
+- Inspect sibling repositories when the maintenance task explicitly touches them.
+- Identify whether a version bump or changelog update is needed.
+- Run the relevant pre-commit build after changes are made.
+- Leave final staging, commit, push, and tag decisions to `git-workflow` or `publish-release`.
 
-#### 1.3 Pull Website Repository (Optional)
-```powershell
-git -C ../xerahs.github.io pull origin main
-```
-- Pulls the latest changes from the website repository for coordinated updates
-- Optional if not performing website updates in this chore cycle
+Do not use this skill to invent commit message formats, submodule version prefixes, release tags, or changelog grouping rules.
 
----
+## Workflow
 
-### Phase 2: Version Bumping
+### 1. Inspect Status Before Sync
 
-**Purpose**: Update version numbers across all relevant project files.
+Run from the XerahS repository root before any pull or submodule update:
 
-#### 2.1 Identify Current Version
-```powershell
-$version = (Select-String -Path Directory.Build.props -Pattern '<Version>(.+?)</Version>').Matches[0].Groups[1].Value
-Write-Host "Current Version: $version"
-```
-- Extract the current semantic version from `Directory.Build.props`
-- Format: `major.minor.patch` (e.g., `0.15.5`)
-
-#### 2.2 Bump Version
-**Versioning Strategy**:
-- **Patch bump**: `0.15.5` → `0.15.6` (bug fixes, minor updates)
-- **Minor bump**: `0.15.5` → `0.16.0` (new features)
-- **Major bump**: `0.15.5` → `1.0.0` (breaking changes)
-
-**Update Files**:
-1. **Main Directory.Build.props**
-   - File: `Directory.Build.props`
-   - Update `<Version>X.Y.Z</Version>`
-
-2. **ShareX.ImageEditor Directory.Build.props**
-   - File: `ShareX.ImageEditor/Directory.Build.props`
-   - Update `<Version>X.Y.Z</Version>`
-   - Note: May maintain different version from main project
-
-#### 2.3 Validation
-- Verify both `Directory.Build.props` files contain the updated version
-- Run `dotnet build` to confirm no version-related compilation errors
-- Check that version displays correctly in built assemblies
-
----
-
-### Phase 3: Changelog Updates
-
-**Purpose**: Document all changes since the last release in a maintainable format.
-
-#### 3.0 Execute Changelog Update Skill (Primary Method)
-
-**Location**: `.ai/skills/update-changelog/SKILL.md`
-
-Run the dedicated changelog management skill which handles:
-- Version grouping strategy (minor version breakdowns)
-- Consolidation rules (patch versions, pre-release fixes)
-- Specific commit assignment
-- Attribution formatting (external contributors with PR/username)
-- Categorization and formatting per Keep a Changelog standard
-
-**When to Use**:
-- This is the **primary** approach for comprehensive changelog updates
-- Ensures consistency with the established changelog management rules
-- Handles complex version histories and rollups automatically
-
-#### 3.1 Identify Change Categories
-Review since last tag/release:
-- 🔧 **Features**: New capabilties, enhancements
-- 🐛 **Fixes**: Bug fixes, corrections
-- 📚 **Documentation**: README, guides, API docs
-- ⚡ **Performance**: Optimizations, speed improvements
-- 🔒 **Security**: Security patches
-- 🏗️ **Refactor**: Code restructuring (non-user-impacting)
-- 🧪 **Testing**: Test additions and improvements
-- ⬆️ **Dependencies**: Dependency updates (SkiaSharp version notes)
-
-#### 3.2 Update CHANGELOG.md (Manual/Supplemental)
-**Location**: `docs/CHANGELOG.md`
-
-Entry Format:
-```markdown
-## [X.Y.Z] - YYYY-MM-DD
-
-### Added
-- Bullet point for each new feature
-
-### Fixed
-- Bullet point for each bug fix
-
-### Changed
-- Bullet point for each improvement
-
-### Removed
-- Bullet point for each removal (if any)
-
-### Security
-- Bullet point for security updates (if any)
-```
-
-#### 3.3 Update Version References
-- **README.md**: Update any version badges/download links if applicable
-- **docs/PROJECT_STATUS.md**: Update current release version if applicable
-- **FAQ.md**: Update version references in examples/download links if any
-
----
-
-### Phase 4: Commit and Push
-
-**Purpose**: Record changes and synchronize with remote repositories. **CRITICAL**: Commit and push **everything** in **every repository** including **all submodules**.
-
-#### 4.0 Check All Repository Status
-**Before committing, verify what needs to be committed across ALL repos:**
-
-```powershell
-# Check main repository
-git status --short
-
-# Check ShareX.ImageEditor submodule
-git -C ShareX.ImageEditor status --short
-
-# Check website repository
-git -C ../xerahs.github.io status --short
-
-# Check ShareX repository (if applicable)
-git -C ../ShareX status --short
-```
-
-**Important**: Always check ALL submodules, not just known ones. If detached HEAD is detected in any submodule, checkout the appropriate branch first.
-
-#### 4.1 Stage Changes in ALL Repositories
-**Stage changes in every repository and submodule:**
-
-```powershell
-# Main repository
-git add .
-
-# ShareX.ImageEditor submodule (always check, even if no direct edits)
-git -C ShareX.ImageEditor add .
-
-# Website repository
-git -C ../xerahs.github.io add .
-
-# ShareX repository (if applicable)
-git -C ../ShareX add .
-```
-
-#### 4.2 Commit with Proper Format in ALL Repositories
-**Commit Message Format**: `[vX.Y.Z] [Chore] Update version and changelog`
-
-**CRITICAL**: Commit changes in ALL repositories, even if they seem unrelated to version bump:
-
-```powershell
-# ShareX.ImageEditor submodule (commit FIRST - submodules before parent)
-git -C ShareX.ImageEditor commit -m "[v0.15.6] [Chore] Update ShareX.ImageEditor version and changes"
-
-# Main repository (commit AFTER submodules to capture updated references)
-git commit -m "[v0.15.6] [Chore] Update version and changelog for release"
-
-# Website repository (if updated)
-git -C ../xerahs.github.io commit -m "[v0.15.6] [Chore] Update website content"
-
-# ShareX repository (if applicable)
-git -C ../ShareX commit -m "[v0.15.6] [Chore] Update ShareX changes"
-```
-
-**Commit Message Components**:
-- `[vX.Y.Z]`: Version tag matching Directory.Build.props version
-- `[Chore]`: Classification per AGENTS.md 
-- Concise description of what was updated
-
-**Submodule Commit Order**:
-1. **First**: Commit all submodules (deepest first if nested)
-2. **Last**: Commit parent repository to capture updated submodule references
-
-#### 4.3 Push to Remote in ALL Repositories
-**Push ALL repositories including submodules:**
-
-```powershell
-# ShareX.ImageEditor submodule (push FIRST - before parent)
-git -C ShareX.ImageEditor push origin develop
-
-# Main repository (push AFTER submodules)
-git push origin develop
-
-# Website repository
-git -C ../xerahs.github.io push origin main
-
-# ShareX repository (if applicable)
-git -C ../ShareX push origin develop
-```
-
-**Push Order**: Submodules first, parent repository last.
-
-#### 4.4 Verification
-- Confirm **ALL** pushes succeeded (exit code 0) for **every repository**
-- Visit GitHub UI to verify commits appear on remote branches for **all repos**
-- Verify submodule references are updated in parent repository
-- Check that no merge conflicts need resolution in **any repository**
-- Confirm working tree is clean in **all repositories** after push
-
----
-
-## 🔧 Implementation Checklist
-
-- ✅ Pull all repositories (main XerahS, ShareX.ImageEditor submodule, website, ShareX)
-- ✅ Determine appropriate version bump (patch/minor/major)
-- ✅ Update `Directory.Build.props` in both main and ShareX.ImageEditor
-- ✅ **Run `.ai/skills/update-changelog/SKILL.md` to consolidate and format changelog** ← PRIMARY STEP
-- ✅ Update version references in README/docs as needed
-- ✅ Run `dotnet build` to validate changes
-- ✅ **Check status of ALL repositories and submodules (`git status --short` in each)**
-- ✅ **Stage ALL modified files in ALL repositories including submodules**
-- ✅ **Commit ALL repositories (submodules first, parent last) with `[vX.Y.Z] [Chore]` format**
-- ✅ **Push ALL repositories to remote (submodules first, parent last)**
-- ✅ **Verify ALL pushes succeeded and working tree is clean in ALL repos**
-- ✅ Confirm changes visible on GitHub for all repositories
-
----
-
-## 📝 Prerequisites
-
-- Local repositories cloned as siblings under `ShareX Team/` directory:
-  - `XerahS/` (main repository, current working directory)
-  - `XerahS/ShareX.ImageEditor/` (submodule)
-  - `xerahs.github.io/` (sibling repository, optional)
-  - `ShareX/` (sibling repository, optional)
-- Git configured with user identity
-- Push access to all target repositories
-- Working directory clean (no uncommitted changes in unrelated files)
-
----
-
-## ⚠️ Important Notes
-
-1. **SkiaSharp Version Lock**:
-   - NEVER bump SkiaSharp beyond 2.88.9
-   - Update CHANGELOG.md to reflect this constraint if dependencies change
-
-2. **Semantic Versioning**:
-   - Follow semver strictly (major.minor.patch)
-   - Communicate breaking changes clearly in changelog
-
-3. **Branch Strategy**:
-   - Main XerahS: commit to `develop` branch
-   - ShareX.ImageEditor: commits to `develop` branch
-   - Website: commits to `main` branch
-
-4. **Atomic Operations**:
-   - All three repositories should be updated together for consistency
-   - If one fails, consider rolling back others or understanding the reason
-
----
-
-## 🚀 Quick Command Reference
-
-**Check status of ALL repositories**:
 ```powershell
 git status --short
-git -C ShareX.ImageEditor status --short
+git submodule foreach --recursive "git status --short"
+```
+
+For optional sibling repositories involved in the task:
+
+```powershell
 git -C ../xerahs.github.io status --short
 git -C ../ShareX status --short
 ```
 
-**Pull all repositories**:
+If the main repo, submodules, or in-scope sibling repositories have local changes, do not pull over them. Commit, stash, or explicitly pause for the owner to decide. Submodule changes belong to that submodule repository.
+
+### 2. Sync Clean Repository State
+
+Run from the XerahS repository root only after the relevant repositories are clean:
+
 ```powershell
-git pull origin develop
-git -C ShareX.ImageEditor pull origin develop
+git pull --recurse-submodules
+git submodule update --init --recursive
+```
+
+`git submodule update` can detach submodule HEADs because it checks out the exact commit recorded by the parent repository. Mandatory follow-up: reattach `ShareX.ImageEditor` to its tracked `develop` branch and fast-forward it before release or changelog work continues:
+
+```powershell
+git -C ShareX.ImageEditor fetch origin --prune
+git -C ShareX.ImageEditor checkout develop
+git -C ShareX.ImageEditor pull --ff-only origin develop
+git submodule status ShareX.ImageEditor
+git -C ShareX.ImageEditor status --short --branch
+```
+
+Abort and resolve manually if `ShareX.ImageEditor` cannot fast-forward, has local changes, or remains detached. If the fast-forward changes the submodule commit recorded by XerahS, commit and push the submodule first, then commit the updated XerahS gitlink in the parent repository.
+
+If the task also touches optional sibling repositories, sync only those clean repositories:
+
+```powershell
 git -C ../xerahs.github.io pull origin main
 git -C ../ShareX pull origin develop
 ```
 
-**Stage, commit, and push ALL repositories (including submodules)**:
+Do not pull optional sibling repositories just because they exist.
+
+If a submodule has its own changes, treat it as a separate repository. Shared-library submodule commits, such as `ShareX.ImageEditor`, must follow `git-workflow` and omit the XerahS app version prefix.
+
+### 3. Check Version Needs
+
+Read the current XerahS app version from the root `Directory.Build.props`:
+
 ```powershell
-# Submodules first, parent last
-git -C ShareX.ImageEditor add . ; git -C ShareX.ImageEditor commit -m "[vX.Y.Z] [Chore] Update ShareX.ImageEditor" ; git -C ShareX.ImageEditor push origin develop
-
-# Then parent repository
-git add . ; git commit -m "[vX.Y.Z] [Chore] Update version and changelog" ; git push origin develop
-
-# Website and other repos
-git -C ../xerahs.github.io add . ; git -C ../xerahs.github.io commit -m "[vX.Y.Z] [Chore] Update website" ; git -C ../xerahs.github.io push origin main
+$version = (Select-String -Path Directory.Build.props -Pattern '<Version>(.+?)</Version>').Matches[0].Groups[1].Value
+git tag --sort=-v:refname | Select-Object -First 1
 ```
 
----
+Only bump versions when the task is explicitly about versioning or release preparation. If a bump is needed, use [git-workflow](../git-workflow/SKILL.md) for version source-of-truth and prefix rules, or [publish-release](../publish-release/SKILL.md) for the full release bump/tag sequence.
 
-## 🔗 Related Documentation
+SkiaSharp remains centrally managed in `Directory.Packages.props`; do not reintroduce project-local legacy pins.
 
-- [Update Changelog Skill](../update-changelog/SKILL.md) - **Dedicated changelog management, versioning, and consolidation rules** (Primary step in Phase 3)
-- [AGENTS.md](../../../AGENTS.md) - General git workflow and commit format standards
-- [Development Standards](../coding-standards/SKILL.md)
-- [Release & Versioning](../git-workflow/SKILL.md)
+### 4. Update Changelog When Needed
 
+For changelog work, use [update-changelog](../update-changelog/SKILL.md). Prefer the helper script for draft generation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .ai/skills/update-changelog/scripts/update-changelog.ps1
+```
+
+Manually review generated changelog text for accurate grouping, contributor attribution, and wording before release.
+
+### 5. Build Gate
+
+For code/config changes, run the required build before pushing:
+
+```powershell
+dotnet build src/desktop/XerahS.sln
+```
+
+Do not wait more than 5 minutes for a single build. If it stalls, stop it, clear stale build processes/locks, prefer `-m:1`, then retry.
+
+Documentation-only skill edits do not require a full solution build unless they affect build or release scripts that need local execution.
+
+### 6. Commit And Push Handoff
+
+Use [git-workflow](../git-workflow/SKILL.md) for final staging, commit message, version prefix, and push behavior.
+
+Summary:
+- XerahS app commits use `[vX.Y.Z] [Type] description` only after verifying the root version is ahead of the latest tag.
+- Shared library or submodule-only commits omit `[vX.Y.Z]` and use `[Type] description`.
+- Submodule commits are pushed before the parent repository when the parent records an updated submodule pointer.
+- Do not tag releases from this skill; use [publish-release](../publish-release/SKILL.md).
+
+## Checklist
+
+- [ ] Main repo and relevant submodule/sibling statuses inspected.
+- [ ] Local changes handled before pulling or updating submodules.
+- [ ] Main repository synced with `git pull --recurse-submodules`.
+- [ ] Submodules initialized and updated.
+- [ ] `ShareX.ImageEditor` reattached to `develop`, fast-forwarded from `origin/develop`, and verified not detached.
+- [ ] Relevant sibling repositories synced only if they are in scope.
+- [ ] Version bump need evaluated against `Directory.Build.props` and latest tag.
+- [ ] Changelog update delegated to `update-changelog` when needed.
+- [ ] Required build run for code/config changes.
+- [ ] Commit/push/tag rules delegated to `git-workflow` or `publish-release`.

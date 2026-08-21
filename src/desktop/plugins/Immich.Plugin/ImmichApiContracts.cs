@@ -199,6 +199,18 @@ internal sealed class ImmichSharedLinkResponse
 
     [JsonProperty("album")]
     public ImmichSharedLinkAlbumResponse? Album { get; set; }
+
+    [JsonProperty("password")]
+    public bool HasPassword { get; set; }
+
+    [JsonProperty("allowDownload")]
+    public bool AllowDownload { get; set; }
+
+    [JsonProperty("allowUpload")]
+    public bool AllowUpload { get; set; }
+
+    [JsonProperty("showMetadata")]
+    public bool ShowMetadata { get; set; }
 }
 
 internal sealed class ImmichSharedLinkAlbumResponse

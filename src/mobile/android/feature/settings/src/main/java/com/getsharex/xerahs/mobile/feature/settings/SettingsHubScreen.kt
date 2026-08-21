@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -48,12 +49,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.getsharex.xerahs.mobile.core.data.SettingsRepository
+import com.getsharex.xerahs.mobile.core.domain.ApplicationConfig
 import com.getsharex.xerahs.mobile.core.domain.selectableDestinations
 
 @Composable
 fun SettingsHubScreen(
     settingsRepository: SettingsRepository,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onNavigateToS3: () -> Unit,
     onNavigateToCustomUploader: () -> Unit,
     onRefresh: () -> Unit = {}
@@ -65,6 +67,8 @@ fun SettingsHubScreen(
     var selectedDestinationId by remember(config.defaultDestinationInstanceId) {
         mutableStateOf(config.defaultDestinationInstanceId)
     }
+    var showResetConfirm by remember { mutableStateOf(false) }
+    var resetMessage by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -73,10 +77,12 @@ fun SettingsHubScreen(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = if (onBack != null) Arrangement.SpaceBetween else Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(onClick = onBack) { Text("Back") }
+            if (onBack != null) {
+                Button(onClick = onBack) { Text("Back") }
+            }
             OutlinedButton(onClick = onRefresh) { Text("Refresh") }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -229,6 +235,63 @@ fun SettingsHubScreen(
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(12.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Privacy and local data",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Remove S3 keys, custom uploader secrets, selected destination, and local upload settings from this device.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(onClick = { showResetConfirm = true }) {
+                        Text("Delete Credentials / Reset Settings")
+                    }
+                    resetMessage?.let {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
         }
+    }
+
+    if (showResetConfirm) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            title = { Text("Reset upload settings?") },
+            text = { Text("This clears S3 credentials, custom uploaders, selected destination, and upload preferences stored on this device.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        settingsRepository.save(ApplicationConfig())
+                        convertHeicToPng = true
+                        selectedDestinationId = null
+                        resetMessage = "Upload settings and credentials were cleared."
+                        showResetConfirm = false
+                        onRefresh()
+                    }
+                ) {
+                    Text("Reset")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showResetConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

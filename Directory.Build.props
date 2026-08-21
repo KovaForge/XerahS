@@ -1,15 +1,18 @@
 <Project>
+  <Import Project="Directory.Build.props.user" Condition="Exists('Directory.Build.props.user')" />
   <PropertyGroup>
-    <Version>0.20.5</Version>
+    <Version>0.25.6</Version>
     <Product>XerahS</Product>
     <Authors>ShareX Team</Authors>
     <Company>ShareX Team</Company>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <BuildInParallel>false</BuildInParallel>
+    <UseSharedCompilation>false</UseSharedCompilation>
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3026</MSBuildWarningsAsMessages>
     <!-- Workaround for Fedora .NET package missing prune data -->
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
   </PropertyGroup>
   <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
     <CrossCompile>true</CrossCompile>
   </PropertyGroup>
-  <Import Project="Directory.Build.props.user" Condition="Exists('Directory.Build.props.user')" />
 </Project>

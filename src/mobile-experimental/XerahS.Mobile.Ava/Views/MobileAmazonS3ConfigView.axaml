@@ -5,7 +5,9 @@
              x:Class="Ava.Views.MobileAmazonS3ConfigView"
              x:DataType="vm:MobileAmazonS3ConfigViewModel">
 
-    <ScrollViewer Classes="adaptive-scroll">
+    <ScrollViewer Classes="adaptive-scroll"
+                  AutomationProperties.LandmarkType="Form"
+                  AutomationProperties.AccessibilityView="Control">
         <StackPanel Margin="16" Spacing="14">
 
             <!-- Header Card -->
@@ -13,10 +15,11 @@
                 <StackPanel Spacing="6">
                     <TextBlock Text="Amazon S3"
                                FontSize="22"
-                               FontWeight="Bold"/>
+                               FontWeight="Bold"
+                               AutomationProperties.HeadingLevel="1"/>
                     <TextBlock Text="Configure your S3 bucket for file uploads"
                                FontSize="13"
-                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                               Classes="adaptive-muted"
                                TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
@@ -34,11 +37,13 @@
                         <TextBlock Text="Access Key ID" FontSize="13" FontWeight="SemiBold"/>
                         <Grid>
                             <TextBox Text="{Binding AccessKeyId, Mode=TwoWay}"
-                                     Watermark="AKIA..."
+                                     x:Name="AccessKeyIdTextBox"
+                                     PlaceholderText="AKIA..."
                                      Classes="adaptive-input"
                                      FontSize="13"
+                                     AutomationProperties.Name="Access Key ID"
                                      input:TextInputOptions.AutoCapitalization="False"/>
-                            <Border BorderBrush="#FF6B6B"
+                            <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                     BorderThickness="2"
                                     CornerRadius="8"
                                     IsVisible="{Binding HasAccessKeyError}"
@@ -50,11 +55,13 @@
                         <TextBlock Text="Secret Access Key" FontSize="13" FontWeight="SemiBold"/>
                         <Grid>
                             <TextBox Text="{Binding SecretAccessKey, Mode=TwoWay}"
-                                     Watermark="Enter your secret key"
+                                     x:Name="SecretAccessKeyTextBox"
+                                     PlaceholderText="Enter your secret key"
                                      PasswordChar="*"
                                      Classes="adaptive-input"
-                                     FontSize="13"/>
-                            <Border BorderBrush="#FF6B6B"
+                                     FontSize="13"
+                                     AutomationProperties.Name="Secret Access Key"/>
+                            <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                     BorderThickness="2"
                                     CornerRadius="8"
                                     IsVisible="{Binding HasSecretKeyError}"
@@ -77,11 +84,13 @@
                         <TextBlock Text="Bucket Name" FontSize="13" FontWeight="SemiBold"/>
                         <Grid>
                             <TextBox Text="{Binding BucketName, Mode=TwoWay}"
-                                     Watermark="my-bucket-name"
+                                     x:Name="BucketNameTextBox"
+                                     PlaceholderText="my-bucket-name"
                                      Classes="adaptive-input"
                                      FontSize="13"
+                                     AutomationProperties.Name="Bucket Name"
                                      input:TextInputOptions.AutoCapitalization="False"/>
-                            <Border BorderBrush="#FF6B6B"
+                            <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                     BorderThickness="2"
                                     CornerRadius="8"
                                     IsVisible="{Binding HasBucketError}"
@@ -93,16 +102,18 @@
                         <TextBlock Text="Region" FontSize="13" FontWeight="SemiBold"/>
                         <Grid>
                             <ComboBox ItemsSource="{x:Static vm:MobileAmazonS3ConfigViewModel.Regions}"
+                                      x:Name="RegionComboBox"
                                       SelectedIndex="{Binding RegionIndex}"
                                       HorizontalAlignment="Stretch"
-                                      Classes="adaptive-input">
+                                      Classes="adaptive-input"
+                                      AutomationProperties.Name="Region">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate x:DataType="vm:S3RegionOption">
                                         <TextBlock Text="{Binding DisplayName}"/>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
-                            <Border BorderBrush="#FF6B6B"
+                            <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                     BorderThickness="2"
                                     CornerRadius="8"
                                     IsVisible="{Binding HasRegionError}"
@@ -123,7 +134,7 @@
                     <StackPanel Spacing="4">
                         <TextBlock Text="Object Prefix" FontSize="13" FontWeight="SemiBold"/>
                         <TextBox Text="{Binding ObjectPrefix, Mode=TwoWay}"
-                                 Watermark="ShareX/%y/%mo"
+                                 PlaceholderText="ShareX/%y/%mo"
                                  Classes="adaptive-input"
                                  FontSize="13"
                                  input:TextInputOptions.AutoCapitalization="False"/>
@@ -137,7 +148,7 @@
                         <CheckBox Content="Use Custom Domain (CDN)"
                                   IsChecked="{Binding UseCustomDomain}"/>
                         <TextBox Text="{Binding CustomDomain, Mode=TwoWay}"
-                                 Watermark="https://cdn.example.com"
+                                 PlaceholderText="https://cdn.example.com"
                                  IsEnabled="{Binding UseCustomDomain}"
                                  Classes="adaptive-input"
                                  FontSize="13"
@@ -199,7 +210,8 @@
                 <ProgressBar IsIndeterminate="True"
                              IsVisible="{Binding IsTesting}"
                              CornerRadius="4"
-                             Margin="0,4"/>
+                             Margin="0,4"
+                             AutomationProperties.LiveSetting="Polite"/>
             </StackPanel>
 
         </StackPanel>

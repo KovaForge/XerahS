@@ -50,7 +50,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun HistoryScreen(
     historyRepository: HistoryRepository,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onCopyToClipboard: (String) -> Unit = {},
     viewModel: HistoryViewModel = viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
@@ -70,10 +70,12 @@ fun HistoryScreen(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = if (onBack != null) Arrangement.SpaceBetween else Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(onClick = onBack) { Text("Back") }
+            if (onBack != null) {
+                Button(onClick = onBack) { Text("Back") }
+            }
             Row {
                 OutlinedButton(onClick = { viewModel.refresh() }) { Text("Refresh") }
                 Spacer(modifier = Modifier.padding(4.dp))

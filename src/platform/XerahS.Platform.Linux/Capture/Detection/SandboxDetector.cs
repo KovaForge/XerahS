@@ -23,17 +23,19 @@
 
 #endregion License Information (GPL v3)
 
+using XerahS.Platform.Linux.Services;
+
 namespace XerahS.Platform.Linux.Capture.Detection;
 
 internal static class SandboxDetector
 {
     public static bool IsSandboxed()
     {
-        var container = Environment.GetEnvironmentVariable("container");
-        return !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("FLATPAK_ID")) ||
-               !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SNAP")) ||
-               !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("APPIMAGE")) ||
-               string.Equals(container, "flatpak", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(container, "snap", StringComparison.OrdinalIgnoreCase);
+        return LinuxRuntimeEnvironment.Detect().IsSandboxed;
+    }
+
+    public static bool IsFlatpak()
+    {
+        return LinuxRuntimeEnvironment.Detect().IsFlatpak;
     }
 }

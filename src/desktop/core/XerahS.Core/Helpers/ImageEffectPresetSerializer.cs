@@ -24,10 +24,13 @@
 #endregion License Information (GPL v3)
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using ShareX.ImageEditor.Core.ImageEffects;
 using SkiaSharp;
 using System.IO.Compression;
+using System.Reflection;
+using XerahS.Common;
 
 namespace XerahS.Core.Helpers;
 
@@ -54,28 +57,37 @@ public static class ImageEffectPresetSerializer
         if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
             return null;
 
-        var configJson = ExtractConfigJson(filePath);
-        if (string.IsNullOrWhiteSpace(configJson))
-            return null;
-
-        var payload = JsonConvert.DeserializeObject<XsiePreset>(configJson, CreateSerializerSettings());
-        if (payload == null)
-            return null;
-
-        return new ImageEffectPreset
+        try
         {
-            Name = payload.Name ?? "Preset",
-            Effects = payload.Effects ?? new List<ImageEffect>()
-        };
+            var configJson = ExtractConfigJson(filePath);
+            if (string.IsNullOrWhiteSpace(configJson))
+                return null;
+
+            var payload = JsonConvert.DeserializeObject<XsiePreset>(configJson, CreateSerializerSettings());
+            if (payload == null)
+                return null;
+
+            return new ImageEffectPreset
+            {
+                Name = payload.Name ?? "Preset",
+                Effects = payload.Effects ?? new List<ImageEffect>()
+            };
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or JsonException)
+        {
+            DebugHelper.WriteException(ex, $"ImageEffectPresetSerializer: Failed to load preset file '{filePath}'.");
+            return null;
+        }
     }
 
-    private static JsonSerializerSettings CreateSerializerSettings()
+    internal static JsonSerializerSettings CreateSerializerSettings()
     {
         return new JsonSerializerSettings
         {
             TypeNameHandling = TypeNameHandling.Auto,
             TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
             SerializationBinder = new ImageEffectSerializationBinder(),
+            ContractResolver = new ImageEffectPresetContractResolver(),
             Converters = { new SkColorJsonConverter() }
         };
     }
@@ -96,6 +108,12 @@ public static class ImageEffectPresetSerializer
 
     private static void WriteZip(string filePath, string configJson)
     {
+        string? directory = Path.GetDirectoryName(filePath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
         if (File.Exists(filePath))
         {
             File.Delete(filePath);
@@ -114,6 +132,110 @@ internal sealed class XsiePreset
     public int Version { get; set; } = 1;
     public string? Name { get; set; }
     public List<ImageEffect> Effects { get; set; } = new();
+}
+
+internal sealed class ImageEffectPresetContractResolver : DefaultContractResolver
+{
+    private static readonly HashSet<string> IgnoredEffectMetadataProperties =
+    [
+        nameof(ImageEffect.HasParameters),
+        "Parameters"
+    ];
+
+    protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
+    {
+        JsonProperty property = base.CreateProperty(member, memberSerialization);
+
+        if (typeof(ImageEffect).IsAssignableFrom(member.DeclaringType) &&
+            IgnoredEffectMetadataProperties.Contains(property.PropertyName ?? member.Name))
+        {
+            property.Ignored = true;
+        }
+
+        return property;
+    }
+}
+
+/// <summary>
+/// Constrains List&lt;ImageEffect&gt; serialization for settings JSON so TypeNameHandling.Auto
+/// on SettingsBase cannot instantiate arbitrary $type payloads into ImageEffectPreset.Effects.
+/// Reuses <see cref="ImageEffectSerializationBinder"/> for the known-type allow-list.
+/// </summary>
+internal sealed class ImageEffectListJsonConverter : JsonConverter<List<ImageEffect>>
+{
+    private static readonly ImageEffectSerializationBinder Binder = new();
+
+    public override void WriteJson(JsonWriter writer, List<ImageEffect>? value, JsonSerializer serializer)
+    {
+        if (value == null)
+        {
+            writer.WriteNull();
+            return;
+        }
+
+        // Serialize via binder-aware settings so $type names stay on the allow-list path.
+        var settings = ImageEffectPresetSerializer.CreateSerializerSettings();
+        // Avoid recursive converter invocation on List<ImageEffect>.
+        // Converters is IList<JsonConverter> (no List.RemoveAll).
+        for (int i = settings.Converters.Count - 1; i >= 0; i--)
+        {
+            if (settings.Converters[i] is ImageEffectListJsonConverter)
+                settings.Converters.RemoveAt(i);
+        }
+        JsonSerializer.Create(settings).Serialize(writer, value);
+    }
+
+    public override List<ImageEffect>? ReadJson(
+        JsonReader reader,
+        Type objectType,
+        List<ImageEffect>? existingValue,
+        bool hasExistingValue,
+        JsonSerializer serializer)
+    {
+        if (reader.TokenType == JsonToken.Null)
+            return null;
+
+        var array = JArray.Load(reader);
+        var result = new List<ImageEffect>(array.Count);
+        var settings = ImageEffectPresetSerializer.CreateSerializerSettings();
+        // Converters is IList<JsonConverter> (no List.RemoveAll).
+        for (int i = settings.Converters.Count - 1; i >= 0; i--)
+        {
+            if (settings.Converters[i] is ImageEffectListJsonConverter)
+                settings.Converters.RemoveAt(i);
+        }
+        var effectSerializer = JsonSerializer.Create(settings);
+
+        foreach (var token in array)
+        {
+            if (token is not JObject obj)
+                throw new JsonSerializationException("Image effect entries must be JSON objects.");
+
+            var typeToken = obj["$type"]?.ToString();
+            if (string.IsNullOrWhiteSpace(typeToken))
+                throw new JsonSerializationException("Image effect entry is missing $type.");
+
+            // Validate type against the allow-list before materializing properties.
+            string typeName = typeToken;
+            string? assemblyName = null;
+            int comma = typeToken.IndexOf(',');
+            if (comma >= 0)
+            {
+                typeName = typeToken[..comma].Trim();
+                assemblyName = typeToken[(comma + 1)..].Trim();
+            }
+
+            Type boundType = Binder.BindToType(assemblyName, typeName);
+            if (!typeof(ImageEffect).IsAssignableFrom(boundType) || boundType.IsAbstract)
+                throw new JsonSerializationException($"Unsupported image effect type: {typeToken}");
+
+            var effect = (ImageEffect?)obj.ToObject(boundType, effectSerializer)
+                ?? throw new JsonSerializationException($"Failed to deserialize image effect: {typeToken}");
+            result.Add(effect);
+        }
+
+        return result;
+    }
 }
 
 internal sealed class ImageEffectSerializationBinder : ISerializationBinder
@@ -139,6 +261,9 @@ internal sealed class ImageEffectSerializationBinder : ISerializationBinder
 
         if (type == null)
             throw new JsonSerializationException($"Unknown image effect type: {typeName}");
+
+        if (!typeof(ImageEffect).IsAssignableFrom(type) || type.IsAbstract)
+            throw new JsonSerializationException($"Unsupported image effect type: {typeName}");
 
         return type;
     }

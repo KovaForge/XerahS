@@ -25,6 +25,7 @@
 
 using System.CommandLine;
 using System.CommandLine.Parsing;
+using System.Globalization;
 using System.Text.Json;
 using SkiaSharp;
 using XerahS.Common;
@@ -86,19 +87,16 @@ namespace XerahS.CLI.Commands
                 Console.WriteLine($"Use Modern (DXGI): {useModern}");
                 Console.WriteLine();
 
-                // Parse region
-                var parts = regionStr.Split(',');
-                if (parts.Length != 4)
+                if (!TryParseRegion(regionStr, out var rect, out var regionError))
                 {
-                    Console.Error.WriteLine("Region must be in format 'x,y,width,height'");
+                    Console.Error.WriteLine(regionError);
                     return 2;
                 }
 
-                int x = int.Parse(parts[0]);
-                int y = int.Parse(parts[1]);
-                int width = int.Parse(parts[2]);
-                int height = int.Parse(parts[3]);
-                var rect = new SKRect(x, y, x + width, y + height);
+                int x = (int)rect.Left;
+                int y = (int)rect.Top;
+                int width = (int)(rect.Right - rect.Left);
+                int height = (int)(rect.Bottom - rect.Top);
 
                 Console.WriteLine($"Parsed rectangle: X={x}, Y={y}, Width={width}, Height={height}");
 
@@ -218,6 +216,51 @@ namespace XerahS.CLI.Commands
                 DebugHelper.WriteException(ex);
                 return 2;
             }
+        }
+
+        internal static bool TryParseRegion(string? region, out SKRect rect, out string? error)
+        {
+            rect = default;
+            error = null;
+
+            if (string.IsNullOrWhiteSpace(region))
+            {
+                error = "Region must be specified as 'x,y,width,height'.";
+                return false;
+            }
+
+            var parts = region.Split(',', StringSplitOptions.TrimEntries);
+            if (parts.Length != 4)
+            {
+                error = "Region must be in format 'x,y,width,height'.";
+                return false;
+            }
+
+            if (!int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int x) ||
+                !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int y) ||
+                !int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int width) ||
+                !int.TryParse(parts[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out int height))
+            {
+                error = "Region values must be integers in format 'x,y,width,height'.";
+                return false;
+            }
+
+            if (width <= 0 || height <= 0)
+            {
+                error = "Region width and height must be greater than zero.";
+                return false;
+            }
+
+            long right = (long)x + width;
+            long bottom = (long)y + height;
+            if (right > int.MaxValue || bottom > int.MaxValue)
+            {
+                error = "Region bounds are outside supported coordinate range.";
+                return false;
+            }
+
+            rect = new SKRect(x, y, (int)right, (int)bottom);
+            return true;
         }
 
         private static ComparisonResult ComparePixels(SKBitmap xerahs, SKBitmap baseline, int tolerance)

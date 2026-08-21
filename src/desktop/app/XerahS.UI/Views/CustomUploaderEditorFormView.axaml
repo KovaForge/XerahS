@@ -15,7 +15,7 @@
             <StackPanel Spacing="8" IsVisible="{Binding !IsNameReadOnly}">
                 <TextBlock Text="Name *" Theme="{StaticResource CaptionTextBlockStyle}"/>
                 <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                         Watermark="My Custom Uploader"
+                         PlaceholderText="My Custom Uploader"
                          AutomationProperties.Name="Uploader Name"/>
                 <TextBlock Text="{Binding NameError}"
                            Foreground="{DynamicResource SystemFillColorCriticalBrush}"
@@ -60,7 +60,7 @@
                 <StackPanel Grid.Column="1" Spacing="8">
                     <TextBlock Text="Request URL *" Theme="{StaticResource CaptionTextBlockStyle}"/>
                     <TextBox Text="{Binding RequestUrl, UpdateSourceTrigger=PropertyChanged}"
-                             Watermark="https://example.com/api/upload"
+                             PlaceholderText="https://example.com/api/upload"
                              AutomationProperties.Name="Request URL"/>
                     <TextBlock Text="{Binding RequestUrlError}"
                                Foreground="{DynamicResource SystemFillColorCriticalBrush}"
@@ -80,9 +80,9 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:KeyValuePairViewModel">
                             <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
-                                <TextBox Grid.Column="0" Text="{Binding Key}" Watermark="Key"
+                                <TextBox Grid.Column="0" Text="{Binding Key}" PlaceholderText="Key"
                                          AutomationProperties.Name="Header Key"/>
-                                <TextBox Grid.Column="1" Text="{Binding Value}" Watermark="Value"
+                                <TextBox Grid.Column="1" Text="{Binding Value}" PlaceholderText="Value"
                                          AutomationProperties.Name="Header Value"/>
                                 <Button Grid.Column="2" Content="X" Padding="8,4"
                                         Command="{Binding #HeadersControl.DataContext.RemoveHeaderCommand}"
@@ -109,12 +109,12 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:KeyValuePairViewModel">
                             <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
-                                <TextBox Grid.Column="0" Text="{Binding Key}" Watermark="Key"
+                                <TextBox Grid.Column="0" Text="{Binding Key}" PlaceholderText="Key"
                                          AutomationProperties.Name="Parameter Key"/>
-                                <TextBox Grid.Column="1" Text="{Binding Value}" Watermark="Value"
+                                <TextBox Grid.Column="1" Text="{Binding Value}" PlaceholderText="Value"
                                          AutomationProperties.Name="Parameter Value"/>
                                 <Button Grid.Column="2" Content="X" Padding="8,4"
-                                        Command="{Binding #ParametersControl.DataContext.RemoveParameterCommand}"
+                                        Command="{Binding #ParametersControl.((vm:CustomUploaderEditorViewModel)DataContext).RemoveParameterCommand}"
                                         CommandParameter="{Binding}"
                                         AutomationProperties.Name="Remove Parameter"/>
                             </Grid>
@@ -140,7 +140,7 @@
                 <StackPanel Grid.Column="1" Spacing="8">
                     <TextBlock Text="File Form Name" Theme="{StaticResource CaptionTextBlockStyle}"/>
                     <TextBox Text="{Binding FileFormName}"
-                             Watermark="file"
+                             PlaceholderText="file"
                              AutomationProperties.Name="File Form Name"/>
                 </StackPanel>
             </Grid>
@@ -156,12 +156,12 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:KeyValuePairViewModel">
                             <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="8" Margin="0,0,0,4">
-                                <TextBox Grid.Column="0" Text="{Binding Key}" Watermark="Key"
+                                <TextBox Grid.Column="0" Text="{Binding Key}" PlaceholderText="Key"
                                          AutomationProperties.Name="Argument Key"/>
-                                <TextBox Grid.Column="1" Text="{Binding Value}" Watermark="Value"
+                                <TextBox Grid.Column="1" Text="{Binding Value}" PlaceholderText="Value"
                                          AutomationProperties.Name="Argument Value"/>
                                 <Button Grid.Column="2" Content="X" Padding="8,4"
-                                        Command="{Binding #ArgumentsControl.DataContext.RemoveArgumentCommand}"
+                                        Command="{Binding #ArgumentsControl.((vm:CustomUploaderEditorViewModel)DataContext).RemoveArgumentCommand}"
                                         CommandParameter="{Binding}"
                                         AutomationProperties.Name="Remove Argument"/>
                             </Grid>
@@ -173,7 +173,7 @@
             <StackPanel Spacing="8">
                 <TextBlock Text="Body Data (JSON/XML)" Theme="{StaticResource CaptionTextBlockStyle}"/>
                 <TextBox Text="{Binding BodyData}"
-                         Watermark="Example: JSON body with file content"
+                         PlaceholderText="Example: JSON body with file content"
                          AcceptsReturn="True"
                          TextWrapping="Wrap"
                          Height="80"
@@ -197,25 +197,25 @@
                 <StackPanel Grid.Row="0" Grid.Column="0" Spacing="8">
                     <TextBlock Text="URL Pattern" Theme="{StaticResource CaptionTextBlockStyle}"/>
                     <TextBox Text="{Binding UrlPattern}"
-                             Watermark="Example: json:url or response"
+                             PlaceholderText="Example: json:url or response"
                              AutomationProperties.Name="URL Pattern"/>
                 </StackPanel>
                 <StackPanel Grid.Row="0" Grid.Column="1" Spacing="8">
                     <TextBlock Text="Thumbnail URL" Theme="{StaticResource CaptionTextBlockStyle}"/>
                     <TextBox Text="{Binding ThumbnailUrlPattern}"
-                             Watermark="Example: json:thumbnail"
+                             PlaceholderText="Example: json:thumbnail"
                              AutomationProperties.Name="Thumbnail URL Pattern"/>
                 </StackPanel>
                 <StackPanel Grid.Row="1" Grid.Column="0" Spacing="8">
                     <TextBlock Text="Deletion URL" Theme="{StaticResource CaptionTextBlockStyle}"/>
                     <TextBox Text="{Binding DeletionUrlPattern}"
-                             Watermark="Example: json:delete_url"
+                             PlaceholderText="Example: json:delete_url"
                              AutomationProperties.Name="Deletion URL Pattern"/>
                 </StackPanel>
                 <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">
                     <TextBlock Text="Error Message" Theme="{StaticResource CaptionTextBlockStyle}"/>
                     <TextBox Text="{Binding ErrorMessagePattern}"
-                             Watermark="Example: json:error"
+                             PlaceholderText="Example: json:error"
                              AutomationProperties.Name="Error Message Pattern"/>
                 </StackPanel>
             </Grid>

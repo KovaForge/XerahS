@@ -1,5 +1,8 @@
 # XIP0003 Implement Dark Theme
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0003: Implement Dark Theme
 
 

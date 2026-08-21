@@ -53,10 +53,7 @@ internal sealed class DaemonOptions
                         throw new ArgumentException("Missing value for --scope.");
                     }
 
-                    string scopeValue = args[++i];
-                    options.Scope = scopeValue.Equals("system", StringComparison.OrdinalIgnoreCase)
-                        ? WatchFolderDaemonScope.System
-                        : WatchFolderDaemonScope.User;
+                    options.Scope = ParseScope(args[++i]);
                     options.ScopeExplicitlySet = true;
                     break;
                 case "--settings-folder":
@@ -91,5 +88,20 @@ internal sealed class DaemonOptions
         }
 
         return options;
+    }
+
+    private static WatchFolderDaemonScope ParseScope(string scopeValue)
+    {
+        if (scopeValue.Equals("system", StringComparison.OrdinalIgnoreCase))
+        {
+            return WatchFolderDaemonScope.System;
+        }
+
+        if (scopeValue.Equals("user", StringComparison.OrdinalIgnoreCase))
+        {
+            return WatchFolderDaemonScope.User;
+        }
+
+        throw new ArgumentException($"Invalid value for --scope: {scopeValue}. Expected 'user' or 'system'.");
     }
 }

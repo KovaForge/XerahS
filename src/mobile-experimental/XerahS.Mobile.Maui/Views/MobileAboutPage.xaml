@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:XerahS.Mobile.Maui.ViewModels"
+             x:Class="XerahS.Mobile.Maui.Views.MobileAboutPage"
+             x:DataType="vm:MobileAboutViewModel"
+             Title="About"
+             BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="12">
+            <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
+                    Stroke="Transparent"
+                    Padding="20">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                    <Image Source="splash.png"
+                           WidthRequest="96"
+                           HeightRequest="96"
+                           Aspect="AspectFit"
+                           SemanticProperties.Description="XerahS logo"/>
+                    <Label Text="{Binding AppName}"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center"/>
+                    <Label Text="{Binding VersionText}"
+                           TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Copyright (c) 2007-2026 ShareX Team"
+                           FontSize="12"
+                           TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}"
+                           HorizontalTextAlignment="Center"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"
+                    Stroke="Transparent"
+                    Padding="16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Version" FontSize="16" FontAttributes="Bold"/>
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="8">
+                        <Label Grid.Row="0" Grid.Column="0" Text="Version" TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}"/>
+                        <Label Grid.Row="0" Grid.Column="1" Text="{Binding Version}" HorizontalTextAlignment="End"/>
+                        <Label Grid.Row="1" Grid.Column="0" Text="Build" TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}"/>
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding Build}" HorizontalTextAlignment="End"/>
+                        <Label Grid.Row="2" Grid.Column="0" Text="Package ID" TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}"/>
+                        <Label Grid.Row="2" Grid.Column="1" Text="{Binding PackageId}" HorizontalTextAlignment="End" LineBreakMode="WordWrap"/>
+                        <Label Grid.Row="3" Grid.Column="0" Text="{Binding PlatformLabel}" TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}"/>
+                        <Label Grid.Row="3" Grid.Column="1" Text="{Binding PlatformVersion}" HorizontalTextAlignment="End"/>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="Links" FontSize="16" FontAttributes="Bold" Margin="4,8,0,0"/>
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Links}" Spacing="8">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:AboutLink">
+                        <Button Text="{Binding Title}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenLinkCommand}"
+                                CommandParameter="{Binding Url}"
+                                HorizontalOptions="Fill"/>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <Label Text="Social" FontSize="16" FontAttributes="Bold" Margin="4,8,0,0"/>
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding SocialLinks}" Spacing="8">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:AboutLink">
+                        <Button Text="{Binding Title}"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenLinkCommand}"
+                                CommandParameter="{Binding Url}"
+                                HorizontalOptions="Fill"/>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

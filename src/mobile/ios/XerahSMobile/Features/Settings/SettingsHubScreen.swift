@@ -26,126 +26,85 @@ import SwiftUI
 
 struct SettingsHubScreen: View {
     let settingsRepository: SettingsRepository
-    var onBack: () -> Void
-    var onNavigateToS3: () -> Void
-    var onNavigateToCustomUploader: () -> Void
 
+    @State private var config: ApplicationConfig = ApplicationConfig()
     @State private var convertHeicToPng: Bool = true
     @State private var selectedDestinationId: String? = nil
 
-    private var config: ApplicationConfig { settingsRepository.load() }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Button("Back", action: onBack)
-                Spacer()
+        Form {
+            Section {
+                activeDestinationSection
+            } header: {
+                Text("Active Upload Destination")
+            } footer: {
+                Text("The selected destination is used by share uploads.")
             }
-            .padding(.horizontal)
 
-            Text("Settings")
-                .font(.title2)
-                .padding(.horizontal)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    activeDestinationSection
+            Section("Upload Options") {
+                Toggle(isOn: Binding(
+                    get: { convertHeicToPng },
+                    set: { newValue in
+                        convertHeicToPng = newValue
+                        settingsRepository.setConvertHeicToPng(newValue)
+                    }
+                )) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Upload options")
-                            .font(.headline)
-                        Text("Convert HEIC/HEIF images to PNG before upload so they display in browsers instead of prompting download.")
+                        Text("Convert HEIC/HEIF to PNG")
+                        Text("Use PNG so images open directly in browsers.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
-
-                    Toggle(isOn: Binding(
-                        get: { convertHeicToPng },
-                        set: { newValue in
-                            convertHeicToPng = newValue
-                            settingsRepository.setConvertHeicToPng(newValue)
-                        }
-                    )) {
-                        Text("Convert HEIC/HEIF to PNG before upload")
-                            .font(.subheadline)
-                    }
-                    .padding(16)
-                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
-                    .onAppear { convertHeicToPng = settingsRepository.getConvertHeicToPng() }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Upload Destinations")
-                            .font(.headline)
-                        Text("Configure where your files will be uploaded. Amazon S3 and custom uploaders are supported.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
-
-                    Button(action: onNavigateToS3) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Amazon S3")
-                                    .font(.subheadline.weight(.medium))
-                                Text(config.s3Config.isConfigured ? "Bucket: \(config.s3Config.bucketName)" : "Not configured - tap to set up")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                        }
-                        .padding(16)
-                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: onNavigateToCustomUploader) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Custom Uploader")
-                                    .font(.subheadline.weight(.medium))
-                                Text(config.customUploaders.isEmpty ? "Not configured - tap to add" : "\(config.customUploaders.count) uploader(s)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                        }
-                        .padding(16)
-                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
-                    }
-                    .buttonStyle(.plain)
                 }
-                .padding(.horizontal)
+            }
+
+            Section("Destinations") {
+                NavigationLink(value: Screen.s3Config) {
+                    SettingsNavigationRow(
+                        title: "Amazon S3",
+                        subtitle: config.s3Config.isConfigured
+                            ? "Bucket: \(config.s3Config.bucketName)"
+                            : "Not configured",
+                        systemImage: "shippingbox"
+                    )
+                }
+
+                NavigationLink(value: Screen.customUploaderConfig) {
+                    SettingsNavigationRow(
+                        title: "Custom Uploader",
+                        subtitle: config.customUploaders.isEmpty
+                            ? "Not configured"
+                            : "\(config.customUploaders.count) uploader(s)",
+                        systemImage: "curlybraces"
+                    )
+                }
+            }
+
+            Section("Application") {
+                NavigationLink(value: Screen.about) {
+                    SettingsNavigationRow(
+                        title: "About XerahS",
+                        subtitle: "Version, build, and project links",
+                        systemImage: "info.circle"
+                    )
+                }
             }
         }
-        .onAppear { selectedDestinationId = config.defaultDestinationInstanceId }
+        .navigationTitle("Settings")
+        .onAppear(perform: reloadFromDisk)
+        .onReceive(NotificationCenter.default.publisher(for: .xerahSSettingsDidChange)) { _ in
+            reloadFromDisk()
+        }
     }
 
     private var activeDestinationSection: some View {
-        Group {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Active upload destination")
-                    .font(.headline)
-                Text("Choose where shared files will be uploaded. This destination is used when you share to XerahS.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+        let options = config.selectableDestinations()
+        let effectiveId = selectedDestinationId ?? config.defaultDestinationInstanceId ?? options.first?.instanceId
 
-            let options = config.selectableDestinations()
-            let effectiveId = selectedDestinationId ?? config.defaultDestinationInstanceId ?? options.first?.instanceId
+        return Group {
             if options.isEmpty {
-                Text("No destination configured. Set up Amazon S3 or a custom uploader below.")
-                    .font(.subheadline)
+                Text("No destination configured yet. Set up Amazon S3 or import a custom uploader below.")
                     .foregroundStyle(.secondary)
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
             } else {
                 ForEach(Array(options.enumerated()), id: \.offset) { _, pair in
                     let isSelected = effectiveId == pair.instanceId
@@ -154,22 +113,50 @@ struct SettingsHubScreen: View {
                         settingsRepository.setDefaultDestinationInstanceId(pair.instanceId)
                     } label: {
                         HStack {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 4) {
                                 Text(pair.displayName)
-                                    .font(.subheadline.weight(.medium))
+                                Text(isSelected ? "Active destination" : "Tap to make active")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
+
                             Spacer()
                             if isSelected {
-                                Image(systemName: "checkmark.circle.fill")
+                                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                                     .foregroundStyle(.green)
                             }
                         }
-                        .padding(16)
-                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
                     }
                     .buttonStyle(.plain)
                 }
             }
+        }
+    }
+
+    private func reloadFromDisk() {
+        let fresh = settingsRepository.load()
+        config = fresh
+        convertHeicToPng = fresh.convertHeicToPng
+        selectedDestinationId = fresh.defaultDestinationInstanceId ?? fresh.selectableDestinations().first?.instanceId
+    }
+}
+
+private struct SettingsNavigationRow: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+
+    var body: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } icon: {
+            Image(systemName: systemImage)
+                .foregroundStyle(.blue)
         }
     }
 }

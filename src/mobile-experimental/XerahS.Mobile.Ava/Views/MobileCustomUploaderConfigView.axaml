@@ -8,6 +8,8 @@
     <Grid>
         <!-- State 1: List View -->
         <ScrollViewer IsVisible="{Binding !IsEditorVisible}"
+                      AutomationProperties.LandmarkType="Main"
+                      AutomationProperties.AccessibilityView="Control"
                       Classes="adaptive-scroll">
             <StackPanel Margin="16" Spacing="16">
 
@@ -19,7 +21,7 @@
                                    FontWeight="Bold"/>
                         <TextBlock Text="Add and manage custom HTTP uploaders"
                                    FontSize="13"
-                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                   Classes="adaptive-muted"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
@@ -45,14 +47,14 @@
                                         <Border Grid.Column="0"
                                                 Width="36" Height="36"
                                                 CornerRadius="18"
-                                                Background="{DynamicResource SystemAccentColor}"
+                                                Background="{DynamicResource ThemeAccentBrush}"
                                                 Margin="0,0,12,0"
                                                 VerticalAlignment="Center">
                                             <TextBlock Text="&#x2601;"
                                                        FontSize="18"
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center"
-                                                       Foreground="White"/>
+                                                       Foreground="{DynamicResource ThemeAccentForegroundBrush}"/>
                                         </Border>
 
                                         <!-- Name and host -->
@@ -62,20 +64,20 @@
                                                        FontSize="14"/>
                                             <TextBlock Text="{Binding HostName}"
                                                        FontSize="12"
-                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                                       Classes="adaptive-muted"/>
                                         </StackPanel>
 
                                         <!-- Active badge -->
                                         <Border Grid.Column="2"
                                                 IsVisible="{Binding IsActive}"
                                                 CornerRadius="10"
-                                                Background="#1A4CAF50"
+                                                Background="{DynamicResource ThemeSuccessBackgroundBrush}"
                                                 Padding="10,4"
                                                 VerticalAlignment="Center">
                                             <TextBlock Text="ACTIVE"
                                                        FontSize="10"
                                                        FontWeight="Bold"
-                                                       Foreground="#4CAF50"/>
+                                                       Foreground="{DynamicResource ThemeSuccessBrush}"/>
                                         </Border>
                                     </Grid>
                                 </DataTemplate>
@@ -85,7 +87,7 @@
                         <!-- Empty state -->
                         <Border IsVisible="{Binding !CustomUploaders.Count}"
                                 CornerRadius="8"
-                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                BorderBrush="{DynamicResource ThemeMutedForegroundBrush}"
                                 BorderThickness="1"
                                 Opacity="0.4"
                                 Padding="20"
@@ -99,7 +101,7 @@
                                            FontSize="13"
                                            FontStyle="Italic"
                                            HorizontalAlignment="Center"
-                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                           Classes="adaptive-muted"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -181,10 +183,12 @@
                         <StackPanel Spacing="4">
                             <TextBlock Text="Name" FontSize="13" FontWeight="SemiBold"/>
                             <Grid>
-                                <TextBox Text="{Binding EditorName, Mode=TwoWay}"
-                                         Watermark="My Custom Uploader"
-                                         Classes="adaptive-input"/>
-                                <Border BorderBrush="#FF6B6B"
+                        <TextBox Text="{Binding EditorName, Mode=TwoWay}"
+                                         x:Name="EditorNameTextBox"
+                                         PlaceholderText="My Custom Uploader"
+                                         Classes="adaptive-input"
+                                         AutomationProperties.Name="Uploader Name"/>
+                                <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                         BorderThickness="2"
                                         CornerRadius="8"
                                         IsVisible="{Binding HasNameError}"
@@ -195,7 +199,7 @@
                         <StackPanel Spacing="6">
                             <TextBlock Text="Destination Types" FontSize="13" FontWeight="SemiBold"/>
                             <WrapPanel Orientation="Horizontal">
-                                <CheckBox Content="Image" IsChecked="{Binding IsImageUploader}" Margin="0,0,14,6"/>
+                                <CheckBox x:Name="ImageUploaderCheckBox" Content="Image" IsChecked="{Binding IsImageUploader}" Margin="0,0,14,6"/>
                                 <CheckBox Content="Text" IsChecked="{Binding IsTextUploader}" Margin="0,0,14,6"/>
                                 <CheckBox Content="File" IsChecked="{Binding IsFileUploader}" Margin="0,0,14,6"/>
                                 <CheckBox Content="URL Shortener" IsChecked="{Binding IsUrlShortener}" Margin="0,0,14,6"/>
@@ -203,7 +207,7 @@
                             </WrapPanel>
                             <TextBlock Text="Select at least one destination type"
                                        FontSize="12"
-                                       Foreground="#FF6B6B"
+                                       Classes="adaptive-danger"
                                        IsVisible="{Binding HasDestinationError}"/>
                         </StackPanel>
                     </StackPanel>
@@ -230,9 +234,11 @@
                                 <TextBlock Text="Request URL" FontSize="13" FontWeight="SemiBold"/>
                                 <Grid>
                                     <TextBox Text="{Binding RequestUrl, Mode=TwoWay}"
-                                             Watermark="https://example.com/api/upload"
-                                             Classes="adaptive-input"/>
-                                    <Border BorderBrush="#FF6B6B"
+                                             x:Name="RequestUrlTextBox"
+                                             PlaceholderText="https://example.com/api/upload"
+                                             Classes="adaptive-input"
+                                             AutomationProperties.Name="Request URL"/>
+                                    <Border BorderBrush="{DynamicResource ThemeErrorBrush}"
                                             BorderThickness="2"
                                             CornerRadius="8"
                                             IsVisible="{Binding HasUrlError}"
@@ -258,19 +264,19 @@
                                           x:Name="HeadersList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:KeyValuePairItem">
-                                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                        <Border Background="{DynamicResource ThemeSurfaceVariantBrush}"
                                                 CornerRadius="8"
                                                 Padding="8"
                                                 Margin="0,2">
                                             <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="6">
                                                 <TextBox Grid.Column="0"
                                                          Text="{Binding Key, Mode=TwoWay}"
-                                                         Watermark="Key"
+                                                         PlaceholderText="Key"
                                                          Classes="adaptive-input"
                                                          FontSize="13"/>
                                                 <TextBox Grid.Column="1"
                                                          Text="{Binding Value, Mode=TwoWay}"
-                                                         Watermark="Value"
+                                                         PlaceholderText="Value"
                                                          Classes="adaptive-input"
                                                          FontSize="13"/>
                                                 <Button Grid.Column="2"
@@ -282,7 +288,7 @@
                                                         FontSize="12"
                                                         HorizontalContentAlignment="Center"
                                                         VerticalContentAlignment="Center"
-                                                        Foreground="#FF6B6B"/>
+                                                        Foreground="{DynamicResource ThemeErrorBrush}"/>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -307,19 +313,19 @@
                                           x:Name="ParametersList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:KeyValuePairItem">
-                                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                        <Border Background="{DynamicResource ThemeSurfaceVariantBrush}"
                                                 CornerRadius="8"
                                                 Padding="8"
                                                 Margin="0,2">
                                             <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="6">
                                                 <TextBox Grid.Column="0"
                                                          Text="{Binding Key, Mode=TwoWay}"
-                                                         Watermark="Key"
+                                                         PlaceholderText="Key"
                                                          Classes="adaptive-input"
                                                          FontSize="13"/>
                                                 <TextBox Grid.Column="1"
                                                          Text="{Binding Value, Mode=TwoWay}"
-                                                         Watermark="Value"
+                                                         PlaceholderText="Value"
                                                          Classes="adaptive-input"
                                                          FontSize="13"/>
                                                 <Button Grid.Column="2"
@@ -331,7 +337,7 @@
                                                         FontSize="12"
                                                         HorizontalContentAlignment="Center"
                                                         VerticalContentAlignment="Center"
-                                                        Foreground="#FF6B6B"/>
+                                                        Foreground="{DynamicResource ThemeErrorBrush}"/>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -360,7 +366,7 @@
                             <StackPanel Grid.Column="1" Spacing="4">
                                 <TextBlock Text="File Form Name" FontSize="13" FontWeight="SemiBold"/>
                                 <TextBox Text="{Binding FileFormName, Mode=TwoWay}"
-                                         Watermark="file"
+                                         PlaceholderText="file"
                                          Classes="adaptive-input"/>
                             </StackPanel>
                         </Grid>
@@ -382,19 +388,19 @@
                                           x:Name="ArgumentsList">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:KeyValuePairItem">
-                                        <Border Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                        <Border Background="{DynamicResource ThemeSurfaceVariantBrush}"
                                                 CornerRadius="8"
                                                 Padding="8"
                                                 Margin="0,2">
                                             <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="6">
                                                 <TextBox Grid.Column="0"
                                                          Text="{Binding Key, Mode=TwoWay}"
-                                                         Watermark="Key"
+                                                         PlaceholderText="Key"
                                                          Classes="adaptive-input"
                                                          FontSize="13"/>
                                                 <TextBox Grid.Column="1"
                                                          Text="{Binding Value, Mode=TwoWay}"
-                                                         Watermark="Value"
+                                                         PlaceholderText="Value"
                                                          Classes="adaptive-input"
                                                          FontSize="13"/>
                                                 <Button Grid.Column="2"
@@ -406,7 +412,7 @@
                                                         FontSize="12"
                                                         HorizontalContentAlignment="Center"
                                                         VerticalContentAlignment="Center"
-                                                        Foreground="#FF6B6B"/>
+                                                        Foreground="{DynamicResource ThemeErrorBrush}"/>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -422,7 +428,7 @@
                                      TextWrapping="Wrap"
                                      MinHeight="80"
                                      MaxHeight="150"
-                                     Watermark="JSON or XML body content"
+                                     PlaceholderText="JSON or XML body content"
                                      Classes="adaptive-input"
                                      FontFamily="Consolas, Monospace"
                                      FontSize="12"/>
@@ -451,28 +457,28 @@
                         <StackPanel Spacing="4">
                             <TextBlock Text="URL" FontSize="13" FontWeight="SemiBold"/>
                             <TextBox Text="{Binding UrlPattern, Mode=TwoWay}"
-                                     Watermark="e.g. json:url or response"
+                                     PlaceholderText="e.g. json:url or response"
                                      Classes="adaptive-input"/>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
                             <TextBlock Text="Thumbnail URL" FontSize="13" FontWeight="SemiBold"/>
                             <TextBox Text="{Binding ThumbnailUrlPattern, Mode=TwoWay}"
-                                     Watermark="e.g. json:thumbnail"
+                                     PlaceholderText="e.g. json:thumbnail"
                                      Classes="adaptive-input"/>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
                             <TextBlock Text="Deletion URL" FontSize="13" FontWeight="SemiBold"/>
                             <TextBox Text="{Binding DeletionUrlPattern, Mode=TwoWay}"
-                                     Watermark="e.g. json:delete_url"
+                                     PlaceholderText="e.g. json:delete_url"
                                      Classes="adaptive-input"/>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
                             <TextBlock Text="Error Message" FontSize="13" FontWeight="SemiBold"/>
                             <TextBox Text="{Binding ErrorMessagePattern, Mode=TwoWay}"
-                                     Watermark="e.g. json:error"
+                                     PlaceholderText="e.g. json:error"
                                      Classes="adaptive-input"/>
                         </StackPanel>
                     </StackPanel>
@@ -495,7 +501,7 @@
                                  TextWrapping="Wrap"
                                  MinHeight="80"
                                  MaxHeight="150"
-                                 Watermark="Paste .sxcu JSON content here..."
+                                 PlaceholderText="Paste .sxcu JSON content here..."
                                  FontFamily="Consolas, Monospace"
                                  FontSize="12"
                                  Classes="adaptive-input"/>

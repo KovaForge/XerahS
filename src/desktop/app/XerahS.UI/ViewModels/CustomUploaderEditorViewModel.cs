@@ -33,6 +33,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using XerahS.Uploaders;
 using XerahS.Uploaders.CustomUploader;
@@ -446,14 +447,51 @@ public partial class CustomUploaderEditorViewModel : ViewModelBase, INotifyDataE
 
         try
         {
-            await Task.Delay(500); // Allow UI to update
-
+            await Task.Yield();
             var item = ToItem();
-            var executor = new XerahS.Uploaders.CustomUploader.CustomUploaderExecutor(item);
+            var previewInput = new CustomUploaderInput("example-upload.png", "sample-upload-content");
+            var requestUrl = item.GetRequestURL(previewInput);
+            var parameters = item.GetParameters(previewInput);
+            var headers = item.GetHeaders(previewInput);
+            var arguments = item.GetArguments(previewInput);
+            var bodyPreview = DescribeBodyPreview(item, previewInput, arguments);
 
-            // Create a simple test - just verify the URL is reachable
-            // A full test would require actual file upload
-            SetStatus("Uploader configuration is valid. Save and test with an actual upload.", false);
+            var builder = new StringBuilder();
+            builder.AppendLine("Validation passed. Preview only - no network request was sent.");
+            builder.AppendLine();
+            builder.AppendLine($"Resolved request URL: {requestUrl}");
+            builder.AppendLine($"HTTP method: {item.RequestMethod}");
+            builder.AppendLine($"Body preview: {bodyPreview}");
+
+            if (parameters.Count > 0)
+            {
+                builder.AppendLine();
+                builder.AppendLine("Resolved URL parameters:");
+                builder.AppendLine(FormatKeyValuePairs(parameters));
+            }
+
+            if (headers.Count > 0)
+            {
+                builder.AppendLine();
+                builder.AppendLine("Resolved headers:");
+                builder.AppendLine(FormatHeaders(headers));
+            }
+
+            if (arguments.Count > 0)
+            {
+                builder.AppendLine();
+                builder.AppendLine("Resolved form arguments:");
+                builder.AppendLine(FormatKeyValuePairs(arguments));
+            }
+
+            builder.AppendLine();
+            builder.AppendLine("Response rules:");
+            builder.AppendLine(DescribeResponseRule("URL", UrlPattern));
+            builder.AppendLine(DescribeResponseRule("Thumbnail URL", ThumbnailUrlPattern));
+            builder.AppendLine(DescribeResponseRule("Deletion URL", DeletionUrlPattern));
+            builder.AppendLine(DescribeResponseRule("Error message", ErrorMessagePattern));
+
+            SetStatus(builder.ToString().TrimEnd(), false);
         }
         catch (Exception ex)
         {
@@ -622,6 +660,56 @@ public partial class CustomUploaderEditorViewModel : ViewModelBase, INotifyDataE
     {
         StatusMessage = message;
         IsStatusError = isError;
+    }
+
+    private static string DescribeBodyPreview(
+        CustomUploaderItem item,
+        CustomUploaderInput previewInput,
+        IReadOnlyDictionary<string, string> arguments)
+    {
+        return item.Body switch
+        {
+            CustomUploaderBody.MultipartFormData => $"multipart/form-data using file field '{item.GetFileFormName()}'",
+            CustomUploaderBody.FormURLEncoded => arguments.Count > 0
+                ? $"application/x-www-form-urlencoded with {arguments.Count} field(s)"
+                : "application/x-www-form-urlencoded with no extra fields",
+            CustomUploaderBody.JSON => $"JSON payload: {item.GetData(previewInput)}",
+            CustomUploaderBody.XML => $"XML payload: {item.GetData(previewInput)}",
+            CustomUploaderBody.Binary => "binary file upload",
+            _ => "no request body"
+        };
+    }
+
+    private static string DescribeResponseRule(string label, string pattern)
+    {
+        if (string.IsNullOrWhiteSpace(pattern))
+        {
+            return $"- {label}: not configured";
+        }
+
+        string ruleType = pattern.Contains("{json:", StringComparison.OrdinalIgnoreCase)
+            ? "JSON extraction"
+            : pattern.Contains("{regex:", StringComparison.OrdinalIgnoreCase)
+                ? "regex extraction"
+                : pattern.Contains("{response}", StringComparison.OrdinalIgnoreCase)
+                    ? "raw response"
+                    : "custom pattern";
+
+        return $"- {label}: {ruleType} -> {pattern}";
+    }
+
+    private static string FormatHeaders(System.Collections.Specialized.NameValueCollection headers)
+    {
+        var pairs = headers.AllKeys
+            .Where(key => !string.IsNullOrWhiteSpace(key))
+            .Select(key => new KeyValuePair<string, string>(key!, headers[key] ?? string.Empty));
+
+        return FormatKeyValuePairs(pairs);
+    }
+
+    private static string FormatKeyValuePairs(IEnumerable<KeyValuePair<string, string>> pairs)
+    {
+        return string.Join(Environment.NewLine, pairs.Select(pair => $"- {pair.Key}: {pair.Value}"));
     }
 
     #endregion

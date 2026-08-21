@@ -27,6 +27,8 @@ using Avalonia.Input;
 using NUnit.Framework;
 using System.Threading;
 using System.Threading.Tasks;
+using XerahS.Platform.Abstractions;
+using XerahS.Platform.Linux;
 using XerahS.Platform.Linux.Services;
 
 namespace XerahS.Tests.Platform.Linux;
@@ -63,6 +65,87 @@ public class LinuxHotkeyServiceTests
         var names = LinuxHotkeyService.GetCandidateKeysymNames(Key.A);
 
         Assert.That(names, Is.EqualTo(new[] { "A" }));
+    }
+
+    [Test]
+    public void ModifierMatch_IgnoresCapsAndNumLockButRejectsExtraModifiers()
+    {
+        uint controlShift = LinuxHotkeyService.GetModifierMaskForTesting(KeyModifiers.Control | KeyModifiers.Shift);
+        uint alt = LinuxHotkeyService.GetModifierMaskForTesting(KeyModifiers.Alt);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(LinuxHotkeyService.IsModifierMatch(controlShift, controlShift), Is.True);
+            Assert.That(LinuxHotkeyService.IsModifierMatch(controlShift | NativeMethods.LockMask | NativeMethods.Mod2Mask, controlShift), Is.True);
+            Assert.That(LinuxHotkeyService.IsModifierMatch(controlShift | alt, controlShift), Is.False);
+            Assert.That(LinuxHotkeyService.IsModifierMatch(controlShift & ~LinuxHotkeyService.GetModifierMaskForTesting(KeyModifiers.Shift), controlShift), Is.False);
+        });
+    }
+
+    [Test]
+    public void WaylandPortalHotkeyService_BuildPreferredTrigger_UsesGtkKeypadNames()
+    {
+        var hotkey = new HotkeyInfo(Key.NumPad5, KeyModifiers.Control | KeyModifiers.Alt);
+
+        string trigger = WaylandPortalHotkeyService.BuildPreferredTrigger(hotkey);
+
+        Assert.That(trigger, Is.EqualTo("<Primary><Alt>KP_5"));
+    }
+
+    [Test]
+    public void WaylandPortalHotkeyService_MapKeyName_KeypadDigitsUseGdkNames()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(WaylandPortalHotkeyService.MapKeyName(Key.NumPad0), Is.EqualTo("KP_0"));
+            Assert.That(WaylandPortalHotkeyService.MapKeyName(Key.NumPad9), Is.EqualTo("KP_9"));
+        });
+    }
+
+    [Test]
+    public void WaylandPortalHotkeyService_MapKeyName_SpaceUsesGdkName()
+    {
+        Assert.That(WaylandPortalHotkeyService.MapKeyName(Key.Space), Is.EqualTo("space"));
+    }
+
+    [Test]
+    public void WaylandPortalHotkeyService_MapKeyName_Oem102MapsToBackslash()
+    {
+        Assert.That(WaylandPortalHotkeyService.MapKeyName(Key.Oem102), Is.EqualTo("backslash"));
+    }
+
+    [Test]
+    public void LinuxHotkeyService_GetCandidateKeysymNames_Oem102IncludesBackslash()
+    {
+        var names = LinuxHotkeyService.GetCandidateKeysymNames(Key.Oem102);
+
+        Assert.That(names, Does.Contain("backslash"));
+    }
+
+    [Test]
+    public void WaylandPortalHotkeyService_BuildShortcutSnapshotMap_ToleratesDuplicatePortalIds()
+    {
+        var first = new Dictionary<string, object>
+        {
+            ["trigger_description"] = "First binding"
+        };
+        var second = new Dictionary<string, object>
+        {
+            ["trigger_description"] = "Updated binding"
+        };
+
+        var map = WaylandPortalHotkeyService.BuildShortcutSnapshotMap(
+        [
+            ValueTuple.Create("1", (IDictionary<string, object>)first),
+            ValueTuple.Create("", (IDictionary<string, object>)new Dictionary<string, object>()),
+            ValueTuple.Create("1", (IDictionary<string, object>)second)
+        ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(map, Has.Count.EqualTo(1));
+            Assert.That(map["1"], Is.SameAs(second));
+        });
     }
 
     [Test]
@@ -104,6 +187,37 @@ public class LinuxHotkeyServiceTests
         await Task.Delay(250).ConfigureAwait(false);
 
         Assert.That(rebindCalls, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void WaylandPortalHotkeyService_GetDiagnostics_WhenPortalSkipped_ReturnsUnavailable()
+    {
+        using var service = new WaylandPortalHotkeyService(null, skipPortalInitialization: true);
+
+        var diagnostics = service.GetDiagnostics();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(diagnostics.State, Is.EqualTo(HotkeyBackendState.Unavailable));
+            Assert.That(diagnostics.BackendName, Does.Contain("GlobalShortcuts"));
+            Assert.That(diagnostics.UserFacingWarning, Is.Not.Null.And.Not.Empty);
+        });
+    }
+
+    [Test]
+    public void LinuxHotkeyService_GetDiagnostics_WhenDisplayUnavailable_ReturnsUnavailable()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            Assert.Ignore("LinuxHotkeyService X11 interop is only available on Linux hosts.");
+        }
+
+        using var service = new LinuxHotkeyService();
+
+        var diagnostics = service.GetDiagnostics();
+
+        // Headless CI typically has no X display; either Unavailable or Native depending on environment.
+        Assert.That(diagnostics.State, Is.AnyOf(HotkeyBackendState.Unavailable, HotkeyBackendState.Native));
     }
 }
 

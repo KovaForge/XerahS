@@ -44,6 +44,8 @@ public partial class AfterCaptureViewModel : ViewModelBase
 
     public bool Cancelled { get; private set; } = true;
 
+    public AfterCaptureQuickAction QuickAction { get; private set; }
+
     public event Action? RequestClose;
 
     public AfterCaptureViewModel(SkiaSharp.SKBitmap image, AfterCaptureTasks afterCapture, AfterUploadTasks afterUpload)
@@ -77,6 +79,16 @@ public partial class AfterCaptureViewModel : ViewModelBase
         }
     }
 
+    public bool CopyFilePathToClipboard
+    {
+        get => AfterCaptureTasks.HasFlag(AfterCaptureTasks.CopyFilePathToClipboard);
+        set
+        {
+            SetAfterCaptureFlag(AfterCaptureTasks.CopyFilePathToClipboard, value);
+            OnPropertyChanged();
+        }
+    }
+
     public bool AnnotateMedia
     {
         get => AfterCaptureTasks.HasFlag(AfterCaptureTasks.AnnotateMedia);
@@ -93,6 +105,16 @@ public partial class AfterCaptureViewModel : ViewModelBase
         set
         {
             SetAfterCaptureFlag(AfterCaptureTasks.UploadImageToHost, value);
+            OnPropertyChanged();
+        }
+    }
+
+    public bool CopyOcrTextToClipboard
+    {
+        get => AfterCaptureTasks.HasFlag(AfterCaptureTasks.CopyOcrTextToClipboard);
+        set
+        {
+            SetAfterCaptureFlag(AfterCaptureTasks.CopyOcrTextToClipboard, value);
             OnPropertyChanged();
         }
     }
@@ -140,8 +162,21 @@ public partial class AfterCaptureViewModel : ViewModelBase
     [RelayCommand]
     private void Continue()
     {
-        Cancelled = false;
-        RequestClose?.Invoke();
+        Complete();
+    }
+
+    [RelayCommand]
+    private void CopyImage()
+    {
+        Complete(AfterCaptureQuickAction.CopyImage, AfterCaptureTasks.CopyImageToClipboard);
+    }
+
+    [RelayCommand]
+    private void CopyFilePath()
+    {
+        Complete(
+            AfterCaptureQuickAction.CopyFilePath,
+            AfterCaptureTasks.SaveImageToFile | AfterCaptureTasks.CopyFilePathToClipboard);
     }
 
     [RelayCommand]
@@ -151,12 +186,29 @@ public partial class AfterCaptureViewModel : ViewModelBase
         RequestClose?.Invoke();
     }
 
+    private void Complete(
+        AfterCaptureQuickAction quickAction = AfterCaptureQuickAction.None,
+        AfterCaptureTasks? afterCaptureTasks = null)
+    {
+        QuickAction = quickAction;
+        if (afterCaptureTasks.HasValue)
+        {
+            AfterCaptureTasks = afterCaptureTasks.Value;
+            AfterUploadTasks = AfterUploadTasks.None;
+        }
+
+        Cancelled = false;
+        RequestClose?.Invoke();
+    }
+
     partial void OnAfterCaptureTasksChanged(AfterCaptureTasks value)
     {
         OnPropertyChanged(nameof(SaveImageToFile));
         OnPropertyChanged(nameof(CopyImageToClipboard));
+        OnPropertyChanged(nameof(CopyFilePathToClipboard));
         OnPropertyChanged(nameof(AnnotateMedia));
         OnPropertyChanged(nameof(UploadImageToHost));
+        OnPropertyChanged(nameof(CopyOcrTextToClipboard));
     }
 
     partial void OnAfterUploadTasksChanged(AfterUploadTasks value)
@@ -177,4 +229,3 @@ public partial class AfterCaptureViewModel : ViewModelBase
         AfterUploadTasks = enabled ? AfterUploadTasks | flag : AfterUploadTasks & ~flag;
     }
 }
-

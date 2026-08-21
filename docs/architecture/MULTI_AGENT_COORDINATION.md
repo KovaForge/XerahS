@@ -12,15 +12,17 @@ Use this document when more than one coding agent, worktree, or parallel session
 
 ## Good Boundaries in This Repo
 
-| Boundary | Typical Scope |
-| --- | --- |
-| `src/desktop/app/XerahS.UI` | Avalonia views, controls, XAML, UI wiring |
-| `src/desktop/app/XerahS.App` and `src/desktop/app/XerahS.Bootstrap` | App startup and composition root |
-| `src/desktop/core/*` | Business logic, history, media, services, uploaders, shared view models |
-| `src/platform/*` | Windows, Linux, macOS, and shared platform abstractions |
-| `src/desktop/plugins/*` | Uploader plugin implementations |
-| `src/mobile/*` | Android and iOS heads |
-| `docs/*` and `developers/*` | Documentation, audits, and process updates |
+
+| Boundary                                                            | Typical Scope                                                           |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `src/desktop/app/XerahS.UI`                                         | Avalonia views, controls, XAML, UI wiring                               |
+| `src/desktop/app/XerahS.App` and `src/desktop/app/XerahS.Bootstrap` | App startup and composition root                                        |
+| `src/desktop/core/*`                                                | Business logic, history, media, services, uploaders, shared view models |
+| `src/platform/*`                                                    | Windows, Linux, macOS, and shared platform abstractions                 |
+| `src/desktop/plugins/*`                                             | Uploader plugin implementations                                         |
+| `src/mobile/*`                                                      | Android and iOS heads                                                   |
+| `docs/*` and `developers/*`                                         | Documentation, audits, and process updates                              |
+
 
 ## Typical Reasons to Delegate
 
@@ -35,10 +37,10 @@ Use this document when more than one coding agent, worktree, or parallel session
 1. The coordinator writes a short task brief with scope, boundary, and expected verification.
 2. The worker agent stays inside the assigned boundary and does not expand scope silently.
 3. The worker returns:
-   - Summary of the change
-   - Files changed
-   - Commands run and results
-   - Assumptions, risks, or blockers
+  - Summary of the change
+  - Files changed
+  - Commands run and results
+  - Assumptions, risks, or blockers
 4. The coordinator integrates the result, resolves cross-cutting edits, and reruns final verification.
 
 ## Protected or High-Conflict Files
@@ -67,3 +69,4 @@ Pause and escalate when:
 - Two agents need the same project at the same time
 - A new shared abstraction or package/version change is required
 - A solution-level setting or repository policy file must change
+

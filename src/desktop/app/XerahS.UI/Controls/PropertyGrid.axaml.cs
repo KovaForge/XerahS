@@ -24,11 +24,14 @@
 #endregion License Information (GPL v3)
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Media;
+using ShareX.ImageEditor.Presentation.Controls;
 using SkiaSharp;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 
 namespace XerahS.UI.Controls
@@ -85,8 +88,7 @@ namespace XerahS.UI.Controls
                 var header = new TextBlock
                 {
                     Text = group.Key,
-                    FontWeight = FontWeight.SemiBold,
-                    Margin = new Thickness(0, 8, 0, 4)
+                    Classes = { "propertyCategoryHeader" }
                 };
                 PropertiesPanel.Children.Add(header);
 
@@ -103,9 +105,21 @@ namespace XerahS.UI.Controls
 
         private Control? CreatePropertyRow(object obj, PropertyInfo prop)
         {
+            var editor = CreateEditor(obj, prop);
+            if (editor == null)
+            {
+                return null;
+            }
+
+            if (editor is EffectSlider sliderEditor)
+            {
+                sliderEditor.Label = GetDisplayName(prop);
+                return sliderEditor;
+            }
+
             var grid = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions("300, *"),
+                ColumnDefinitions = new ColumnDefinitions("180, *"),
                 Classes = { "propertyRow" }
             };
 
@@ -118,10 +132,6 @@ namespace XerahS.UI.Controls
             ToolTip.SetTip(label, GetDescription(prop));
             Grid.SetColumn(label, 0);
             grid.Children.Add(label);
-
-            // Editor
-            var editor = CreateEditor(obj, prop);
-            if (editor == null) return null; // Skip unsupported types for now
 
             Grid.SetColumn(editor, 1);
             grid.Children.Add(editor);
@@ -156,20 +166,30 @@ namespace XerahS.UI.Controls
             }
             if (type == typeof(int) || type == typeof(long) || type == typeof(short))
             {
-                var nud = new NumericUpDown();
-                nud.Increment = 1;
-                nud.Bind(NumericUpDown.ValueProperty, binding);
-                nud.ValueChanged += (s, e) => PropertyValueChanged?.Invoke(this, EventArgs.Empty);
-                return nud;
+                var slider = CreateNumericSlider(prop, 1);
+                slider.Bind(RangeBase.ValueProperty, binding);
+                slider.PropertyChanged += (s, e) =>
+                {
+                    if (e.Property == RangeBase.ValueProperty)
+                    {
+                        PropertyValueChanged?.Invoke(this, EventArgs.Empty);
+                    }
+                };
+                return slider;
             }
             if (type == typeof(float) || type == typeof(double) || type == typeof(decimal))
             {
-                var nud = new NumericUpDown();
-                nud.Increment = 0.1m;
-                nud.FormatString = "0.00";
-                nud.Bind(NumericUpDown.ValueProperty, binding);
-                nud.ValueChanged += (s, e) => PropertyValueChanged?.Invoke(this, EventArgs.Empty);
-                return nud;
+                var slider = CreateNumericSlider(prop, 0.1);
+                slider.ValueStringFormat = "{}{0:0.##}";
+                slider.Bind(RangeBase.ValueProperty, binding);
+                slider.PropertyChanged += (s, e) =>
+                {
+                    if (e.Property == RangeBase.ValueProperty)
+                    {
+                        PropertyValueChanged?.Invoke(this, EventArgs.Empty);
+                    }
+                };
+                return slider;
             }
             if (type == typeof(string))
             {
@@ -203,6 +223,80 @@ namespace XerahS.UI.Controls
             }
 
             return new TextBox { Text = $"(Unsupported {type.Name})", IsReadOnly = true };
+        }
+
+        private static EffectSlider CreateNumericSlider(PropertyInfo prop, double fallbackStep)
+        {
+            var (minimum, maximum, step) = GetNumericBounds(prop, fallbackStep);
+
+            return new EffectSlider
+            {
+                Minimum = minimum,
+                Maximum = maximum,
+                TickFrequency = step,
+                SmallChange = step,
+                LargeChange = Math.Max(step * 5, step),
+                IsSnapToTickEnabled = false,
+                ValueStringFormat = "{}{0:0.##}"
+            };
+        }
+
+        private static (double Minimum, double Maximum, double Step) GetNumericBounds(PropertyInfo prop, double fallbackStep)
+        {
+            var range = prop.GetCustomAttribute<RangeAttribute>();
+            if (range != null &&
+                double.TryParse(range.Minimum?.ToString(), out var rangeMin) &&
+                double.TryParse(range.Maximum?.ToString(), out var rangeMax))
+            {
+                return (rangeMin, rangeMax, fallbackStep);
+            }
+
+            string name = prop.Name;
+            if (name.Contains("Opacity", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("Alpha", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("Strength", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("Percentage", StringComparison.OrdinalIgnoreCase))
+            {
+                return (0, 100, 1);
+            }
+
+            if (name.Contains("Angle", StringComparison.OrdinalIgnoreCase))
+            {
+                return (-180, 180, 1);
+            }
+
+            if (name.Contains("Hue", StringComparison.OrdinalIgnoreCase))
+            {
+                return (-180, 180, 1);
+            }
+
+            if (name.Contains("Gamma", StringComparison.OrdinalIgnoreCase))
+            {
+                return (0, 5, 0.05);
+            }
+
+            if (name.Contains("Radius", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("Size", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("Depth", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("Range", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("Width", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("Height", StringComparison.OrdinalIgnoreCase))
+            {
+                return (0, 200, 1);
+            }
+
+            if (name.Contains("Offset", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("Shift", StringComparison.OrdinalIgnoreCase))
+            {
+                return (-200, 200, 1);
+            }
+
+            if (name.Contains("Threshold", StringComparison.OrdinalIgnoreCase))
+            {
+                return (0, 255, 1);
+            }
+
+            return (0, 100, fallbackStep);
         }
 
         private string GetDisplayName(PropertyInfo prop)

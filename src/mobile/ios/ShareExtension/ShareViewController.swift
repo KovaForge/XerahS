@@ -25,15 +25,67 @@
 import UIKit
 import UniformTypeIdentifiers
 
-private let appGroupId = "group.com.getsharex.xerahs"
+private let appGroupId = "group.com.xerahs.xerahs"
 private let pendingPathsKey = "PendingSharedPaths"
+private let pendingSxcuImportsKey = "PendingSxcuImports"
+private let pendingXsdcImportsKey = "PendingXsdcImports"
 private let openAppURLString = "xerahs://share"
 
 final class ShareViewController: UIViewController {
+    private let uploadService = ShareExtensionUploadService()
+    private let statusLabel = UILabel()
+    private let spinner = UIActivityIndicatorView(style: .medium)
+    private var didStartHandlingItems = false
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        configureStatusView()
+    }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        guard !didStartHandlingItems else { return }
+        didStartHandlingItems = true
         handleSharedItems()
+    }
+
+    private func configureStatusView() {
+        view.backgroundColor = .systemBackground
+
+        let titleLabel = UILabel()
+        titleLabel.text = "XerahS"
+        titleLabel.font = .preferredFont(forTextStyle: .title2)
+        titleLabel.adjustsFontForContentSizeCategory = true
+        titleLabel.textAlignment = .center
+
+        statusLabel.text = "Preparing shared item..."
+        statusLabel.font = .preferredFont(forTextStyle: .body)
+        statusLabel.adjustsFontForContentSizeCategory = true
+        statusLabel.textColor = .secondaryLabel
+        statusLabel.textAlignment = .center
+        statusLabel.numberOfLines = 0
+
+        spinner.startAnimating()
+
+        let stack = UIStackView(arrangedSubviews: [titleLabel, spinner, statusLabel])
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.spacing = 14
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24)
+        ])
+    }
+
+    private func updateStatus(_ text: String) {
+        DispatchQueue.main.async {
+            self.statusLabel.text = text
+        }
     }
 
     private func handleSharedItems() {
@@ -45,6 +97,11 @@ final class ShareViewController: UIViewController {
             finishWithError()
             return
         }
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? groupContainer.appendingPathComponent("Caches", isDirectory: true)
+        Paths.configure(applicationSupport: groupContainer, caches: caches, appGroupContainer: groupContainer)
+        Paths.ensureDirectoriesExist()
+
         let inbox = groupContainer.appendingPathComponent("ShareInbox", isDirectory: true)
         try? FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
 
@@ -78,23 +135,16 @@ final class ShareViewController: UIViewController {
         let group = DispatchGroup()
         let lock = NSLock()
 
+        updateStatus("Preparing shared item...")
+
         for item in extensionItems {
             guard let attachments = item.attachments else { continue }
             for provider in attachments {
                 for typeId in supportedTypes {
                     if provider.hasItemConformingToTypeIdentifier(typeId) {
                         group.enter()
-                        provider.loadItem(forTypeIdentifier: typeId, options: nil) { data, _ in
+                        loadProviderItem(provider, typeId: typeId, inbox: inbox) { path in
                             defer { group.leave() }
-                            guard let data = data else { return }
-                            var path: String?
-                            if let url = data as? URL {
-                                path = self.copyToInbox(url: url, inbox: inbox)
-                            } else if let image = data as? UIImage, let d = image.jpegData(compressionQuality: 0.9) {
-                                path = self.writeData(d, to: inbox, ext: "jpg")
-                            } else if let d = data as? Data {
-                                path = self.writeData(d, to: inbox, ext: "bin")
-                            }
                             if let p = path {
                                 lock.lock()
                                 savedPaths.append(p)
@@ -112,14 +162,84 @@ final class ShareViewController: UIViewController {
         }
     }
 
-    private func copyToInbox(url: URL, inbox: URL) -> String? {
+    private func loadProviderItem(
+        _ provider: NSItemProvider,
+        typeId: String,
+        inbox: URL,
+        completion: @escaping (String?) -> Void
+    ) {
+        if shouldPreferFileRepresentation(typeId) {
+            provider.loadFileRepresentation(forTypeIdentifier: typeId) { [weak self] url, _ in
+                guard let self else {
+                    completion(nil)
+                    return
+                }
+                if let url, let path = self.copyToInbox(url: url, inbox: inbox, preferredExtension: self.preferredExtension(for: typeId)) {
+                    completion(path)
+                    return
+                }
+                self.loadInMemoryItem(provider, typeId: typeId, inbox: inbox, completion: completion)
+            }
+            return
+        }
+
+        loadInMemoryItem(provider, typeId: typeId, inbox: inbox, completion: completion)
+    }
+
+    private func loadInMemoryItem(
+        _ provider: NSItemProvider,
+        typeId: String,
+        inbox: URL,
+        completion: @escaping (String?) -> Void
+    ) {
+        provider.loadItem(forTypeIdentifier: typeId, options: nil) { [weak self] data, _ in
+            guard let self, let data else {
+                completion(nil)
+                return
+            }
+
+            if let url = data as? URL {
+                completion(self.copyToInbox(url: url, inbox: inbox, preferredExtension: self.preferredExtension(for: typeId)))
+            } else if let image = data as? UIImage, let d = image.jpegData(compressionQuality: 0.9) {
+                completion(self.writeData(d, to: inbox, ext: "jpg"))
+            } else if let d = data as? Data {
+                completion(self.writeData(d, to: inbox, ext: self.preferredExtension(for: typeId) ?? "bin"))
+            } else {
+                completion(nil)
+            }
+        }
+    }
+
+    private func shouldPreferFileRepresentation(_ typeId: String) -> Bool {
+        guard typeId != "public.url" else { return false }
+        return true
+    }
+
+    private func preferredExtension(for typeId: String) -> String? {
+        if typeId == UTType.jpeg.identifier || typeId == UTType.image.identifier {
+            return "jpg"
+        }
+        return UTType(typeId)?.preferredFilenameExtension
+    }
+
+    private func copyToInbox(url: URL, inbox: URL, preferredExtension: String? = nil) -> String? {
         let isSecurityScoped = url.startAccessingSecurityScopedResource()
         defer { if isSecurityScoped { url.stopAccessingSecurityScopedResource() } }
-        let name = url.lastPathComponent.isEmpty ? "shared_\(UUID().uuidString.prefix(8))" : url.lastPathComponent
-        let dest = inbox.appendingPathComponent(name)
+
+        let rawName = url.deletingPathExtension().lastPathComponent
+        let baseName = rawName.isEmpty ? "shared" : rawName
+        let ext = url.pathExtension.isEmpty ? preferredExtension : url.pathExtension
+        let uniqueName = "\(baseName)_\(UUID().uuidString.prefix(8))"
+        let fileName = ext.map { "\(uniqueName).\($0)" } ?? uniqueName
+        let dest = inbox.appendingPathComponent(fileName)
+
         do {
             if FileManager.default.fileExists(atPath: dest.path) { try FileManager.default.removeItem(at: dest) }
-            try FileManager.default.copyItem(at: url, to: dest)
+            if url.isFileURL {
+                try FileManager.default.copyItem(at: url, to: dest)
+            } else {
+                try Data(contentsOf: url).write(to: dest)
+            }
             return dest.path
         } catch {
             return nil
@@ -142,18 +262,96 @@ final class ShareViewController: UIViewController {
             finishWithError()
             return
         }
+
+        updateStatus("Uploading...")
+
+        let sxcuPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() == "sxcu" }
+        let xsdcPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() == "xsdc" }
+        let uploadPaths = savedPaths.filter {
+            let ext = ($0 as NSString).pathExtension.lowercased()
+            return ext != "sxcu" && ext != "xsdc"
+        }
+
+        if !sxcuPaths.isEmpty {
+            enqueueForMainApp(paths: sxcuPaths, key: pendingSxcuImportsKey)
+        }
+
+        if !xsdcPaths.isEmpty {
+            enqueueForMainApp(paths: xsdcPaths, key: pendingXsdcImportsKey)
+        }
+
+        if uploadPaths.isEmpty {
+            openContainingApp()
+            extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+            return
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            let results = self.uploadService.uploadFiles(uploadPaths)
+            DispatchQueue.main.async {
+                self.finishUploadShare(uploadResults: results, hasPendingImport: !sxcuPaths.isEmpty || !xsdcPaths.isEmpty)
+            }
+        }
+    }
+
+    private func finishUploadShare(uploadResults: [ShareExtensionUploadResult], hasPendingImport: Bool) {
+        let uploadedUrls = uploadResults.compactMap(\.url)
+        let failedPaths = uploadResults.filter { !$0.succeeded }.map(\.filePath)
+
+        if !uploadedUrls.isEmpty {
+            UIPasteboard.general.string = uploadedUrls.joined(separator: "\n")
+            removeUploadedInboxFiles(uploadResults)
+        }
+
+        if !failedPaths.isEmpty {
+            enqueueForMainApp(paths: failedPaths, key: pendingPathsKey)
+        }
+
+        if hasPendingImport || !failedPaths.isEmpty {
+            openContainingApp()
+        }
+
+        if uploadedUrls.count == uploadResults.count {
+            let status = uploadedUrls.count == 1
+                ? "Link copied to Clipboard."
+                : "\(uploadedUrls.count) links copied to Clipboard."
+            updateStatus(status)
+        } else if !uploadedUrls.isEmpty {
+            updateStatus("\(uploadedUrls.count) link(s) copied. \(failedPaths.count) file(s) queued for XerahS.")
+        } else {
+            let firstError = uploadResults.compactMap(\.error).first ?? "Open XerahS to finish uploading."
+            updateStatus(firstError)
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+        }
+    }
+
+    private func enqueueForMainApp(paths: [String], key: String) {
+        guard !paths.isEmpty else { return }
         let defaults = UserDefaults(suiteName: appGroupId)
-        var pending = (defaults?.array(forKey: pendingPathsKey) as? [String]) ?? []
-        pending.append(contentsOf: savedPaths)
-        defaults?.set(pending, forKey: pendingPathsKey)
+        var pending = (defaults?.array(forKey: key) as? [String]) ?? []
+        pending.append(contentsOf: paths)
+        defaults?.set(pending, forKey: key)
         defaults?.synchronize()
+    }
+
+    private func removeUploadedInboxFiles(_ results: [ShareExtensionUploadResult]) {
+        for result in results where result.succeeded {
+            try? FileManager.default.removeItem(atPath: result.filePath)
+        }
+    }
+
+    private func openContainingApp() {
         if let url = URL(string: openAppURLString) {
             extensionContext?.open(url, completionHandler: nil)
         }
-        extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
     }
 
     private func finishWithError() {
+        updateStatus("No supported item was shared.")
         extensionContext?.cancelRequest(withError: NSError(domain: "XerahS.Share", code: -1, userInfo: [NSLocalizedDescriptionKey: "No supported items to share."]))
     }
 }

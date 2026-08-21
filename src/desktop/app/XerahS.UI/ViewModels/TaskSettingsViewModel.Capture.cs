@@ -35,6 +35,8 @@ namespace XerahS.UI.ViewModels
 
         public bool ShowUseModernCaptureSetting => OperatingSystem.IsWindows();
 
+        public bool IsMacOSPlatform => OperatingSystem.IsMacOS();
+
         public bool UseModernCapture
         {
             get => _settings.CaptureSettings.UseModernCapture;
@@ -64,6 +66,35 @@ namespace XerahS.UI.ViewModels
 
         public IReadOnlyList<LinuxInteractiveRegionSelectorPreference> LinuxRegionSelectorPreferences =>
             LinuxRegionSelectorPreferenceSupport.GetVisiblePreferences();
+
+        public MacOSInteractiveRegionSelectorPreference MacOSRegionSelectorPreference
+        {
+            get => _settings.CaptureSettings.MacOSRegionSelectorPreference;
+            set
+            {
+                if (_settings.CaptureSettings.MacOSRegionSelectorPreference != value)
+                {
+                    _settings.CaptureSettings.MacOSRegionSelectorPreference = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public MacOSInteractiveRegionSelectorPreference[] MacOSRegionSelectorPreferences =>
+            Enum.GetValues<MacOSInteractiveRegionSelectorPreference>();
+
+        public bool MacOSPlayCaptureSound
+        {
+            get => _settings.CaptureSettings.MacOSPlayCaptureSound;
+            set
+            {
+                if (_settings.CaptureSettings.MacOSPlayCaptureSound != value)
+                {
+                    _settings.CaptureSettings.MacOSPlayCaptureSound = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         public LinuxRecordingBackendPreference LinuxRecordingBackendPreference
         {

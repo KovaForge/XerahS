@@ -84,6 +84,9 @@ namespace XerahS.Indexer
         [Category("Indexer / Filters"), DefaultValue(null), Description("List of file extensions to exclude (e.g., '.pdb', '.obj'). Applied after include filter.")]
         public List<string>? ExcludedFileExtensions { get; set; }
 
+        [Category("Indexer / Filters"), DefaultValue(false), Description("Skip folders that contain no files or subfolders.")]
+        public bool IgnoreEmptyFolders { get; set; }
+
         public IndexerSettings()
         {
             Output = IndexerOutput.Html;
@@ -102,6 +105,31 @@ namespace XerahS.Indexer
             UseAttribute = true;
             CreateParseableJson = true;
             BinaryUnits = true;
+            IgnoreEmptyFolders = false;
+        }
+
+        internal static bool ExtensionMatchesFilter(string fileExtension, List<string>? extensionFilter)
+        {
+            if (extensionFilter == null || extensionFilter.Count == 0)
+            {
+                return false;
+            }
+
+            string normalizedFileExtension = NormalizeExtension(fileExtension);
+
+            return extensionFilter.Any(filterExtension =>
+                !string.IsNullOrWhiteSpace(filterExtension) &&
+                NormalizeExtension(filterExtension).Equals(normalizedFileExtension, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string NormalizeExtension(string extension)
+        {
+            return extension.Trim().TrimStart('.');
+        }
+
+        internal bool ShouldRecurseIntoLevel(int level)
+        {
+            return MaxDepthLevel <= 0 || level < MaxDepthLevel;
         }
     }
 }

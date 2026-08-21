@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude
+        domain="file"
+        path="Settings/" />
+    <exclude
+        domain="file"
+        path="History/" />
+</full-backup-content>

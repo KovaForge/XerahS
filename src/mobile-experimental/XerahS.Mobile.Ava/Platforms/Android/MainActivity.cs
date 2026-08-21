@@ -29,11 +29,11 @@ using Android.Content.PM;
 using Android.Content.Res;
 using Android.OS;
 using Android.Views;
-using Avalonia;
 using Avalonia.Android;
 using Avalonia.Controls.ApplicationLifetimes;
 using ShareX.AmazonS3.Plugin;
 using XerahS.Common;
+using XerahS.Mobile.Core;
 using Ava;
 using XerahS.Mobile.Android;
 using XerahS.Platform.Abstractions;
@@ -61,7 +61,15 @@ namespace Ava.Platforms.Android;
     new[] { Intent.ActionSend },
     Categories = new[] { Intent.CategoryDefault },
     DataMimeType = "text/*")]
-public class MainActivity : AvaloniaMainActivity<MobileApp>
+[IntentFilter(
+    new[] { Intent.ActionView },
+    Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
+    DataScheme = "xerahs")]
+[IntentFilter(
+    new[] { Intent.ActionView },
+    Categories = new[] { Intent.CategoryDefault },
+    DataMimeType = "*/*")]
+public class MainActivity : AvaloniaMainActivity
 {
     /// <summary>Current activity instance for use by MobileToastService (Android Toast must run with a context).</summary>
     public static Activity? CurrentActivity { get; private set; }
@@ -69,20 +77,14 @@ public class MainActivity : AvaloniaMainActivity<MobileApp>
     private static readonly global::Android.Graphics.Color LightSystemBarColor = global::Android.Graphics.Color.ParseColor("#FFF5F5F5");
     private static readonly global::Android.Graphics.Color DarkSystemBarColor = global::Android.Graphics.Color.ParseColor("#FF121212");
 
-    protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
+    protected override void OnCreate(Bundle? savedInstanceState)
     {
         MobilePlatform.Initialize(PlatformType.Android);
         PlatformServices.Clipboard = new AndroidClipboardService(this);
         PathsManager.PersonalFolder = FilesDir!.AbsolutePath;
+        MobileApp.RuntimePackageId = PackageName ?? "com.xerahs.xerahs.mobile";
         MobileApp.RegisterBundledProvider(new AmazonS3Provider());
 
-        return builder
-            .UseAndroid()
-            .LogToTrace();
-    }
-
-    protected override void OnCreate(Bundle? savedInstanceState)
-    {
         // When activity is re-created (e.g. Share intent), detach the navigation root from the
         // previous activity's visual tree so Avalonia can attach it to this activity's host.
         if (Avalonia.Application.Current is MobileApp mobileApp)
@@ -93,8 +95,7 @@ public class MainActivity : AvaloniaMainActivity<MobileApp>
         base.OnCreate(savedInstanceState);
         CurrentActivity = this;
         ApplyNativeSystemBars();
-        HandleShareIntent(Intent);
-        StartHeartbeat();
+        _ = HandleIncomingIntentAsync(Intent);
     }
 
     protected override void OnDestroy()
@@ -107,17 +108,7 @@ public class MainActivity : AvaloniaMainActivity<MobileApp>
     {
         base.OnNewIntent(intent);
         if (intent != null)
-            HandleShareIntent(intent);
-    }
-
-    private void StartHeartbeat()
-    {
-        var timer = new Avalonia.Threading.DispatcherTimer
-        {
-            Interval = TimeSpan.FromSeconds(1)
-        };
-        timer.Tick += (s, e) => global::Android.Util.Log.Debug("XerahS", $"[Heartbeat] UI Thread is alive at {DateTime.Now:HH:mm:ss}");
-        timer.Start();
+            _ = HandleIncomingIntentAsync(intent);
     }
 
     public override void OnConfigurationChanged(Configuration newConfig)
@@ -167,20 +158,38 @@ public class MainActivity : AvaloniaMainActivity<MobileApp>
     }
 
 #pragma warning disable CA1422
-    private void HandleShareIntent(Intent? intent)
+    private async Task HandleIncomingIntentAsync(Intent? intent)
     {
         if (intent == null) return;
         var action = intent.Action;
-        if (action != Intent.ActionSend && action != Intent.ActionSendMultiple) return;
-        if (string.IsNullOrEmpty(intent.Type)) return;
+        if (action == Intent.ActionView && intent.Data?.Scheme == "xerahs")
+        {
+            await HandleXerahsDeepLinkAsync(intent.Data).ConfigureAwait(false);
+            return;
+        }
 
         var localPaths = new List<string>();
-        if (action == Intent.ActionSend)
+        if (action == Intent.ActionView)
+        {
+            var uri = intent.Data;
+            if (uri != null)
+            {
+                var path = CopyUriToCache(uri);
+                if (path != null) localPaths.Add(path);
+            }
+        }
+        else if (action == Intent.ActionSend)
         {
             var uri = intent.GetParcelableExtra(Intent.ExtraStream) as global::Android.Net.Uri;
             if (uri != null)
             {
                 var path = CopyUriToCache(uri);
+                if (path != null) localPaths.Add(path);
+            }
+            else
+            {
+                var text = intent.GetStringExtra(Intent.ExtraText);
+                var path = CopySharedTextToCache(text);
                 if (path != null) localPaths.Add(path);
             }
         }
@@ -199,18 +208,43 @@ public class MainActivity : AvaloniaMainActivity<MobileApp>
                 }
             }
         }
+        else
+        {
+            return;
+        }
 
         if (localPaths.Count > 0)
             MobileApp.EnqueueSharedPaths(localPaths.ToArray());
     }
 #pragma warning restore CA1422
 
+    private async Task HandleXerahsDeepLinkAsync(global::Android.Net.Uri deepLink)
+    {
+        if (!string.Equals(deepLink.Host, "import-sxcu", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var target = deepLink.GetQueryParameter("url");
+        if (!Uri.TryCreate(target, UriKind.Absolute, out var uri))
+            return;
+
+        try
+        {
+            var message = await MobileImportService.ImportRemoteCustomUploaderAsync(uri, CacheDir!.AbsolutePath).ConfigureAwait(false);
+            global::Android.Util.Log.Info("XerahS", message);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "[Mobile] Failed to import remote .sxcu");
+        }
+    }
+
     private string? CopyUriToCache(global::Android.Net.Uri uri)
     {
         try
         {
-            var fileName = GetFileNameFromUri(uri) ?? $"share_{Guid.NewGuid():N}";
+            var fileName = GetFileNameFromUri(uri) ?? $"share_{Guid.NewGuid():N}{GuessExtension(uri)}";
             var cachePath = Path.Combine(CacheDir!.AbsolutePath, fileName);
+            EnsureUniqueFileName(ref cachePath);
             using var input = ContentResolver!.OpenInputStream(uri);
             if (input == null) return null;
             using var output = File.Create(cachePath);
@@ -221,6 +255,40 @@ public class MainActivity : AvaloniaMainActivity<MobileApp>
         {
             DebugHelper.WriteException(ex, "Failed to copy URI to cache");
             return null;
+        }
+    }
+
+    private string? CopySharedTextToCache(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var cachePath = Path.Combine(CacheDir!.AbsolutePath, $"shared_text_{Guid.NewGuid():N}.txt");
+        File.WriteAllText(cachePath, text);
+        return cachePath;
+    }
+
+    private string GuessExtension(global::Android.Net.Uri uri)
+    {
+        var mimeType = ContentResolver?.GetType(uri);
+        return mimeType switch
+        {
+            "application/x-sxcu+json" => ".sxcu",
+            "application/x-xsdc+json" => ".xsdc",
+            "text/plain" => ".txt",
+            _ => string.Empty
+        };
+    }
+
+    private static void EnsureUniqueFileName(ref string filePath)
+    {
+        if (!File.Exists(filePath)) return;
+        var dir = Path.GetDirectoryName(filePath)!;
+        var name = Path.GetFileNameWithoutExtension(filePath);
+        var ext = Path.GetExtension(filePath);
+        var counter = 1;
+        while (File.Exists(filePath))
+        {
+            filePath = Path.Combine(dir, $"{name}_{counter}{ext}");
+            counter++;
         }
     }
 

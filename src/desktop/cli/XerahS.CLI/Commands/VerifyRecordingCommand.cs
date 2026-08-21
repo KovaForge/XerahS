@@ -24,12 +24,11 @@
 #endregion License Information (GPL v3)
 
 using System.CommandLine;
-using System.CommandLine.Parsing;
 using System.Drawing;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Hotkeys;
-using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
 using XerahS.RegionCapture.ScreenRecording;
 
@@ -41,12 +40,12 @@ namespace XerahS.CLI.Commands;
 /// </summary>
 public static class VerifyRecordingCommand
 {
-    private const string DefaultWorkflowId = "67f116dc";
+
     private const int DefaultDuration = 10;
     private const int DefaultIterations = 1;
     private const int DefaultRegionSize = 500;
 
-    public static Command Create()
+    public static Command Create(IScreenRecordingCoordinator recordingCoordinator)
     {
         var cmd = new Command("verify-recording", "Automated screen recording verification test");
 
@@ -105,13 +104,13 @@ public static class VerifyRecordingCommand
             var regionSize = parseResult.GetValue(regionSizeOption);
 
             // Apply defaults
-            if (string.IsNullOrEmpty(workflowId)) workflowId = DefaultWorkflowId;
+            if (string.IsNullOrEmpty(workflowId)) workflowId = AppContracts.Cli.DefaultRecordingWorkflowId;
             if (duration == 0) duration = DefaultDuration;
             if (iterations == 0) iterations = DefaultIterations;
             if (regionSize == 0) regionSize = DefaultRegionSize;
 
             Environment.ExitCode = RunVerificationAsync(
-                workflowId!, randomRegion, duration, iterations, debug, outputDir, regionSize
+                recordingCoordinator, workflowId!, randomRegion, duration, iterations, debug, outputDir, regionSize
             ).GetAwaiter().GetResult();
         });
 
@@ -119,6 +118,7 @@ public static class VerifyRecordingCommand
     }
 
     private static async Task<int> RunVerificationAsync(
+        IScreenRecordingCoordinator recordingCoordinator,
         string workflowId,
         bool randomRegion,
         int duration,
@@ -131,6 +131,7 @@ public static class VerifyRecordingCommand
         {
             var verifier = new RecordingVerifier
             {
+                RecordingCoordinator = recordingCoordinator,
                 WorkflowId = workflowId,
                 RandomRegion = randomRegion,
                 Duration = duration,
@@ -178,7 +179,8 @@ public static class VerifyRecordingCommand
 /// </summary>
 internal class RecordingVerifier
 {
-    public string WorkflowId { get; set; } = "67f116dc";
+    public required IScreenRecordingCoordinator RecordingCoordinator { get; init; }
+    public string WorkflowId { get; set; } = AppContracts.Cli.DefaultRecordingWorkflowId;
     public bool RandomRegion { get; set; }
     public int Duration { get; set; } = 10;
     public int Iterations { get; set; } = 1;
@@ -264,7 +266,7 @@ internal class RecordingVerifier
             }
 
             // Initialize platform services
-            ScreenRecordingManager.PlatformInitializationTask = Task.CompletedTask;
+            RecordingCoordinator.PlatformInitializationTask = Task.CompletedTask;
             SettingsManager.LoadAllSettings();
 
             // Create recording options
@@ -294,15 +296,14 @@ internal class RecordingVerifier
 
             // Start recording
             Console.WriteLine($"  Starting recording...");
-            var manager = ScreenRecordingManager.Instance;
-            await manager.StartRecordingAsync(recordingOptions);
+            await RecordingCoordinator.StartRecordingAsync(recordingOptions);
 
             Console.WriteLine($"  Recording for {Duration} seconds...");
             await Task.Delay(Duration * 1000);
 
             // Stop recording
             Console.WriteLine($"  Stopping recording...");
-            var finalPath = await manager.StopRecordingAsync();
+            var finalPath = await RecordingCoordinator.StopRecordingAsync();
 
             // Verify output
             if (string.IsNullOrEmpty(finalPath))

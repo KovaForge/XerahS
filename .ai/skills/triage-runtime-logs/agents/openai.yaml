@@ -1,0 +1,4 @@
+interface:
+  display_name: "Triage Runtime Logs"
+  short_description: "Reduce XerahS logs to verified actionable fixes"
+  default_prompt: "Use $triage-runtime-logs to inspect this XerahS log excerpt, collapse duplicate errors, identify the real root causes, and fix or verify them."

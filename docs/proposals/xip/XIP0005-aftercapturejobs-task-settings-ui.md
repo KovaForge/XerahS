@@ -1,5 +1,8 @@
 # XIP0005 AfterCaptureJobs - Task Settings UI
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0005: AfterCaptureJobs - Task Settings UI
 
 

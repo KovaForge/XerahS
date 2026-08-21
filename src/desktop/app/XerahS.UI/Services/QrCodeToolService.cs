@@ -50,13 +50,9 @@ public static class QrCodeToolService
 
     public static async Task ShowGeneratorAsync(Window? owner)
     {
-        var viewModel = new QrCodeGeneratorViewModel();
-        var dialog = new QrCodeGeneratorDialog
-        {
-            DataContext = viewModel
-        };
-
-        await ShowDialogAsync(dialog, owner);
+        var factory = UiViewModelFactoryAccessor.GetRequired();
+        var viewModel = factory.CreateQrCodeGeneratorViewModel();
+        await factory.ViewDialogService.ShowQrCodeGeneratorAsync(viewModel);
     }
 
     public static async Task ScanFromScreenAsync(Window? owner)
@@ -105,6 +101,8 @@ public static class QrCodeToolService
         {
             UseModernCapture = captureSettings.UseModernCapture,
             LinuxRegionSelectorPreference = captureSettings.LinuxRegionSelectorPreference,
+            MacOSRegionSelectorPreference = captureSettings.MacOSRegionSelectorPreference,
+            MacOSPlayCaptureSound = captureSettings.MacOSPlayCaptureSound,
             ShowCursor = captureSettings.ShowCursor,
             CaptureTransparent = captureSettings.CaptureTransparent,
             CaptureShadow = captureSettings.CaptureShadow,

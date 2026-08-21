@@ -9,7 +9,9 @@
         <!-- Header -->
         <Grid Grid.Row="0"
               Classes="adaptive-navbar"
-              ColumnDefinitions="Auto, *, Auto">
+              ColumnDefinitions="Auto, *, Auto"
+              AutomationProperties.LandmarkType="Navigation"
+              AutomationProperties.AccessibilityView="Control">
 
             <!-- Back Button (shown when in config view or to close settings) -->
             <Button Grid.Column="0"
@@ -43,6 +45,8 @@
 
             <!-- Settings List -->
             <ScrollViewer IsVisible="{Binding IsListView}"
+                          AutomationProperties.LandmarkType="Main"
+                          AutomationProperties.AccessibilityView="Control"
                           Classes="adaptive-scroll">
                 <StackPanel Margin="16" Spacing="12">
 
@@ -55,7 +59,7 @@
                             <TextBlock Text="Configure where your files will be uploaded. Amazon S3 and custom uploaders are supported."
                                        FontSize="13"
                                        TextWrapping="Wrap"
-                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                       Classes="adaptive-muted"/>
                         </StackPanel>
                     </Border>
 
@@ -77,7 +81,7 @@
                                                     Width="48"
                                                     Height="48"
                                                     CornerRadius="24"
-                                                    Background="{DynamicResource SystemAccentColor}"
+                                                    Background="{DynamicResource ThemeAccentBrush}"
                                                     Margin="12"
                                                     HorizontalAlignment="Center"
                                                     VerticalAlignment="Center">
@@ -85,7 +89,7 @@
                                                            FontSize="24"
                                                            HorizontalAlignment="Center"
                                                            VerticalAlignment="Center"
-                                                           Foreground="White"/>
+                                                           Foreground="{DynamicResource ThemeAccentForegroundBrush}"/>
                                             </Border>
 
                                             <!-- Text -->
@@ -97,7 +101,7 @@
                                                            FontWeight="SemiBold"/>
                                                 <TextBlock Text="{Binding Description}"
                                                            FontSize="13"
-                                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                           Classes="adaptive-muted"
                                                            TextTrimming="CharacterEllipsis"/>
                                             </StackPanel>
 
@@ -129,6 +133,8 @@
 
             <!-- Config View -->
             <ContentControl Content="{Binding CurrentView}"
+                            AutomationProperties.LandmarkType="Form"
+                            AutomationProperties.AccessibilityView="Control"
                             IsVisible="{Binding IsListView, Converter={x:Static BoolConverters.Not}}"/>
 
         </Grid>

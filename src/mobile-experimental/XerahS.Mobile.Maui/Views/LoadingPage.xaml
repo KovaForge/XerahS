@@ -3,11 +3,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="XerahS.Mobile.Maui.Views.LoadingPage"
              Title="XerahS"
-             BackgroundColor="White">
+             BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
     <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="20">
         <Image Source="splash.png" HeightRequest="100" WidthRequest="100" HorizontalOptions="Center" />
         <ActivityIndicator IsRunning="True" Color="{StaticResource Primary}"/>
-        <Label Text="Initializing XerahS..." HorizontalOptions="Center" TextColor="#888888"/>
-        <Label x:Name="BuildIdLabel" HorizontalOptions="Center" FontSize="32" FontAttributes="Bold" TextColor="#333333"/>
+        <Label Text="Initializing XerahS..." HorizontalOptions="Center" TextColor="{AppThemeBinding Light={StaticResource MutedTextLight}, Dark={StaticResource MutedTextDark}}"/>
+        <Label x:Name="BuildIdLabel" HorizontalOptions="Center" FontSize="32" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource SurfaceDark}, Dark={StaticResource SurfaceLight}}"/>
     </VerticalStackLayout>
 </ContentPage>

@@ -47,7 +47,7 @@ public static class CaptureImageCompositor
 
             using var canvas = new SKCanvas(bitmap);
             using var paint = new SKPaint { BlendMode = SKBlendMode.SrcOver };
-            canvas.DrawBitmap(ghostCursor.Image, cursorX, cursorY, paint);
+            canvas.DrawBitmap(ghostCursor.Image, cursorX, cursorY, SKSamplingOptions.Default, paint);
         }
         catch
         {
@@ -77,7 +77,7 @@ public static class CaptureImageCompositor
                 selection.Bottom - (float)annotationMonitorOrigin.Y);
             var dstRect = new SKRect(0, 0, bitmap.Width, bitmap.Height);
 
-            canvas.DrawBitmap(annotationLayer, srcRect, dstRect, paint);
+            canvas.DrawBitmap(annotationLayer, srcRect, dstRect, SKSamplingOptions.Default, paint);
         }
         catch
         {

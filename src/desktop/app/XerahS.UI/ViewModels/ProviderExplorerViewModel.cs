@@ -102,11 +102,11 @@ public partial class ProviderExplorerViewModel : ViewModelBase, IDisposable
     public UploaderInstance BoundInstance => _instance;
     private readonly IDialogService _coreDialogService;
 
-    public ProviderExplorerViewModel(UploaderInstance instance, IUploaderExplorer explorer)
+    public ProviderExplorerViewModel(UploaderInstance instance, IUploaderExplorer explorer, IDialogService coreDialogService)
     {
         _instance = instance;
         _explorer = explorer;
-        _coreDialogService = PlatformServices.RootProvider?.GetService(typeof(IDialogService)) as IDialogService ?? new AvaloniaDialogServiceAdapter();
+        _coreDialogService = coreDialogService;
 
         var providerName = ProviderCatalog.GetProvider(instance.ProviderId)?.Name ?? instance.ProviderId;
         WindowTitle = $"{providerName} — {instance.DisplayName}";

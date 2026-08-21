@@ -1,25 +1,17 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:controls="clr-namespace:XerahS.RegionCapture.UI.Controls;assembly=XerahS.RegionCapture"
+        xmlns:controls="clr-namespace:ShareX.ImageEditor.Presentation.Controls;assembly=ShareX.ImageEditor"
         x:Class="XerahS.RegionCapture.UI.OverlayWindow"
-        SystemDecorations="None"
+        WindowDecorations="None"
         TransparencyLevelHint="Transparent"
         Background="Transparent"
         Topmost="True"
         ShowInTaskbar="False"
         CanResize="False"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaChromeHints="NoChrome">
+        WindowStartupLocation="Manual"
+        ExtendClientAreaToDecorationsHint="True">
 
-    <Window.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://ShareX.ImageEditor/Presentation/Theming/ShareXTheme.axaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </Window.Resources>
-
-    <Grid>
+    <Grid x:Name="OverlayRoot">
         <!-- Region Capture Control Layer -->
         <Panel x:Name="RootPanel" IsHitTestVisible="True">
             <!-- Custom rendering control added in code-behind -->
@@ -34,11 +26,12 @@
         <!-- XIP-0023: Annotation Toolbar for Overlay mode -->
         <!-- Positioned below the instruction text (50px margin from top) -->
         <!-- Press Tab to toggle visibility, ENTER to confirm capture -->
+        <!-- Stretch + MaxWidth give AnnotationToolbar a finite viewport so tool buttons scroll instead of clipping (Avalonia 12.1+). -->
         <controls:AnnotationToolbar x:Name="AnnotationToolbarControl"
                                     VerticalAlignment="Top"
-                                    HorizontalAlignment="Center"
+                                    HorizontalAlignment="Stretch"
+                                    MaxWidth="{Binding Bounds.Width, ElementName=OverlayRoot}"
                                     Margin="0,50,0,0"
                                     IsVisible="True"/>
     </Grid>
 </Window>
-

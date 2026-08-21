@@ -222,7 +222,7 @@ public enum FFmpegVideoCodec
 public enum FFmpegAudioCodec
 {
     [Description("AAC")]
-    libvoaacenc,
+    aac,
     [Description("Opus")]
     libopus,
     [Description("Vorbis")]

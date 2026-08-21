@@ -159,6 +159,12 @@ public partial class MonitorTestWindow : SurfaceWindow
         var offsetY = (canvasHeight - totalScaledHeight) / 2;
 
         // Draw each monitor
+        var primaryBorderBrush = GetThemeBrush("AccentFillColorDefaultBrush", Brushes.Green);
+        var secondaryBorderBrush = GetThemeBrush("CardStrokeColorDefaultBrush", Brushes.Gray);
+        var primaryFillBrush = GetThemeBrush("AccentFillColorSecondaryBrush", new SolidColorBrush(Color.FromArgb(40, 100, 149, 237)));
+        var secondaryFillBrush = GetThemeBrush("ControlFillColorSecondaryBrush", new SolidColorBrush(Color.FromArgb(28, 100, 149, 237)));
+        var labelBrush = GetThemeBrush("TextFillColorPrimaryBrush", Brushes.Black);
+
         for (int i = 0; i < snapshot.Monitors.Count; i++)
         {
             var monitor = snapshot.Monitors[i];
@@ -175,9 +181,9 @@ public partial class MonitorTestWindow : SurfaceWindow
             {
                 Width = width,
                 Height = height,
-                BorderBrush = monitor.IsPrimary ? Brushes.Green : Brushes.Gray,
+                BorderBrush = monitor.IsPrimary ? primaryBorderBrush : secondaryBorderBrush,
                 BorderThickness = new Thickness(monitor.IsPrimary ? 3 : 2),
-                Background = new SolidColorBrush(Color.FromArgb(40, 100, 149, 237)), // Light blue tint
+                Background = monitor.IsPrimary ? primaryFillBrush : secondaryFillBrush,
                 CornerRadius = new CornerRadius(6)
             };
 
@@ -197,7 +203,7 @@ public partial class MonitorTestWindow : SurfaceWindow
             {
                 Text = labelText,
                 FontSize = Math.Max(10, Math.Min(14, width / 15)), // Scale font with monitor size
-                Foreground = Brushes.Black,
+                Foreground = labelBrush,
                 TextAlignment = TextAlignment.Center,
                 VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
@@ -215,5 +221,12 @@ public partial class MonitorTestWindow : SurfaceWindow
             Canvas.SetTop(labelContainer, y);
             LayoutCanvas.Children.Add(labelContainer);
         }
+    }
+
+    private IBrush GetThemeBrush(string resourceKey, IBrush fallback)
+    {
+        return Application.Current?.TryGetResource(resourceKey, ActualThemeVariant, out var resource) == true && resource is IBrush brush
+            ? brush
+            : fallback;
     }
 }

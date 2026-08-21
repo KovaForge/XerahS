@@ -25,6 +25,7 @@
 
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using XerahS.Mobile.Core;
 
 namespace Ava.Views;
@@ -50,12 +51,27 @@ public partial class MobileAmazonS3ConfigView : UserControl
         if (vm == null) return;
 
         Avalonia.Controls.Control? target = null;
+        Avalonia.Controls.Control? focusTarget = null;
 
         if (vm.HasAccessKeyError || vm.HasSecretKeyError)
+        {
             target = this.FindControl<Avalonia.Controls.Border>("AuthSection");
+            focusTarget = vm.HasAccessKeyError
+                ? this.FindControl<TextBox>("AccessKeyIdTextBox")
+                : this.FindControl<TextBox>("SecretAccessKeyTextBox");
+        }
         else if (vm.HasBucketError || vm.HasRegionError)
+        {
             target = this.FindControl<Avalonia.Controls.Border>("BucketSection");
+            focusTarget = vm.HasBucketError
+                ? this.FindControl<TextBox>("BucketNameTextBox")
+                : this.FindControl<ComboBox>("RegionComboBox");
+        }
 
         target?.BringIntoView();
+        if (focusTarget != null)
+        {
+            Dispatcher.UIThread.Post(() => focusTarget.Focus(), DispatcherPriority.Input);
+        }
     }
 }

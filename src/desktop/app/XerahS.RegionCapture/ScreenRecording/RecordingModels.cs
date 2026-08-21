@@ -63,8 +63,13 @@ public class RecordingOptions
     public ScreenRecordingSettings? Settings { get; set; }
 
     /// <summary>
-    /// Whether to use modern capture (WGC + Media Foundation) if available.
-    /// If false, forces FFmpeg fallback even if native recording is supported.
+    /// Optional resolved FFmpeg executable override path for recording flows.
+    /// </summary>
+    public string? FFmpegOverridePath { get; set; }
+
+    /// <summary>
+    /// Whether to use the preferred native recording path when available.
+    /// If false, non-Linux platforms force FFmpeg fallback instead.
     /// Maps to TaskSettings.CaptureSettings.UseModernCapture.
     /// </summary>
     public bool UseModernCapture { get; set; } = true;
@@ -131,7 +136,11 @@ public readonly struct FrameData
     /// <summary>Pointer to raw pixel data</summary>
     public IntPtr DataPtr { get; init; }
 
-    /// <summary>Stride (bytes per row) of the frame</summary>
+    /// <summary>
+    /// Actual source stride in bytes per row.
+    /// This may be larger than <c>Width * bytesPerPixel</c> when the source surface includes padding.
+    /// Consumers must treat this as the row pitch used for address calculation, not as a guarantee of tight packing.
+    /// </summary>
     public int Stride { get; init; }
 
     /// <summary>Frame width in pixels</summary>
@@ -252,7 +261,7 @@ public class AudioBufferEventArgs : EventArgs
 /// </summary>
 public class RecordingStartedEventArgs : EventArgs
 {
-    /// <summary>True if using FFmpeg fallback, false if using native Modern Capture</summary>
+    /// <summary>True if using an FFmpeg fallback path, false if using a native recording path</summary>
     public bool IsUsingFallback { get; }
 
     /// <summary>Recording options being used</summary>

@@ -28,8 +28,11 @@ import com.getsharex.xerahs.mobile.core.domain.UploadResultItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -50,8 +53,8 @@ class UploadQueueWorker(
     private val _state = MutableStateFlow(UploadQueueState(processing = false, pendingCount = 0))
     val state: StateFlow<UploadQueueState> = _state.asStateFlow()
 
-    private val _itemCompleted = MutableStateFlow<UploadResultItem?>(null)
-    val itemCompleted: StateFlow<UploadResultItem?> = _itemCompleted.asStateFlow()
+    private val _itemCompleted = MutableSharedFlow<UploadResultItem>(extraBufferCapacity = 16)
+    val itemCompleted: SharedFlow<UploadResultItem> = _itemCompleted.asSharedFlow()
 
     private var processingJob: Job? = null
 
@@ -73,8 +76,7 @@ class UploadQueueWorker(
                         url = resultUrl
                     )
                 }
-                _itemCompleted.value = result
-                _itemCompleted.value = null
+                _itemCompleted.emit(result)
             }
             updateState()
         }
@@ -104,23 +106,38 @@ class UploadQueueWorker(
         val pathToUpload = convertHeicToPngIfNeeded(filePath, config.convertHeicToPng)
         val destId = config.defaultDestinationInstanceId
 
-        when {
-            config.s3Config.isConfigured && (destId == null || destId == "amazons3" || destId.startsWith("amazons3")) -> {
-                val outcome = s3Uploader.uploadFile(pathToUpload, config.s3Config)
-                return when (outcome) {
-                    is UploadOutcome.Success -> UploadResultItem(fileName, true, outcome.url, null)
-                    is UploadOutcome.Failure -> UploadResultItem(fileName, false, null, outcome.error)
+        try {
+            when {
+                config.s3Config.isConfigured && (destId == null || destId == "amazons3" || destId.startsWith("amazons3")) -> {
+                    val outcome = s3Uploader.uploadFile(pathToUpload, config.s3Config)
+                    return when (outcome) {
+                        is UploadOutcome.Success -> UploadResultItem(fileName, true, outcome.url, null)
+                        is UploadOutcome.Failure -> UploadResultItem(fileName, false, null, outcome.error, outcome.details)
+                    }
                 }
-            }
-            config.customUploaders.isNotEmpty() -> {
-                val entry = config.customUploaders.find { it.id == destId } ?: config.customUploaders.first()
-                val outcome = customUploader.uploadFile(pathToUpload, entry)
-                return when (outcome) {
-                    is UploadOutcome.Success -> UploadResultItem(fileName, true, outcome.url, null)
-                    is UploadOutcome.Failure -> UploadResultItem(fileName, false, null, outcome.error)
+                config.customUploaders.isNotEmpty() -> {
+                    val entry = config.customUploaders.find { it.id == destId } ?: config.customUploaders.first()
+                    val outcome = customUploader.uploadFile(pathToUpload, entry)
+                    return when (outcome) {
+                        is UploadOutcome.Success -> UploadResultItem(fileName, true, outcome.url, null)
+                        is UploadOutcome.Failure -> UploadResultItem(fileName, false, null, outcome.error, outcome.details)
+                    }
                 }
+                else -> return UploadResultItem(fileName, false, null, "No upload destination configured. Configure S3 or a custom uploader in Settings.")
             }
-            else -> return UploadResultItem(fileName, false, null, "No upload destination configured. Configure S3 or a custom uploader in Settings.")
+        } finally {
+            deleteIfAppCacheFile(filePath)
+            if (pathToUpload != filePath) deleteIfAppCacheFile(pathToUpload)
+        }
+    }
+
+    private fun deleteIfAppCacheFile(path: String) {
+        val cacheDir = com.getsharex.xerahs.mobile.core.common.Paths.cacheDir ?: return
+        val file = File(path)
+        runCatching {
+            if (file.exists() && file.parentFile?.canonicalPath == cacheDir.canonicalPath) {
+                file.delete()
+            }
         }
     }
 }

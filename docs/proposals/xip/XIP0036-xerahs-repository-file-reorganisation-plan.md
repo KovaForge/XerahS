@@ -1,5 +1,8 @@
 # XIP0036 XerahS repository file reorganisation plan
 
+**Status**: Complete
+**Version**: v0.22.257
+
 ---
 name: XerahS file reorganisation
 overview: "Mechanical reorganisation by 'what works together': put the .NET desktop stack under src/desktop/ (core/, platform/, app/, cli/, tools/, plugins/) ΓÇö desktop app in src/desktop/app/, CLI in src/desktop/cli/ (shares core; product sibling to app, not under tools). Experimental .NET mobile in src/mobile-experimental/. Native mobile under src/mobile/android/ and src/mobile/ios/. Optionally align plugin folder names with .csproj. No namespace or source code changesΓÇöonly moves and path updates in .sln, .csproj, and path-dependent config/docs."
@@ -108,7 +111,7 @@ XerahS/
 Γö£ΓöÇΓöÇ docs/
 Γö£ΓöÇΓöÇ developers/
 Γö£ΓöÇΓöÇ scripts/
-Γö£ΓöÇΓöÇ docs/proposals/xip/
+Γö£ΓöÇΓöÇ tasks/
 Γö£ΓöÇΓöÇ tests/
 Γöé   Γö£ΓöÇΓöÇ XerahS.Tests/
 Γöé   ΓööΓöÇΓöÇ ShareX.Avalonia.Tests/      (optional: rename to XerahS.Avalonia.Tests)

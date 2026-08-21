@@ -42,7 +42,7 @@ public partial class HotkeyItemViewModel : ViewModelBase
 
     public bool ShowJobDescription => !string.Equals(Description, JobDescription, StringComparison.Ordinal);
 
-    public string KeyString => Model.HotkeyInfo.ToString();
+    public string KeyString => Model.HotkeyInfo.GetDisplayString();
 
     /// <summary>
     /// Full description using WorkflowSettings.ToString() format: "Job: KeyBinding"

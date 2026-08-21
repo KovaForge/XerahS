@@ -1,5 +1,8 @@
 # XIP0025 AV1/AVIF & WebP Support Integration
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0025: AV1/AVIF & WebP Support Integration
 
 

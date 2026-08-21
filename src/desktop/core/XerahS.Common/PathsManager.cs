@@ -24,23 +24,41 @@
 #endregion License Information (GPL v3)
 using System;
 using System.IO;
+using System.Linq;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace XerahS.Common
 {
     public static class PathsManager
     {
         private static string _personalFolder = "";
+        private static bool _personalFolderOverrideSet;
+        private const string PluginManifestFileName = "plugin.json";
+        private const string PluginMigrationConflictFolderName = "_migration_conflicts";
+        private static readonly string[] KnownPluginArchitectureFolders =
+        [
+            "win-arm64",
+            "win-x64",
+            "win-x86",
+            "macos64",
+            "linux64"
+        ];
 
         public static string PersonalFolder
         {
             get
             {
+                if (UseLinuxXdgLayout)
+                {
+                    return LinuxXdgDirectories.Detect().DataDirectory;
+                }
+
                 if (string.IsNullOrEmpty(_personalFolder))
                 {
-                    _personalFolder = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), 
-                        AppResources.AppName);
+                    _personalFolder = Path.Combine(GetDocumentsFolder(), AppResources.AppName);
                 }
                 return _personalFolder;
             }
@@ -49,16 +67,112 @@ namespace XerahS.Common
                 if (!string.IsNullOrEmpty(value))
                 {
                     _personalFolder = value;
+                    _personalFolderOverrideSet = true;
                 }
             }
         }
 
-        public static string ScreenshotsFolder => Path.Combine(PersonalFolder, AppResources.ScreenshotsFolderName);
-        public static string ScreencastsFolder => Path.Combine(PersonalFolder, AppResources.ScreencastsFolderName);
+        private static bool UseLinuxXdgLayout => OperatingSystem.IsLinux() && !_personalFolderOverrideSet;
+
+        private static string GetDocumentsFolder()
+        {
+            // On macOS, launchd/agent hosts can override HOME to an agent profile
+            // directory (for example ~/.hermes/profiles/<agent>/home). The CLR then
+            // resolves SpecialFolder.MyDocuments inside that profile, causing CLI
+            // plugin discovery to look in the wrong XerahS/Plugins folder. Resolve
+            // the real login account home through libc before falling back to the
+            // environment-sensitive .NET special folders.
+            if (OperatingSystem.IsMacOS())
+            {
+                string? nativeHome = GetNativeUserHomeDirectory();
+                if (!string.IsNullOrWhiteSpace(nativeHome))
+                {
+                    string nativeDocuments = Path.Combine(nativeHome, "Documents");
+                    if (Directory.Exists(nativeDocuments))
+                    {
+                        return nativeDocuments;
+                    }
+                }
+
+                string userNameDocuments = Path.Combine("/Users", Environment.UserName, "Documents");
+                if (Directory.Exists(userNameDocuments))
+                {
+                    return userNameDocuments;
+                }
+            }
+
+            string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            if (!string.IsNullOrWhiteSpace(documents) && Path.IsPathRooted(documents))
+            {
+                return documents;
+            }
+
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+            string userProfileDocuments = Path.Combine(userProfile ?? string.Empty, "Documents");
+            if (!string.IsNullOrWhiteSpace(userProfile) && Path.IsPathRooted(userProfileDocuments))
+            {
+                return userProfileDocuments;
+            }
+
+            return string.IsNullOrWhiteSpace(documents) ? Environment.CurrentDirectory : documents;
+        }
+
+        private static string? GetNativeUserHomeDirectory()
+        {
+            try
+            {
+                IntPtr passwdPointer = getpwuid(getuid());
+                if (passwdPointer == IntPtr.Zero)
+                {
+                    return null;
+                }
+
+                Passwd passwd = Marshal.PtrToStructure<Passwd>(passwdPointer);
+                return Marshal.PtrToStringUTF8(passwd.HomeDirectory);
+            }
+            catch (Exception ex) when (ex is EntryPointNotFoundException || ex is DllNotFoundException || ex is MarshalDirectiveException)
+            {
+                DebugHelper.WriteLine($"Unable to resolve native user home directory: {ex.Message}");
+                return null;
+            }
+        }
+
+        [DllImport("libc")]
+        private static extern uint getuid();
+
+        [DllImport("libc")]
+        private static extern IntPtr getpwuid(uint uid);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Passwd
+        {
+            public IntPtr Name;
+            public IntPtr Password;
+            public uint Uid;
+            public uint Gid;
+            public long Change;
+            public IntPtr Class;
+            public IntPtr Gecos;
+            public IntPtr HomeDirectory;
+            public IntPtr Shell;
+            public long Expire;
+        }
+
+        public static string ScreenshotsFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().DataDirectory, AppResources.ScreenshotsFolderName)
+            : Path.Combine(PersonalFolder, AppResources.ScreenshotsFolderName);
+
+        public static string ScreencastsFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().DataDirectory, AppResources.ScreencastsFolderName)
+            : Path.Combine(PersonalFolder, AppResources.ScreencastsFolderName);
+
         public static string FrameDumpsFolder => Path.Combine(ScreencastsFolder, "FrameDumps");
 
         /// <summary>Base folder for all log files (e.g. PersonalFolder/Logs).</summary>
-        public static string LogsFolderBase => Path.Combine(PersonalFolder, "Logs");
+        public static string LogsFolderBase => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().StateDirectory, "Logs")
+            : Path.Combine(PersonalFolder, "Logs");
 
         /// <summary>Logs subfolder for the given month (e.g. Logs/yyyy-MM). Uses current date if null.</summary>
         public static string GetLogsFolderForMonth(DateTime? date = null) =>
@@ -81,34 +195,38 @@ namespace XerahS.Common
             return Path.Combine(GetLogsFolderForMonth(date), $"{AppResources.AppName}-{date:yyyyMMdd}.log");
         }
 
-        public static string SettingsFolder => Path.Combine(PersonalFolder, AppResources.SettingsFolderName);
-        public static string HistoryFolder => Path.Combine(PersonalFolder, AppResources.HistoryFolderName);
+        public static string SettingsFolder => UseLinuxXdgLayout
+            ? LinuxXdgDirectories.Detect().ConfigDirectory
+            : Path.Combine(PersonalFolder, AppResources.SettingsFolderName);
+
+        public static string HistoryFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().StateDirectory, AppResources.HistoryFolderName)
+            : Path.Combine(PersonalFolder, AppResources.HistoryFolderName);
+
         public static string BackupFolder => Path.Combine(SettingsFolder, AppResources.BackupFolderName);
         public static string HistoryBackupFolder => Path.Combine(HistoryFolder, AppResources.BackupFolderName);
         /// <summary>Folder for troubleshooting / diagnostic logs (e.g. DPI, capture).</summary>
-        public static string TroubleshootingFolder => Path.Combine(PersonalFolder, "Troubleshooting");
+        public static string TroubleshootingFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().StateDirectory, "Troubleshooting")
+            : Path.Combine(PersonalFolder, "Troubleshooting");
+
         /// <summary>Base folder for capture verification outputs (region/recording verify).</summary>
-        public static string CaptureTroubleshootingFolder => Path.Combine(PersonalFolder, "CaptureTroubleshooting");
-        public static string ToolsFolder => Path.Combine(PersonalFolder, "Tools");
+        public static string CaptureTroubleshootingFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().StateDirectory, "CaptureTroubleshooting")
+            : Path.Combine(PersonalFolder, "CaptureTroubleshooting");
+
+        public static string ToolsFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().DataDirectory, "Tools")
+            : Path.Combine(PersonalFolder, "Tools");
+
         public static string ToolsArchitectureFolder => Path.Combine(ToolsFolder, GetArchitectureFolderName());
-        public static string PluginsFolder
-        {
-            get
-            {
-#if DEBUG
-                if (OperatingSystem.IsIOS() || OperatingSystem.IsAndroid())
-                    return Path.Combine(PersonalFolder, AppResources.PluginsFolderName);
-                return Path.Combine(AppContext.BaseDirectory, AppResources.PluginsFolderName);
-#else
-                string personalPlugins = Path.Combine(PersonalFolder, AppResources.PluginsFolderName);
-                if (Directory.Exists(personalPlugins) && Directory.GetFileSystemEntries(personalPlugins).Length > 0)
-                {
-                    return personalPlugins;
-                }
-                return Path.Combine(AppContext.BaseDirectory, AppResources.PluginsFolderName);
-#endif
-            }
-        }
+        public static string PluginsFolder => UseLinuxXdgLayout
+            ? Path.Combine(LinuxXdgDirectories.Detect().DataDirectory, AppResources.PluginsFolderName)
+            : Path.Combine(PersonalFolder, AppResources.PluginsFolderName);
+
+        public static string PluginsArchitectureFolder => Path.Combine(PluginsFolder, GetArchitectureFolderName());
+        public static string AppPluginsFolder => Path.Combine(AppContext.BaseDirectory, AppResources.PluginsFolderName);
+        public static string CurrentArchitectureFolderName => GetArchitectureFolderName();
 
         public static void EnsureDirectoriesExist()
         {
@@ -136,37 +254,52 @@ namespace XerahS.Common
             if (!Directory.Exists(PluginsFolder))
                 Directory.CreateDirectory(PluginsFolder);
 
+            if (!Directory.Exists(PluginsArchitectureFolder))
+                Directory.CreateDirectory(PluginsArchitectureFolder);
+
             if (!Directory.Exists(ToolsFolder))
                 Directory.CreateDirectory(ToolsFolder);
 
             if (!Directory.Exists(ToolsArchitectureFolder))
                 Directory.CreateDirectory(ToolsArchitectureFolder);
+
+            MigrateLegacyPluginDirectories();
         }
 
         public static System.Collections.Generic.IEnumerable<string> GetPluginDirectories()
         {
+            EnsureDirectoriesExist();
+
             var paths = new System.Collections.Generic.List<string>();
 
-            // 1. App-bundled plugins (BaseDirectory/Plugins)
-            // In Release, we also want to check this location adjacent to the executable
-            string appPluginsPath = Path.Combine(AppContext.BaseDirectory, AppResources.PluginsFolderName);
-            if (Directory.Exists(appPluginsPath))
+            if (Directory.Exists(AppPluginsFolder))
             {
-                paths.Add(appPluginsPath);
+                paths.Add(AppPluginsFolder);
             }
 
-            // 2. User-installed plugins (PluginsFolder -> PersonalFolder/Plugins)
-            // This allows users to add plugins without modifying the app installation
-            string userPluginsPath = PluginsFolder;
-            
-            // Only add if it exists and is different from the app plugins path
-            if (Directory.Exists(userPluginsPath) && 
-                !string.Equals(appPluginsPath, userPluginsPath, StringComparison.OrdinalIgnoreCase))
+            if (Directory.Exists(PluginsArchitectureFolder))
             {
-                paths.Add(userPluginsPath);
+                paths.Add(PluginsArchitectureFolder);
             }
 
-            return paths;
+            if (Directory.Exists(PluginsFolder))
+            {
+                paths.Add(PluginsFolder);
+            }
+
+            return paths
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        public static string GetUserPluginDirectory(string pluginId)
+        {
+            if (string.IsNullOrWhiteSpace(pluginId))
+            {
+                return PluginsArchitectureFolder;
+            }
+
+            return Path.Combine(PluginsArchitectureFolder, pluginId);
         }
 
         public static string GetFFmpegPath()
@@ -274,6 +407,197 @@ namespace XerahS.Common
         /// <summary>App-bundled tools directory (BaseDirectory/Tools). Used for FFmpeg lookup and path consistency.</summary>
         private static string GetAppToolsDirectory() =>
             Path.Combine(AppContext.BaseDirectory, "Tools");
+
+        private static void MigrateLegacyPluginDirectories()
+        {
+            if (!Directory.Exists(PluginsFolder))
+            {
+                return;
+            }
+
+            string[] legacyPluginDirectories;
+            try
+            {
+                legacyPluginDirectories = Directory.GetDirectories(PluginsFolder);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException)
+            {
+                DebugHelper.WriteLine($"[Plugins] Skipping legacy plugin migration because '{PluginsFolder}' cannot be enumerated: {ex.Message}");
+                return;
+            }
+
+            foreach (var legacyPluginDirectory in legacyPluginDirectories)
+            {
+                string directoryName = Path.GetFileName(legacyPluginDirectory);
+
+                if (IsKnownPluginArchitectureFolder(directoryName))
+                {
+                    continue;
+                }
+
+                string manifestPath = Path.Combine(legacyPluginDirectory, PluginManifestFileName);
+                if (!File.Exists(manifestPath))
+                {
+                    continue;
+                }
+
+                string destinationArchitectureFolder = TryResolvePluginArchitectureFolder(legacyPluginDirectory);
+                string destinationRoot = Path.Combine(PluginsFolder, destinationArchitectureFolder);
+                Directory.CreateDirectory(destinationRoot);
+
+                string destinationDirectory = Path.Combine(destinationRoot, directoryName);
+                MoveLegacyPluginDirectory(legacyPluginDirectory, destinationDirectory);
+            }
+        }
+
+        private static bool IsKnownPluginArchitectureFolder(string directoryName)
+        {
+            return KnownPluginArchitectureFolders.Contains(directoryName, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static string TryResolvePluginArchitectureFolder(string pluginDirectory)
+        {
+            try
+            {
+                string? assemblyPath = TryGetPluginAssemblyPath(pluginDirectory);
+                if (string.IsNullOrWhiteSpace(assemblyPath) || !File.Exists(assemblyPath))
+                {
+                    return GetArchitectureFolderName();
+                }
+
+                using FileStream stream = File.OpenRead(assemblyPath);
+                using PEReader peReader = new(stream);
+                PEHeaders peHeaders = peReader.PEHeaders;
+
+                bool isAnyCpu = peHeaders.CorHeader != null &&
+                    (peHeaders.CorHeader.Flags & CorFlags.ILOnly) != 0 &&
+                    (peHeaders.CorHeader.Flags & CorFlags.Requires32Bit) == 0;
+
+                return peHeaders.CoffHeader.Machine switch
+                {
+                    Machine.Arm64 => "win-arm64",
+                    Machine.Amd64 => "win-x64",
+                    Machine.I386 when isAnyCpu => GetArchitectureFolderName(),
+                    Machine.I386 => "win-x86",
+                    _ => GetArchitectureFolderName()
+                };
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"[Plugins] Failed to detect plugin architecture for '{pluginDirectory}': {ex.Message}");
+                return GetArchitectureFolderName();
+            }
+        }
+
+        private static string? TryGetPluginAssemblyPath(string pluginDirectory)
+        {
+            string manifestPath = Path.Combine(pluginDirectory, PluginManifestFileName);
+            if (!File.Exists(manifestPath))
+            {
+                return null;
+            }
+
+            try
+            {
+                string manifestJson = File.ReadAllText(manifestPath);
+                using JsonDocument document = JsonDocument.Parse(manifestJson);
+                JsonElement root = document.RootElement;
+
+                string? assemblyFileName = TryGetJsonStringProperty(root, "assemblyFileName");
+
+                if (string.IsNullOrWhiteSpace(assemblyFileName))
+                {
+                    string? pluginId = TryGetJsonStringProperty(root, "pluginId");
+                    if (!string.IsNullOrWhiteSpace(pluginId))
+                    {
+                        assemblyFileName = $"{pluginId}.dll";
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(assemblyFileName))
+                {
+                    assemblyFileName = Directory.GetFiles(pluginDirectory, "*.dll", SearchOption.TopDirectoryOnly)
+                        .Select(Path.GetFileName)
+                        .FirstOrDefault();
+                }
+
+                return string.IsNullOrWhiteSpace(assemblyFileName)
+                    ? null
+                    : Path.Combine(pluginDirectory, assemblyFileName);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"[Plugins] Failed to read plugin manifest '{manifestPath}': {ex.Message}");
+                return null;
+            }
+        }
+
+        private static string? TryGetJsonStringProperty(JsonElement element, string propertyName)
+        {
+            foreach (JsonProperty property in element.EnumerateObject())
+            {
+                if (string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return property.Value.ValueKind == JsonValueKind.String
+                        ? property.Value.GetString()
+                        : property.Value.ToString();
+                }
+            }
+
+            return null;
+        }
+
+        private static void MoveLegacyPluginDirectory(string sourceDirectory, string destinationDirectory)
+        {
+            if (string.Equals(sourceDirectory, destinationDirectory, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (Directory.Exists(destinationDirectory))
+            {
+                string conflictDirectory = Path.Combine(
+                    PluginsFolder,
+                    PluginMigrationConflictFolderName,
+                    DateTime.UtcNow.ToString("yyyyMMdd_HHmmss"),
+                    Path.GetFileName(sourceDirectory));
+
+                string? parentDirectory = Path.GetDirectoryName(conflictDirectory);
+                if (!string.IsNullOrEmpty(parentDirectory))
+                {
+                    Directory.CreateDirectory(parentDirectory);
+                }
+
+                Directory.Move(sourceDirectory, EnsureUniqueDirectoryDestination(conflictDirectory));
+                DebugHelper.WriteLine($"[Plugins] Migration conflict for '{sourceDirectory}'. Moved legacy copy to '{conflictDirectory}'.");
+                return;
+            }
+
+            Directory.Move(sourceDirectory, destinationDirectory);
+            DebugHelper.WriteLine($"[Plugins] Migrated legacy plugin folder '{sourceDirectory}' -> '{destinationDirectory}'.");
+        }
+
+        private static string EnsureUniqueDirectoryDestination(string path)
+        {
+            if (!Directory.Exists(path))
+            {
+                return path;
+            }
+
+            string parentDirectory = Path.GetDirectoryName(path) ?? PluginsFolder;
+            string baseName = Path.GetFileName(path);
+            int suffix = 1;
+
+            string candidate;
+            do
+            {
+                candidate = Path.Combine(parentDirectory, $"{baseName}_{suffix}");
+                suffix++;
+            }
+            while (Directory.Exists(candidate));
+
+            return candidate;
+        }
 
         private static string GetArchitectureFolderName()
         {

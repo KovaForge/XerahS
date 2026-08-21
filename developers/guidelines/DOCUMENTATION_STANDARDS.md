@@ -1,4 +1,4 @@
-﻿# Documentation Standards
+# Documentation Standards
 
 - **Update Policy**: Update/add docs when behavior changes.
 - **Agent Instructions**: Keep repo-wide agent policy in `AGENTS.md`, detailed workflow guidance in `developers/guidelines/AGENT_WORKFLOW.md`, and agent-specific compatibility files thin.

@@ -36,7 +36,11 @@ public partial class AppShell : Shell
         // Register navigation routes
         Routing.RegisterRoute("Settings", typeof(MobileSettingsPage));
         Routing.RegisterRoute("History", typeof(MobileHistoryPage));
+        Routing.RegisterRoute("AmazonS3", typeof(MobileAmazonS3ConfigPage));
+        Routing.RegisterRoute("CustomUploader", typeof(MobileCustomUploaderConfigPage));
+        Routing.RegisterRoute("About", typeof(MobileAboutPage));
         Routing.RegisterRoute("Settings/AmazonS3", typeof(MobileAmazonS3ConfigPage));
         Routing.RegisterRoute("Settings/CustomUploader", typeof(MobileCustomUploaderConfigPage));
+        Routing.RegisterRoute("Settings/About", typeof(MobileAboutPage));
     }
 }

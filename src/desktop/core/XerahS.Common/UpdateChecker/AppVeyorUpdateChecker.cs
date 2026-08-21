@@ -91,8 +91,8 @@ namespace XerahS.Common
                 {
                     LatestVersion = version;
                 }
+
                 RefreshStatus();
-                Status = UpdateStatus.UpdateAvailable;
                 return;
             }
             catch (Exception e)

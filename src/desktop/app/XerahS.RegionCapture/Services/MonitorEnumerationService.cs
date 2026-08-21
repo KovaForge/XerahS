@@ -63,6 +63,12 @@ public static class MonitorEnumerationService
             return [];
 
         var allScreens = screens.All;
+
+        if (OperatingSystem.IsMacOS())
+        {
+            return GetMacOSMonitors(allScreens);
+        }
+
         // Check whether Avalonia is actually using the Wayland backend.
         // XDG_SESSION_TYPE=wayland alone is not sufficient: the app may be running via XWayland
         // (Avalonia X11 backend, platform handle=XID). In that case Screen.Bounds are in physical
@@ -79,14 +85,14 @@ public static class MonitorEnumerationService
 
             DebugHelper.WriteLine($"[MonitorEnum] Screen[{i}]: Bounds=({screen.Bounds.X},{screen.Bounds.Y},{screen.Bounds.Width},{screen.Bounds.Height}) WorkingArea=({screen.WorkingArea.X},{screen.WorkingArea.Y},{screen.WorkingArea.Width},{screen.WorkingArea.Height}) Scaling={scaleFactor:F4} IsPrimary={screen.IsPrimary}");
 
-            // Wayland native backend and macOS: Avalonia reports bounds in logical coordinates
-            // (compositor space / points) — keep as-is.
+            // Wayland native backend: Avalonia reports bounds in logical coordinates
+            // (compositor space) — keep as-is.
             // X11 backend (including XWayland): Avalonia reports bounds in device (physical) pixels;
             // convert to logical so the normalizer produces correct OverlayBounds and PhysicalBounds
             // for mixed-DPI setups.
             PixelRect bounds;
             PixelRect workArea;
-            bool useLogicalAsIs = isAvaloniaWayland || OperatingSystem.IsMacOS();
+            bool useLogicalAsIs = isAvaloniaWayland;
             if (useLogicalAsIs)
             {
                 bounds = new PixelRect(
@@ -115,14 +121,48 @@ public static class MonitorEnumerationService
                 IsPrimary: screen.IsPrimary));
         }
 
-        // Always use the normalizer on non-Windows so overlay windows get logical bounds
+        // Use the normalizer on Linux/non-macOS so overlay windows get logical bounds
         // (OverlayBoundsOverride) and capture uses physical bounds. This avoids one monitor's
-        // overlay appearing squashed in mixed-DPI configurations (X11, macOS, Wayland).
+        // overlay appearing squashed in mixed-DPI configurations (X11, Wayland).
         var monitors = WaylandMonitorLayoutNormalizer.Normalize(logicalScreens);
         foreach (var m in monitors)
         {
             DebugHelper.WriteLine($"[MonitorEnum] MonitorInfo: {m.DeviceName} IsPrimary={m.IsPrimary} Scale={m.ScaleFactor:F4} PhysicalBounds=({m.PhysicalBounds.X:F1},{m.PhysicalBounds.Y:F1},{m.PhysicalBounds.Width:F1},{m.PhysicalBounds.Height:F1}) OverlayBounds=({m.OverlayBounds.X:F1},{m.OverlayBounds.Y:F1},{m.OverlayBounds.Width:F1},{m.OverlayBounds.Height:F1})");
         }
+        return monitors;
+    }
+
+    private static IReadOnlyList<MonitorInfo> GetMacOSMonitors(IReadOnlyList<Screen> allScreens)
+    {
+        var monitors = new List<MonitorInfo>(allScreens.Count);
+
+        for (int i = 0; i < allScreens.Count; i++)
+        {
+            var screen = allScreens[i];
+            var scaleFactor = screen.Scaling > 0 ? screen.Scaling : 1.0;
+
+            var physicalBounds = new PixelRect(
+                screen.Bounds.X,
+                screen.Bounds.Y,
+                screen.Bounds.Width,
+                screen.Bounds.Height);
+
+            var workArea = new PixelRect(
+                screen.WorkingArea.X,
+                screen.WorkingArea.Y,
+                screen.WorkingArea.Width,
+                screen.WorkingArea.Height);
+
+            DebugHelper.WriteLine($"[MonitorEnum] macOS Screen[{i}]: Bounds=({screen.Bounds.X},{screen.Bounds.Y},{screen.Bounds.Width},{screen.Bounds.Height}) WorkingArea=({screen.WorkingArea.X},{screen.WorkingArea.Y},{screen.WorkingArea.Width},{screen.WorkingArea.Height}) Scaling={scaleFactor:F4} IsPrimary={screen.IsPrimary}");
+
+            monitors.Add(new MonitorInfo(
+                DeviceName: $"Display {i + 1}",
+                PhysicalBounds: physicalBounds,
+                WorkArea: workArea,
+                ScaleFactor: scaleFactor,
+                IsPrimary: screen.IsPrimary));
+        }
+
         return monitors;
     }
 

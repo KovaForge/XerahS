@@ -36,6 +36,24 @@ namespace XerahS.Platform.MacOS
     /// </summary>
     public class MacOSScreenshotService : IScreenCaptureService
     {
+        private const string ScreencapturePath = "/usr/sbin/screencapture";
+        private static readonly TimeSpan[] InteractiveBusyRetryDelays =
+        [
+            TimeSpan.FromMilliseconds(350),
+            TimeSpan.FromMilliseconds(900)
+        ];
+
+        internal static string BuildNativeRegionCaptureArguments(CaptureOptions? options)
+        {
+            return BuildCaptureArguments("-i -s", options);
+        }
+
+        internal static string BuildCaptureArguments(string baseArguments, CaptureOptions? options)
+        {
+            string soundArgument = options?.MacOSPlayCaptureSound == false ? " -x" : string.Empty;
+            return $"{baseArguments}{soundArgument} -t png".Trim();
+        }
+
         public Task<SKRectI> SelectRegionAsync(CaptureOptions? options = null)
         {
             // This method should only be called from the UI layer wrapper
@@ -44,7 +62,13 @@ namespace XerahS.Platform.MacOS
 
         public Task<SKBitmap?> CaptureRegionAsync(CaptureOptions? options = null)
         {
-            return CaptureWithArgumentsAsync("-i -t png");
+            if (options?.MacOSRegionSelectorPreference != MacOSInteractiveRegionSelectorPreference.NativeCrosshair)
+            {
+                DebugHelper.WriteLine("[MacOSCapture] macOS native crosshair was not requested; native screencapture -i is skipped.");
+                return Task.FromResult<SKBitmap?>(null);
+            }
+
+            return CaptureWithArgumentsAsync(BuildNativeRegionCaptureArguments(options), isInteractiveRegionCapture: true);
         }
 
         public Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
@@ -54,18 +78,18 @@ namespace XerahS.Platform.MacOS
                 return Task.FromResult<SKBitmap?>(null);
             }
 
-            var args = $"-R{rect.Left},{rect.Top},{rect.Width},{rect.Height} -x -t png";
+            var args = BuildCaptureArguments($"-R{rect.Left},{rect.Top},{rect.Width},{rect.Height}", options);
             return CaptureWithArgumentsAsync(args);
         }
 
         public Task<SKBitmap?> CaptureFullScreenAsync(CaptureOptions? options = null)
         {
-            return CaptureWithArgumentsAsync("-x -t png");
+            return CaptureWithArgumentsAsync(BuildCaptureArguments(string.Empty, options));
         }
 
         public Task<SKBitmap?> CaptureActiveWindowAsync(IWindowService windowService, CaptureOptions? options = null)
         {
-            return CaptureWithArgumentsAsync("-w -t png");
+            return CaptureWithArgumentsAsync(BuildCaptureArguments("-w", options));
         }
 
         public Task<SKBitmap?> CaptureWindowAsync(IntPtr windowHandle, IWindowService windowService, CaptureOptions? options = null)
@@ -83,7 +107,14 @@ namespace XerahS.Platform.MacOS
             return Task.FromResult<CursorInfo?>(null);
         }
 
-        private static Task<SKBitmap?> CaptureWithArgumentsAsync(string arguments)
+        internal static bool IsInteractiveCaptureBusyError(string standardError)
+        {
+            return standardError.Contains(
+                "cannot run two interactive screen captures at a time",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static Task<SKBitmap?> CaptureWithArgumentsAsync(string arguments, bool isInteractiveRegionCapture = false)
         {
             return Task.Run<SKBitmap?>(() =>
             {
@@ -92,48 +123,73 @@ namespace XerahS.Platform.MacOS
 
                 try
                 {
-                    DebugHelper.WriteLine($"[MacOSCapture] Starting screencapture: args={arguments}");
-                    var startInfo = new ProcessStartInfo
+                    for (int attempt = 1; ; attempt++)
                     {
-                        FileName = "screencapture",
-                        Arguments = $"{arguments} \"{tempFile}\"",
-                        CreateNoWindow = true,
-                        UseShellExecute = false
-                    };
+                        TryDeleteTempFile(tempFile);
 
-                    var startStopwatch = Stopwatch.StartNew();
-                    using var process = Process.Start(startInfo);
-                    if (process == null)
-                    {
-                        DebugHelper.WriteLine("[MacOSCapture] Failed to start screencapture process.");
-                        return null;
-                    }
+                        DebugHelper.WriteLine($"[MacOSCapture] Starting screencapture: args={arguments}, attempt={attempt}");
+                        var startInfo = new ProcessStartInfo
+                        {
+                            FileName = File.Exists(ScreencapturePath) ? ScreencapturePath : "screencapture",
+                            Arguments = $"{arguments} \"{tempFile}\"",
+                            CreateNoWindow = true,
+                            UseShellExecute = false,
+                            RedirectStandardError = true
+                        };
 
-                    process.WaitForExit();
-                    startStopwatch.Stop();
+                        var startStopwatch = Stopwatch.StartNew();
+                        using var process = Process.Start(startInfo);
+                        if (process == null)
+                        {
+                            DebugHelper.WriteLine("[MacOSCapture] Failed to start screencapture process.");
+                            return null;
+                        }
 
-                    if (process.ExitCode != 0 || !File.Exists(tempFile))
-                    {
-                        DebugHelper.WriteLine($"[MacOSCapture] screencapture failed: ExitCode={process.ExitCode}, FileExists={File.Exists(tempFile)}");
-                        return null;
-                    }
+                        process.WaitForExit();
+                        string standardError = process.StandardError.ReadToEnd();
+                        startStopwatch.Stop();
 
-                    var fileInfo = new FileInfo(tempFile);
-                    DebugHelper.WriteLine($"[MacOSCapture] screencapture completed in {startStopwatch.ElapsedMilliseconds}ms, size={fileInfo.Length} bytes");
+                        if (process.ExitCode != 0 || !File.Exists(tempFile))
+                        {
+                            DebugHelper.WriteLine($"[MacOSCapture] screencapture failed: ExitCode={process.ExitCode}, FileExists={File.Exists(tempFile)}, Stderr={standardError.Trim()}");
 
-                    var decodeStopwatch = Stopwatch.StartNew();
-                    using var fileStream = File.OpenRead(tempFile);
-                    // Copy to memory stream to decouple from file lock if needed?
-                    // SKBitmap.Decode should read it fully.
-                    // But to be safe and allow deleting file:
-                    using (var ms = new MemoryStream())
-                    {
-                        fileStream.CopyTo(ms);
-                        ms.Position = 0;
-                        var bitmap = SKBitmap.Decode(ms);
-                        decodeStopwatch.Stop();
-                        DebugHelper.WriteLine($"[MacOSCapture] Decode completed in {decodeStopwatch.ElapsedMilliseconds}ms, bitmap={bitmap?.Width}x{bitmap?.Height}");
-                        return bitmap;
+                            if (isInteractiveRegionCapture &&
+                                IsInteractiveCaptureBusyError(standardError) &&
+                                attempt <= InteractiveBusyRetryDelays.Length)
+                            {
+                                LogRunningScreencaptureProcesses();
+                                var delay = InteractiveBusyRetryDelays[attempt - 1];
+                                DebugHelper.WriteLine($"[MacOSCapture] Native selector is busy; retrying after {delay.TotalMilliseconds:F0}ms.");
+                                Thread.Sleep(delay);
+                                continue;
+                            }
+
+                            return null;
+                        }
+
+                        var fileInfo = new FileInfo(tempFile);
+                        if (fileInfo.Length == 0)
+                        {
+                            DebugHelper.WriteLine("[MacOSCapture] screencapture returned an empty file.");
+                            return null;
+                        }
+
+                        DebugHelper.WriteLine($"[MacOSCapture] screencapture completed in {startStopwatch.ElapsedMilliseconds}ms, size={fileInfo.Length} bytes");
+
+                        var decodeStopwatch = Stopwatch.StartNew();
+                        using var fileStream = File.OpenRead(tempFile);
+                        // Copy to memory stream to decouple from file lock if needed?
+                        // SKBitmap.Decode should read it fully.
+                        // But to be safe and allow deleting file:
+                        using (var ms = new MemoryStream())
+                        {
+                            fileStream.CopyTo(ms);
+                            ms.Position = 0;
+                            var bitmap = SKBitmap.Decode(ms);
+                            decodeStopwatch.Stop();
+                            DebugHelper.WriteLine($"[MacOSCapture] Decode completed in {decodeStopwatch.ElapsedMilliseconds}ms, bitmap={bitmap?.Width}x{bitmap?.Height}");
+                            return bitmap;
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -145,18 +201,63 @@ namespace XerahS.Platform.MacOS
                 {
                     totalStopwatch.Stop();
                     DebugHelper.WriteLine($"[MacOSCapture] Total capture elapsed: {totalStopwatch.ElapsedMilliseconds}ms");
-                    if (File.Exists(tempFile))
+                    TryDeleteTempFile(tempFile);
+                }
+            });
+        }
+
+        private static void LogRunningScreencaptureProcesses()
+        {
+            try
+            {
+                using var currentProcess = Process.GetCurrentProcess();
+                var descriptions = new List<string>();
+                foreach (var process in Process.GetProcessesByName("screencapture"))
+                {
+                    using (process)
                     {
+                        if (process.HasExited || process.Id == currentProcess.Id)
+                        {
+                            continue;
+                        }
+
+                        string startTime = "unknown";
                         try
                         {
-                            File.Delete(tempFile);
+                            startTime = process.StartTime.ToString("O");
                         }
                         catch
                         {
                         }
+
+                        descriptions.Add($"pid={process.Id}, start={startTime}");
                     }
                 }
-            });
+
+                DebugHelper.WriteLine(descriptions.Count == 0
+                    ? "[MacOSCapture] Running screencapture processes: none observed."
+                    : $"[MacOSCapture] Running screencapture processes: {string.Join("; ", descriptions)}");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"[MacOSCapture] Could not enumerate screencapture processes: {ex.Message}");
+            }
+        }
+
+        private static void TryDeleteTempFile(string tempFile)
+        {
+            if (!File.Exists(tempFile))
+            {
+                return;
+            }
+
+            try
+            {
+                File.Delete(tempFile);
+            }
+            catch
+            {
+            }
         }
     }
 }

@@ -15,7 +15,7 @@
             <TextBlock Text="API Key *" FontWeight="Medium"/>
             <TextBox Text="{Binding ApiKey, UpdateSourceTrigger=PropertyChanged}"
                      PasswordChar="*"
-                     Watermark="Your Pastebin API developer key"
+                     PlaceholderText="Your Pastebin API developer key"
                      Width="400"
                      HorizontalAlignment="Left"/>
             <TextBlock Text="Get a free key at https://pastebin.com/doc_api"
@@ -30,7 +30,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Username (optional)" FontWeight="Medium"/>
             <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="Pastebin account username"
+                     PlaceholderText="Pastebin account username"
                      Width="300"
                      HorizontalAlignment="Left"/>
         </StackPanel>
@@ -38,7 +38,7 @@
             <TextBlock Text="Password (optional)" FontWeight="Medium"/>
             <TextBox Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}"
                      PasswordChar="*"
-                     Watermark="Pastebin account password"
+                     PlaceholderText="Pastebin account password"
                      Width="300"
                      HorizontalAlignment="Left"/>
         </StackPanel>
@@ -47,7 +47,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Paste Title (optional)" FontWeight="Medium"/>
             <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="Title for the paste"
+                     PlaceholderText="Title for the paste"
                      Width="400"
                      HorizontalAlignment="Left"/>
         </StackPanel>
@@ -56,7 +56,7 @@
         <StackPanel Spacing="5">
             <TextBlock Text="Syntax / Text Format" FontWeight="Medium"/>
             <TextBox Text="{Binding TextFormat, UpdateSourceTrigger=PropertyChanged}"
-                     Watermark="text"
+                     PlaceholderText="text"
                      Width="200"
                      HorizontalAlignment="Left"/>
             <TextBlock Text="Examples: text, csharp, json, xml, python, javascript"

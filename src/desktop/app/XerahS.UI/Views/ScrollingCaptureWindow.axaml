@@ -18,7 +18,7 @@
 
     <!-- Image Preview Area -->
     <Border Grid.Row="0"
-            BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
             BorderThickness="1"
             CornerRadius="4"
             ClipToBounds="True">
@@ -27,7 +27,7 @@
         <TextBlock Text="No capture yet. Click Capture to begin."
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"
-                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                    IsVisible="{Binding !HasResult}" />
 
         <!-- Scrollable image preview -->
@@ -41,7 +41,7 @@
         </ScrollViewer>
 
         <!-- Progress overlay during capture -->
-        <Border Background="#80000000"
+        <Border Background="{DynamicResource XerahS.Brush.Overlay.Modal}"
                 IsVisible="{Binding IsCapturing}"
                 CornerRadius="4">
           <StackPanel HorizontalAlignment="Center"
@@ -50,10 +50,10 @@
             <ProgressBar IsIndeterminate="True"
                          Width="200" />
             <TextBlock Text="{Binding StatusText}"
-                       Foreground="White"
+                       Foreground="{DynamicResource XerahS.Brush.Overlay.Foreground}"
                        HorizontalAlignment="Center" />
             <TextBlock Text="Press Escape or the Scrolling Capture hotkey again to stop."
-                       Foreground="#B0FFFFFF"
+                       Foreground="{DynamicResource XerahS.Brush.Overlay.ForegroundMuted}"
                        FontSize="12"
                        HorizontalAlignment="Center"
                        TextAlignment="Center" />
@@ -76,7 +76,7 @@
                  VerticalAlignment="Center">
           <Ellipse.Styles>
             <Style Selector="Ellipse">
-              <Setter Property="Fill" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+              <Setter Property="Fill" Value="{DynamicResource TextFillColorSecondaryBrush}" />
             </Style>
           </Ellipse.Styles>
         </Ellipse>
@@ -94,9 +94,9 @@
         <TextBlock Text="{Binding ResultSize}"
                    VerticalAlignment="Center"
                    IsVisible="{Binding HasResult}"
-                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
         <TextBlock VerticalAlignment="Center"
-                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                    IsVisible="{Binding HasResult}">
           <TextBlock.Text>
             <MultiBinding StringFormat="Frames: {0}">

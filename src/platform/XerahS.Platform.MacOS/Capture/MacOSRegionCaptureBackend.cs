@@ -26,7 +26,7 @@ using System;
 using System.Threading.Tasks;
 using ShareX.Avalonia.Platform.Abstractions.Capture;
 
-namespace ShareX.Avalonia.Platform.macOS.Capture;
+namespace XerahS.Platform.MacOS.Capture;
 
 /// <summary>
 /// macOS implementation of region capture using ScreenCaptureKit framework.

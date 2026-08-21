@@ -31,8 +31,8 @@ sealed class Screen(val route: String) {
         fun withPaths(paths: List<String>): String =
             if (paths.isEmpty()) route else "upload?paths=${paths.joinToString(",")}"
     }
-    data object History : Screen("history")
     data object Settings : Screen("settings")
     data object S3Config : Screen("settings/s3")
     data object CustomUploaderConfig : Screen("settings/custom")
+    data object About : Screen("about")
 }

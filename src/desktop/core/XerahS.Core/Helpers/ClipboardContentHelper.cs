@@ -102,4 +102,52 @@ public static class ClipboardContentHelper
 
         return null;
     }
+
+    /// <summary>
+    /// Async version of <see cref="ParseClipboard"/> that avoids blocking the UI
+    /// thread on platforms where clipboard I/O is inherently asynchronous (Linux/X11).
+    /// Must be called on the UI thread.
+    /// </summary>
+    public static async Task<ClipboardContent?> ParseClipboardAsync(IClipboardService clipboard)
+    {
+        // Image has highest priority – try it first.
+        var image = await clipboard.GetImageAsync();
+        if (image != null)
+        {
+            return new ClipboardContent
+            {
+                DataType = EDataType.Image,
+                Image = image
+            };
+        }
+
+        var text = await clipboard.GetTextAsync();
+        if (!string.IsNullOrEmpty(text))
+        {
+            return new ClipboardContent
+            {
+                DataType = EDataType.Text,
+                Text = text
+            };
+        }
+
+        var files = await clipboard.GetFileDropListAsync();
+        if (files != null && files.Length > 0)
+        {
+            var validFiles = files
+                .Where(f => !string.IsNullOrWhiteSpace(f) && File.Exists(f))
+                .ToArray();
+
+            if (validFiles.Length > 0)
+            {
+                return new ClipboardContent
+                {
+                    DataType = EDataType.File,
+                    Files = validFiles
+                };
+            }
+        }
+
+        return null;
+    }
 }

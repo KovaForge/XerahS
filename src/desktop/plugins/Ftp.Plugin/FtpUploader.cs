@@ -31,7 +31,6 @@ using FluentFTP;
 using FluentFTP.Exceptions;
 using Renci.SshNet;
 using Renci.SshNet.Common;
-using Renci.SshNet.Sftp;
 using XerahS.Common;
 using XerahS.Uploaders;
 using XerahS.Uploaders.FileUploaders;
@@ -57,15 +56,16 @@ public sealed class FtpUploader : FileUploader, IDisposable
     {
         UploadResult result = new UploadResult();
 
-        if (string.IsNullOrEmpty(_account.Host))
+        if (string.IsNullOrWhiteSpace(_account.Host))
         {
             Errors.Add("FTP host is required.");
             return result;
         }
 
+        string remoteFileName = GetSafeRemoteFileName(fileName);
         string subFolderPath = _account.GetSubFolderPath(null, NameParserType.FilePath);
-        string remotePath = URLHelpers.CombineURL(subFolderPath, fileName);
-        string url = _account.GetUriPath(fileName, subFolderPath);
+        string remotePath = URLHelpers.CombineURL(subFolderPath, remoteFileName);
+        string url = _account.GetUriPath(remoteFileName, subFolderPath);
 
         OnEarlyURLCopyRequested(url);
 
@@ -111,6 +111,17 @@ public sealed class FtpUploader : FileUploader, IDisposable
         }
     }
 
+    private static string NormalizeHost(string? host) => host?.Trim() ?? string.Empty;
+
+    private static string GetSafeRemoteFileName(string? fileName)
+    {
+        string normalized = (fileName ?? string.Empty).Replace('\\', '/').Trim().Trim('/');
+        string candidate = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? string.Empty;
+        candidate = candidate.Trim();
+
+        return string.IsNullOrEmpty(candidate) || candidate == "." || candidate == ".." ? "upload" : candidate;
+    }
+
     private bool UploadFtp(Stream stream, string remotePath)
     {
         try
@@ -125,7 +136,7 @@ public sealed class FtpUploader : FileUploader, IDisposable
             }
             catch (FtpCommandException ex) when (ex.CompletionCode == "550" || ex.CompletionCode == "553")
             {
-                CreateMultiDirectoryFtp(URLHelpers.GetDirectoryPath(remotePath));
+                CreateMultiDirectoryFtp(GetRemoteDirectoryPath(remotePath));
                 return UploadFtpInternal(stream, remotePath);
             }
         }
@@ -140,7 +151,7 @@ public sealed class FtpUploader : FileUploader, IDisposable
     {
         var client = new FtpClient
         {
-            Host = _account.Host,
+            Host = NormalizeHost(_account.Host),
             Port = _account.Port,
             Credentials = new NetworkCredential(_account.Username ?? "", _account.Password ?? "")
         };
@@ -180,6 +191,12 @@ public sealed class FtpUploader : FileUploader, IDisposable
         return _ftpClient.GetReply().Success;
     }
 
+    private static string GetRemoteDirectoryPath(string remotePath)
+    {
+        int lastSlash = remotePath.LastIndexOf('/');
+        return lastSlash > 0 ? remotePath.Substring(0, lastSlash) : string.Empty;
+    }
+
     private void CreateMultiDirectoryFtp(string remotePath)
     {
         if (_ftpClient == null || string.IsNullOrEmpty(remotePath)) return;
@@ -207,7 +224,7 @@ public sealed class FtpUploader : FileUploader, IDisposable
             }
             catch (SftpPathNotFoundException)
             {
-                CreateMultiDirectorySftp(URLHelpers.GetDirectoryPath(remotePath));
+                CreateMultiDirectorySftp(GetRemoteDirectoryPath(remotePath));
                 return UploadSftpInternal(stream, remotePath);
             }
         }
@@ -220,22 +237,48 @@ public sealed class FtpUploader : FileUploader, IDisposable
 
     private SftpClient? CreateSftpClient()
     {
-        if (!string.IsNullOrEmpty(_account.Keypath))
+        string keyPath = _account.Keypath?.Trim() ?? string.Empty;
+        bool hasPassword = !string.IsNullOrWhiteSpace(_account.Password);
+
+        if (!string.IsNullOrWhiteSpace(keyPath) && File.Exists(keyPath))
         {
-            if (!File.Exists(_account.Keypath))
+            try
             {
-                Errors.Add("SFTP key file not found: " + _account.Keypath);
+                PrivateKeyFile keyFile = string.IsNullOrEmpty(_account.Passphrase)
+                    ? new PrivateKeyFile(keyPath)
+                    : new PrivateKeyFile(keyPath, _account.Passphrase);
+                return new SftpClient(NormalizeHost(_account.Host), _account.Port, _account.Username ?? "", keyFile);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex);
+
+                if (hasPassword)
+                {
+                    return CreatePasswordSftpClient();
+                }
+
+                Errors.Add("SFTP key file could not be loaded: " + keyPath);
                 return null;
             }
-            PrivateKeyFile keyFile = string.IsNullOrEmpty(_account.Passphrase)
-                ? new PrivateKeyFile(_account.Keypath)
-                : new PrivateKeyFile(_account.Keypath, _account.Passphrase);
-            return new SftpClient(_account.Host, _account.Port, _account.Username ?? "", keyFile);
         }
-        if (!string.IsNullOrEmpty(_account.Password))
-            return new SftpClient(_account.Host, _account.Port, _account.Username ?? "", _account.Password);
+
+        if (hasPassword)
+            return CreatePasswordSftpClient();
+
+        if (!string.IsNullOrWhiteSpace(keyPath))
+        {
+            Errors.Add("SFTP key file not found: " + keyPath);
+            return null;
+        }
+
         Errors.Add("SFTP requires either a key file or password.");
         return null;
+    }
+
+    private SftpClient CreatePasswordSftpClient()
+    {
+        return new SftpClient(NormalizeHost(_account.Host), _account.Port, _account.Username ?? "", _account.Password);
     }
 
     private bool ConnectSftp()
@@ -250,10 +293,41 @@ public sealed class FtpUploader : FileUploader, IDisposable
     private bool UploadSftpInternal(Stream stream, string remotePath)
     {
         if (_sftpClient == null || !_sftpClient.IsConnected) return false;
-        using (SftpFileStream remoteStream = _sftpClient.Create(remotePath))
+
+        long fileSize = stream.CanSeek ? stream.Length : -1;
+        ProgressManager? progress = fileSize > 0 ? new ProgressManager(fileSize) : null;
+        ulong lastUploadedBytes = 0;
+        object progressLock = new object();
+
+        // We have to use a lock here because UploadFile fires progress callbacks concurrently from multiple threads.
+        _sftpClient.UploadFile(stream, remotePath, canOverride: true, uploadedBytes =>
         {
-            return TransferData(stream, remoteStream);
-        }
+            if (StopUploadRequested)
+            {
+                _sftpClient.Disconnect();
+                return;
+            }
+
+            if (AllowReportProgress && progress != null)
+            {
+                lock (progressLock)
+                {
+                    long delta = (long)(uploadedBytes - lastUploadedBytes);
+
+                    if (delta > 0)
+                    {
+                        lastUploadedBytes = uploadedBytes;
+
+                        if (progress.UpdateProgress(delta))
+                        {
+                            OnProgressChanged(progress);
+                        }
+                    }
+                }
+            }
+        });
+
+        return !StopUploadRequested;
     }
 
     private void CreateMultiDirectorySftp(string path)

@@ -1,5 +1,8 @@
 # XIP0048 Nextcloud Native Plugin Design
 
+**Status**: Complete
+**Version**: v0.22.257
+
 XIP0048: Nextcloud Native Plugin Design
 
 ## Goal
