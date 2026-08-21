@@ -5561,3 +5561,14 @@ Added candidates (8):
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses; seeded recently_pivoted
 - Skill: xerahs-bugfix/SKILL.md v1.1.22 (no patch this tick)
+
+### 2026-08-21 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. HEAD == declan/develop == origin/develop (c7c2c627); upstream merge-base == HEAD (no upstream merge needed). ShareX.ImageEditor pointer clean at d4f4029 (Mikhail 4 local commits ahead of origin left untouched). Deleted stale /tmp/xerahs-bugfix/deferred-last-runs-20260821-000557.json (1 already-fixed row already in tracker markdown).
+- Status: no-op
+- Build/test: n/a (empty queue; no code change)
+- Commit: null (record SHA in Step 9 only; do not self-reference)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.22 (no patch this tick)
