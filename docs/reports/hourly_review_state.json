@@ -2279,7 +2279,7 @@
       "agent": "nadia",
       "outcome": "pushed",
       "item": "xerahs-review producer run",
-      "commit": "PENDING",
+      "commit": "aa29ccd7072aabe2ab55db4be635b371e97fb349",
       "summary": "Daily producer cron (Nadia, nadia-valeva-kf). Clawpatch review run 20260821T150529-4a20ca completed (3 features reviewed: ShareX.ImageEditor Converters, XerahS.Platform.Windows Capture#2, XerahS.Platform.Linux Capture/Detection — 0 findings on each; feature 2 had a malformed-output retry). Across 3 newest reports (20260821T150529, 20260820T150428, 20260819T151646) = 367 unique findings parsed. v2.2.4 submodule-prefix drops: 66. Severity gate dropped 173 (triage=risk: 110, contract-mismatch: 42, docs-gap: 12, test-gap: 9). Already-fixed (area-level): 3. Recently-fixed (v2.1.1 + v2.1.2 release-history): 72. Recently-pivoted skip (v2.2.2): 53. **0 NEW findings** added — all 53 items that survived the gate hit the recently-pivoted skip (consumer verified them as already-fixed-in-source during 00:05/08:05/16:06 AWST drains; holding them out to avoid ping-pong). Fork/upstream/submodule unchanged. Producer-side only.",
       "status": "ok",
       "clawpatch_report": "20260821T150529-4a20ca.md"
