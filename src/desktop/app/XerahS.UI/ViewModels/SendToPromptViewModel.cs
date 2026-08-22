@@ -41,8 +41,8 @@ public partial class SendToPromptViewModel : ViewModelBase
     {
         _selection = selection ?? throw new ArgumentNullException(nameof(selection));
         RememberScope = SendToPolicyResolver.GetRememberScope(selection);
-        FolderPolicySelectedIndex = ToFolderPolicyIndex(settings?.SendToFolderPolicy ?? SendToFolderPolicy.IncludeTopLevelFiles);
-        BatchPolicySelectedIndex = ToBatchPolicyIndex(settings?.SendToBatchExecutionPolicy ?? SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold);
+        FolderPolicySelectedIndex = SendToPolicyResolver.ToFolderPolicyIndex(settings?.SendToFolderPolicy ?? SendToFolderPolicy.IncludeTopLevelFiles);
+        BatchPolicySelectedIndex = SendToPolicyResolver.ToBatchPolicyIndex(settings?.SendToBatchExecutionPolicy ?? SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold);
         BatchConfirmThreshold = SendToPolicyResolver.NormalizeBatchThreshold(settings?.SendToBatchConfirmThreshold ?? 5);
     }
 
@@ -60,19 +60,9 @@ public partial class SendToPromptViewModel : ViewModelBase
         BatchConfirmThreshold = BatchConfirmThreshold
     };
 
-    public string[] FolderPolicyOptions { get; } =
-    [
-        "Do not expand folders",
-        "Include top-level files",
-        "Include files recursively"
-    ];
+    public string[] FolderPolicyOptions { get; } = SendToPolicyResolver.FolderPolicyOptions;
 
-    public string[] BatchPolicyOptions { get; } =
-    [
-        "Open all immediately",
-        "Open sequentially",
-        "Confirm before opening more than the threshold"
-    ];
+    public string[] BatchPolicyOptions { get; } = SendToPolicyResolver.BatchPolicyOptions;
 
     public bool RememberChoice
     {
@@ -122,19 +112,9 @@ public partial class SendToPromptViewModel : ViewModelBase
 
     public SendToRememberScope RememberScope { get; }
 
-    public SendToFolderPolicy SelectedFolderPolicy => FolderPolicySelectedIndex switch
-    {
-        0 => SendToFolderPolicy.DoNotExpandFolders,
-        2 => SendToFolderPolicy.IncludeFilesRecursively,
-        _ => SendToFolderPolicy.IncludeTopLevelFiles
-    };
+    public SendToFolderPolicy SelectedFolderPolicy => SendToPolicyResolver.FromFolderPolicyIndex(FolderPolicySelectedIndex);
 
-    public SendToBatchExecutionPolicy SelectedBatchExecutionPolicy => BatchPolicySelectedIndex switch
-    {
-        0 => SendToBatchExecutionPolicy.OpenAllImmediately,
-        1 => SendToBatchExecutionPolicy.OpenSequentially,
-        _ => SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold
-    };
+    public SendToBatchExecutionPolicy SelectedBatchExecutionPolicy => SendToPolicyResolver.FromBatchPolicyIndex(BatchPolicySelectedIndex);
 
     public bool HasFolders => _selection.HasFolders;
 
@@ -250,17 +230,4 @@ public partial class SendToPromptViewModel : ViewModelBase
     private static string FormatCount(int count, string singular) =>
         count == 1 ? $"1 {singular}" : $"{count} {singular}s";
 
-    private static int ToFolderPolicyIndex(SendToFolderPolicy policy) => policy switch
-    {
-        SendToFolderPolicy.DoNotExpandFolders => 0,
-        SendToFolderPolicy.IncludeFilesRecursively => 2,
-        _ => 1
-    };
-
-    private static int ToBatchPolicyIndex(SendToBatchExecutionPolicy policy) => policy switch
-    {
-        SendToBatchExecutionPolicy.OpenAllImmediately => 0,
-        SendToBatchExecutionPolicy.OpenSequentially => 1,
-        _ => 2
-    };
 }

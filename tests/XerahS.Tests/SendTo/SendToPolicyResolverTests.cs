@@ -151,4 +151,52 @@ public class SendToPolicyResolverTests
             }
         }
     }
+
+    [Test]
+    public void RequiresBatchConfirmation_OnlyForRememberedThresholdPolicy()
+    {
+        SendToPromptResult rememberedOverThreshold = new()
+        {
+            IsRemembered = true,
+            BatchExecutionPolicy = SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold,
+            BatchConfirmThreshold = 5
+        };
+        SendToPromptResult promptOverThreshold = new()
+        {
+            IsRemembered = false,
+            BatchExecutionPolicy = SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold,
+            BatchConfirmThreshold = 5
+        };
+        SendToPromptResult rememberedImmediate = new()
+        {
+            IsRemembered = true,
+            BatchExecutionPolicy = SendToBatchExecutionPolicy.OpenAllImmediately,
+            BatchConfirmThreshold = 5
+        };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(SendToPolicyResolver.RequiresBatchConfirmation(rememberedOverThreshold, 6), Is.True);
+            Assert.That(SendToPolicyResolver.RequiresBatchConfirmation(rememberedOverThreshold, 5), Is.False);
+            Assert.That(SendToPolicyResolver.RequiresBatchConfirmation(promptOverThreshold, 6), Is.False);
+            Assert.That(SendToPolicyResolver.RequiresBatchConfirmation(rememberedImmediate, 6), Is.False);
+        });
+    }
+
+    [Test]
+    public void FolderAndBatchPolicyIndexes_RoundTrip()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                SendToPolicyResolver.FromFolderPolicyIndex(SendToPolicyResolver.ToFolderPolicyIndex(SendToFolderPolicy.DoNotExpandFolders)),
+                Is.EqualTo(SendToFolderPolicy.DoNotExpandFolders));
+            Assert.That(
+                SendToPolicyResolver.FromFolderPolicyIndex(SendToPolicyResolver.ToFolderPolicyIndex(SendToFolderPolicy.IncludeFilesRecursively)),
+                Is.EqualTo(SendToFolderPolicy.IncludeFilesRecursively));
+            Assert.That(
+                SendToPolicyResolver.FromBatchPolicyIndex(SendToPolicyResolver.ToBatchPolicyIndex(SendToBatchExecutionPolicy.OpenSequentially)),
+                Is.EqualTo(SendToBatchExecutionPolicy.OpenSequentially));
+        });
+    }
 }

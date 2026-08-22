@@ -58,6 +58,65 @@ namespace XerahS.UI.ViewModels
 
         public bool HasRememberedSendToChoices => SettingsManager.Settings.SendToRememberedChoices.Count > 0;
 
+        public string[] SendToFolderPolicyOptions { get; } = SendToPolicyResolver.FolderPolicyOptions;
+
+        public string[] SendToBatchPolicyOptions { get; } = SendToPolicyResolver.BatchPolicyOptions;
+
+        public int SendToFolderPolicySelectedIndex
+        {
+            get => SendToPolicyResolver.ToFolderPolicyIndex(SettingsManager.Settings.SendToFolderPolicy);
+            set
+            {
+                SendToFolderPolicy policy = SendToPolicyResolver.FromFolderPolicyIndex(value);
+                if (SettingsManager.Settings.SendToFolderPolicy == policy)
+                {
+                    return;
+                }
+
+                SettingsManager.Settings.SendToFolderPolicy = policy;
+                SettingsManager.SaveApplicationConfig();
+                OnPropertyChanged();
+            }
+        }
+
+        public int SendToBatchPolicySelectedIndex
+        {
+            get => SendToPolicyResolver.ToBatchPolicyIndex(SettingsManager.Settings.SendToBatchExecutionPolicy);
+            set
+            {
+                SendToBatchExecutionPolicy policy = SendToPolicyResolver.FromBatchPolicyIndex(value);
+                if (SettingsManager.Settings.SendToBatchExecutionPolicy == policy)
+                {
+                    return;
+                }
+
+                SettingsManager.Settings.SendToBatchExecutionPolicy = policy;
+                SettingsManager.SaveApplicationConfig();
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ShowSendToBatchThreshold));
+            }
+        }
+
+        public int SendToBatchConfirmThreshold
+        {
+            get => SendToPolicyResolver.NormalizeBatchThreshold(SettingsManager.Settings.SendToBatchConfirmThreshold);
+            set
+            {
+                int normalized = SendToPolicyResolver.NormalizeBatchThreshold(value);
+                if (SettingsManager.Settings.SendToBatchConfirmThreshold == normalized)
+                {
+                    return;
+                }
+
+                SettingsManager.Settings.SendToBatchConfirmThreshold = normalized;
+                SettingsManager.SaveApplicationConfig();
+                OnPropertyChanged();
+            }
+        }
+
+        public bool ShowSendToBatchThreshold =>
+            SettingsManager.Settings.SendToBatchExecutionPolicy == SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold;
+
         public string RememberedSendToChoicesSummary
         {
             get

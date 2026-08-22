@@ -64,7 +64,9 @@ public static class PinToScreenToolService
         }
     }
 
-    public static Task PinFilesAsync(IEnumerable<string>? filePaths)
+    public readonly record struct PinFilesResult(int PinnedCount, int SkippedCount);
+
+    public static Task<PinFilesResult> PinFilesAsync(IEnumerable<string>? filePaths, bool showToast = true)
     {
         int pinnedCount = 0;
         int skippedCount = 0;
@@ -79,22 +81,15 @@ public static class PinToScreenToolService
 
             try
             {
-                using var bitmap = SKBitmap.Decode(filePath);
+                using SKBitmap? bitmap = SKBitmap.Decode(filePath);
                 if (bitmap == null)
                 {
                     skippedCount++;
                     continue;
                 }
 
-                try
-                {
-                    PinToScreenManager.PinImage(bitmap, null, GetOptions());
-                    pinnedCount++;
-                }
-                finally
-                {
-                    bitmap.Dispose();
-                }
+                PinToScreenManager.PinImage(bitmap, null, GetOptions());
+                pinnedCount++;
             }
             catch (Exception ex)
             {
@@ -103,16 +98,19 @@ public static class PinToScreenToolService
             }
         }
 
-        if (pinnedCount == 0)
+        if (showToast)
         {
-            ShowToast("Pin to Screen", "No compatible image files were available to pin.");
-        }
-        else if (skippedCount > 0)
-        {
-            ShowToast("Pin to Screen", $"Pinned {pinnedCount} image(s); skipped {skippedCount} item(s).");
+            if (pinnedCount == 0)
+            {
+                ShowToast("Pin to Screen", "No compatible image files were available to pin.");
+            }
+            else if (skippedCount > 0)
+            {
+                ShowToast("Pin to Screen", $"Pinned {pinnedCount} image(s); skipped {skippedCount} item(s).");
+            }
         }
 
-        return Task.CompletedTask;
+        return Task.FromResult(new PinFilesResult(pinnedCount, skippedCount));
     }
 
     private static async Task PinToScreenAsync(Window? owner)

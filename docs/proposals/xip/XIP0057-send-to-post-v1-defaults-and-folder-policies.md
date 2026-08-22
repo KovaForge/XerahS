@@ -1,7 +1,7 @@
 # XIP0057 Send-to Post-v1 Defaults and Folder Policies
 
 **Status**: Complete
-**Version**: v0.22.257
+**Version**: v0.27.0
 
 **Priority**: Medium
 **Audit date**: 2026-03-27
@@ -47,8 +47,8 @@ XIP0057 has shipped as a production Send-to follow-up on top of XIP0055.
 - `dotnet test tests\XerahS.Tests\XerahS.Tests.csproj -m:1` compiled and ran, but failed in pre-existing/environment-sensitive coverage outside XIP0057 on this Windows host: SQLite history cleanup locked `history.db`, Linux/macOS clipboard path expectations, and `/bin/sh` notification process tests.
 
 ### Remaining hardening
-- A future polish pass can replace the remembered large-image-batch toast stop with an interactive confirmation dialog when the app can safely present one from a remembered/background Send-to invocation.
-- A future UX pass can add editable default folder/batch policies to settings; the shipped settings surface lists and clears remembered rules, while defaults are initialized to safe values.
+- Remembered image batches that exceed the confirmation threshold now show an interactive confirmation dialog instead of a toast-only skip.
+- Application Settings → Desktop Integration now exposes editable default folder and image-batch policies; remembered scoped rules still override those defaults for matching `--send-to` selections.
 
 ---
 

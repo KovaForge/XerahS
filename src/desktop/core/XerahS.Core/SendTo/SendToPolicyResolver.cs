@@ -217,4 +217,55 @@ public static class SendToPolicyResolver
     };
 
     public static int NormalizeBatchThreshold(int threshold) => Math.Clamp(threshold, 1, 100);
+
+    public static readonly string[] FolderPolicyOptions =
+    [
+        "Do not expand folders",
+        "Include top-level files",
+        "Include files recursively"
+    ];
+
+    public static readonly string[] BatchPolicyOptions =
+    [
+        "Open all immediately",
+        "Open sequentially",
+        "Confirm before opening more than the threshold"
+    ];
+
+    public static int ToFolderPolicyIndex(SendToFolderPolicy policy) => policy switch
+    {
+        SendToFolderPolicy.DoNotExpandFolders => 0,
+        SendToFolderPolicy.IncludeFilesRecursively => 2,
+        _ => 1
+    };
+
+    public static SendToFolderPolicy FromFolderPolicyIndex(int index) => index switch
+    {
+        0 => SendToFolderPolicy.DoNotExpandFolders,
+        2 => SendToFolderPolicy.IncludeFilesRecursively,
+        _ => SendToFolderPolicy.IncludeTopLevelFiles
+    };
+
+    public static int ToBatchPolicyIndex(SendToBatchExecutionPolicy policy) => policy switch
+    {
+        SendToBatchExecutionPolicy.OpenAllImmediately => 0,
+        SendToBatchExecutionPolicy.OpenSequentially => 1,
+        _ => 2
+    };
+
+    public static SendToBatchExecutionPolicy FromBatchPolicyIndex(int index) => index switch
+    {
+        0 => SendToBatchExecutionPolicy.OpenAllImmediately,
+        1 => SendToBatchExecutionPolicy.OpenSequentially,
+        _ => SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold
+    };
+
+    public static bool RequiresBatchConfirmation(SendToPromptResult decision, int itemCount)
+    {
+        ArgumentNullException.ThrowIfNull(decision);
+
+        return decision.IsRemembered &&
+               decision.BatchExecutionPolicy == SendToBatchExecutionPolicy.ConfirmBeforeOpeningMoreThanThreshold &&
+               itemCount > NormalizeBatchThreshold(decision.BatchConfirmThreshold);
+    }
 }
