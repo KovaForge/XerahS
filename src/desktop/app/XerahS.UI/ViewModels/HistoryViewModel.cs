@@ -148,16 +148,19 @@ namespace XerahS.UI.ViewModels
         private readonly IDesktopTaskManager _taskManager;
         private readonly IDialogService _coreDialogService;
         private readonly IXerahSCloudClient? _cloudClient;
+        private readonly IXerahSCloudOAuthCoordinator? _cloudOAuthCoordinator;
 
         public HistoryViewModel(
             IDesktopTaskManager taskManager,
             IDialogService coreDialogService,
             bool autoLoadHistory = true,
-            IXerahSCloudClient? cloudClient = null)
+            IXerahSCloudClient? cloudClient = null,
+            IXerahSCloudOAuthCoordinator? cloudOAuthCoordinator = null)
         {
             _taskManager = taskManager;
             _coreDialogService = coreDialogService;
             _cloudClient = cloudClient;
+            _cloudOAuthCoordinator = cloudOAuthCoordinator;
             HistoryItems = new ObservableCollection<HistoryItem>();
             SelectedHistoryItems.CollectionChanged += (_, _) => NotifySelectionStateChanged();
 
@@ -767,7 +770,7 @@ namespace XerahS.UI.ViewModels
         [RelayCommand]
         private async Task PublishItemAsync(HistoryItem? item)
         {
-            if (item == null || !HistoryPublishMetadata.CanPublish(item))
+            if (item == null || !HistoryPublishMetadata.CanPublish(item, _cloudClient?.CurrentOwnerSubject))
             {
                 return;
             }
@@ -785,6 +788,19 @@ namespace XerahS.UI.ViewModels
 
             try
             {
+                if (!await EnsureCloudSessionAsync())
+                {
+                    return;
+                }
+
+                if (!HistoryPublishMetadata.CanPublish(item, _cloudClient.CurrentOwnerSubject))
+                {
+                    ShowCloudToast(
+                        "Account changed",
+                        "This history item is bound to a different XerahS Cloud account. Sign back in to that account to publish it.");
+                    return;
+                }
+
                 var request = new XerahSCloudPublishRequest(
                     clientId,
                     item.URL,
@@ -809,6 +825,51 @@ namespace XerahS.UI.ViewModels
                 DebugHelper.WriteException(ex, "XerahS Cloud publish failed");
                 ShowCloudToast("Publish failed", ex.Message);
             }
+        }
+
+        private async Task<bool> EnsureCloudSessionAsync()
+        {
+            if (_cloudClient == null)
+            {
+                return false;
+            }
+
+            if (_cloudClient.HasSessionCredential)
+            {
+                return await _cloudClient.RestoreSessionAsync();
+            }
+
+            if (_cloudOAuthCoordinator == null)
+            {
+                ShowCloudToast("Sign-in unavailable", "XerahS Cloud sign-in is not available in this application host.");
+                return false;
+            }
+
+            XerahSCloudOAuthAttempt attempt = _cloudOAuthCoordinator.Begin();
+            if (!PlatformServices.System.OpenUrl(attempt.AuthorizationUri.AbsoluteUri))
+            {
+                ShowCloudToast("Sign-in failed", "The system browser could not be opened.");
+                return false;
+            }
+
+            ShowCloudToast("Complete sign-in", "Complete XerahS Cloud sign-in and strong authentication in your browser.");
+            XerahSCloudOAuthCompletion completion = await _cloudOAuthCoordinator
+                .WaitForCompletionAsync(attempt.State)
+                .ConfigureAwait(true);
+            if (completion == XerahSCloudOAuthCompletion.Accepted)
+            {
+                return true;
+            }
+
+            string message = completion switch
+            {
+                XerahSCloudOAuthCompletion.Expired => "The sign-in request expired. Try Publish again.",
+                XerahSCloudOAuthCompletion.TokenRejected => "The returned session did not pass XerahS Cloud security checks.",
+                XerahSCloudOAuthCompletion.InvalidCallback => "The sign-in callback was invalid.",
+                _ => "The sign-in callback was unknown or had already been used."
+            };
+            ShowCloudToast("Sign-in failed", message);
+            return false;
         }
 
         [RelayCommand]

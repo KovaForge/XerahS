@@ -42,6 +42,9 @@ public enum XerahSCloudOAuthCompletion
 public interface IXerahSCloudOAuthCoordinator
 {
     XerahSCloudOAuthAttempt Begin();
+    Task<XerahSCloudOAuthCompletion> WaitForCompletionAsync(
+        string state,
+        CancellationToken cancellationToken = default);
     Task<XerahSCloudOAuthCompletion> CompleteAsync(Uri callbackUri, CancellationToken cancellationToken = default);
 }
 
@@ -52,16 +55,22 @@ public interface IXerahSCloudOAuthTokenExchange
         string codeVerifier,
         string expectedNonce,
         CancellationToken cancellationToken);
+
+    Task<XerahSCloudSession> RefreshAsync(
+        string refreshToken,
+        CancellationToken cancellationToken);
 }
 
 public interface IXerahSCloudTokenValidator
 {
-    XerahSCloudSession Validate(
+    Task<XerahSCloudSession> ValidateAsync(
         string accessToken,
         string refreshToken,
+        string? idToken,
         int expiresInSeconds,
-        string expectedNonce,
-        XerahSCloudOptions options);
+        string? expectedNonce,
+        XerahSCloudOptions options,
+        CancellationToken cancellationToken);
 }
 
 public interface IXerahSCloudClock
@@ -148,6 +157,7 @@ public sealed class XerahSCloudOAuthCoordinator : IXerahSCloudOAuthCoordinator
     private static readonly TimeSpan AttemptLifetime = TimeSpan.FromMinutes(10);
     private readonly ConcurrentDictionary<string, XerahSCloudOAuthAttempt> _pending = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, byte> _consumed = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<XerahSCloudOAuthCompletion>> _waiters = new(StringComparer.Ordinal);
     private readonly XerahSCloudOptions _options;
     private readonly IXerahSCloudOAuthTokenExchange _tokenExchange;
     private readonly IXerahSCloudSessionStore _sessionStore;
@@ -199,7 +209,32 @@ public sealed class XerahSCloudOAuthCoordinator : IXerahSCloudOAuthCoordinator
             verifier,
             expiresAt);
         _pending[state] = attempt;
+        _waiters[state] = new TaskCompletionSource<XerahSCloudOAuthCompletion>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         return attempt;
+    }
+
+    public async Task<XerahSCloudOAuthCompletion> WaitForCompletionAsync(
+        string state,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(state);
+        if (!_waiters.TryGetValue(state, out TaskCompletionSource<XerahSCloudOAuthCompletion>? waiter))
+        {
+            return XerahSCloudOAuthCompletion.UnknownOrReplayedState;
+        }
+
+        try
+        {
+            return await waiter.Task.WaitAsync(AttemptLifetime, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            _pending.TryRemove(state, out _);
+            _waiters.TryRemove(state, out _);
+            _consumed.TryAdd(state, 0);
+            return XerahSCloudOAuthCompletion.Expired;
+        }
     }
 
     public async Task<XerahSCloudOAuthCompletion> CompleteAsync(
@@ -219,6 +254,7 @@ public sealed class XerahSCloudOAuthCoordinator : IXerahSCloudOAuthCoordinator
         _consumed.TryAdd(callback.State, 0);
         if (attempt.ExpiresAt <= _clock.UtcNow)
         {
+            CompleteWaiter(callback.State, XerahSCloudOAuthCompletion.Expired);
             return XerahSCloudOAuthCompletion.Expired;
         }
 
@@ -228,11 +264,21 @@ public sealed class XerahSCloudOAuthCoordinator : IXerahSCloudOAuthCoordinator
                 .ExchangeAsync(callback.Code, attempt.CodeVerifier, attempt.Nonce, cancellationToken)
                 .ConfigureAwait(false);
             _sessionStore.Accept(session);
+            CompleteWaiter(callback.State, XerahSCloudOAuthCompletion.Accepted);
             return XerahSCloudOAuthCompletion.Accepted;
         }
         catch (Exception ex) when (ex is XerahSCloudException or HttpRequestException or JsonException)
         {
+            CompleteWaiter(callback.State, XerahSCloudOAuthCompletion.TokenRejected);
             return XerahSCloudOAuthCompletion.TokenRejected;
+        }
+    }
+
+    private void CompleteWaiter(string state, XerahSCloudOAuthCompletion completion)
+    {
+        if (_waiters.TryRemove(state, out TaskCompletionSource<XerahSCloudOAuthCompletion>? waiter))
+        {
+            waiter.TrySetResult(completion);
         }
     }
 
@@ -296,12 +342,64 @@ public sealed class XerahSCloudOAuthTokenExchange : IXerahSCloudOAuthTokenExchan
             throw new XerahSCloudSecurityException("OAuth token exchange returned an invalid response.");
         }
 
-        return _tokenValidator.Validate(
+        return await _tokenValidator.ValidateAsync(
             token.AccessToken,
             token.RefreshToken,
+            token.IdToken,
             token.ExpiresIn,
             expectedNonce,
-            _options);
+            _options,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<XerahSCloudSession> RefreshAsync(
+        string refreshToken,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(refreshToken);
+        if (_options.OAuthAuthority == null || string.IsNullOrWhiteSpace(_options.OAuthClientId))
+        {
+            throw new XerahSCloudException("XerahS Cloud OAuth is not configured.");
+        }
+
+        Uri tokenEndpoint = new(_options.OAuthAuthority, "/auth/v1/oauth/token");
+        using var request = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint)
+        {
+            Content = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["grant_type"] = "refresh_token",
+                ["refresh_token"] = refreshToken,
+                ["client_id"] = _options.OAuthClientId
+            })
+        };
+
+        using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            if ((int)response.StatusCode is >= 400 and < 500)
+            {
+                throw new XerahSCloudSecurityException($"OAuth refresh was rejected with HTTP {(int)response.StatusCode}.");
+            }
+
+            throw new XerahSCloudException($"OAuth refresh failed with HTTP {(int)response.StatusCode}.");
+        }
+
+        OAuthTokenResponse? token = await response.Content
+            .ReadFromJsonAsync<OAuthTokenResponse>(cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        if (token == null || string.IsNullOrWhiteSpace(token.AccessToken) || string.IsNullOrWhiteSpace(token.RefreshToken))
+        {
+            throw new XerahSCloudSecurityException("OAuth refresh returned an invalid response.");
+        }
+
+        return await _tokenValidator.ValidateAsync(
+            token.AccessToken,
+            token.RefreshToken,
+            token.IdToken,
+            token.ExpiresIn,
+            expectedNonce: null,
+            _options,
+            cancellationToken).ConfigureAwait(false);
     }
 
     private sealed class OAuthTokenResponse
@@ -312,23 +410,10 @@ public sealed class XerahSCloudOAuthTokenExchange : IXerahSCloudOAuthTokenExchan
         [JsonPropertyName("refresh_token")]
         public string RefreshToken { get; init; } = string.Empty;
 
+        [JsonPropertyName("id_token")]
+        public string? IdToken { get; init; }
+
         [JsonPropertyName("expires_in")]
         public int ExpiresIn { get; init; }
     }
-}
-
-/// <summary>
-/// Production fails closed until the deployed Supabase issuer/JWKS and tested AAL/AMR claim
-/// contract are supplied. Tests and a later launch-gate implementation inject a strict validator.
-/// </summary>
-public sealed class LaunchGatedXerahSCloudTokenValidator : IXerahSCloudTokenValidator
-{
-    public XerahSCloudSession Validate(
-        string accessToken,
-        string refreshToken,
-        int expiresInSeconds,
-        string expectedNonce,
-        XerahSCloudOptions options) =>
-        throw new XerahSCloudSecurityException(
-            "Desktop OAuth token acceptance is launch-gated until issuer, audience, nonce, session, and strong-auth claims are verified against production JWKS.");
 }

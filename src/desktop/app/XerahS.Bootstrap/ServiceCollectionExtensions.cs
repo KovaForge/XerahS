@@ -174,8 +174,8 @@ namespace XerahS.Bootstrap
             services.TryAddSingleton<ISecretStore>(_ => ProviderContextManager.EnsureProviderContext().Secrets);
             services.TryAddSingleton<IXerahSCloudSessionStore, XerahSCloudSessionStore>();
             services.TryAddSingleton<IXerahSCloudClock, SystemXerahSCloudClock>();
-            services.TryAddSingleton<IXerahSCloudTokenValidator, LaunchGatedXerahSCloudTokenValidator>();
             services.TryAddSingleton(_ => new HttpClient());
+            services.TryAddSingleton<IXerahSCloudTokenValidator, SupabaseXerahSCloudTokenValidator>();
             services.TryAddSingleton<IXerahSCloudOAuthTokenExchange, XerahSCloudOAuthTokenExchange>();
             services.TryAddSingleton<IXerahSCloudOAuthCoordinator, XerahSCloudOAuthCoordinator>();
             services.TryAddSingleton<IXerahSCloudClient, XerahSCloudApiClient>();

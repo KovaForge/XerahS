@@ -45,7 +45,18 @@ public static class HistoryPublishMetadata
     public static bool IsPublished(HistoryItem? item) =>
         TryGetTag(item, PublishedAtTag, out _) && TryGetTag(item, ServerIdTag, out _);
 
-    public static bool CanPublish(HistoryItem? item) => IsPublishableMedia(item) && !IsPublished(item);
+    public static bool CanPublish(HistoryItem? item, string? currentOwnerSubject = null)
+    {
+        if (!IsPublishableMedia(item) || IsPublished(item))
+        {
+            return false;
+        }
+
+        string? boundOwner = GetOwnerSubject(item);
+        return string.IsNullOrWhiteSpace(boundOwner) ||
+            (!string.IsNullOrWhiteSpace(currentOwnerSubject) &&
+                string.Equals(boundOwner, currentOwnerSubject, StringComparison.Ordinal));
+    }
 
     public static bool CanUnpublish(HistoryItem? item, string? currentOwnerSubject = null)
     {
@@ -55,9 +66,9 @@ public static class HistoryPublishMetadata
         }
 
         string? boundOwner = GetOwnerSubject(item);
-        return string.IsNullOrWhiteSpace(currentOwnerSubject) ||
-            string.IsNullOrWhiteSpace(boundOwner) ||
-            string.Equals(boundOwner, currentOwnerSubject, StringComparison.Ordinal);
+        return !string.IsNullOrWhiteSpace(currentOwnerSubject) &&
+            (string.IsNullOrWhiteSpace(boundOwner) ||
+                string.Equals(boundOwner, currentOwnerSubject, StringComparison.Ordinal));
     }
 
     public static string EnsureClientId(HistoryItem item)
@@ -105,8 +116,8 @@ public static class HistoryPublishMetadata
         EnsureTags(item);
         item.Tags.Remove(PublishedAtTag);
         item.Tags.Remove(ServerIdTag);
-        // Retain the stable client ID and its owner binding. A later account switch must
-        // reconcile this item before it can silently adopt a different owner's identity.
+        // Retain the stable client ID and owner binding. CanPublish keeps the item disabled
+        // for every other account so it cannot silently adopt a different owner's identity.
     }
 
     public static string CreateTitle(HistoryItem item)

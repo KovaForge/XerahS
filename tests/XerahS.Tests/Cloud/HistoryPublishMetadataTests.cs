@@ -57,6 +57,10 @@ public sealed class HistoryPublishMetadataTests
             Assert.That(HistoryPublishMetadata.IsPublished(item), Is.False);
             Assert.That(HistoryPublishMetadata.EnsureClientId(item), Is.EqualTo(firstClientId));
             Assert.That(HistoryPublishMetadata.GetOwnerSubject(item), Is.EqualTo("owner-a"));
+            Assert.That(HistoryPublishMetadata.CanPublish(item, "owner-a"), Is.True);
+            Assert.That(HistoryPublishMetadata.CanPublish(item, "owner-b"), Is.False);
+            Assert.That(HistoryPublishMetadata.CanPublish(item), Is.False);
+            Assert.That(HistoryPublishMetadata.CanUnpublish(item), Is.False);
         });
     }
 

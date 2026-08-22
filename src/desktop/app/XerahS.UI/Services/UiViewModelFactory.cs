@@ -38,7 +38,8 @@ public sealed class UiViewModelFactory(
     IDialogService coreDialogService,
     IDesktopTaskManager taskManager,
     IScreenRecordingCoordinator screenRecordingCoordinator,
-    IXerahSCloudClient cloudClient) : IUiViewModelFactory
+    IXerahSCloudClient cloudClient,
+    IXerahSCloudOAuthCoordinator cloudOAuthCoordinator) : IUiViewModelFactory
 {
     public IViewDialogService ViewDialogService => viewDialogService;
     public IDialogService CoreDialogService => coreDialogService;
@@ -52,7 +53,7 @@ public sealed class UiViewModelFactory(
         new(this);
 
     public ViewModels.HistoryViewModel CreateHistoryViewModel() =>
-        new(taskManager, coreDialogService, cloudClient: cloudClient);
+        new(taskManager, coreDialogService, cloudClient: cloudClient, cloudOAuthCoordinator: cloudOAuthCoordinator);
 
     public ViewModels.IndexFolderViewModel CreateIndexFolderViewModel(TaskSettings? taskSettings = null, bool isWorkflowConfigMode = false) =>
         new(taskSettings, isWorkflowConfigMode, viewDialogService, taskManager);

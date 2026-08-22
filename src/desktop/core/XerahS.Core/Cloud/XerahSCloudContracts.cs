@@ -111,7 +111,12 @@ public sealed record XerahSCloudDeleteResponse(XerahSCloudDeleteState State);
 public interface IXerahSCloudClient
 {
     bool IsConfigured { get; }
+    bool HasSessionCredential { get; }
     string? CurrentOwnerSubject { get; }
+
+    Task<bool> RestoreSessionAsync(CancellationToken cancellationToken = default);
+
+    void SignOut();
 
     Task<XerahSCloudPublishResponse> PublishAsync(
         XerahSCloudPublishRequest request,
@@ -137,6 +142,10 @@ public class XerahSCloudException : Exception
 public sealed class XerahSCloudSecurityException : XerahSCloudException
 {
     public XerahSCloudSecurityException(string message) : base(message)
+    {
+    }
+
+    public XerahSCloudSecurityException(string message, Exception innerException) : base(message, innerException)
     {
     }
 }

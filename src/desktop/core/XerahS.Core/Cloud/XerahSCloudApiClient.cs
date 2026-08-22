@@ -24,22 +24,68 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly HttpClient _httpClient;
     private readonly IXerahSCloudSessionStore _sessionStore;
+    private readonly IXerahSCloudOAuthTokenExchange _tokenExchange;
     private readonly XerahSCloudOptions _options;
+    private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
     public XerahSCloudApiClient(
         HttpClient httpClient,
         IXerahSCloudSessionStore sessionStore,
+        IXerahSCloudOAuthTokenExchange tokenExchange,
         XerahSCloudOptions options)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
+        _tokenExchange = tokenExchange ?? throw new ArgumentNullException(nameof(tokenExchange));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         XerahSCloudOptions.RequireSecureHttpEndpoint(options.ApiBaseAddress, nameof(options.ApiBaseAddress));
     }
 
     public bool IsConfigured => _options.IsOAuthConfigured;
 
-    public string? CurrentOwnerSubject => _sessionStore.Current?.OwnerSubject;
+    public bool HasSessionCredential
+    {
+        get
+        {
+            try
+            {
+                return _sessionStore.Current != null || _sessionStore.ReadRefreshCredential() != null;
+            }
+            catch (XerahSCloudSecurityException)
+            {
+                return false;
+            }
+        }
+    }
+
+    public string? CurrentOwnerSubject
+    {
+        get
+        {
+            try
+            {
+                return _sessionStore.Current?.OwnerSubject ?? _sessionStore.ReadRefreshCredential()?.OwnerSubject;
+            }
+            catch (XerahSCloudSecurityException)
+            {
+                return null;
+            }
+        }
+    }
+
+    public async Task<bool> RestoreSessionAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+        if (!HasSessionCredential)
+        {
+            return false;
+        }
+
+        await GetSessionAsync(forceRefresh: false, cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
+    public void SignOut() => _sessionStore.Clear();
 
     public async Task<XerahSCloudPublishResponse> PublishAsync(
         XerahSCloudPublishRequest request,
@@ -47,15 +93,9 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
     {
         ArgumentNullException.ThrowIfNull(request);
         EnsureConfigured();
-        XerahSCloudSession session = RequireSession();
         ValidateDestinationUrl(request.Url);
 
-        using HttpRequestMessage message = CreateRequest(
-            HttpMethod.Put,
-            $"api/v1/items/{Uri.EscapeDataString(request.ClientItemId)}",
-            session.AccessToken);
-        message.Headers.TryAddWithoutValidation("Idempotency-Key", request.ClientItemId);
-        message.Content = JsonContent.Create(new
+        object body = new
         {
             request.Url,
             request.ThumbnailUrl,
@@ -64,9 +104,21 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
             request.CapturedAt,
             request.Host,
             request.ContentType
-        }, options: JsonOptions);
-
-        using HttpResponseMessage response = await _httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        };
+        XerahSCloudSession session = await GetSessionAsync(forceRefresh: false, cancellationToken).ConfigureAwait(false);
+        using HttpResponseMessage response = await SendWithRefreshRetryAsync(
+            token =>
+            {
+                HttpRequestMessage message = CreateRequest(
+                    HttpMethod.Put,
+                    $"api/v1/items/{Uri.EscapeDataString(request.ClientItemId)}",
+                    token);
+                message.Headers.TryAddWithoutValidation("Idempotency-Key", request.ClientItemId);
+                message.Content = JsonContent.Create(body, options: JsonOptions);
+                return message;
+            },
+            session,
+            cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             throw CreateResponseException("Publish", response.StatusCode);
@@ -95,19 +147,25 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
         ArgumentException.ThrowIfNullOrWhiteSpace(clientItemId);
         ArgumentException.ThrowIfNullOrWhiteSpace(expectedOwnerSubject);
         EnsureConfigured();
-        XerahSCloudSession session = RequireSession();
+        XerahSCloudSession session = await GetSessionAsync(forceRefresh: false, cancellationToken).ConfigureAwait(false);
 
         if (!string.Equals(session.OwnerSubject, expectedOwnerSubject, StringComparison.Ordinal))
         {
             throw new XerahSCloudSecurityException("The history item belongs to a different XerahS Cloud account.");
         }
 
-        using HttpRequestMessage message = CreateRequest(
-            HttpMethod.Delete,
-            $"api/v1/items/{Uri.EscapeDataString(clientItemId)}",
-            session.AccessToken);
-        message.Headers.TryAddWithoutValidation("Idempotency-Key", $"unpublish:{clientItemId}");
-        using HttpResponseMessage response = await _httpClient.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        using HttpResponseMessage response = await SendWithRefreshRetryAsync(
+            token =>
+            {
+                HttpRequestMessage message = CreateRequest(
+                    HttpMethod.Delete,
+                    $"api/v1/items/{Uri.EscapeDataString(clientItemId)}",
+                    token);
+                message.Headers.TryAddWithoutValidation("Idempotency-Key", $"unpublish:{clientItemId}");
+                return message;
+            },
+            session,
+            cancellationToken).ConfigureAwait(false);
 
         if (response.StatusCode == HttpStatusCode.Accepted)
         {
@@ -131,15 +189,74 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
         return request;
     }
 
-    private XerahSCloudSession RequireSession()
+    private async Task<HttpResponseMessage> SendWithRefreshRetryAsync(
+        Func<string, HttpRequestMessage> requestFactory,
+        XerahSCloudSession session,
+        CancellationToken cancellationToken)
     {
-        XerahSCloudSession? session = _sessionStore.Current;
-        if (session == null || session.ExpiresAt <= DateTimeOffset.UtcNow)
+        using (HttpRequestMessage request = requestFactory(session.AccessToken))
         {
-            throw new XerahSCloudSecurityException("A current XerahS Cloud session is required.");
+            HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            if (response.StatusCode != HttpStatusCode.Unauthorized)
+            {
+                return response;
+            }
+
+            response.Dispose();
         }
 
-        return session;
+        XerahSCloudSession refreshed = await GetSessionAsync(forceRefresh: true, cancellationToken).ConfigureAwait(false);
+        using HttpRequestMessage retry = requestFactory(refreshed.AccessToken);
+        return await _httpClient.SendAsync(retry, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<XerahSCloudSession> GetSessionAsync(bool forceRefresh, CancellationToken cancellationToken)
+    {
+        XerahSCloudSession? current = _sessionStore.Current;
+        if (!forceRefresh && current != null && current.ExpiresAt > DateTimeOffset.UtcNow.AddMinutes(1))
+        {
+            return current;
+        }
+
+        await _refreshLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            current = _sessionStore.Current;
+            if (!forceRefresh && current != null && current.ExpiresAt > DateTimeOffset.UtcNow.AddMinutes(1))
+            {
+                return current;
+            }
+
+            (string OwnerSubject, string RefreshToken)? credential = _sessionStore.ReadRefreshCredential();
+            if (credential == null)
+            {
+                throw new XerahSCloudSecurityException("A current XerahS Cloud session is required.");
+            }
+
+            try
+            {
+                XerahSCloudSession refreshed = await _tokenExchange
+                    .RefreshAsync(credential.Value.RefreshToken, cancellationToken)
+                    .ConfigureAwait(false);
+                if (!string.Equals(refreshed.OwnerSubject, credential.Value.OwnerSubject, StringComparison.Ordinal))
+                {
+                    _sessionStore.Clear();
+                    throw new XerahSCloudSecurityException("OAuth refresh attempted to switch XerahS Cloud accounts.");
+                }
+
+                _sessionStore.Accept(refreshed);
+                return refreshed;
+            }
+            catch (XerahSCloudSecurityException)
+            {
+                _sessionStore.Clear();
+                throw;
+            }
+        }
+        finally
+        {
+            _refreshLock.Release();
+        }
     }
 
     private void EnsureConfigured()

@@ -94,7 +94,7 @@ public sealed class HistoryItemMenuTargetAdapter : IHistoryItemMenuTarget
     public bool HasImageFile => !string.IsNullOrWhiteSpace(_item.FilePath) && FileHelpers.IsImageFile(_item.FilePath);
     public bool HasFilePath => !string.IsNullOrWhiteSpace(_item.FilePath);
     public bool HasExistingFile => !string.IsNullOrWhiteSpace(_item.FilePath) && File.Exists(_item.FilePath);
-    public bool CanPublish => HistoryPublishMetadata.CanPublish(_item);
+    public bool CanPublish => HistoryPublishMetadata.CanPublish(_item, _currentOwnerSubject);
     public bool CanUnpublish => HistoryPublishMetadata.CanUnpublish(_item, _currentOwnerSubject);
 }
 
