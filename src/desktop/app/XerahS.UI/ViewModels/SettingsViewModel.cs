@@ -31,6 +31,7 @@ using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Cloud;
 using XerahS.Core.Hotkeys;
 using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
@@ -197,8 +198,12 @@ namespace XerahS.UI.ViewModels
         public Func<WatchFolderEditViewModel, Task<bool>>? EditWatchFolderRequester { get; set; }
         public Func<Task<string?>>? BrowseScreenshotsFolderRequester { get; set; }
 
-        public SettingsViewModel()
+        public SettingsViewModel(
+            IXerahSCloudClient? cloudClient = null,
+            IXerahSCloudOAuthCoordinator? cloudOAuthCoordinator = null)
         {
+            _cloudClient = cloudClient;
+            _cloudOAuthCoordinator = cloudOAuthCoordinator;
             HotkeySettings = new HotkeySettingsViewModel();
             WatchFolders.CollectionChanged += (_, _) =>
             {
@@ -206,6 +211,7 @@ namespace XerahS.UI.ViewModels
                 RefreshWatchFolderStatuses();
             };
             LoadSettings();
+            InitializeCloudStatus();
             _isLoading = false;
         }
 
@@ -251,6 +257,11 @@ namespace XerahS.UI.ViewModels
             nameof(LinuxRegionSelectorLastDecisionText),
             nameof(IsManualUpdateInProgress),
             nameof(ManualUpdateStatusText),
+            nameof(CloudStatusText),
+            nameof(CloudProfileUrl),
+            nameof(IsCloudBusy),
+            nameof(IsCloudSignedIn),
+            nameof(IsCloudConfigured),
         };
 
         protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)

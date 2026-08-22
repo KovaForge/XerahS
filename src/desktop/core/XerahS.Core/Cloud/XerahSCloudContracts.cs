@@ -108,6 +108,19 @@ public enum XerahSCloudDeleteState
 
 public sealed record XerahSCloudDeleteResponse(XerahSCloudDeleteState State);
 
+public sealed record XerahSCloudAccountSummary(
+    string Slug,
+    Uri ProfileUrl,
+    Uri SettingsUrl,
+    string TimeZone,
+    bool StrongAuth,
+    string TrialStatus,
+    DateTimeOffset? TrialEndsAt,
+    string? SubscriptionStatus,
+    DateTimeOffset? PaidThrough,
+    bool CanPublish,
+    bool DisputeSuspended);
+
 public interface IXerahSCloudClient
 {
     bool IsConfigured { get; }
@@ -115,6 +128,8 @@ public interface IXerahSCloudClient
     string? CurrentOwnerSubject { get; }
 
     Task<bool> RestoreSessionAsync(CancellationToken cancellationToken = default);
+
+    Task<XerahSCloudAccountSummary> GetAccountAsync(CancellationToken cancellationToken = default);
 
     void SignOut();
 

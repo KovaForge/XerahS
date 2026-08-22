@@ -48,16 +48,42 @@ public sealed class XerahSCloudSecurityTests
     }
 
     [TestCase("xerahs://oauth/callback?code=abc&state=xyz", true)]
+    [TestCase("xerahs://oauth/callback?error=access_denied&state=xyz", true)]
+    [TestCase("xerahs://oauth/callback?error=access-denied&state=xyz", false)]
+    [TestCase("xerahs://oauth/callback?code=abc&error=access_denied&state=xyz", false)]
     [TestCase("xerahs://oauth/callback?code=abc&state=xyz&access_token=secret", false)]
     [TestCase("xerahs://hostile/callback?code=abc&state=xyz", false)]
     [TestCase("https://xerahs.com/oauth/callback?code=abc&state=xyz", false)]
     [TestCase("xerahs://oauth/callback?code=abc&code=again&state=xyz", false)]
-    public void CallbackParser_EnforcesExactCodeAndStateOnly(string value, bool expected)
+    public void CallbackParser_EnforcesExactResultAndStateOnly(string value, bool expected)
     {
         bool parsed = XerahSCloudOAuthCallbackParser.TryParse(new Uri(value), out XerahSCloudOAuthCallback? callback);
 
         Assert.That(parsed, Is.EqualTo(expected));
         Assert.That(callback != null, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public async Task OAuthCoordinator_ResumesDeniedAuthorizationWithoutTokenExchange()
+    {
+        var clock = new FakeClock(DateTimeOffset.UtcNow);
+        var sessions = new MemorySessionStore();
+        var exchange = new FakeTokenExchange(clock);
+        var coordinator = new XerahSCloudOAuthCoordinator(CreateOptions(), exchange, sessions, clock);
+        XerahSCloudOAuthAttempt attempt = coordinator.Begin();
+        var callback = new Uri($"xerahs://oauth/callback?error=access_denied&state={Uri.EscapeDataString(attempt.State)}");
+
+        Task<XerahSCloudOAuthCompletion> resumed = coordinator.WaitForCompletionAsync(attempt.State);
+        XerahSCloudOAuthCompletion completion = await coordinator.CompleteAsync(callback);
+        XerahSCloudOAuthCompletion resumedCompletion = await resumed;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(completion, Is.EqualTo(XerahSCloudOAuthCompletion.Denied));
+            Assert.That(resumedCompletion, Is.EqualTo(XerahSCloudOAuthCompletion.Denied));
+            Assert.That(exchange.LastVerifier, Is.Null);
+            Assert.That(sessions.Current, Is.Null);
+        });
     }
 
     [Test]
@@ -312,6 +338,70 @@ public sealed class XerahSCloudSecurityTests
             Assert.That(bearerTokens, Is.EqualTo(new[] { "access-refreshed-1", "access-refreshed-2" }));
             Assert.That(store.Credential?.RefreshToken, Is.EqualTo("refresh-rotated-2"));
         });
+    }
+
+    [Test]
+    public async Task ApiClient_GetAccountVerifiesAal2SummaryAndBuildsSameOriginUrls()
+    {
+        var handler = new StubHttpHandler(request =>
+        {
+            Assert.That(request.RequestUri?.AbsolutePath, Is.EqualTo("/api/v1/me"));
+            Assert.That(request.Headers.Authorization?.Parameter, Is.EqualTo("access"));
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    "{\"slug\":\"owner-name\",\"timeZone\":\"Australia/Perth\",\"strongAuth\":true," +
+                    "\"trialStatus\":\"active\",\"trialEndsAt\":\"2026-08-29T00:00:00Z\"," +
+                    "\"subscriptionStatus\":null,\"paidThrough\":null,\"canPublish\":true," +
+                    "\"disputeSuspended\":false}",
+                    Encoding.UTF8,
+                    "application/json")
+            };
+        });
+        var store = new MemorySessionStore
+        {
+            Current = new XerahSCloudSession("access", "refresh", "owner-a", DateTimeOffset.UtcNow.AddMinutes(5)),
+            Credential = ("owner-a", "refresh")
+        };
+        var client = new XerahSCloudApiClient(
+            new HttpClient(handler),
+            store,
+            new FakeTokenExchange(new FakeClock(DateTimeOffset.UtcNow)),
+            CreateOptions());
+
+        XerahSCloudAccountSummary account = await client.GetAccountAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(account.Slug, Is.EqualTo("owner-name"));
+            Assert.That(account.ProfileUrl, Is.EqualTo(new Uri("https://xerahs.com/owner-name/")));
+            Assert.That(account.SettingsUrl, Is.EqualTo(new Uri("https://xerahs.com/settings")));
+            Assert.That(account.CanPublish, Is.True);
+        });
+    }
+
+    [Test]
+    public void ApiClient_GetAccountRejectsSummaryWithoutStrongAuthentication()
+    {
+        var handler = new StubHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                "{\"slug\":\"owner-name\",\"strongAuth\":false,\"canPublish\":false,\"disputeSuspended\":false}",
+                Encoding.UTF8,
+                "application/json")
+        });
+        var store = new MemorySessionStore
+        {
+            Current = new XerahSCloudSession("access", "refresh", "owner-a", DateTimeOffset.UtcNow.AddMinutes(5)),
+            Credential = ("owner-a", "refresh")
+        };
+        var client = new XerahSCloudApiClient(
+            new HttpClient(handler),
+            store,
+            new FakeTokenExchange(new FakeClock(DateTimeOffset.UtcNow)),
+            CreateOptions());
+
+        Assert.ThrowsAsync<XerahSCloudSecurityException>(() => client.GetAccountAsync());
     }
 
     [Test]

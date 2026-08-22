@@ -28,7 +28,7 @@ public sealed record XerahSCloudOAuthAttempt(
     string CodeVerifier,
     DateTimeOffset ExpiresAt);
 
-public sealed record XerahSCloudOAuthCallback(string Code, string State);
+public sealed record XerahSCloudOAuthCallback(string? Code, string State, string? Error);
 
 public enum XerahSCloudOAuthCompletion
 {
@@ -36,6 +36,7 @@ public enum XerahSCloudOAuthCompletion
     InvalidCallback,
     UnknownOrReplayedState,
     Expired,
+    Denied,
     TokenRejected
 }
 
@@ -100,17 +101,20 @@ public static class XerahSCloudOAuthCallbackParser
         }
 
         Dictionary<string, string> values = ParseQuery(uri.Query);
+        bool hasCode = values.TryGetValue("code", out string? code) && !string.IsNullOrWhiteSpace(code);
+        bool hasError = values.TryGetValue("error", out string? error) &&
+            !string.IsNullOrWhiteSpace(error) && error.Length <= 128 &&
+            error.All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
         if (values.Keys.Any(IsForbiddenTokenParameter) ||
             values.Count != 2 ||
-            !values.TryGetValue("code", out string? code) ||
             !values.TryGetValue("state", out string? state) ||
-            string.IsNullOrWhiteSpace(code) ||
-            string.IsNullOrWhiteSpace(state))
+            string.IsNullOrWhiteSpace(state) ||
+            hasCode == hasError)
         {
             return false;
         }
 
-        callback = new XerahSCloudOAuthCallback(code, state);
+        callback = new XerahSCloudOAuthCallback(hasCode ? code : null, state, hasError ? error : null);
         return true;
     }
 
@@ -258,10 +262,16 @@ public sealed class XerahSCloudOAuthCoordinator : IXerahSCloudOAuthCoordinator
             return XerahSCloudOAuthCompletion.Expired;
         }
 
+        if (callback.Error != null)
+        {
+            CompleteWaiter(callback.State, XerahSCloudOAuthCompletion.Denied);
+            return XerahSCloudOAuthCompletion.Denied;
+        }
+
         try
         {
             XerahSCloudSession session = await _tokenExchange
-                .ExchangeAsync(callback.Code, attempt.CodeVerifier, attempt.Nonce, cancellationToken)
+                .ExchangeAsync(callback.Code!, attempt.CodeVerifier, attempt.Nonce, cancellationToken)
                 .ConfigureAwait(false);
             _sessionStore.Accept(session);
             CompleteWaiter(callback.State, XerahSCloudOAuthCompletion.Accepted);

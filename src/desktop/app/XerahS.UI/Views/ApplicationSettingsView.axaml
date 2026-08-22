@@ -690,6 +690,72 @@
                 </ScrollViewer>
             </TabItem>
 
+            <!-- XerahS Cloud Tab -->
+            <TabItem Header="XerahS Cloud">
+                <ScrollViewer controls:SettingsSearch.PageId="xerahs-cloud">
+                    <StackPanel Spacing="24" Margin="24">
+                        <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
+                            <TextBlock Text="XerahS Cloud" FontWeight="SemiBold"/>
+                            <Border BorderThickness="1"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="16">
+                                    <TextBlock Text="Publish screenshots and screencasts from History to your secure profile. Strong authentication and an active trial or subscription are required."
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+
+                                    <TextBlock Text="{Binding CloudStatusText}"
+                                               TextWrapping="Wrap"
+                                               AutomationProperties.Name="XerahS Cloud Status"/>
+
+                                    <Grid ColumnDefinitions="Auto, 16, *" IsVisible="{Binding IsCloudSignedIn}">
+                                        <TextBlock Grid.Column="0" Text="Profile URL:" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Column="2"
+                                                 Text="{Binding CloudProfileUrl}"
+                                                 IsReadOnly="True"
+                                                 HorizontalAlignment="Stretch"
+                                                 AutomationProperties.Name="XerahS Cloud Profile URL"/>
+                                    </Grid>
+
+                                    <WrapPanel Orientation="Horizontal">
+                                        <Button Content="Sign in / Create account"
+                                                Margin="0,0,8,8"
+                                                Command="{Binding SignInToCloudCommand}"
+                                                AutomationProperties.Name="Sign in to XerahS Cloud"/>
+                                        <Button Content="Refresh status"
+                                                Margin="0,0,8,8"
+                                                Command="{Binding RefreshCloudStatusCommand}"
+                                                AutomationProperties.Name="Refresh XerahS Cloud Status"/>
+                                        <Button Content="Open profile"
+                                                Margin="0,0,8,8"
+                                                Command="{Binding OpenCloudProfileCommand}"
+                                                AutomationProperties.Name="Open XerahS Cloud Profile"/>
+                                        <Button Content="Copy profile URL"
+                                                Margin="0,0,8,8"
+                                                Command="{Binding CopyCloudProfileUrlCommand}"
+                                                AutomationProperties.Name="Copy XerahS Cloud Profile URL"/>
+                                        <Button Content="Security, billing &amp; account"
+                                                Margin="0,0,8,8"
+                                                Command="{Binding OpenCloudSettingsCommand}"
+                                                AutomationProperties.Name="Open XerahS Cloud Web Settings"/>
+                                        <Button Content="Sign out"
+                                                Margin="0,0,8,8"
+                                                Command="{Binding SignOutOfCloudCommand}"
+                                                AutomationProperties.Name="Sign out of XerahS Cloud"/>
+                                    </WrapPanel>
+
+                                    <TextBlock Text="Web settings manage TOTP/passkeys (when enabled), recovery, active sessions, subscription, export, account deletion, and sign-out on all devices."
+                                               FontSize="11"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <!-- History Tab -->
             <TabItem Header="History">
                 <ScrollViewer controls:SettingsSearch.PageId="history">

@@ -81,8 +81,50 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
             return false;
         }
 
-        await GetSessionAsync(forceRefresh: false, cancellationToken).ConfigureAwait(false);
+        await GetAccountAsync(cancellationToken).ConfigureAwait(false);
         return true;
+    }
+
+    public async Task<XerahSCloudAccountSummary> GetAccountAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+        XerahSCloudSession session = await GetSessionAsync(forceRefresh: false, cancellationToken).ConfigureAwait(false);
+        using HttpResponseMessage response = await SendWithRefreshRetryAsync(
+            token => CreateRequest(HttpMethod.Get, "api/v1/me", token),
+            session,
+            cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw CreateResponseException("Account verification", response.StatusCode);
+        }
+
+        AccountEnvelope? account = await response.Content
+            .ReadFromJsonAsync<AccountEnvelope>(JsonOptions, cancellationToken)
+            .ConfigureAwait(false);
+        if (account == null ||
+            string.IsNullOrWhiteSpace(account.Slug) ||
+            account.Slug.Length > 30 ||
+            account.Slug.Any(character =>
+                !(character is >= 'a' and <= 'z' or >= '0' and <= '9' or '-')) ||
+            !account.StrongAuth)
+        {
+            throw new XerahSCloudSecurityException("The XerahS Cloud account response did not pass security checks.");
+        }
+
+        Uri profileUrl = new(_options.ApiBaseAddress, $"{Uri.EscapeDataString(account.Slug)}/");
+        Uri settingsUrl = new(_options.ApiBaseAddress, "settings");
+        return new XerahSCloudAccountSummary(
+            account.Slug,
+            profileUrl,
+            settingsUrl,
+            account.TimeZone ?? "UTC",
+            account.StrongAuth,
+            account.TrialStatus ?? "unknown",
+            account.TrialEndsAt,
+            account.SubscriptionStatus,
+            account.PaidThrough,
+            account.CanPublish,
+            account.DisputeSuspended);
     }
 
     public void SignOut() => _sessionStore.Clear();
@@ -283,4 +325,15 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
     private sealed record PublishEnvelope(PublishedItem Item);
 
     private sealed record PublishedItem(string Id, DateTimeOffset PublishedAt);
+
+    private sealed record AccountEnvelope(
+        string Slug,
+        string? TimeZone,
+        bool StrongAuth,
+        string? TrialStatus,
+        DateTimeOffset? TrialEndsAt,
+        string? SubscriptionStatus,
+        DateTimeOffset? PaidThrough,
+        bool CanPublish,
+        bool DisputeSuspended);
 }

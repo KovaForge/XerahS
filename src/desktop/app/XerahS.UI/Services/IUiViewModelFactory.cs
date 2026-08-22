@@ -39,6 +39,7 @@ public interface IUiViewModelFactory
     IScreenRecordingCoordinator ScreenRecordingCoordinator { get; }
 
     ViewModels.CustomUploaderEditorViewModel CreateCustomUploaderEditorViewModel();
+    ViewModels.SettingsViewModel CreateApplicationSettingsViewModel();
     ViewModels.DestinationSettingsViewModel CreateDestinationSettingsViewModel();
     ViewModels.HistoryViewModel CreateHistoryViewModel(bool autoLoadHistory = true);
     ViewModels.IndexFolderViewModel CreateIndexFolderViewModel(TaskSettings? taskSettings = null, bool isWorkflowConfigMode = false);

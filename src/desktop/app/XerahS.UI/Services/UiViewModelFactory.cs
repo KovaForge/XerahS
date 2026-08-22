@@ -49,6 +49,9 @@ public sealed class UiViewModelFactory(
     public ViewModels.CustomUploaderEditorViewModel CreateCustomUploaderEditorViewModel() =>
         new();
 
+    public ViewModels.SettingsViewModel CreateApplicationSettingsViewModel() =>
+        new(cloudClient, cloudOAuthCoordinator);
+
     public ViewModels.DestinationSettingsViewModel CreateDestinationSettingsViewModel() =>
         new(this);
 

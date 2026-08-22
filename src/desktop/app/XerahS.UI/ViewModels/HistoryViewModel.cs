@@ -860,12 +860,14 @@ namespace XerahS.UI.ViewModels
                 .ConfigureAwait(true);
             if (completion == XerahSCloudOAuthCompletion.Accepted)
             {
+                await _cloudClient.GetAccountAsync().ConfigureAwait(true);
                 return true;
             }
 
             string message = completion switch
             {
                 XerahSCloudOAuthCompletion.Expired => "The sign-in request expired. Try Publish again.",
+                XerahSCloudOAuthCompletion.Denied => "XerahS Cloud authorization was denied.",
                 XerahSCloudOAuthCompletion.TokenRejected => "The returned session did not pass XerahS Cloud security checks.",
                 XerahSCloudOAuthCompletion.InvalidCallback => "The sign-in callback was invalid.",
                 _ => "The sign-in callback was unknown or had already been used."

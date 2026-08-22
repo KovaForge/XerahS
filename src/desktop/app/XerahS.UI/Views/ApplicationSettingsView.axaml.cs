@@ -39,7 +39,8 @@ namespace XerahS.UI.Views
         public ApplicationSettingsView()
         {
             InitializeComponent();
-            var vm = new ViewModels.SettingsViewModel();
+            var uiFactory = UiViewModelFactoryAccessor.GetRequired();
+            var vm = uiFactory.CreateApplicationSettingsViewModel();
             DataContext = vm;
 
             var propertyGrid = this.FindControl<PropertyGrid>("ApplicationConfigPropertyGrid");
@@ -47,8 +48,6 @@ namespace XerahS.UI.Views
             {
                 propertyGrid.PropertyValueChanged += (_, _) => SettingsManager.SaveApplicationConfig();
             }
-
-            var uiFactory = UiViewModelFactoryAccessor.GetRequired();
 
             // Wire up the edit requester
             vm.HotkeySettings.EditHotkeyRequester = async (settings) =>
@@ -73,7 +72,6 @@ namespace XerahS.UI.Views
             };
 
             vm.BrowseScreenshotsFolderRequester = BrowseScreenshotsFolderAsync;
-
             // Find debug TextBox and connect it to the HotkeySelectionControl's static debug log
             Loaded += (s, e) =>
             {
