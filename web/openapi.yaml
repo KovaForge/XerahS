@@ -1,0 +1,229 @@
+openapi: 3.1.0
+info:
+  title: XerahS Cloud API
+  version: 1.0.0
+  description: Owner-only API for XIP0085. Auth is a Supabase browser session cookie or desktop bearer token.
+servers:
+  - url: https://xerahs.com
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/me:
+    get:
+      operationId: getMe
+      responses:
+        "200":
+          {
+            description: Owner identity and entitlement summary,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: "#/components/schemas/Me" } },
+              },
+          }
+        "401": { $ref: "#/components/responses/Error" }
+  /api/v1/profile:
+    post:
+      operationId: createProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [slug, timeZone]
+              properties:
+                slug:
+                  {
+                    type: string,
+                    pattern: "^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])?$",
+                  }
+                timeZone: { type: string, minLength: 1, maxLength: 63 }
+      responses:
+        "201": { description: Private owner profile created }
+  /api/v1/trial/start:
+    post:
+      operationId: startTrial
+      responses:
+        "201": { description: Trial is active }
+        "202": { $ref: "#/components/responses/Pending" }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/items:
+    get:
+      operationId: listItems
+      parameters:
+        - { in: query, name: cursor, schema: { type: string } }
+        - {
+            in: query,
+            name: limit,
+            schema: { type: integer, minimum: 1, maximum: 50, default: 50 },
+          }
+        - {
+            in: query,
+            name: kind,
+            schema: { type: string, enum: [screenshot, screencast] },
+          }
+        - { in: query, name: from, schema: { type: string, format: date-time } }
+        - { in: query, name: to, schema: { type: string, format: date-time } }
+      responses:
+        "200": { description: Keyset-paged owner items }
+  /api/v1/items/{clientItemId}:
+    parameters:
+      - {
+          in: path,
+          name: clientItemId,
+          required: true,
+          schema: { type: string, format: uuid },
+        }
+    put:
+      operationId: publishItem
+      parameters:
+        - { in: header, name: Idempotency-Key, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PublishItem" }
+      responses:
+        "200": { description: Item created or idempotently updated }
+        "403": { $ref: "#/components/responses/Error" }
+    delete:
+      operationId: unpublishItem
+      responses:
+        "204":
+          { description: Item is absent and ledger acknowledgement is complete }
+        "202": { $ref: "#/components/responses/Pending" }
+  /api/v1/items/calendar:
+    get:
+      operationId: getCalendar
+      parameters:
+        - {
+            in: query,
+            name: month,
+            required: true,
+            schema: { type: string, pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+          }
+      responses:
+        "200": { description: Owner item counts by profile-local calendar day }
+  /api/v1/billing/checkout:
+    post:
+      operationId: createCheckout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              {
+                type: object,
+                additionalProperties: false,
+                required: [plan],
+                properties: { plan: { type: string, enum: [monthly, annual] } },
+              }
+      responses:
+        "201": { description: Hosted Checkout URL }
+  /api/v1/billing/portal:
+    post:
+      operationId: createPortal
+      responses:
+        "201": { description: Hosted Customer Portal URL }
+  /api/v1/account/export:
+    post:
+      operationId: exportAccount
+      responses:
+        "200": { description: Downloadable owner-data JSON export }
+        "403": { $ref: "#/components/responses/Error" }
+  /api/v1/account:
+    delete:
+      operationId: deleteAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [confirmation]
+              properties: { confirmation: { const: DELETE } }
+      responses:
+        "202": { $ref: "#/components/responses/Pending" }
+  /api/webhooks/stripe:
+    post:
+      operationId: stripeWebhook
+      security: []
+      parameters:
+        - {
+            in: header,
+            name: Stripe-Signature,
+            required: true,
+            schema: { type: string },
+          }
+      responses:
+        "200":
+          {
+            description: Processed,
+            already processed,
+            or intentionally ignored,
+          }
+        "400": { description: Invalid signature or environment mode }
+        "500": { description: Retryable persistence failure }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  responses:
+    Error:
+      description: Bounded problem response that never reveals foreign resources
+      content:
+        { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Pending:
+      description: Durable operation awaiting R2 acknowledgement
+      headers: { Retry-After: { schema: { type: integer } } }
+      content:
+        {
+          application/json:
+            {
+              schema:
+                {
+                  type: object,
+                  required: [status, operationId],
+                  properties:
+                    {
+                      status: { const: pending },
+                      operationId: { type: string, format: uuid },
+                    },
+                },
+            },
+        }
+  schemas:
+    PublishItem:
+      type: object
+      additionalProperties: false
+      required: [url, kind, fileName, capturedAt]
+      properties:
+        url: { type: string, format: uri, maxLength: 8192 }
+        thumbnailUrl: { type: [string, "null"], format: uri, maxLength: 8192 }
+        kind: { type: string, enum: [screenshot, screencast] }
+        fileName: { type: string, minLength: 1, maxLength: 255 }
+        capturedAt: { type: string, format: date-time }
+        host: { type: [string, "null"], maxLength: 255 }
+        contentType: { type: [string, "null"], maxLength: 127 }
+    Me:
+      type: object
+      required: [slug, strongAuth, trialStatus, canPublish]
+      properties:
+        slug: { type: string }
+        strongAuth: { type: boolean }
+        trialStatus:
+          { type: string, enum: [not_started, trial_pending, active, expired] }
+        canPublish: { type: boolean }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            correlationId: { type: string }

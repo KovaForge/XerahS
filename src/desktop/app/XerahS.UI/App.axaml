@@ -65,6 +65,12 @@
                 <MenuItem Header="Open URL"
                           Command="{Binding OpenURLCommand}"
                           IsVisible="{Binding Item.URL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <MenuItem Header="Publish"
+                          Command="{Binding PublishCommand}"
+                          IsVisible="{Binding Item.CanPublish}"/>
+                <MenuItem Header="Unpublish"
+                          Command="{Binding UnpublishCommand}"
+                          IsVisible="{Binding Item.CanUnpublish}"/>
                 <Separator/>
                 <MenuItem Header="Delete"
                           Command="{Binding DeleteItemCommand}"

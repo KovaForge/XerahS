@@ -47,6 +47,8 @@ public interface IHistoryItemMenuContext
     ICommand CopyImageToClipboardCommand { get; }
     ICommand CopyErrorsCommand { get; }
     ICommand OpenURLCommand { get; }
+    ICommand PublishCommand { get; }
+    ICommand UnpublishCommand { get; }
     ICommand DeleteItemCommand { get; }
 
     /// <summary>Current item used for visibility (URL, HasErrors).</summary>
@@ -67,6 +69,8 @@ public interface IHistoryItemMenuTarget
     bool HasImageFile { get; }
     bool HasFilePath { get; }
     bool HasExistingFile { get; }
+    bool CanPublish { get; }
+    bool CanUnpublish { get; }
 }
 
 /// <summary>
@@ -76,9 +80,12 @@ public sealed class HistoryItemMenuTargetAdapter : IHistoryItemMenuTarget
 {
     private readonly HistoryItem _item;
 
-    public HistoryItemMenuTargetAdapter(HistoryItem item)
+    private readonly string? _currentOwnerSubject;
+
+    public HistoryItemMenuTargetAdapter(HistoryItem item, string? currentOwnerSubject = null)
     {
         _item = item;
+        _currentOwnerSubject = currentOwnerSubject;
     }
 
     public string? URL => _item.URL;
@@ -87,6 +94,8 @@ public sealed class HistoryItemMenuTargetAdapter : IHistoryItemMenuTarget
     public bool HasImageFile => !string.IsNullOrWhiteSpace(_item.FilePath) && FileHelpers.IsImageFile(_item.FilePath);
     public bool HasFilePath => !string.IsNullOrWhiteSpace(_item.FilePath);
     public bool HasExistingFile => !string.IsNullOrWhiteSpace(_item.FilePath) && File.Exists(_item.FilePath);
+    public bool CanPublish => HistoryPublishMetadata.CanPublish(_item);
+    public bool CanUnpublish => HistoryPublishMetadata.CanUnpublish(_item, _currentOwnerSubject);
 }
 
 /// <summary>
@@ -101,24 +110,40 @@ public sealed class HistoryItemMenuContext : IHistoryItemMenuContext
     {
         _vm = vm;
         _item = item;
-        Item = new HistoryItemMenuTargetAdapter(item);
+        Item = new HistoryItemMenuTargetAdapter(item, vm.CurrentCloudOwnerSubject);
+        EditImageCommand = new RelayCommand(() => _vm.EditImageCommand.Execute(_item));
+        EditAnnotationsCommand = new RelayCommand(() => _vm.EditAnnotationsCommand.Execute(_item));
+        OpenFileCommand = new RelayCommand(() => _vm.OpenFileCommand.Execute(_item));
+        UploadItemCommand = new RelayCommand(() => _vm.UploadItemCommand.Execute(_item));
+        OpenFolderCommand = new RelayCommand(() => _vm.OpenFolderCommand.Execute(_item));
+        CopyFilePathCommand = new RelayCommand(() => _vm.CopyFilePathCommand.Execute(_item));
+        CopyURLCommand = new RelayCommand(() => _vm.CopyURLCommand.Execute(_item));
+        CopyMarkdownImageCommand = new RelayCommand(() => _vm.CopyMarkdownImageCommand.Execute(_item));
+        CopyImageToClipboardCommand = new RelayCommand(() => _vm.CopyImageToClipboardCommand.Execute(_item));
+        CopyErrorsCommand = new RelayCommand(() => _vm.CopyErrorsCommand.Execute(_item));
+        OpenURLCommand = new RelayCommand(() => _vm.OpenURLCommand.Execute(_item));
+        PublishCommand = new AsyncRelayCommand(() => _vm.PublishItemCommand.ExecuteAsync(_item));
+        UnpublishCommand = new AsyncRelayCommand(() => _vm.UnpublishItemCommand.ExecuteAsync(_item));
+        DeleteItemCommand = new RelayCommand(() => _vm.DeleteItemCommand.Execute(_item));
     }
 
     public IHistoryItemMenuTarget? Item { get; }
     public object? DisplayItem => _item;
 
-    public ICommand EditImageCommand => new RelayCommand(() => _vm.EditImageCommand.Execute(_item));
-    public ICommand EditAnnotationsCommand => new RelayCommand(() => _vm.EditAnnotationsCommand.Execute(_item));
-    public ICommand OpenFileCommand => new RelayCommand(() => _vm.OpenFileCommand.Execute(_item));
-    public ICommand UploadItemCommand => new RelayCommand(() => _vm.UploadItemCommand.Execute(_item));
-    public ICommand OpenFolderCommand => new RelayCommand(() => _vm.OpenFolderCommand.Execute(_item));
-    public ICommand CopyFilePathCommand => new RelayCommand(() => _vm.CopyFilePathCommand.Execute(_item));
-    public ICommand CopyURLCommand => new RelayCommand(() => _vm.CopyURLCommand.Execute(_item));
-    public ICommand CopyMarkdownImageCommand => new RelayCommand(() => _vm.CopyMarkdownImageCommand.Execute(_item));
-    public ICommand CopyImageToClipboardCommand => new RelayCommand(() => _vm.CopyImageToClipboardCommand.Execute(_item));
-    public ICommand CopyErrorsCommand => new RelayCommand(() => _vm.CopyErrorsCommand.Execute(_item));
-    public ICommand OpenURLCommand => new RelayCommand(() => _vm.OpenURLCommand.Execute(_item));
-    public ICommand DeleteItemCommand => new RelayCommand(() => _vm.DeleteItemCommand.Execute(_item));
+    public ICommand EditImageCommand { get; }
+    public ICommand EditAnnotationsCommand { get; }
+    public ICommand OpenFileCommand { get; }
+    public ICommand UploadItemCommand { get; }
+    public ICommand OpenFolderCommand { get; }
+    public ICommand CopyFilePathCommand { get; }
+    public ICommand CopyURLCommand { get; }
+    public ICommand CopyMarkdownImageCommand { get; }
+    public ICommand CopyImageToClipboardCommand { get; }
+    public ICommand CopyErrorsCommand { get; }
+    public ICommand OpenURLCommand { get; }
+    public ICommand PublishCommand { get; }
+    public ICommand UnpublishCommand { get; }
+    public ICommand DeleteItemCommand { get; }
 }
 
 /// <summary>
@@ -139,6 +164,8 @@ public sealed class ToastItemMenuTargetAdapter : IHistoryItemMenuTarget
     public bool HasImageFile => _vm.CanCopyImage;
     public bool HasFilePath => !string.IsNullOrWhiteSpace(_vm.FilePath);
     public bool HasExistingFile => _vm.HasExistingFile;
+    public bool CanPublish => false;
+    public bool CanUnpublish => false;
 }
 
 
@@ -170,5 +197,7 @@ public sealed class ToastMenuContext : IHistoryItemMenuContext
     public ICommand CopyImageToClipboardCommand => ViewModel.CopyImageToClipboardCommand;
     public ICommand CopyErrorsCommand => ViewModel.CopyErrorsCommand;
     public ICommand OpenURLCommand => ViewModel.OpenURLCommand;
+    public ICommand PublishCommand => ViewModel.PublishCommand;
+    public ICommand UnpublishCommand => ViewModel.UnpublishCommand;
     public ICommand DeleteItemCommand => ViewModel.DeleteItemCommand;
 }

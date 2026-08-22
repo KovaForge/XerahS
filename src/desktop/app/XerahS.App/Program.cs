@@ -30,6 +30,7 @@ using System.Security.Cryptography;
 using System.Text;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Cloud;
 using XerahS.Core.Managers;
 using XerahS.Core.SendTo;
 using XerahS.Platform.Abstractions;
@@ -797,7 +798,8 @@ namespace XerahS.App
         /// </summary>
         private static void OnArgumentsReceived(string[] args)
         {
-            XerahS.Common.DebugHelper.WriteLine($"Arguments received from another instance: {string.Join(" ", args)}");
+            string[] redactedArguments = XerahSCloudArgumentRedactor.Redact(args);
+            XerahS.Common.DebugHelper.WriteLine($"Arguments received from another instance: {string.Join(" ", redactedArguments)}");
 
             if (AppContracts.Cli.IsPassiveStartupInvocation(args))
             {
@@ -854,6 +856,13 @@ namespace XerahS.App
                 return;
             }
 
+            string? cloudCallbackArgument = args.FirstOrDefault(XerahSCloudOAuthCallbackParser.IsCallbackArgument);
+            if (cloudCallbackArgument != null)
+            {
+                _ = ProcessCloudCallbackAsync(cloudCallbackArgument, source);
+                return;
+            }
+
             IncomingPluginPackageSet pluginPackages = ExtractIncomingPluginPackages(args);
             if (pluginPackages.PackagePaths.Count > 0)
             {
@@ -893,6 +902,33 @@ namespace XerahS.App
             XerahS.Common.DebugHelper.WriteLine(
                 $"Shell integration ({source}): Scheduling upload for {pathSet.Files.Count} file(s).");
             _ = Task.Run(() => UploadFilesFromIntegrationAsync(pathSet.Files));
+        }
+
+        private static async Task ProcessCloudCallbackAsync(string callbackArgument, string source)
+        {
+            try
+            {
+                if (!Uri.TryCreate(callbackArgument, UriKind.Absolute, out Uri? callbackUri))
+                {
+                    XerahS.Common.DebugHelper.WriteLine($"XerahS Cloud OAuth callback ({source}) rejected: invalid URI.");
+                    return;
+                }
+
+                IXerahSCloudOAuthCoordinator? coordinator =
+                    (Application.Current as XerahS.UI.App)?.ServiceProvider?.GetService<IXerahSCloudOAuthCoordinator>();
+                if (coordinator == null)
+                {
+                    XerahS.Common.DebugHelper.WriteLine($"XerahS Cloud OAuth callback ({source}) rejected: coordinator unavailable.");
+                    return;
+                }
+
+                XerahSCloudOAuthCompletion result = await coordinator.CompleteAsync(callbackUri).ConfigureAwait(false);
+                XerahS.Common.DebugHelper.WriteLine($"XerahS Cloud OAuth callback ({source}) result: {result}.");
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, $"XerahS Cloud OAuth callback ({source}) failed");
+            }
         }
 
         private static void OpenPluginPackageInstallers(IReadOnlyList<string> packagePaths, string source)

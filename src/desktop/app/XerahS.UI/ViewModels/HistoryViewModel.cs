@@ -32,6 +32,7 @@ using XerahS.Common;
 using XerahS.Common.Converters;
 using XerahS.Bootstrap;
 using XerahS.Core;
+using XerahS.Core.Cloud;
 using XerahS.Core.Managers;
 using XerahS.History;
 using XerahS.Media;
@@ -146,11 +147,17 @@ namespace XerahS.UI.ViewModels
         private readonly HistoryManagerSQLite _historyManager;
         private readonly IDesktopTaskManager _taskManager;
         private readonly IDialogService _coreDialogService;
+        private readonly IXerahSCloudClient? _cloudClient;
 
-        public HistoryViewModel(IDesktopTaskManager taskManager, IDialogService coreDialogService, bool autoLoadHistory = true)
+        public HistoryViewModel(
+            IDesktopTaskManager taskManager,
+            IDialogService coreDialogService,
+            bool autoLoadHistory = true,
+            IXerahSCloudClient? cloudClient = null)
         {
             _taskManager = taskManager;
             _coreDialogService = coreDialogService;
+            _cloudClient = cloudClient;
             HistoryItems = new ObservableCollection<HistoryItem>();
             SelectedHistoryItems.CollectionChanged += (_, _) => NotifySelectionStateChanged();
 
@@ -172,6 +179,8 @@ namespace XerahS.UI.ViewModels
                 _ = BeginHistoryLoadAsync();
             }
         }
+
+        internal string? CurrentCloudOwnerSubject => _cloudClient?.CurrentOwnerSubject;
 
         /// <summary>
         /// Starts history loading asynchronously without blocking the UI thread.
@@ -752,6 +761,124 @@ namespace XerahS.UI.ViewModels
             catch (Exception ex)
             {
                 DebugHelper.WriteLine($"Failed to open URL: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        private async Task PublishItemAsync(HistoryItem? item)
+        {
+            if (item == null || !HistoryPublishMetadata.CanPublish(item))
+            {
+                return;
+            }
+
+            string clientId = HistoryPublishMetadata.EnsureClientId(item);
+            await PersistHistoryItemAsync(item);
+
+            if (_cloudClient == null || !_cloudClient.IsConfigured)
+            {
+                ShowCloudToast(
+                    "XerahS Cloud is not enabled",
+                    "Desktop publishing remains launch-gated until the OAuth public client and secure token validation are configured.");
+                return;
+            }
+
+            try
+            {
+                var request = new XerahSCloudPublishRequest(
+                    clientId,
+                    item.URL,
+                    string.IsNullOrWhiteSpace(item.ThumbnailURL) ? null : item.ThumbnailURL,
+                    IsVideoHistoryItem(item) ? "screencast" : "screenshot",
+                    item.FileName,
+                    new DateTimeOffset(item.DateTime).ToUniversalTime(),
+                    string.IsNullOrWhiteSpace(item.Host) ? null : item.Host,
+                    null);
+                XerahSCloudPublishResponse response = await _cloudClient.PublishAsync(request);
+
+                HistoryPublishMetadata.MarkPublished(
+                    item,
+                    response.Id,
+                    response.OwnerSubject,
+                    response.PublishedAt);
+                await PersistHistoryItemAsync(item);
+                ShowCloudToast("Published", "Published to your XerahS profile.");
+            }
+            catch (Exception ex) when (ex is XerahSCloudException or HttpRequestException)
+            {
+                DebugHelper.WriteException(ex, "XerahS Cloud publish failed");
+                ShowCloudToast("Publish failed", ex.Message);
+            }
+        }
+
+        [RelayCommand]
+        private async Task UnpublishItemAsync(HistoryItem? item)
+        {
+            if (item == null || !HistoryPublishMetadata.CanUnpublish(item, _cloudClient?.CurrentOwnerSubject))
+            {
+                return;
+            }
+
+            string clientId = HistoryPublishMetadata.EnsureClientId(item);
+            string? ownerSubject = HistoryPublishMetadata.GetOwnerSubject(item) ?? _cloudClient?.CurrentOwnerSubject;
+            if (_cloudClient == null || !_cloudClient.IsConfigured ||
+                string.IsNullOrWhiteSpace(ownerSubject))
+            {
+                ShowCloudToast(
+                    "XerahS Cloud is not enabled",
+                    "Sign in to the account that published this item before removing it.");
+                return;
+            }
+
+            bool confirmed = await _coreDialogService.ShowConfirmationAsync(
+                "Confirm Unpublish",
+                $"Remove '{HistoryPublishMetadata.CreateTitle(item)}' from your XerahS profile?\n\nThe local file and destination URL will not be deleted.");
+            if (!confirmed)
+            {
+                return;
+            }
+
+            try
+            {
+                await _cloudClient.UnpublishAsync(clientId, ownerSubject);
+                HistoryPublishMetadata.MarkUnpublished(item);
+                await PersistHistoryItemAsync(item);
+                ShowCloudToast("Unpublished", "Removed from your XerahS profile.");
+            }
+            catch (Exception ex) when (ex is XerahSCloudException or HttpRequestException)
+            {
+                DebugHelper.WriteException(ex, "XerahS Cloud unpublish failed");
+                ShowCloudToast("Unpublish failed", ex.Message);
+            }
+        }
+
+        private Task PersistHistoryItemAsync(HistoryItem item) =>
+            item.Id > 0 ? Task.Run(() => _historyManager.Edit(item)) : Task.CompletedTask;
+
+        private static bool IsVideoHistoryItem(HistoryItem item)
+        {
+            string candidate = !string.IsNullOrWhiteSpace(item.FilePath) ? item.FilePath : item.FileName;
+            return FileHelpers.IsVideoFile(candidate) ||
+                item.Type.Equals("Video", StringComparison.OrdinalIgnoreCase) ||
+                item.Type.Equals("Screencast", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void ShowCloudToast(string title, string text)
+        {
+            try
+            {
+                PlatformServices.Toast?.ShowToast(new ToastConfig
+                {
+                    Title = title,
+                    Text = text,
+                    Duration = 6f,
+                    AutoHide = true,
+                    LeftClickAction = ToastClickAction.CloseNotification
+                });
+            }
+            catch
+            {
+                // Headless and early-startup hosts may not have a toast surface.
             }
         }
 

@@ -99,6 +99,8 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     public ICommand CopyMarkdownImageCommand { get; }
     public ICommand CopyErrorsCommand { get; }
     public ICommand OpenURLCommand { get; }
+    public ICommand PublishCommand { get; }
+    public ICommand UnpublishCommand { get; }
     public ICommand DeleteItemCommand { get; }
     public bool CanCopyImage => !string.IsNullOrWhiteSpace(_config.FilePath) && File.Exists(_config.FilePath) && FileHelpers.IsImageFile(_config.FilePath);
     internal string? FilePath => _config.FilePath;
@@ -144,6 +146,10 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         CopyMarkdownImageCommand = new RelayCommand(CopyMarkdownImage);
         CopyErrorsCommand = new RelayCommand(CopyErrors);
         OpenURLCommand = new RelayCommand(OpenUrl);
+        // ToastConfig has no durable History row ID, client UUID, or owner binding. Keep the
+        // shared-menu commands cached but disabled instead of inferring identity from a URL.
+        PublishCommand = new AsyncRelayCommand(DisabledCloudActionAsync, () => false);
+        UnpublishCommand = new AsyncRelayCommand(DisabledCloudActionAsync, () => false);
         DeleteItemCommand = new RelayCommand(DeleteFile);
 
         // Calculate fade decrement
@@ -179,6 +185,8 @@ public partial class ToastViewModel : ObservableObject, IDisposable
                 break;
         }
     }
+
+    private static Task DisabledCloudActionAsync() => Task.CompletedTask;
 
     internal static ToastAutoHideStartMode GetAutoHideStartMode(ToastConfig config)
     {

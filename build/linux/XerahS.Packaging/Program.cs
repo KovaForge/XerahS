@@ -291,6 +291,7 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
                 Icon=xerahs
                 Terminal=false
                 Type=Application
+                MimeType=x-scheme-handler/xerahs;
                 Categories=Utility;Graphics;GTK;
                 Keywords=screenshot;screen;capture;share;upload;
                 StartupWMClass=xerahs
@@ -471,6 +472,7 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
                 Icon=xerahs
                 Terminal=false
                 Type=Application
+                MimeType=x-scheme-handler/xerahs;
                 Categories=Utility;Graphics;GTK;
                 Keywords=screenshot;screen;capture;share;upload;
                 StartupWMClass=xerahs

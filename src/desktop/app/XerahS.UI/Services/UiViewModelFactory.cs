@@ -26,6 +26,7 @@
 using ShareX.ImageEditor.Core.Editor;
 using XerahS.Bootstrap;
 using XerahS.Core;
+using XerahS.Core.Cloud;
 using XerahS.Core.Hotkeys;
 using XerahS.Services.Abstractions;
 using XerahS.Uploaders.PluginSystem;
@@ -36,7 +37,8 @@ public sealed class UiViewModelFactory(
     IViewDialogService viewDialogService,
     IDialogService coreDialogService,
     IDesktopTaskManager taskManager,
-    IScreenRecordingCoordinator screenRecordingCoordinator) : IUiViewModelFactory
+    IScreenRecordingCoordinator screenRecordingCoordinator,
+    IXerahSCloudClient cloudClient) : IUiViewModelFactory
 {
     public IViewDialogService ViewDialogService => viewDialogService;
     public IDialogService CoreDialogService => coreDialogService;
@@ -50,7 +52,7 @@ public sealed class UiViewModelFactory(
         new(this);
 
     public ViewModels.HistoryViewModel CreateHistoryViewModel() =>
-        new(taskManager, coreDialogService);
+        new(taskManager, coreDialogService, cloudClient: cloudClient);
 
     public ViewModels.IndexFolderViewModel CreateIndexFolderViewModel(TaskSettings? taskSettings = null, bool isWorkflowConfigMode = false) =>
         new(taskSettings, isWorkflowConfigMode, viewDialogService, taskManager);

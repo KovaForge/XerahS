@@ -1,6 +1,6 @@
 # XIP0085: Publish Gallery from History (xerahs.com Profile, Stripe)
 
-**Status**: Draft — production design reviewed 2026-08-22. Do not implement until this XIP is accepted and every launch gate is closed.
+**Status**: Accepted — staged implementation authorized 2026-08-22. Production launch remains blocked until every launch gate is closed.
 **Priority**: Medium
 **Area**: Desktop | History | Cloud | Billing | Web
 **Related**: XIP0009 (History UI), XIP0083 (destination URL → history)
@@ -763,6 +763,6 @@ Validated against current platform guidance on 2026-08-22:
 - [Cloudflare R2 data security](https://developers.cloudflare.com/r2/reference/data-security/)
 - [Cloudflare R2 object lifecycles](https://developers.cloudflare.com/r2/buckets/object-lifecycles/)
 
-## Out of Scope Until You Say Go
+## Implementation Authorization
 
-No desktop code, `web/` scaffold, Supabase project/schema, Stripe catalog/wiring, Cloudflare change, or `xerahs.com` deployment is authorized by this XIP review. Implementation begins only after acceptance and follows the phases and launch gates above.
+Staged implementation was authorized on 2026-08-22. Local code, automated tests, dedicated non-production resources, and Stripe sandbox configuration may proceed. Production traffic, paid infrastructure, live-mode billing, Cloudflare R2 enablement, and replacement of the existing `xerahs.com` DNS remain subject to the explicit cost, account, legal/tax, verification, and launch gates above.
