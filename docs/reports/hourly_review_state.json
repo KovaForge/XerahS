@@ -2339,11 +2339,12 @@
         "submodule_pointer": "d4f4029b654c259315c5bd48d212dcb76ea10d31",
         "submodule_sync_needed": false
       },
-      "commit_sha": null,
+      "commit_sha": "b4c5f3575dfdf9ba65b254959ecf21778a47c3c5",
       "anomalies": [
         ".env.local parser warning at line 15 (parse error near '&') — nonfatal; MINIMAX_API_KEY loaded successfully.",
         "Clawpatch --limit 3 returned 3 jobs/3 features but the report contained 127 findings (review mode shows first 4 high-confidence candidates per feature set); the limit constrains features, not per-feature finding count."
-      ]
+      ],
+      "commit_sha_short": "b4c5f35"
     }
   ],
   "last_run_outcome": "no-op",
