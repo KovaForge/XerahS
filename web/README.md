@@ -15,6 +15,8 @@ pnpm dev
 
 Fill `.env.local` with a non-production Supabase project. Stripe and R2 can remain unavailable while working on non-billing UI; `LEDGER_USE_LOCAL_FAKE=true` is development/Preview only. Production startup fails closed when privileged configuration is incomplete or the fake ledger is enabled.
 
+The project uses TypeScript 7's native `tsc` for application type checking and Next.js production builds. TypeScript 7.0 does not expose the compiler API used by `typescript-eslint`, so the ESLint toolchain is isolated in `tooling/eslint` with Microsoft's official `@typescript/typescript6` compatibility package. This separation keeps the application compiler on TypeScript 7 without running ESLint against an unsupported API.
+
 ## Verification
 
 ```powershell
