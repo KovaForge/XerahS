@@ -241,7 +241,10 @@ internal sealed class DxgiCaptureStrategy : ICaptureStrategy
                 SKBitmap sourceBitmap;
                 if (isHdr)
                 {
-                    using var toneMapped = DxgiHdrToneMapper.TryConvertToBgra(mapped, textureDesc)
+                    using var toneMapped = DxgiHdrToneMapper.TryConvertToBgra(
+                        mapped,
+                        textureDesc,
+                        HdrToneMapContext.FromOutput(context.Output))
                         ?? throw new InvalidOperationException($"Failed to tone-map HDR DXGI frame ({textureDesc.Format}).");
                     var crop = new SKRectI(sourceBox.Left, sourceBox.Top, sourceBox.Right, sourceBox.Bottom);
                     sourceBitmap = CropBitmap(toneMapped, crop);

@@ -112,6 +112,9 @@ namespace XerahS.UI.ViewModels
         private bool _useModernCapture;
 
         [ObservableProperty]
+        private bool _hDRScreenshotColorCorrection;
+
+        [ObservableProperty]
         private bool _trayIconProgressEnabled;
 
         [ObservableProperty]
@@ -308,6 +311,7 @@ namespace XerahS.UI.ViewModels
             CaptureShadow = taskSettings.CaptureSettings.CaptureShadow;
             CaptureClientArea = taskSettings.CaptureSettings.CaptureClientArea;
             UseModernCapture = taskSettings.CaptureSettings.UseModernCapture;
+            HDRScreenshotColorCorrection = taskSettings.CaptureSettings.HDRScreenshotColorCorrection;
             RefreshLinuxRegionSelectorDiagnostics();
             RefreshLinuxClipboardDiagnostics();
             LinuxRegionSelectorPreference = LinuxRegionSelectorPreferenceSupport.NormalizeForCurrentSession(
@@ -420,6 +424,7 @@ namespace XerahS.UI.ViewModels
             taskSettings.CaptureSettings.CaptureShadow = CaptureShadow;
             taskSettings.CaptureSettings.CaptureClientArea = CaptureClientArea;
             taskSettings.CaptureSettings.UseModernCapture = UseModernCapture;
+            taskSettings.CaptureSettings.HDRScreenshotColorCorrection = HDRScreenshotColorCorrection;
             taskSettings.CaptureSettings.LinuxRegionSelectorPreference = LinuxRegionSelectorPreference;
             taskSettings.CaptureSettings.MacOSRegionSelectorPreference = MacOSRegionSelectorPreference;
             taskSettings.CaptureSettings.MacOSPlayCaptureSound = MacOSPlayCaptureSound;

@@ -50,6 +50,19 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+        public bool HDRScreenshotColorCorrection
+        {
+            get => _settings.CaptureSettings.HDRScreenshotColorCorrection;
+            set
+            {
+                if (_settings.CaptureSettings.HDRScreenshotColorCorrection != value)
+                {
+                    _settings.CaptureSettings.HDRScreenshotColorCorrection = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference
         {
             get => LinuxRegionSelectorPreferenceSupport.NormalizeForCurrentSession(

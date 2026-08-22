@@ -33,6 +33,10 @@
                                     <CheckBox IsChecked="{Binding UseModernCapture}"
                                               Content="Use modern screen capture (Direct3D11)"
                                               IsVisible="{Binding ShowUseModernCaptureSetting}"/>
+                                    <CheckBox IsChecked="{Binding HDRScreenshotColorCorrection}"
+                                              Content="Correct HDR display colors"
+                                              IsVisible="{Binding ShowUseModernCaptureSetting}"
+                                              AutomationProperties.Name="Correct HDR Display Colors"/>
                                     <StackPanel Spacing="10" IsVisible="{Binding IsLinuxPlatform}">
                                         <TextBlock Text="Preferred Linux region selector:" VerticalAlignment="Center"/>
                                         <ComboBox ItemsSource="{Binding LinuxRegionSelectorPreferences}"
