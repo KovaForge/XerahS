@@ -583,11 +583,15 @@ New **XerahS Cloud** group (all desktop platforms):
 
 First Publish with no session launches the Supabase OAuth 2.1 system-browser flow and resumes the original action only after PKCE token exchange and `/api/v1/me` confirm the registered desktop client, strong authentication, and entitlement.
 
-## Repository Implementation Snapshot (2026-08-22)
+## Repository Implementation Snapshot (2026-08-23)
 
 The staged repository implementation is complete through the code and automation boundary: desktop History/Toast actions, durable local identity, system-browser OAuth with PKCE and protocol activation, `/api/v1/me` verification, Application Settings integration, owner-only web gallery/calendar, OAuth consent and denial relay, TOTP plus feature-gated WebAuthn, recovery-code generation, trial and Stripe Checkout/Portal/webhook reconciliation, RLS/idempotency/outbox migrations, deletion workers, private R2 ledger verification/restore tooling, health checks, drift checks, and protected staging/production deployment workflows. The web application compiles with stable TypeScript 7.0 while ESLint remains isolated on the official TypeScript 6 compatibility package.
 
-The feature remains fail-closed and disabled by default. This snapshot does **not** assert that external infrastructure is provisioned or that production is launched. Supabase project creation/configuration, Stripe sandbox catalog/webhook creation, Cloudflare R2 enablement and credentials, Vercel project/environment setup, DNS, recovery consumption/notification drills, WebAuthn acceptance, tax/legal approval, and every Production Launch Gate below require their recorded owner approval and live verification. No code commit or successful local build may be used as a substitute for those gates.
+The dedicated staging Supabase project and migrations, OAuth public client, Stripe sandbox Product/Prices/Portal/webhook, Vercel staging project and environment variables, `staging.xerahs.com` DNS-only record, TLS deployment, and outbound Cloudflare Cron Worker were provisioned on 2026-08-23. The deployed health endpoint and a correctly signed non-mutating Stripe webhook probe returned HTTP 200. Live-mode Stripe, the apex production origin, and production traffic were not changed.
+
+Cloudflare still rejects R2 API access until an account administrator enables the R2 subscription; its Dashboard activation control is unavailable to the current operator. Stable staging therefore remains explicitly incomplete: the deployed app runs with `APP_ENV=preview` and the local fake ledger so UI, Auth, and sandbox billing integration can be exercised, while durable trial, Unpublish, and account-deletion acceptance remains blocked. It must switch to `APP_ENV=staging`, `LEDGER_USE_LOCAL_FAKE=false`, and bucket-scoped staging R2 credentials before staging can satisfy the fail-closed configuration and ledger gates.
+
+The feature remains fail-closed and disabled by default. This snapshot does **not** assert that all external infrastructure is complete or that production is launched. R2 enablement and credentials, recovery consumption/notification drills, WebAuthn acceptance, tax/legal approval, and every Production Launch Gate below still require their recorded owner approval and live verification. No code commit, staging deployment, or successful build may be used as a substitute for those gates.
 
 ## Implementation Phases (after acceptance)
 
