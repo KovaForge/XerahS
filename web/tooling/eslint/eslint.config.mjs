@@ -8,6 +8,8 @@ export default defineConfig([
   globalIgnores([
     ".next/**",
     "coverage/**",
+    "infrastructure/cloudflare/scheduler/**/dist/**",
+    "infrastructure/cloudflare/scheduler/worker-configuration.d.ts",
     "next-env.d.ts",
     "tooling/eslint/**",
   ]),

@@ -17,7 +17,11 @@
     "test:watch": "vitest",
     "format:check": "prettier --check .",
     "r2:configure": "node scripts/configure-cloudflare-r2.mjs",
-    "r2:verify": "node scripts/verify-cloudflare-r2.mjs"
+    "r2:verify": "node scripts/verify-cloudflare-r2.mjs",
+    "scheduler:types": "wrangler types --include-runtime false --config infrastructure/cloudflare/scheduler/wrangler.jsonc infrastructure/cloudflare/scheduler/worker-configuration.d.ts",
+    "scheduler:typecheck": "tsc --project infrastructure/cloudflare/scheduler/tsconfig.json",
+    "scheduler:dry-run": "wrangler deploy --dry-run --env staging --config infrastructure/cloudflare/scheduler/wrangler.jsonc",
+    "scheduler:dry-run:production": "wrangler deploy --dry-run --env production --config infrastructure/cloudflare/scheduler/wrangler.jsonc"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1116.0",
@@ -32,12 +36,14 @@
   "devDependencies": {
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.2",
+    "@cloudflare/workers-types": "5.20260822.1",
     "@types/node": "24.10.1",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "jsdom": "27.4.0",
     "prettier": "3.8.1",
     "typescript": "7.0.2",
-    "vitest": "4.1.11"
+    "vitest": "4.1.11",
+    "wrangler": "4.125.0"
   }
 }

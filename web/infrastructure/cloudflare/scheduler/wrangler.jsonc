@@ -1,0 +1,39 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "xerahs-cloud-staging-scheduler",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+  "env": {
+    "staging": {
+      "name": "xerahs-cloud-staging-scheduler",
+      "workers_dev": true,
+      "vars": {
+        "APP_ORIGIN": "https://staging.xerahs.com",
+      },
+      "secrets": {
+        "required": ["CRON_SECRET"],
+      },
+      "triggers": {
+        "crons": ["* * * * *", "*/5 * * * *", "17 3 * * *"],
+      },
+    },
+    "production": {
+      "name": "xerahs-cloud-production-scheduler",
+      "workers_dev": false,
+      "vars": {
+        "APP_ORIGIN": "https://xerahs.com",
+      },
+      "secrets": {
+        "required": ["CRON_SECRET"],
+      },
+      "triggers": {
+        "crons": ["* * * * *", "*/5 * * * *", "17 3 * * *"],
+      },
+    },
+  },
+}

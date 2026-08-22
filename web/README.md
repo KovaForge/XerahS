@@ -48,6 +48,7 @@ Do not enable Stripe Tax until the operating entity has approved registrations a
 2. Create one Stripe Product with separate test/live monthly and annual Prices. Configure a restricted Customer Portal and signed environment-specific webhook at `/api/webhooks/stripe`.
 3. Enable R2 billing, then run `node scripts/configure-cloudflare-r2.mjs` with a protected administration token and environment-specific `R2_BUCKET`. The checked-in desired state creates a private Standard/APAC bucket, disables `r2.dev`, applies the indefinite trial lock, and applies matching 180-day deletion lock/lifecycle rules. Runtime uses a separate bucket-scoped Object Read & Write token.
 4. Configure Vercel environments independently, keep Preview protected, and deploy production only through protected CI.
-5. Point Cloudflare DNS-only records to Vercel only after the production launch gates in XIP0085 are complete.
+5. Deploy `infrastructure/cloudflare/scheduler` with the same `CRON_SECRET` as Vercel (`wrangler deploy --env staging` or `wrangler deploy --env production`). Its Cron Triggers invoke the authenticated ledger-dispatch, account-deletion, and Stripe-reconciliation routes without requiring a Vercel Pro cron plan. The Worker is an outbound scheduler only and is not a proxy for application traffic.
+6. Point Cloudflare DNS-only records to Vercel only after the production launch gates in XIP0085 are complete.
 
 R2 enablement, paid provider plans, live billing, tax, production DNS, and traffic require the explicit cost/legal/tax/launch approvals in XIP0085. Once approved, the checked-in scripts and protected workflows apply and continuously verify the desired state.
