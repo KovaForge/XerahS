@@ -138,7 +138,16 @@ namespace XerahS.Platform.Windows
                                 bitmap.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
                                 stream.Seek(0, SeekOrigin.Begin);
 
-                                return SKBitmap.Decode(stream);
+                                var captured = SKBitmap.Decode(stream);
+                                if (captured is null)
+                                {
+                                    return null;
+                                }
+
+                                return HdrScreenshotColorCorrector.ApplyIfEnabled(
+                                    captured,
+                                    captureRect,
+                                    options?.HDRScreenshotColorCorrection ?? true);
                             }
                             finally
                             {
@@ -229,7 +238,7 @@ namespace XerahS.Platform.Windows
                             }
                         }
 
-                        return ToSKBitmap(bitmap);
+                        return ConvertAndCorrect(bitmap, bounds, options);
                     }
                 }
                 catch (Exception)
@@ -284,7 +293,7 @@ namespace XerahS.Platform.Windows
                             cursor.DrawCursor(bitmap, new System.Drawing.Point(bounds.X, bounds.Y));
                         }
 
-                        return ToSKBitmap(bitmap);
+                        return ConvertAndCorrect(bitmap, bounds, options);
                     }
                 }
                 catch (Exception)
@@ -339,7 +348,7 @@ namespace XerahS.Platform.Windows
                             cursor.DrawCursor(bitmap, new System.Drawing.Point(bounds.X, bounds.Y));
                         }
 
-                        return ToSKBitmap(bitmap);
+                        return ConvertAndCorrect(bitmap, bounds, options);
                     }
                 }
                 catch (Exception)
@@ -413,7 +422,21 @@ namespace XerahS.Platform.Windows
         [DllImport("user32.dll")]
         private static extern bool DrawIconEx(IntPtr hdc, int xLeft, int yTop, IntPtr hIcon, int cxWidth, int cyHeight, int istepIfAniCur, IntPtr hbrFlickerFreeDraw, int diFlags);
 
-        private SKBitmap? ToSKBitmap(Bitmap bitmap)
+        private static SKBitmap? ConvertAndCorrect(Bitmap bitmap, Rectangle captureBounds, CaptureOptions? options)
+        {
+            var captured = ToSKBitmap(bitmap);
+            if (captured is null)
+            {
+                return null;
+            }
+
+            return HdrScreenshotColorCorrector.ApplyIfEnabled(
+                captured,
+                captureBounds,
+                options?.HDRScreenshotColorCorrection ?? true);
+        }
+
+        private static SKBitmap? ToSKBitmap(Bitmap bitmap)
         {
             using (var stream = new MemoryStream())
             {

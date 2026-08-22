@@ -635,8 +635,11 @@ namespace XerahS.Core.Tasks.Processors
 
                 var historyItem = CreateHistoryItem(info, url);
 
-                historyManager.AppendHistoryItem(historyItem);
-                DebugHelper.WriteLine($"Added upload to history: {historyItem.FileName} (URL: {historyItem.URL})");
+                if (historyManager.AppendHistoryItem(historyItem))
+                {
+                    info.HistoryItemId = historyItem.Id;
+                    DebugHelper.WriteLine($"Added upload to history: {historyItem.FileName} (URL: {historyItem.URL})");
+                }
             }
             catch (Exception ex)
             {

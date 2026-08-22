@@ -66,6 +66,7 @@ Exec=/usr/bin/xerahs %U
 Icon=xerahs
 Terminal=false
 Type=Application
+MimeType=x-scheme-handler/xerahs;
 Categories=Utility;Graphics;GTK;
 Keywords=screenshot;screen;capture;share;upload;
 StartupWMClass=xerahs

@@ -140,6 +140,12 @@ public class TaskInfo
     public UploadResult Result { get; set; }
 
     /// <summary>
+    /// Database identifier of the durable history row created for this task. This is carried
+    /// into the completion toast so shared History actions operate on the real row.
+    /// </summary>
+    public long? HistoryItemId { get; set; }
+
+    /// <summary>
     /// Correlation identifier for structured logging across capture, save, and upload stages.
     /// [2026-01-10T14:40:00+08:00]
     /// </summary>

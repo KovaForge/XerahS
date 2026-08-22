@@ -524,6 +524,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
                     ImagePath = imagePath,
                     FilePath = filePath,
                     URL = url,
+                    HistoryItemId = task.Info?.HistoryItemId,
                     Duration = generalSettings.ToastWindowDuration,
                     FadeDuration = generalSettings.ToastWindowFadeDuration,
                     Placement = generalSettings.ToastWindowPlacement,

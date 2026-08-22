@@ -84,6 +84,21 @@ public sealed record RegionCaptureOptions
     public bool EnableMagnifier { get; init; } = true;
 
     /// <summary>
+    /// Draw the magnifier as a square instead of a circle. Default: false
+    /// </summary>
+    public bool UseSquareMagnifier { get; init; } = false;
+
+    /// <summary>
+    /// Odd number of source pixels shown in the magnifier. Default: 15
+    /// </summary>
+    public int MagnifierPixelCount { get; init; } = 15;
+
+    /// <summary>
+    /// Show X/Y (and sampled hex) under the magnifier. Default: true
+    /// </summary>
+    public bool ShowInfo { get; init; } = true;
+
+    /// <summary>
     /// Magnifier zoom level. Default: 4x
     /// </summary>
     public int MagnifierZoom { get; init; } = 4;

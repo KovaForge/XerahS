@@ -26,6 +26,7 @@
 using ShareX.ImageEditor.Core.Editor;
 using XerahS.Bootstrap;
 using XerahS.Core;
+using XerahS.Core.Cloud;
 using XerahS.Core.Hotkeys;
 using XerahS.Services.Abstractions;
 using XerahS.Uploaders.PluginSystem;
@@ -36,7 +37,9 @@ public sealed class UiViewModelFactory(
     IViewDialogService viewDialogService,
     IDialogService coreDialogService,
     IDesktopTaskManager taskManager,
-    IScreenRecordingCoordinator screenRecordingCoordinator) : IUiViewModelFactory
+    IScreenRecordingCoordinator screenRecordingCoordinator,
+    IXerahSCloudClient cloudClient,
+    IXerahSCloudOAuthCoordinator cloudOAuthCoordinator) : IUiViewModelFactory
 {
     public IViewDialogService ViewDialogService => viewDialogService;
     public IDialogService CoreDialogService => coreDialogService;
@@ -46,11 +49,14 @@ public sealed class UiViewModelFactory(
     public ViewModels.CustomUploaderEditorViewModel CreateCustomUploaderEditorViewModel() =>
         new();
 
+    public ViewModels.SettingsViewModel CreateApplicationSettingsViewModel() =>
+        new(cloudClient, cloudOAuthCoordinator);
+
     public ViewModels.DestinationSettingsViewModel CreateDestinationSettingsViewModel() =>
         new(this);
 
-    public ViewModels.HistoryViewModel CreateHistoryViewModel() =>
-        new(taskManager, coreDialogService);
+    public ViewModels.HistoryViewModel CreateHistoryViewModel(bool autoLoadHistory = true) =>
+        new(taskManager, coreDialogService, autoLoadHistory, cloudClient, cloudOAuthCoordinator);
 
     public ViewModels.IndexFolderViewModel CreateIndexFolderViewModel(TaskSettings? taskSettings = null, bool isWorkflowConfigMode = false) =>
         new(taskSettings, isWorkflowConfigMode, viewDialogService, taskManager);

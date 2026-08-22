@@ -368,6 +368,7 @@ namespace XerahS.Core.Tasks.Processors
                     DebugHelper.WriteLine($"Trace: History pipeline - AppendHistoryItem called for: {historyItem.FileName} (URL: {historyItem.URL})");
                     if (appended)
                     {
+                        info.HistoryItemId = historyItem.Id;
                         DebugHelper.WriteLine($"Added to history: {historyItem.FileName}");
 
                         if (!string.IsNullOrWhiteSpace(info.Metadata?.OcrText))

@@ -165,11 +165,15 @@ public static class ColorPickerToolService
 
         try
         {
+            var regionOptions = captureSettings.RegionCaptureOptions;
             var pickerOptions = new XerahS.RegionCapture.RegionCaptureOptions
             {
                 Mode = RegionCaptureMode.ScreenColorPicker,
                 EnableWindowSnapping = false,
-                EnableMagnifier = true,
+                EnableMagnifier = regionOptions?.ShowMagnifier ?? true,
+                UseSquareMagnifier = regionOptions?.UseSquareMagnifier ?? false,
+                MagnifierPixelCount = regionOptions?.MagnifierPixelCount ?? 15,
+                ShowInfo = regionOptions?.ShowInfo ?? true,
                 ShowCursor = false,
                 EditorOptions = RegionCaptureAnnotationOptionsStore.GetEditorOptions(workflowType: WorkflowType.ScreenColorPicker),
                 // Pass the pre-captured bitmap to the region selector for the magnifier

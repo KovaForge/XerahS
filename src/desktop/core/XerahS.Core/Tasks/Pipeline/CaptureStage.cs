@@ -129,6 +129,7 @@ namespace XerahS.Core.Tasks.Pipeline
             var captureOptions = new CaptureOptions
             {
                 UseModernCapture = captureSettings.UseModernCapture,
+                HDRScreenshotColorCorrection = captureSettings.HDRScreenshotColorCorrection,
                 LinuxRegionSelectorPreference = linuxRegionSelectorPreference,
                 MacOSRegionSelectorPreference = macOSRegionSelectorPreference,
                 MacOSPlayCaptureSound = captureSettings.MacOSPlayCaptureSound,

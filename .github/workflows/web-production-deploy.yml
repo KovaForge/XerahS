@@ -1,0 +1,92 @@
+name: XerahS Cloud Production Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type DEPLOY to confirm the protected production rollout
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: xerahs-cloud-production
+  cancel-in-progress: false
+
+jobs:
+  deploy-production:
+    if: inputs.confirmation == 'DEPLOY'
+    environment: xerahs-cloud-production
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      APP_ENV: production
+      APP_ORIGIN: ${{ vars.APP_ORIGIN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+          run_install: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.19.0
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.115.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+      - run: supabase db lint --linked --level warning --fail-on error
+      - run: supabase db push --include-all
+      - run: node scripts/render-supabase-config.mjs
+      - run: supabase config push --project-ref "$SUPABASE_PROJECT_ID"
+      - run: pnpm dlx vercel@59.4.0 pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - run: pnpm dlx vercel@59.4.0 build --prod --token="$VERCEL_TOKEN"
+      - id: known-good
+        name: Record known-good production deployment
+        shell: bash
+        run: |
+          response=$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&teamId=$VERCEL_ORG_ID&target=production&state=READY&limit=1")
+          url=$(jq -r '.deployments[0].url // empty' <<<"$response")
+          test -n "$url"
+          echo "url=https://$url" >> "$GITHUB_OUTPUT"
+      - id: deploy
+        shell: bash
+        run: |
+          url=$(pnpm dlx vercel@59.4.0 deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Inspect and smoke test production
+        shell: bash
+        run: |
+          set +e
+          pnpm dlx vercel@59.4.0 inspect "${{ steps.deploy.outputs.url }}" --wait --timeout=5m --token="$VERCEL_TOKEN"
+          inspect_status=$?
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            "${{ steps.deploy.outputs.url }}/api/healthz"
+          smoke_status=$?
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            "$APP_ORIGIN/api/healthz"
+          alias_status=$?
+          if [ "$inspect_status" -ne 0 ] || [ "$smoke_status" -ne 0 ] || [ "$alias_status" -ne 0 ]; then
+            pnpm dlx vercel@59.4.0 rollback "${{ steps.known-good.outputs.url }}" \
+              --yes --timeout=5m --token="$VERCEL_TOKEN"
+            exit 1
+          fi

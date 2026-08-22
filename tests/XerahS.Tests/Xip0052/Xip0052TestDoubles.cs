@@ -230,8 +230,10 @@ internal sealed class FakeUiViewModelFactory : IUiViewModelFactory
     public IScreenRecordingCoordinator ScreenRecordingCoordinator { get; }
 
     public CustomUploaderEditorViewModel CreateCustomUploaderEditorViewModel() => new();
+    public SettingsViewModel CreateApplicationSettingsViewModel() => new();
     public DestinationSettingsViewModel CreateDestinationSettingsViewModel() => new(this);
-    public HistoryViewModel CreateHistoryViewModel() => new(TaskManager, CoreDialogService);
+    public HistoryViewModel CreateHistoryViewModel(bool autoLoadHistory = true) =>
+        new(TaskManager, CoreDialogService, autoLoadHistory);
     public IndexFolderViewModel CreateIndexFolderViewModel(TaskSettings? taskSettings = null, bool isWorkflowConfigMode = false) =>
         CreateUninitialized<IndexFolderViewModel>();
     public PluginInstallerViewModel CreatePluginInstallerViewModel() => new(ViewDialogService);

@@ -188,6 +188,10 @@ internal static class OverlayRegionCaptureSession
             QuickCrop = regionOptions?.QuickCrop ?? true,
             DetectControls = regionOptions?.DetectControls ?? true,
             EnableWindowSnapping = regionOptions?.DetectWindows ?? true,
+            EnableMagnifier = regionOptions?.ShowMagnifier ?? true,
+            UseSquareMagnifier = regionOptions?.UseSquareMagnifier ?? false,
+            MagnifierPixelCount = regionOptions?.MagnifierPixelCount ?? 15,
+            ShowInfo = regionOptions?.ShowInfo ?? true,
             SnapSizes = snapSizes,
             SnapDistance = XerahS.Core.RegionCaptureOptions.SnapDistance
         };

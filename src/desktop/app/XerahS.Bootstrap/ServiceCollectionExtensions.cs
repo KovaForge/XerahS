@@ -25,8 +25,11 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using XerahS.Core.Cloud;
+using XerahS.Core.Uploaders;
 using XerahS.Platform.Abstractions;
 using XerahS.Services.Abstractions;
+using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.Bootstrap
 {
@@ -105,9 +108,10 @@ namespace XerahS.Bootstrap
             ArgumentNullException.ThrowIfNull(services);
             ArgumentNullException.ThrowIfNull(hostServices);
 
-            return services
+            services
                 .AddXerahSPlatformServices(hostServices.Platform)
                 .AddXerahSApplicationServices(hostServices.Application);
+            return services.AddXerahSCloudServices();
         }
 
         /// <summary>
@@ -123,7 +127,8 @@ namespace XerahS.Bootstrap
             }
 
             AddLegacyPlatformServiceAccessors(services);
-            return services.AddXerahSApplicationServices(DesktopApplicationServices.FromCurrentProcess());
+            services.AddXerahSApplicationServices(DesktopApplicationServices.FromCurrentProcess());
+            return services.AddXerahSCloudServices();
         }
 
         /// <summary>
@@ -161,6 +166,20 @@ namespace XerahS.Bootstrap
 
             TryAddOptionalSingleton(services, PlatformServices.GetShellIntegrationIfAvailable());
             TryAddOptionalSingleton(services, PlatformServices.GetNotificationIfAvailable());
+        }
+
+        private static IServiceCollection AddXerahSCloudServices(this IServiceCollection services)
+        {
+            services.TryAddSingleton(_ => XerahSCloudOptions.FromEnvironment());
+            services.TryAddSingleton<ISecretStore>(_ => ProviderContextManager.EnsureProviderContext().Secrets);
+            services.TryAddSingleton<IXerahSCloudSessionStore, XerahSCloudSessionStore>();
+            services.TryAddSingleton<IXerahSCloudClock, SystemXerahSCloudClock>();
+            services.TryAddSingleton(_ => new HttpClient());
+            services.TryAddSingleton<IXerahSCloudTokenValidator, SupabaseXerahSCloudTokenValidator>();
+            services.TryAddSingleton<IXerahSCloudOAuthTokenExchange, XerahSCloudOAuthTokenExchange>();
+            services.TryAddSingleton<IXerahSCloudOAuthCoordinator, XerahSCloudOAuthCoordinator>();
+            services.TryAddSingleton<IXerahSCloudClient, XerahSCloudApiClient>();
+            return services;
         }
     }
 }

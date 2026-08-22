@@ -275,6 +275,9 @@ public class TaskSettingsCapture
     [Category("Capture"), DefaultValue(true), Description("Use modern screen capture (Direct3D11) if available.")]
     public bool UseModernCapture { get; set; } = true;
 
+    [Category("Capture"), DefaultValue(true), Description("Correct HDR display colors when capturing with GDI.")]
+    public bool HDRScreenshotColorCorrection { get; set; } = true;
+
     [Category("Capture"), DefaultValue(LinuxInteractiveRegionSelectorPreference.Automatic), Description("Preferred Linux interactive region selector.")]
     public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference { get; set; } =
         LinuxInteractiveRegionSelectorPreference.Automatic;

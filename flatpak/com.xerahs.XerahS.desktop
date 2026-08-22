@@ -6,6 +6,7 @@ Exec=xerahs %U
 Icon=com.xerahs.XerahS
 Terminal=false
 Type=Application
+MimeType=x-scheme-handler/xerahs;
 Categories=Utility;Graphics;GTK;
 Keywords=screenshot;screen;capture;share;upload;
 StartupWMClass=xerahs

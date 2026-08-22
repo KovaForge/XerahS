@@ -36,6 +36,7 @@ using ShareX.ImageEditor.Presentation.Views;
 using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Cloud;
 using XerahS.Media.Encoders;
 using XerahS.Platform.Abstractions;
 #if WINDOWS
@@ -139,6 +140,11 @@ public partial class App : Application
 
             // Build DI container from platform and app services (single composition root)
             ServiceProvider = Services.CompositionRoot.BuildServiceProvider(uiService, toastService, imageEncoderService);
+
+            if (ApplicationLifetime is IActivatableLifetime activatableLifetime)
+            {
+                activatableLifetime.Activated += OnApplicationActivated;
+            }
 
             var taskManager = ServiceProvider.GetRequiredService<IDesktopTaskManager>();
             var screenRecordingCoordinator = ServiceProvider.GetRequiredService<IScreenRecordingCoordinator>();
@@ -340,6 +346,40 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void OnApplicationActivated(object? sender, ActivatedEventArgs eventArgs)
+    {
+        if (eventArgs is not ProtocolActivatedEventArgs protocolActivation ||
+            !XerahSCloudOAuthCallbackParser.IsCallbackArgument(protocolActivation.Uri.AbsoluteUri))
+        {
+            return;
+        }
+
+        _ = CompleteCloudProtocolActivationAsync(protocolActivation.Uri);
+    }
+
+    private async Task CompleteCloudProtocolActivationAsync(Uri callbackUri)
+    {
+        try
+        {
+            IXerahSCloudOAuthCoordinator? coordinator =
+                ServiceProvider?.GetService<IXerahSCloudOAuthCoordinator>();
+            if (coordinator == null)
+            {
+                DebugHelper.WriteLine("XerahS Cloud OAuth protocol activation rejected: coordinator unavailable.");
+                return;
+            }
+
+            XerahSCloudOAuthCompletion result = await coordinator
+                .CompleteAsync(callbackUri)
+                .ConfigureAwait(false);
+            DebugHelper.WriteLine($"XerahS Cloud OAuth protocol activation result: {result}.");
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "XerahS Cloud OAuth protocol activation failed");
+        }
     }
 
     /// <summary>

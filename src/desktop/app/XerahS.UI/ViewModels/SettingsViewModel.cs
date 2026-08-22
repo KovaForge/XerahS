@@ -31,6 +31,7 @@ using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Cloud;
 using XerahS.Core.Hotkeys;
 using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
@@ -110,6 +111,9 @@ namespace XerahS.UI.ViewModels
 
         [ObservableProperty]
         private bool _useModernCapture;
+
+        [ObservableProperty]
+        private bool _hDRScreenshotColorCorrection;
 
         [ObservableProperty]
         private bool _trayIconProgressEnabled;
@@ -194,8 +198,12 @@ namespace XerahS.UI.ViewModels
         public Func<WatchFolderEditViewModel, Task<bool>>? EditWatchFolderRequester { get; set; }
         public Func<Task<string?>>? BrowseScreenshotsFolderRequester { get; set; }
 
-        public SettingsViewModel()
+        public SettingsViewModel(
+            IXerahSCloudClient? cloudClient = null,
+            IXerahSCloudOAuthCoordinator? cloudOAuthCoordinator = null)
         {
+            _cloudClient = cloudClient;
+            _cloudOAuthCoordinator = cloudOAuthCoordinator;
             HotkeySettings = new HotkeySettingsViewModel();
             WatchFolders.CollectionChanged += (_, _) =>
             {
@@ -203,6 +211,7 @@ namespace XerahS.UI.ViewModels
                 RefreshWatchFolderStatuses();
             };
             LoadSettings();
+            InitializeCloudStatus();
             _isLoading = false;
         }
 
@@ -248,6 +257,11 @@ namespace XerahS.UI.ViewModels
             nameof(LinuxRegionSelectorLastDecisionText),
             nameof(IsManualUpdateInProgress),
             nameof(ManualUpdateStatusText),
+            nameof(CloudStatusText),
+            nameof(CloudProfileUrl),
+            nameof(IsCloudBusy),
+            nameof(IsCloudSignedIn),
+            nameof(IsCloudConfigured),
         };
 
         protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
@@ -308,6 +322,7 @@ namespace XerahS.UI.ViewModels
             CaptureShadow = taskSettings.CaptureSettings.CaptureShadow;
             CaptureClientArea = taskSettings.CaptureSettings.CaptureClientArea;
             UseModernCapture = taskSettings.CaptureSettings.UseModernCapture;
+            HDRScreenshotColorCorrection = taskSettings.CaptureSettings.HDRScreenshotColorCorrection;
             RefreshLinuxRegionSelectorDiagnostics();
             RefreshLinuxClipboardDiagnostics();
             LinuxRegionSelectorPreference = LinuxRegionSelectorPreferenceSupport.NormalizeForCurrentSession(
@@ -420,6 +435,7 @@ namespace XerahS.UI.ViewModels
             taskSettings.CaptureSettings.CaptureShadow = CaptureShadow;
             taskSettings.CaptureSettings.CaptureClientArea = CaptureClientArea;
             taskSettings.CaptureSettings.UseModernCapture = UseModernCapture;
+            taskSettings.CaptureSettings.HDRScreenshotColorCorrection = HDRScreenshotColorCorrection;
             taskSettings.CaptureSettings.LinuxRegionSelectorPreference = LinuxRegionSelectorPreference;
             taskSettings.CaptureSettings.MacOSRegionSelectorPreference = MacOSRegionSelectorPreference;
             taskSettings.CaptureSettings.MacOSPlayCaptureSound = MacOSPlayCaptureSound;

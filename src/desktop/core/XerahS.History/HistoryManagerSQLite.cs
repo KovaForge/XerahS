@@ -153,6 +153,19 @@ CREATE TABLE IF NOT EXISTS History (
             return await Task.Run(() => GetHistoryItems(offset, limit));
         }
 
+        public HistoryItem? GetHistoryItem(long id)
+        {
+            if (id <= 0)
+            {
+                return null;
+            }
+
+            using SqliteCommand cmd = new SqliteCommand("SELECT * FROM History WHERE Id = @Id LIMIT 1;", EnsureConnection());
+            cmd.Parameters.AddWithValue("@Id", id);
+            using SqliteDataReader reader = cmd.ExecuteReader();
+            return reader.Read() ? ReadHistoryItem(reader) : null;
+        }
+
         public (List<HistoryItem> Items, int TotalCount) SearchHistoryItems(string query, int offset, int limit)
         {
             if (string.IsNullOrWhiteSpace(query))

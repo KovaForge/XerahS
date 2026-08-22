@@ -181,6 +181,14 @@ public partial class OverlayWindow
         _viewModel.EditorCore.OnPointerMoved(skPoint);
     }
 
+    private void OnAnnotationCanvasPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        if (_captureControl.TryAdjustMagnifierFromWheel(e.Delta.Y))
+        {
+            e.Handled = true;
+        }
+    }
+
     private void OnAnnotationCanvasPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         if (_annotationCanvas == null) return;

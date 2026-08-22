@@ -105,6 +105,10 @@ internal sealed class GdiCaptureStrategy : ICaptureStrategy
 
             // Convert System.Drawing.Bitmap to SKBitmap
             var skBitmap = ConvertToSkBitmap(bitmap);
+            skBitmap = HdrScreenshotColorCorrector.ApplyIfEnabled(
+                skBitmap,
+                new Rectangle(physicalRegion.X, physicalRegion.Y, physicalRegion.Width, physicalRegion.Height),
+                enabled: true);
 
             return new CapturedBitmap(skBitmap, physicalRegion, monitor.ScaleFactor);
         });

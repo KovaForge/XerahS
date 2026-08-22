@@ -31,6 +31,13 @@ namespace XerahS.Platform.Abstractions
     public class CaptureOptions
     {
         public bool UseModernCapture { get; set; } = true;
+
+        /// <summary>
+        /// When true, GDI captures on HDR displays recapture those outputs via DXGI
+        /// and composite tone-mapped highlights onto the screenshot.
+        /// DXGI captures already tone-map HDR formats regardless of this setting.
+        /// </summary>
+        public bool HDRScreenshotColorCorrection { get; set; } = true;
         public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference { get; set; } =
             LinuxInteractiveRegionSelectorPreference.Automatic;
         public MacOSInteractiveRegionSelectorPreference MacOSRegionSelectorPreference { get; set; } =

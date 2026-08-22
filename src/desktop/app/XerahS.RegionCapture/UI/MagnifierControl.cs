@@ -22,189 +22,307 @@
 */
 
 #endregion License Information (GPL v3)
+
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using XerahS.RegionCapture.Models;
-using AvPixelRect = Avalonia.PixelRect;
-using AvPixelPoint = Avalonia.PixelPoint;
-using PixelRect = XerahS.RegionCapture.Models.PixelRect;
+using Avalonia.Platform;
+using SkiaSharp;
 using PixelPoint = XerahS.RegionCapture.Models.PixelPoint;
+using PixelRect = XerahS.RegionCapture.Models.PixelRect;
 
 namespace XerahS.RegionCapture.UI;
 
 /// <summary>
-/// A magnifying glass control that shows a zoomed view of the area around the cursor
-/// for pixel-perfect precision during region selection.
+/// Region-capture magnifier HUD: nearest-neighbor pixel preview, physical-pixel
+/// grid, optional square/circle chrome, and pointer info.
 /// </summary>
-public sealed class MagnifierControl : Control
+public sealed class MagnifierControl : StackPanel
 {
-    private const int DefaultZoomLevel = 4;
-    private const int MagnifierSize = 120; // Size in logical pixels
-    private const int PixelGridSize = 15; // Number of pixels to show (odd for center pixel)
-    private const int CrosshairOffset = 1;
-
-    private static readonly IPen GridPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)), 0.5);
-    private static readonly IPen CrosshairPen = new Pen(Brushes.Red, 1.5);
-    private static readonly IPen BorderPen = new Pen(Brushes.White, 2);
-    private static readonly IBrush BackgroundBrush = new SolidColorBrush(Color.FromArgb(230, 30, 30, 30));
-
-    private WriteableBitmap? _capturedPixels;
-    private PixelPoint _cursorPosition;
+    private readonly Grid _view;
+    private readonly Ellipse _circleOuter;
+    private readonly Border _squareOuter;
+    private readonly Grid _content;
+    private readonly Image _image;
+    private readonly MagnifierPixelGrid _pixelGrid;
+    private readonly Ellipse _circleInner;
+    private readonly Border _squareInner;
+    private readonly Border _infoPanel;
+    private readonly TextBlock _infoText;
+    private WriteableBitmap? _bitmap;
+    private int _pixelCount = MagnifierLayout.DefaultPixelCount;
+    private bool _useSquare;
     private Color _centerPixelColor = Colors.Transparent;
-    private readonly int _zoomLevel;
 
-    public MagnifierControl(int zoomLevel = DefaultZoomLevel)
+    public MagnifierControl()
     {
-        _zoomLevel = Math.Max(1, zoomLevel);
-        Width = MagnifierSize;
-        Height = MagnifierSize + 25; // Extra space for color info
+        Spacing = 10;
         IsHitTestVisible = false;
-    }
 
-    /// <summary>
-    /// Updates the magnifier with the current cursor position.
-    /// </summary>
-    public void UpdatePosition(PixelPoint physicalCursorPos)
-    {
-        _cursorPosition = physicalCursorPos;
-        InvalidateVisual();
-    }
-
-    /// <summary>
-    /// Updates the captured pixel data for the magnifier.
-    /// </summary>
-    public void UpdatePixels(WriteableBitmap? bitmap, Color centerColor)
-    {
-        _capturedPixels = bitmap;
-        _centerPixelColor = centerColor;
-        InvalidateVisual();
-    }
-
-    public override void Render(DrawingContext context)
-    {
-        base.Render(context);
-
-        var magnifierRect = new Rect(0, 0, MagnifierSize, MagnifierSize);
-
-        // Draw background
-        context.DrawRectangle(BackgroundBrush, BorderPen, magnifierRect, 4, 4);
-
-        // Draw captured pixels (scaled up)
-        if (_capturedPixels is not null)
+        _circleOuter = new Ellipse
         {
-            var sourceRect = new Rect(0, 0, _capturedPixels.PixelSize.Width, _capturedPixels.PixelSize.Height);
-            var destRect = new Rect(2, 2, MagnifierSize - 4, MagnifierSize - 4);
+            Width = MagnifierLayout.OuterSize,
+            Height = MagnifierLayout.OuterSize,
+            Fill = Brushes.White
+        };
+        _squareOuter = new Border
+        {
+            Width = MagnifierLayout.OuterSize,
+            Height = MagnifierLayout.OuterSize,
+            Background = Brushes.White,
+            IsVisible = false
+        };
+        _image = new Image
+        {
+            Width = MagnifierLayout.MagnifierSize,
+            Height = MagnifierLayout.MagnifierSize,
+            Stretch = Stretch.Fill
+        };
+        RenderOptions.SetBitmapInterpolationMode(_image, BitmapInterpolationMode.None);
 
-            // Use nearest-neighbor scaling for crisp pixels
-            using (context.PushRenderOptions(new RenderOptions { BitmapInterpolationMode = BitmapInterpolationMode.None }))
+        _pixelGrid = new MagnifierPixelGrid
+        {
+            AccentBrush = new SolidColorBrush(Color.FromUInt32(0xFF00AEFF)),
+            IsHitTestVisible = false
+        };
+        RenderOptions.SetEdgeMode(_pixelGrid, EdgeMode.Aliased);
+
+        _content = new Grid
+        {
+            Width = MagnifierLayout.MagnifierSize,
+            Height = MagnifierLayout.MagnifierSize,
+            Clip = new EllipseGeometry(new Rect(0, 0, MagnifierLayout.MagnifierSize, MagnifierLayout.MagnifierSize))
+        };
+        _content.Children.Add(_image);
+        _content.Children.Add(_pixelGrid);
+
+        _circleInner = new Ellipse
+        {
+            Width = MagnifierLayout.MagnifierSize,
+            Height = MagnifierLayout.MagnifierSize,
+            Stroke = Brushes.Black,
+            StrokeThickness = 1,
+            IsHitTestVisible = false
+        };
+        _squareInner = new Border
+        {
+            Width = MagnifierLayout.MagnifierSize,
+            Height = MagnifierLayout.MagnifierSize,
+            BorderBrush = Brushes.Black,
+            BorderThickness = new Thickness(1),
+            IsVisible = false,
+            IsHitTestVisible = false
+        };
+        RenderOptions.SetEdgeMode(_squareInner, EdgeMode.Aliased);
+
+        _view = new Grid
+        {
+            Width = MagnifierLayout.OuterSize,
+            Height = MagnifierLayout.OuterSize
+        };
+        _view.Children.Add(_circleOuter);
+        _view.Children.Add(_squareOuter);
+        _view.Children.Add(_content);
+        _view.Children.Add(_circleInner);
+        _view.Children.Add(_squareInner);
+
+        _infoText = new TextBlock
+        {
+            FontSize = 12,
+            FontWeight = FontWeight.SemiBold,
+            TextAlignment = TextAlignment.Center,
+            Foreground = Brushes.White
+        };
+        _infoPanel = new Border
+        {
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            Padding = new Thickness(7, 4),
+            CornerRadius = new CornerRadius(5),
+            Background = new SolidColorBrush(Color.FromArgb(220, 30, 30, 30)),
+            Child = _infoText
+        };
+
+        Children.Add(_view);
+        Children.Add(_infoPanel);
+
+        RecreateBitmap(_pixelCount);
+    }
+
+    internal MagnifierPixelGrid PixelGridForTests => _pixelGrid;
+    internal bool UsesSquareShapeForTests => _useSquare;
+    internal int PixelCountForTests => _pixelCount;
+    internal bool MagnifierViewVisibleForTests => _view.IsVisible;
+    internal bool InfoVisibleForTests => _infoPanel.IsVisible;
+    internal string InfoTextForTests => _infoText.Text ?? string.Empty;
+    internal Color CenterPixelColorForTests => _centerPixelColor;
+
+    public void ApplyShape(bool useSquare)
+    {
+        _useSquare = useSquare;
+        _circleOuter.IsVisible = !useSquare;
+        _circleInner.IsVisible = !useSquare;
+        _squareOuter.IsVisible = useSquare;
+        _squareInner.IsVisible = useSquare;
+        _content.Clip = useSquare
+            ? null
+            : new EllipseGeometry(new Rect(0, 0, MagnifierLayout.MagnifierSize, MagnifierLayout.MagnifierSize));
+    }
+
+    public void SetAccentBrush(IBrush brush) => _pixelGrid.AccentBrush = brush;
+
+    public void SetHudVisibility(bool showMagnifier, bool showInfo)
+    {
+        _view.IsVisible = showMagnifier;
+        _infoPanel.IsVisible = showInfo;
+        IsVisible = showMagnifier || showInfo;
+    }
+
+    public void SetPixelCount(int count)
+    {
+        if (_pixelCount == count && _bitmap is not null)
+        {
+            _pixelGrid.PixelCount = count;
+            return;
+        }
+
+        RecreateBitmap(count);
+    }
+
+    public void PositionNearPointer(Point pointer, Size viewport, double renderScale)
+    {
+        double width = Bounds.Width > 0 ? Bounds.Width : 170;
+        double height = Bounds.Height > 0 ? Bounds.Height : 205;
+        double x = pointer.X + MagnifierLayout.PointerOffset;
+        double y = pointer.Y + MagnifierLayout.PointerOffset;
+
+        if (x + width > viewport.Width)
+        {
+            x = pointer.X - width - MagnifierLayout.PointerOffset;
+        }
+
+        if (y + height > viewport.Height)
+        {
+            y = pointer.Y - height - MagnifierLayout.PointerOffset;
+        }
+
+        double scale = double.IsFinite(renderScale) && renderScale > 0 ? Math.Max(1, renderScale) : 1;
+        double targetX = Math.Clamp(x, 0, Math.Max(0, viewport.Width - width));
+        double targetY = Math.Clamp(y, 0, Math.Max(0, viewport.Height - height));
+        targetX = Math.Round(targetX * scale) / scale;
+        targetY = Math.Round(targetY * scale) / scale;
+
+        Canvas.SetLeft(this, targetX);
+        Canvas.SetTop(this, targetY);
+        _pixelGrid.InvalidateVisual();
+    }
+
+    public unsafe void UpdateFromBackground(PixelPoint physicalCursor, SKBitmap? background, PixelRect virtualBounds)
+    {
+        EnsureBitmap();
+        if (_bitmap is null)
+        {
+            return;
+        }
+
+        int count = _bitmap.PixelSize.Width;
+        int radius = count / 2;
+        int centerX = (int)Math.Round(physicalCursor.X - virtualBounds.X);
+        int centerY = (int)Math.Round(physicalCursor.Y - virtualBounds.Y);
+
+        using ILockedFramebuffer framebuffer = _bitmap.Lock();
+        byte* destination = (byte*)framebuffer.Address;
+
+        if (background is null || background.Width <= 0 || background.Height <= 0)
+        {
+            int length = framebuffer.RowBytes * count;
+            new Span<byte>(destination, length).Clear();
+            _centerPixelColor = Colors.Transparent;
+            _infoText.Text = $"X: {physicalCursor.X:F0} Y: {physicalCursor.Y:F0}";
+            _image.InvalidateVisual();
+            return;
+        }
+
+        int sourceWidth = background.Width;
+        int sourceHeight = background.Height;
+
+        for (int y = 0; y < count; y++)
+        {
+            byte* row = destination + y * framebuffer.RowBytes;
+            int sourceY = Math.Clamp(centerY + y - radius, 0, sourceHeight - 1);
+
+            for (int x = 0; x < count; x++)
             {
-                context.DrawImage(_capturedPixels, sourceRect, destRect);
+                int sourceX = Math.Clamp(centerX + x - radius, 0, sourceWidth - 1);
+                SKColor color = background.GetPixel(sourceX, sourceY);
+                int offset = x * 4;
+                row[offset] = color.Blue;
+                row[offset + 1] = color.Green;
+                row[offset + 2] = color.Red;
+                row[offset + 3] = color.Alpha;
+
+                if (x == radius && y == radius)
+                {
+                    _centerPixelColor = Color.FromArgb(color.Alpha, color.Red, color.Green, color.Blue);
+                }
             }
         }
 
-        // Draw pixel grid
-        DrawPixelGrid(context, magnifierRect);
-
-        // Draw crosshair at center
-        DrawCrosshair(context, magnifierRect);
-
-        // Draw color info below magnifier
-        DrawColorInfo(context, MagnifierSize);
+        _infoText.Text =
+            $"X: {physicalCursor.X:F0} Y: {physicalCursor.Y:F0}\n#{_centerPixelColor.R:X2}{_centerPixelColor.G:X2}{_centerPixelColor.B:X2}";
+        _image.InvalidateVisual();
     }
 
-    private void DrawPixelGrid(DrawingContext context, Rect bounds)
+    internal static Point CalculatePosition(Point pointer, Size viewport, Size hudSize, double renderScale)
     {
-        var pixelSize = (bounds.Width - 4) / PixelGridSize;
-        var startX = 2.0;
-        var startY = 2.0;
+        double width = hudSize.Width > 0 ? hudSize.Width : 170;
+        double height = hudSize.Height > 0 ? hudSize.Height : 205;
+        double x = pointer.X + MagnifierLayout.PointerOffset;
+        double y = pointer.Y + MagnifierLayout.PointerOffset;
 
-        // Vertical lines
-        for (int i = 0; i <= PixelGridSize; i++)
+        if (x + width > viewport.Width)
         {
-            var x = startX + i * pixelSize;
-            context.DrawLine(GridPen, new Point(x, startY), new Point(x, bounds.Height - 2));
+            x = pointer.X - width - MagnifierLayout.PointerOffset;
         }
 
-        // Horizontal lines
-        for (int i = 0; i <= PixelGridSize; i++)
+        if (y + height > viewport.Height)
         {
-            var y = startY + i * pixelSize;
-            context.DrawLine(GridPen, new Point(startX, y), new Point(bounds.Width - 2, y));
+            y = pointer.Y - height - MagnifierLayout.PointerOffset;
         }
+
+        double scale = double.IsFinite(renderScale) && renderScale > 0 ? Math.Max(1, renderScale) : 1;
+        double targetX = Math.Clamp(x, 0, Math.Max(0, viewport.Width - width));
+        double targetY = Math.Clamp(y, 0, Math.Max(0, viewport.Height - height));
+        return new Point(Math.Round(targetX * scale) / scale, Math.Round(targetY * scale) / scale);
     }
 
-    private void DrawCrosshair(DrawingContext context, Rect bounds)
+    private void EnsureBitmap()
     {
-        var pixelSize = (bounds.Width - 4) / PixelGridSize;
-        var centerIndex = PixelGridSize / 2;
+        if (_bitmap?.PixelSize == new PixelSize(_pixelCount, _pixelCount))
+        {
+            return;
+        }
 
-        var centerX = 2 + (centerIndex + 0.5) * pixelSize;
-        var centerY = 2 + (centerIndex + 0.5) * pixelSize;
-
-        // Highlight center pixel with a box
-        var highlightRect = new Rect(
-            2 + centerIndex * pixelSize,
-            2 + centerIndex * pixelSize,
-            pixelSize,
-            pixelSize);
-
-        context.DrawRectangle(null, CrosshairPen, highlightRect);
-
-        // Draw crosshair lines extending from center
-        var extension = pixelSize * 2;
-
-        // Left
-        context.DrawLine(CrosshairPen,
-            new Point(highlightRect.Left - extension, centerY),
-            new Point(highlightRect.Left - 2, centerY));
-
-        // Right
-        context.DrawLine(CrosshairPen,
-            new Point(highlightRect.Right + 2, centerY),
-            new Point(highlightRect.Right + extension, centerY));
-
-        // Top
-        context.DrawLine(CrosshairPen,
-            new Point(centerX, highlightRect.Top - extension),
-            new Point(centerX, highlightRect.Top - 2));
-
-        // Bottom
-        context.DrawLine(CrosshairPen,
-            new Point(centerX, highlightRect.Bottom + 2),
-            new Point(centerX, highlightRect.Bottom + extension));
+        RecreateBitmap(_pixelCount);
     }
 
-    private void DrawColorInfo(DrawingContext context, double yOffset)
+    private void RecreateBitmap(int count)
     {
-        // Draw color swatch
-        var swatchRect = new Rect(4, yOffset + 4, 16, 16);
-        var swatchBrush = new SolidColorBrush(_centerPixelColor);
-        context.DrawRectangle(swatchBrush, new Pen(Brushes.White, 1), swatchRect);
+        _pixelCount = count;
+        if (_bitmap?.PixelSize == new PixelSize(count, count))
+        {
+            _pixelGrid.PixelCount = count;
+            return;
+        }
 
-        // Draw hex color value
-        var hexColor = $"#{_centerPixelColor.R:X2}{_centerPixelColor.G:X2}{_centerPixelColor.B:X2}";
-        var formattedText = new FormattedText(
-            hexColor,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            new Typeface("Consolas", FontStyle.Normal, FontWeight.Normal),
-            11,
-            Brushes.White);
-
-        context.DrawText(formattedText, new Point(24, yOffset + 6));
-
-        // Draw RGB values
-        var rgbText = $"R:{_centerPixelColor.R} G:{_centerPixelColor.G} B:{_centerPixelColor.B}";
-        var rgbFormatted = new FormattedText(
-            rgbText,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            new Typeface("Consolas", FontStyle.Normal, FontWeight.Normal),
-            9,
-            new SolidColorBrush(Color.FromRgb(180, 180, 180)));
-
-        context.DrawText(rgbFormatted, new Point(4, yOffset + 6 + formattedText.Height));
+        _bitmap?.Dispose();
+        _bitmap = new WriteableBitmap(
+            new PixelSize(count, count),
+            new Vector(96, 96),
+            PixelFormat.Bgra8888,
+            AlphaFormat.Premul);
+        _image.Source = _bitmap;
+        _pixelGrid.PixelCount = count;
     }
 }
