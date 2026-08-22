@@ -15,8 +15,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AppendRuntimeIdentifierToOutputPath>true</AppendRuntimeIdentifierToOutputPath>
-    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == '' And '$(BuildingSolutionFile)' == 'true'">false</VideoEditorProjectReferenceBuildWebUI>
-    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == ''">true</VideoEditorProjectReferenceBuildWebUI>
+    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == '' And '$(AssembleProduct)' == 'true'">true</VideoEditorProjectReferenceBuildWebUI>
+    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == ''">false</VideoEditorProjectReferenceBuildWebUI>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" />

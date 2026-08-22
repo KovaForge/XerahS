@@ -49,6 +49,7 @@
                       GlobalPropertiesToRemove="SelfContained;PublishSingleFile" />
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj"
+                      Condition="'$(AssembleProduct)' == 'true'"
                       ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true"
                       AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);RuntimeIdentifiers=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
@@ -141,7 +142,7 @@
            Text="Missing watch folder daemon runtimeconfig in publish output: $(PublishDir)xerahs-watchfolder-daemon.runtimeconfig.json" />
   </Target>
 
-  <Target Name="BuildWatchFolderDaemonForDev" AfterTargets="Build">
+  <Target Name="BuildWatchFolderDaemonForDev" AfterTargets="Build" Condition="'$(AssembleProduct)' == 'true'">
     <Message Text="Copying watch folder daemon artifacts to app output..." Importance="High" />
 
     <PropertyGroup>
@@ -160,7 +161,7 @@
           Condition="'@(_WatchFolderDaemonBuildFiles)' != ''" />
   </Target>
 
-  <Target Name="CopyVideoEditorWebUiForDev" AfterTargets="Build">
+  <Target Name="CopyVideoEditorWebUiForDev" AfterTargets="Build" Condition="'$(AssembleProduct)' == 'true'">
     <PropertyGroup>
       <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\frontend\dist\</_VideoEditorWebUiDistDir>
     </PropertyGroup>
@@ -210,11 +211,11 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == '' And '$(BuildingSolutionFile)' == 'true'">false</EnableAppDrivenPluginBuild>
-    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == ''">true</EnableAppDrivenPluginBuild>
+    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == '' And '$(AssembleProduct)' == 'true'">true</EnableAppDrivenPluginBuild>
+    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == ''">false</EnableAppDrivenPluginBuild>
   </PropertyGroup>
 
-  <Target Name="BuildPlugins" AfterTargets="Build" Condition="'$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true'">
+  <Target Name="BuildPlugins" AfterTargets="Build" Condition="'$(AssembleProduct)' == 'true' And '$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true'">
     <Message Text="[Plugins] Auto-building discovered plugins: @(_DiscoveredPluginProjects->'%(Filename)', ', ')" Importance="High" />
     <MSBuild Projects="@(_DiscoveredPluginProjects)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);HostTargetFramework=$(TargetFramework)" />
   </Target>

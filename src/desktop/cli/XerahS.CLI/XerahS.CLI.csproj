@@ -17,8 +17,8 @@
     <DefineConstants Condition="'$(IsWindowsCliBuild)' == 'true'">$(DefineConstants);WINDOWS</DefineConstants>
     <DefineConstants Condition="'$(IsMacOSCliBuild)' == 'true'">$(DefineConstants);MACOS</DefineConstants>
     <DefineConstants Condition="'$(IsLinuxCliBuild)' == 'true'">$(DefineConstants);LINUX</DefineConstants>
-    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == '' And '$(BuildingSolutionFile)' == 'true'">false</VideoEditorProjectReferenceBuildWebUI>
-    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == ''">true</VideoEditorProjectReferenceBuildWebUI>
+    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == '' And '$(AssembleProduct)' == 'true'">true</VideoEditorProjectReferenceBuildWebUI>
+    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == ''">false</VideoEditorProjectReferenceBuildWebUI>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.CommandLine" />
@@ -33,6 +33,7 @@
                       AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
     <ProjectReference Include="..\..\app\XerahS.Assistant\XerahS.Assistant.csproj" />
     <ProjectReference Include="..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj"
+                      Condition="'$(AssembleProduct)' == 'true'"
                       ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true"
                       AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
@@ -57,19 +58,19 @@
 
   <!-- Auto-discover all plugin csproj files under src/desktop/plugins/*/ -->
   <PropertyGroup>
-    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == '' And '$(BuildingSolutionFile)' == 'true'">false</EnableAppDrivenPluginBuild>
-    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == ''">true</EnableAppDrivenPluginBuild>
+    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == '' And '$(AssembleProduct)' == 'true'">true</EnableAppDrivenPluginBuild>
+    <EnableAppDrivenPluginBuild Condition="'$(EnableAppDrivenPluginBuild)' == ''">false</EnableAppDrivenPluginBuild>
   </PropertyGroup>
   <ItemGroup>
     <_DiscoveredPluginProjects Include="$(RepoRoot)src\desktop\plugins\*\*.csproj" />
   </ItemGroup>
 
-  <Target Name="BuildPlugins" AfterTargets="Build" Condition="'$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true'">
+  <Target Name="BuildPlugins" AfterTargets="Build" Condition="'$(AssembleProduct)' == 'true' And '$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true'">
     <Message Text="[CLI Plugins] Auto-building discovered plugins: @(_DiscoveredPluginProjects->'%(Filename)', ', ')" Importance="High" />
     <MSBuild Projects="@(_DiscoveredPluginProjects)" Targets="Restore;Build" Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=" />
   </Target>
 
-  <Target Name="CopyPluginsToOutput" AfterTargets="BuildPlugins" Condition="'$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true' And '@(_DiscoveredPluginProjects)' != ''">
+  <Target Name="CopyPluginsToOutput" AfterTargets="BuildPlugins" Condition="'$(AssembleProduct)' == 'true' And '$(SkipBundlePlugins)' != 'true' And '$(EnableAppDrivenPluginBuild)' == 'true' And '@(_DiscoveredPluginProjects)' != ''">
     <Message Text="[CLI Plugins] Copying discovered plugins to CLI output..." Importance="High" />
     <MSBuild Projects="$(MSBuildProjectFullPath)"
              Targets="_CopyPluginFiles"
@@ -99,7 +100,7 @@
     <Message Text="[CLI Plugins] Copied @(_PluginFilesToCopy->Count()) files for $(_PluginBundleName) to $(_PluginDestDir)" Importance="High" Condition="'@(_PluginFilesToCopy)' != ''" />
   </Target>
 
-  <Target Name="BuildWatchFolderDaemonForDev" AfterTargets="Build">
+  <Target Name="BuildWatchFolderDaemonForDev" AfterTargets="Build" Condition="'$(AssembleProduct)' == 'true'">
     <Message Text="Copying watch folder daemon artifacts to CLI output..." Importance="High" />
 
     <PropertyGroup>
@@ -118,7 +119,7 @@
           Condition="'@(_WatchFolderDaemonBuildFiles)' != ''" />
   </Target>
 
-  <Target Name="CopyVideoEditorWebUiForDev" AfterTargets="Build">
+  <Target Name="CopyVideoEditorWebUiForDev" AfterTargets="Build" Condition="'$(AssembleProduct)' == 'true'">
     <PropertyGroup>
       <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\frontend\dist\</_VideoEditorWebUiDistDir>
     </PropertyGroup>
