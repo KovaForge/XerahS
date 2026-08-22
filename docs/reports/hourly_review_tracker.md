@@ -5639,3 +5639,29 @@ Added candidates (8):
 - Commit: null (record SHA in Step 9 only; do not self-reference)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
 - Skill: xerahs-bugfix/SKILL.md v1.1.23 (no patch this tick)
+### 2026-08-22 23:02 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.2/v2.2.4)
+
+- Reports parsed: 3 (20260822T150711-54b9dc.md newest, 20260821T150529-4a20ca.md, 20260820T150428-2a043b.md)
+- 307 unique findings parsed across 3 reports (127 in newest)
+- Submodule-prefix drops (v2.2.4): 66 (ShareX.ImageEditor / ShareX.VideoEditor — parent repo cannot edit submodule source)
+- Severity gate drops: 177 (triage=risk: 114, contract-mismatch: 42, docs-gap: 12, test-gap: 9)
+- Already-fixed (area-level): 3 (ImmichUploader.cs:220-233 deduped 3 reports)
+- Recently-fixed (v2.1.1 + v2.1.2 release-history): 79
+- Recently-pivoted skip (v2.2.2): 48
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-08-22 23:02 AWST - xerahs-review producer run (Nadia)
+
+- Area: xerahs-review producer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md, .clawpatch/reports/20260822T150711-54b9dc.md
+- Findings: Daily cron run at 23:02 AWST (offset 1h before 00:06 AWST consumer drain). Fork sync: fetched nadia/develop (5d4fac128) and FF-merged into local develop as 24f3ec826 (local was 7 ahead of origin/develop before merge → 2 ahead after). Upstream sync: upstream/develop == HEAD (no merge needed; KovaForge fork is at v0.26.0 with several v0.27.x features, ShareX upstream at v0.25.6 + 0 unreleased commits). Submodule sync: ShareX.ImageEditor HEAD == upstream tip == origin/develop (d4f4029, Mikhail 4 local commits ahead of origin untouched). Clawpatch review: ran 20260822T150711-54b9dc with --limit 3 features (XerahS.Uploaders/OAuth, XerahS.Platform.Linux/Services, xerahscli); per-feature findings 0/2/2 = 4 total returned but the report itself enumerates 127 findings and 6 clusters. Post-gate eligible items: 44 unique gate-eligible (confirmed-bug, high/medium, non-submodule, non-maintainability). All 44 hit downstream dedupe: 3 area-fixed (ImmichUploader.cs:220-233), 48 recently-pivoted, 79 release-history-fixed. Producer-side only — no fix attempts, no area-status changes, no other agents' last_runs rows touched.
+- Status: ok (no-op ingest is the correct outcome — the consumer has been sweeping these citations through the recently_pivoted layer for the past 72h; clawpatch has not yet surfaced a fresh wave)
+- Build/test: n/a (no code change)
+- Commit: PENDING
+- Anomalies: 
+  - clawpatch --limit 3 controls **features** (jobs) reviewed, not per-feature finding count; the produced report file always contains the complete per-finding enumeration (127 here), so the actual returned findings visible to consumers via the report file are far more than 4
+  - /Users/mike/Projects/KovaForge/openclaw-doctor/.env.local:15 emits a shell parser warning (parse error near '&') — nonfatal; MINIMAX_API_KEY was still loaded and the review completed successfully
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this empty queue; producer next fires 23:00 AWST on 2026-08-23
+- Skill: xerahs-review/SKILL.md v2.2.4 (no patch this tick)
+

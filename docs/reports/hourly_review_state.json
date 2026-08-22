@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-22 16:07 AWST",
+  "last_updated": "2026-08-22 23:23 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2307,6 +2307,43 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a found zero next_candidates after fork FF 77558d86..848f0f3e (v0.28.0 distro-repo feat). upstream/develop == HEAD == declan/develop. ShareX.ImageEditor pointer clean at d4f4029. No deferred-last-runs files."
+    },
+    {
+      "timestamp_awst": "2026-08-22 23:23 AWST",
+      "agent": "nadia",
+      "role": "producer",
+      "skill": "xerahs-review",
+      "skill_version": "v2.2.4",
+      "skill_patch": false,
+      "clawpatch_run_id": "20260822T150711-54b9dc",
+      "clawpatch_features_reviewed": 3,
+      "clawpatch_findings_returned": 4,
+      "reports_parsed": [
+        "20260822T150711-54b9dc.md",
+        "20260821T150529-4a20ca.md",
+        "20260820T150428-2a043b.md"
+      ],
+      "queue_size_before": 0,
+      "queue_size_after": 0,
+      "findings_ingested": 0,
+      "findings_dropped_submodule_prefix": 66,
+      "findings_dropped_severity_gate": 177,
+      "findings_dropped_already_fixed_area": 3,
+      "findings_dropped_recently_pivoted": 48,
+      "findings_dropped_release_history": 79,
+      "sync_state": {
+        "fork_nadia_develop_fetched": "5d4fac128",
+        "local_merge_commit": "24f3ec826",
+        "local_branch_ahead_origin": 2,
+        "upstream_merge_needed": false,
+        "submodule_pointer": "d4f4029b654c259315c5bd48d212dcb76ea10d31",
+        "submodule_sync_needed": false
+      },
+      "commit_sha": null,
+      "anomalies": [
+        ".env.local parser warning at line 15 (parse error near '&') — nonfatal; MINIMAX_API_KEY loaded successfully.",
+        "Clawpatch --limit 3 returned 3 jobs/3 features but the report contained 127 findings (review mode shows first 4 high-confidence candidates per feature set); the limit constrains features, not per-feature finding count."
+      ]
     }
   ],
   "last_run_outcome": "no-op",
