@@ -34,6 +34,7 @@ using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Managers;
+using XerahS.History;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.UI.ViewModels;
@@ -45,6 +46,8 @@ public partial class ToastViewModel : ObservableObject, IDisposable
 {
     private readonly ToastConfig _config;
     private readonly IDesktopTaskManager? _taskManager;
+    private readonly HistoryViewModel? _historyViewModel;
+    private readonly HistoryItem? _historyItem;
     private readonly DispatcherTimer _durationTimer;
     private readonly DispatcherTimer _fadeTimer;
     private readonly int _fadeInterval = 50;
@@ -106,10 +109,16 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     internal string? FilePath => _config.FilePath;
     internal bool HasExistingFile => !string.IsNullOrWhiteSpace(_config.FilePath) && File.Exists(_config.FilePath);
 
-    public ToastViewModel(ToastConfig config, IDesktopTaskManager? taskManager = null)
+    public ToastViewModel(
+        ToastConfig config,
+        IDesktopTaskManager? taskManager = null,
+        HistoryViewModel? historyViewModel = null,
+        HistoryItem? historyItem = null)
     {
         _config = config;
         _taskManager = taskManager;
+        _historyViewModel = historyViewModel;
+        _historyItem = historyItem;
 
         // Try to load image from path
         if (!string.IsNullOrEmpty(config.ImagePath) && File.Exists(config.ImagePath))
@@ -146,10 +155,12 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         CopyMarkdownImageCommand = new RelayCommand(CopyMarkdownImage);
         CopyErrorsCommand = new RelayCommand(CopyErrors);
         OpenURLCommand = new RelayCommand(OpenUrl);
-        // ToastConfig has no durable History row ID, client UUID, or owner binding. Keep the
-        // shared-menu commands cached but disabled instead of inferring identity from a URL.
-        PublishCommand = new AsyncRelayCommand(DisabledCloudActionAsync, () => false);
-        UnpublishCommand = new AsyncRelayCommand(DisabledCloudActionAsync, () => false);
+        PublishCommand = _historyViewModel != null && _historyItem != null
+            ? new AsyncRelayCommand(() => _historyViewModel.PublishItemCommand.ExecuteAsync(_historyItem))
+            : new AsyncRelayCommand(DisabledCloudActionAsync, () => false);
+        UnpublishCommand = _historyViewModel != null && _historyItem != null
+            ? new AsyncRelayCommand(() => _historyViewModel.UnpublishItemCommand.ExecuteAsync(_historyItem))
+            : new AsyncRelayCommand(DisabledCloudActionAsync, () => false);
         DeleteItemCommand = new RelayCommand(DeleteFile);
 
         // Calculate fade decrement
@@ -187,6 +198,12 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     }
 
     private static Task DisabledCloudActionAsync() => Task.CompletedTask;
+
+    internal bool CanPublishHistoryItem =>
+        _historyItem != null && HistoryPublishMetadata.CanPublish(_historyItem, _historyViewModel?.CurrentCloudOwnerSubject);
+
+    internal bool CanUnpublishHistoryItem =>
+        _historyItem != null && HistoryPublishMetadata.CanUnpublish(_historyItem, _historyViewModel?.CurrentCloudOwnerSubject);
 
     internal static ToastAutoHideStartMode GetAutoHideStartMode(ToastConfig config)
     {
@@ -654,6 +671,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         {
             _durationTimer.Stop();
             _fadeTimer.Stop();
+            _historyViewModel?.Dispose();
             _disposed = true;
         }
     }

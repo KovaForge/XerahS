@@ -290,7 +290,13 @@ namespace XerahS.Core.Tasks
 
                             DebugHelper.WriteLine($"[HistoryTrace] Preparing to add item. URL='{historyItem.URL}', File='{historyItem.FileName}'");
 
-                            await Task.Run(() => historyManager.AppendHistoryItem(historyItem));
+                            bool appended = await Task.Run(() => historyManager.AppendHistoryItem(historyItem));
+                            if (!appended)
+                            {
+                                throw new InvalidOperationException("The recording history row could not be saved.");
+                            }
+
+                            Info.HistoryItemId = historyItem.Id;
                             DebugHelper.WriteLine($"Added recording to history: {historyItem.FileName} (URL: {historyItem.URL})");
                             historySaved = true;
                             break; // Success - exit retry loop

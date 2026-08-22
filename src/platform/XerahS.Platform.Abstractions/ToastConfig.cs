@@ -88,6 +88,11 @@ public class ToastConfig
     public string? URL { get; set; }
 
     /// <summary>
+    /// Durable history row backing this completion notification, when one was created.
+    /// </summary>
+    public long? HistoryItemId { get; set; }
+
+    /// <summary>
     /// Action to perform on left click
     /// </summary>
     public ToastClickAction LeftClickAction { get; set; } = ToastClickAction.OpenUrl;

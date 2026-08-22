@@ -32,6 +32,45 @@ namespace XerahS.Tests.Assistant;
 public sealed class HistoryManagerSQLiteTests
 {
     [Test]
+    public void GetHistoryItem_ReturnsExactDurableRow()
+    {
+        string tempDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-history-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDirectory);
+
+        try
+        {
+            var expected = new HistoryItem
+            {
+                FileName = "toast-capture.png",
+                FilePath = Path.Combine(tempDirectory, "toast-capture.png"),
+                DateTime = new DateTime(2026, 8, 22, 12, 0, 0, DateTimeKind.Utc),
+                Type = "Image",
+                URL = "https://cdn.example.test/toast-capture.png"
+            };
+            using var manager = new HistoryManagerSQLite(Path.Combine(tempDirectory, "history.db"));
+            Assert.That(manager.AppendHistoryItem(expected), Is.True);
+
+            HistoryItem? actual = manager.GetHistoryItem(expected.Id);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(actual, Is.Not.Null);
+                Assert.That(actual!.Id, Is.EqualTo(expected.Id));
+                Assert.That(actual.URL, Is.EqualTo(expected.URL));
+                Assert.That(manager.GetHistoryItem(0), Is.Null);
+                Assert.That(manager.GetHistoryItem(long.MaxValue), Is.Null);
+            });
+        }
+        finally
+        {
+            if (Directory.Exists(tempDirectory))
+            {
+                Directory.Delete(tempDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Test]
     public void SearchHistoryItems_ReturnsPagedMetadataAndOcrMatches()
     {
         string tempDirectory = Path.Combine(Path.GetTempPath(), $"xerahs-history-tests-{Guid.NewGuid():N}");

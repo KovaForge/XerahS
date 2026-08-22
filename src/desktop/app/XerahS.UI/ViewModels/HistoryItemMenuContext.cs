@@ -164,8 +164,8 @@ public sealed class ToastItemMenuTargetAdapter : IHistoryItemMenuTarget
     public bool HasImageFile => _vm.CanCopyImage;
     public bool HasFilePath => !string.IsNullOrWhiteSpace(_vm.FilePath);
     public bool HasExistingFile => _vm.HasExistingFile;
-    public bool CanPublish => false;
-    public bool CanUnpublish => false;
+    public bool CanPublish => _vm.CanPublishHistoryItem;
+    public bool CanUnpublish => _vm.CanUnpublishHistoryItem;
 }
 
 

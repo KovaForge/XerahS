@@ -40,7 +40,7 @@ public interface IUiViewModelFactory
 
     ViewModels.CustomUploaderEditorViewModel CreateCustomUploaderEditorViewModel();
     ViewModels.DestinationSettingsViewModel CreateDestinationSettingsViewModel();
-    ViewModels.HistoryViewModel CreateHistoryViewModel();
+    ViewModels.HistoryViewModel CreateHistoryViewModel(bool autoLoadHistory = true);
     ViewModels.IndexFolderViewModel CreateIndexFolderViewModel(TaskSettings? taskSettings = null, bool isWorkflowConfigMode = false);
     ViewModels.PluginInstallerViewModel CreatePluginInstallerViewModel();
     ViewModels.ProviderExplorerViewModel CreateProviderExplorerViewModel(UploaderInstance instance, IUploaderExplorer explorer);

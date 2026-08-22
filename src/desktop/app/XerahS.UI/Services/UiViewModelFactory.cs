@@ -52,8 +52,8 @@ public sealed class UiViewModelFactory(
     public ViewModels.DestinationSettingsViewModel CreateDestinationSettingsViewModel() =>
         new(this);
 
-    public ViewModels.HistoryViewModel CreateHistoryViewModel() =>
-        new(taskManager, coreDialogService, cloudClient: cloudClient, cloudOAuthCoordinator: cloudOAuthCoordinator);
+    public ViewModels.HistoryViewModel CreateHistoryViewModel(bool autoLoadHistory = true) =>
+        new(taskManager, coreDialogService, autoLoadHistory, cloudClient, cloudOAuthCoordinator);
 
     public ViewModels.IndexFolderViewModel CreateIndexFolderViewModel(TaskSettings? taskSettings = null, bool isWorkflowConfigMode = false) =>
         new(taskSettings, isWorkflowConfigMode, viewDialogService, taskManager);

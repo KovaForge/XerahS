@@ -32,6 +32,7 @@ using Avalonia.Platform.Storage;
 using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Platform.Abstractions;
+using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
@@ -91,8 +92,32 @@ public partial class ToastWindow : OverlayWindow
         // On multi-monitor setups the primary screen working area may not match the screen the toast lands on.
         AdjustPositionToScreenBounds();
 
+        // Bind Cloud actions to the exact durable history row. Never infer identity from a URL:
+        // the same destination may appear in multiple rows or accounts.
+        HistoryViewModel? historyViewModel = null;
+        XerahS.History.HistoryItem? historyItem = null;
+        if (config.HistoryItemId is > 0)
+        {
+            try
+            {
+                historyViewModel = UiViewModelFactoryAccessor.GetRequired().CreateHistoryViewModel(autoLoadHistory: false);
+                historyItem = historyViewModel.GetHistoryItem(config.HistoryItemId.Value);
+                if (historyItem == null)
+                {
+                    historyViewModel.Dispose();
+                    historyViewModel = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                historyViewModel?.Dispose();
+                historyViewModel = null;
+                DebugHelper.WriteException(ex, "Failed to bind toast to its history row");
+            }
+        }
+
         // Create and bind ViewModel
-        _viewModel = new ToastViewModel(config, taskManager);
+        _viewModel = new ToastViewModel(config, taskManager, historyViewModel, historyItem);
         DataContext = _viewModel;
 
         _viewModel.CloseRequested += OnCloseRequested;

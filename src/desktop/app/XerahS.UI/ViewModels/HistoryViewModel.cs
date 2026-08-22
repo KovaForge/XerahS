@@ -185,6 +185,8 @@ namespace XerahS.UI.ViewModels
 
         internal string? CurrentCloudOwnerSubject => _cloudClient?.CurrentOwnerSubject;
 
+        internal HistoryItem? GetHistoryItem(long id) => _historyManager.GetHistoryItem(id);
+
         /// <summary>
         /// Starts history loading asynchronously without blocking the UI thread.
         /// This allows the empty panel to display immediately.
