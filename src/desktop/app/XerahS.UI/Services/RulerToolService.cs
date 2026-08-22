@@ -79,13 +79,17 @@ public static class RulerToolService
         try
         {
             // Configure ruler options
+            var regionOptions = captureSettings.RegionCaptureOptions;
             var rulerOptions = new XerahS.RegionCapture.RegionCaptureOptions
             {
                 Mode = RegionCaptureMode.Ruler,
                 QuickCrop = false,                  // Don't auto-complete on click
                 UseLightResizeNodes = true,         // Use lighter resize handles
                 EnableWindowSnapping = false,       // Disable window snapping for ruler
-                EnableMagnifier = true,             // Enable magnifier for precision
+                EnableMagnifier = regionOptions?.ShowMagnifier ?? true,
+                UseSquareMagnifier = regionOptions?.UseSquareMagnifier ?? false,
+                MagnifierPixelCount = regionOptions?.MagnifierPixelCount ?? 15,
+                ShowInfo = regionOptions?.ShowInfo ?? true,
                 EnableKeyboardNudge = true,         // Allow arrow key adjustments
                 ShowCursor = false,                 // Hide cursor (overlay draws crosshair)
                 EditorOptions = RegionCaptureAnnotationOptionsStore.GetEditorOptions(workflowType: WorkflowType.Ruler),

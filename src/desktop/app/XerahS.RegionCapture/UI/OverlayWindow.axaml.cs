@@ -187,6 +187,7 @@ public partial class OverlayWindow : Window
             _annotationCanvas.PointerPressed += OnAnnotationCanvasPointerPressed;
             _annotationCanvas.PointerMoved += OnAnnotationCanvasPointerMoved;
             _annotationCanvas.PointerReleased += OnAnnotationCanvasPointerReleased;
+            _annotationCanvas.PointerWheelChanged += OnAnnotationCanvasPointerWheelChanged;
         }
 
         // Subscribe to ActiveTool changes to toggle canvas hit testing
