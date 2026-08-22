@@ -23,6 +23,7 @@ Sequence options:
   --set-prerelease            Force successful tag release as pre-release
   --no-prerelease             Force successful tag release as stable/latest
   --prepare-flathub-source    Generate Flathub source-build manifest candidate after the release is ready
+  --prepare-distro-repo-source  Stamp PPA/COPR/OBS candidates after the release is ready (does not publish)
   -h, --help                  Show this help
 
 All other options are passed through to:
@@ -443,6 +444,7 @@ MONITOR_INTERVAL=120
 # empty = auto from repo policy; 1 = force prerelease; 0 = force stable
 SET_PRERELEASE=""
 PREPARE_FLATHUB_SOURCE=0
+PREPARE_DISTRO_REPO_SOURCE=0
 WORKFLOW_NAME="Release Build (All Platforms)"
 GH_TARGET_REPO=""
 
@@ -511,6 +513,10 @@ while [[ $# -gt 0 ]]; do
       PREPARE_FLATHUB_SOURCE=1
       shift
       ;;
+    --prepare-distro-repo-source)
+      PREPARE_DISTRO_REPO_SOURCE=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -561,6 +567,7 @@ maintenance_skill="$repo_root/.ai/skills/run-maintenance/SKILL.md"
 changelog_skill="$repo_root/.ai/skills/update-changelog/SKILL.md"
 bump_script="$repo_root/.ai/skills/publish-release/scripts/bump-version-commit-tag.sh"
 flathub_source_script="$repo_root/.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh"
+distro_repo_script="$repo_root/.ai/skills/publish-release/scripts/prepare-distro-repo-assets.sh"
 
 if [[ ! -f "$maintenance_skill" ]]; then
   echo "Error: required skill file not found: $maintenance_skill" >&2
@@ -576,6 +583,10 @@ if [[ ! -f "$bump_script" ]]; then
 fi
 if [[ $PREPARE_FLATHUB_SOURCE -eq 1 && ! -f "$flathub_source_script" ]]; then
   echo "Error: required script file not found: $flathub_source_script" >&2
+  exit 1
+fi
+if [[ $PREPARE_DISTRO_REPO_SOURCE -eq 1 && ! -f "$distro_repo_script" ]]; then
+  echo "Error: required script file not found: $distro_repo_script" >&2
   exit 1
 fi
 
@@ -652,6 +663,11 @@ apply_release_channel "$tag_name" "$GH_TARGET_REPO" "$SET_PRERELEASE"
 if [[ $PREPARE_FLATHUB_SOURCE -eq 1 ]]; then
   echo "Step 8: preparing Flathub source-build manifest candidate for $tag_name..."
   bash "$flathub_source_script" --tag "$tag_name" --repo "$GH_TARGET_REPO" --lint
+fi
+
+if [[ $PREPARE_DISTRO_REPO_SOURCE -eq 1 ]]; then
+  echo "Step 9: stamping PPA/COPR/OBS candidates for $tag_name (does not publish)..."
+  bash "$distro_repo_script" --tag "$tag_name" --repo "$GH_TARGET_REPO"
 fi
 
 echo "Release sequence completed for $tag_name on $GH_TARGET_REPO."

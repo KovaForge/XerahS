@@ -16,3 +16,4 @@ This directory documents the Linux desktop behavior needed for native packages, 
 - [Flatpak permission review](flatpak-permissions.md)
 - [Portal behavior and troubleshooting](portal-behavior.md)
 - [Flathub submission checklist](flathub-submission-checklist.md)
+- [PPA / COPR / OBS candidates](distro-repos.md)

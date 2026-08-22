@@ -1,0 +1,3 @@
+version=4
+https://github.com/@REPO@/releases \
+  .*/XerahS-([\d.]+)-linux-x64\.tar\.gz

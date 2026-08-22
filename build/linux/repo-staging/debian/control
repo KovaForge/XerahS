@@ -1,0 +1,23 @@
+Source: xerahs
+Section: utils
+Priority: optional
+Maintainer: ShareX Team <info@getsharex.com>
+Build-Depends: debhelper-compat (= 13), tar, gzip
+Standards-Version: 4.6.2
+Homepage: https://github.com/@REPO@
+Rules-Requires-Root: no
+
+Package: xerahs
+Architecture: amd64 arm64
+Depends: ${misc:Depends}
+Recommends: wl-clipboard, xclip
+Suggests: gnome-shell-extension-appindicator
+Description: XerahS - Cross-platform screen capture tool
+ A modern, cross-platform successor to ShareX.
+ .
+ This source package installs the official self-contained Linux payload
+ from the GitHub release. It is the Launchpad PPA counterpart of the
+ XerahS-*-linux-*.deb asset already attached to each release.
+ .
+ On GNOME, install gnome-shell-extension-appindicator to enable the
+ system tray icon.

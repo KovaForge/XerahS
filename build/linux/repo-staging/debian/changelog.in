@@ -1,0 +1,5 @@
+xerahs (@VERSION@-1) unstable; urgency=medium
+
+  * Official Linux payload from GitHub release v@VERSION@.
+
+ -- ShareX Team <info@getsharex.com>  @RFC2822_DATE@

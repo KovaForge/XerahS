@@ -1,6 +1,6 @@
 # Installing XerahS on Linux
 
-This guide covers building and installing XerahS on **Ubuntu**, **Fedora**, and **Arch** from the repository. For Flatpak, see [docs/linux/](../../docs/linux/).
+This guide covers building and installing XerahS on **Ubuntu**, **Fedora**, and **Arch** from the repository. For Flatpak, see [docs/linux/](../../docs/linux/). First-party PPA / COPR / OBS candidates (not live repos) are documented in [docs/linux/distro-repos.md](../../docs/linux/distro-repos.md).
 
 ---
 
@@ -181,5 +181,6 @@ sudo pacman -R xerahs-git
 
 - **Packaging**: `build/linux/package-linux.sh`, `build/linux/XerahS.Packaging/`
 - **AUR PKGBUILD**: `build/linux/aur/xerahs-git/PKGBUILD`
+- **PPA / COPR / OBS templates**: `build/linux/repo-staging/` and [docs/linux/distro-repos.md](../../docs/linux/distro-repos.md)
 - **Improvement plan**: [docs/proposals/xip/XIP0079-linux-improvement-plan.md](../../docs/proposals/xip/XIP0079-linux-improvement-plan.md)
 - **Flatpak**: [docs/linux/](../../docs/linux/)
