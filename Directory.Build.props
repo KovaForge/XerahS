@@ -8,6 +8,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <BuildInParallel>false</BuildInParallel>
     <UseSharedCompilation>false</UseSharedCompilation>
+    <!-- Compile/test lanes stay side-effect free. Product lanes opt in explicitly. -->
+    <AssembleProduct Condition="'$(AssembleProduct)' == ''">false</AssembleProduct>
+    <BuildWebUI Condition="'$(BuildWebUI)' == ''">$(AssembleProduct)</BuildWebUI>
     <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3026</MSBuildWarningsAsMessages>
     <!-- Workaround for Fedora .NET package missing prune data -->
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>

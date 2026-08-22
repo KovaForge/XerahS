@@ -24,9 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System.Diagnostics;
-using XerahS.Common;
-
-namespace XerahS.Core.Helpers
+namespace XerahS.Common
 {
     /// <summary>
     /// Centralized troubleshooting and debug logging helper.

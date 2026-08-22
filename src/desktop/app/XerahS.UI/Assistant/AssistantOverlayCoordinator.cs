@@ -26,6 +26,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Platform.Abstractions;
@@ -37,9 +38,15 @@ namespace XerahS.UI.Assistant;
 
 public sealed class AssistantOverlayCoordinator : IDisposable
 {
+    private readonly IDesktopTaskManager _taskManager;
     private AssistantOverlayWindow? _window;
     private HotkeyInfo? _registeredHotkey;
     private bool _disposed;
+
+    public AssistantOverlayCoordinator(IDesktopTaskManager taskManager)
+    {
+        _taskManager = taskManager ?? throw new ArgumentNullException(nameof(taskManager));
+    }
 
     public void Start()
     {
@@ -115,7 +122,7 @@ public sealed class AssistantOverlayCoordinator : IDisposable
             return;
         }
 
-        var viewModel = new AssistantViewModel();
+        var viewModel = new AssistantViewModel(new XerahS.Assistant.Services.AssistantService(_taskManager));
         _window = new AssistantOverlayWindow();
         _window.Initialize(viewModel);
         _window.Closed += (_, _) => _window = null;

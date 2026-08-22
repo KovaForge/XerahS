@@ -119,8 +119,12 @@ if (-not $upstreamRef) {
 }
 
 if (-not $upstreamRef) {
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     git -C $imageEditorPath push -u origin $branchName *> $null
-    if ($LASTEXITCODE -eq 0) {
+    $pushExitCode = $LASTEXITCODE
+    $ErrorActionPreference = $previousErrorActionPreference
+    if ($pushExitCode -eq 0) {
         Write-Host "INFO: ShareX.ImageEditor branch '$branchName' pushed and upstream set."
     } else {
         Write-Host "WARN: ShareX.ImageEditor auto-push failed for '$branchName' (set upstream)." -ForegroundColor Yellow
@@ -141,8 +145,12 @@ if ($aheadCount -eq 0) {
     exit 0
 }
 
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
 git -C $imageEditorPath push *> $null
-if ($LASTEXITCODE -eq 0) {
+$pushExitCode = $LASTEXITCODE
+$ErrorActionPreference = $previousErrorActionPreference
+if ($pushExitCode -eq 0) {
     Write-Host "INFO: ShareX.ImageEditor auto-pushed $aheadCount commit(s) from '$branchName'."
 } else {
     Write-Host "WARN: ShareX.ImageEditor auto-push failed for '$branchName'." -ForegroundColor Yellow

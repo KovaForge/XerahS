@@ -323,3 +323,5 @@ This forces the build system to include the correct Windows SDK reference assemb
 
 - Never assume NUnit attributes are globally imported in `XerahS.Tests`; always include `using NUnit.Framework;` in a new test file and run its focused filter first because otherwise the full dependency build finishes before revealing a trivial test-compilation error.
 - Never run a `--no-restore` solution build after pulling central package-version changes; always restore the solution first because stale project assets can mix incompatible managed assembly versions and produce misleading compiler failures.
+- Never remove a project reference based only on `using`-directive searches; search fully qualified namespace expressions and build the affected project directly because expression-qualified calls can hide a real dependency without importing its namespace.
+- Never use a product executable project as a bounded compile check unless recursive staging is explicitly disabled; route agent checks through `build/verify.ps1` so plugin builds, daemon staging, and VideoEditor frontend work happen only in product-assembly lanes.

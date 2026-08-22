@@ -376,7 +376,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
         // Check for native recording service factory (e.g., MacOSNativeRecordingService)
         if (ScreenRecorderService.NativeRecordingServiceFactory != null)
         {
-            TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Using NativeRecordingServiceFactory");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Using NativeRecordingServiceFactory");
             return ScreenRecorderService.NativeRecordingServiceFactory();
         }
 
@@ -403,16 +403,16 @@ public class ScreenRecordingManager : IScreenRecordingManager
                 case LinuxRecordingBackendPreference.Native:
                     if (hasNativeFactory)
                     {
-                        TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Linux native recording backend requested -> using native backend");
+                        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Linux native recording backend requested -> using native backend");
                         return false;
                     }
 
-                    TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Linux native recording backend requested but unavailable -> using FFmpeg fallback");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Linux native recording backend requested but unavailable -> using FFmpeg fallback");
                     return true;
                 case LinuxRecordingBackendPreference.FFmpeg:
                     if (isWayland && hasNativeFactory)
                     {
-                        TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Linux FFmpeg fallback requested on Wayland -> using native backend because x11grab is unavailable");
+                        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Linux FFmpeg fallback requested on Wayland -> using native backend because x11grab is unavailable");
                         return false;
                     }
 
@@ -421,7 +421,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
                         DebugHelper.WriteLine("WARNING: Linux FFmpeg fallback requested on Wayland but native recording is unavailable.");
                     }
 
-                    TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Linux FFmpeg fallback backend requested -> using FFmpeg");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Linux FFmpeg fallback backend requested -> using FFmpeg");
                     return true;
             }
         }
@@ -432,7 +432,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
         {
             if (isWayland && hasNativeFactory)
             {
-                TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "UseModernCapture is disabled but on Wayland with portal available -> using native (x11grab won't work)");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "UseModernCapture is disabled but on Wayland with portal available -> using native (x11grab won't work)");
                 return false; // Use native on Wayland even if UseModernCapture is false
             }
 
@@ -441,7 +441,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
                 DebugHelper.WriteLine("WARNING: On Wayland but NativeRecordingServiceFactory is null - portal recording not initialized!");
             }
 
-            TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "UseModernCapture is disabled -> forcing FFmpeg fallback");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "UseModernCapture is disabled -> forcing FFmpeg fallback");
             return true;
         }
 
@@ -450,11 +450,11 @@ public class ScreenRecordingManager : IScreenRecordingManager
             // On Wayland, warn that ForceFFmpeg won't work and fall back to native if available
             if (isWayland && ScreenRecorderService.NativeRecordingServiceFactory != null)
             {
-                TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "ForceFFmpeg requested but on Wayland -> using native (x11grab won't work)");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "ForceFFmpeg requested but on Wayland -> using native (x11grab won't work)");
                 return false;
             }
 
-            TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "ForceFFmpeg setting is enabled -> using FFmpeg");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "ForceFFmpeg setting is enabled -> using FFmpeg");
             return true;
         }
 
@@ -463,17 +463,17 @@ public class ScreenRecordingManager : IScreenRecordingManager
         {
             if (isWayland && ScreenRecorderService.NativeRecordingServiceFactory != null)
             {
-                TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Audio capture requested on Wayland -> using native portal backend");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Audio capture requested on Wayland -> using native portal backend");
                 return false;
             }
 
-            TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Audio capture requested -> using FFmpeg");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Audio capture requested -> using FFmpeg");
             return true;
         }
 
         if (settings is not null && RecordingCodecSupportPolicy.RequiresFfmpegFallback(settings.Codec))
         {
-            TroubleshootingHelper.Log(
+            XerahS.Common.TroubleshootingHelper.Log(
                 "ScreenRecorder",
                 "FALLBACK",
                 $"Codec {settings.Codec} requires FFmpeg because the native backend only supports H.264 in this build.");
@@ -483,14 +483,14 @@ public class ScreenRecordingManager : IScreenRecordingManager
         // Check if we have a native recording service factory (complete IRecordingService)
         if (ScreenRecorderService.NativeRecordingServiceFactory != null)
         {
-            TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "NativeRecordingServiceFactory available -> using native");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "NativeRecordingServiceFactory available -> using native");
             return false; // Use native, not fallback
         }
 
         // If native capture factory is not configured (e.g. macOS without native), must use fallback
         if (ScreenRecorderService.CaptureSourceFactory == null)
         {
-            TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Native CaptureSourceFactory not set -> forcing FFmpeg fallback");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Native CaptureSourceFactory not set -> forcing FFmpeg fallback");
             return true;
         }
 
@@ -547,16 +547,16 @@ public class ScreenRecordingManager : IScreenRecordingManager
 
             try
             {
-                TroubleshootingHelper.Log("ScreenRecorder", "MANAGER", $"Attempt {attempt + 1}: useFallback={useFallback}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MANAGER", $"Attempt {attempt + 1}: useFallback={useFallback}");
                 WireRecordingEvents(recordingService);
 
                 DebugHelper.WriteLine($"ScreenRecordingManager: Starting {(useFallback ? "fallback (FFmpeg)" : "native")} recording - Mode={optionsToStart.Mode}, Codec={optionsToStart.Settings?.Codec}, FPS={optionsToStart.Settings?.FPS}");
 
-                TroubleshootingHelper.Log("ScreenRecorder", "MANAGER", "Calling recordingService.StartRecordingAsync");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MANAGER", "Calling recordingService.StartRecordingAsync");
                 await recordingService.StartRecordingAsync(optionsToStart);
                 UpdateFinalOutputExtensionFromSegmentPath(optionsToStart.OutputPath);
 
-                TroubleshootingHelper.Log("ScreenRecorder", "MANAGER", "Recording started successfully");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MANAGER", "Recording started successfully");
 
                 // Track fallback status and notify UI
                 IsUsingFallback = useFallback;
@@ -566,7 +566,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
             }
             catch (Exception ex) when (!useFallback && CanFallbackFrom(ex))
             {
-                TroubleshootingHelper.Log("ScreenRecorder", "MANAGER", $"Native recording failed: {ex.Message}, attempting FFmpeg fallback");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MANAGER", $"Native recording failed: {ex.Message}, attempting FFmpeg fallback");
                 DebugHelper.WriteException(ex, "ScreenRecordingManager: Native recording failed, attempting FFmpeg fallback...");
                 lastError = ex;
                 CleanupCurrentRecording(recordingService);
@@ -578,7 +578,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
             }
             catch (Exception ex)
             {
-                TroubleshootingHelper.Log("ScreenRecorder", "MANAGER", $"Recording failed with unrecoverable error: {ex.Message}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MANAGER", $"Recording failed with unrecoverable error: {ex.Message}");
 
                 try
                 {

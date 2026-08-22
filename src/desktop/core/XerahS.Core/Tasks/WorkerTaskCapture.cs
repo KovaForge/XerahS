@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     XerahS - The Avalonia UI implementation of ShareX
@@ -45,17 +45,17 @@ namespace XerahS.Core.Tasks
 
             var delayMs = TaskHelpers.GetCaptureStartDelayMilliseconds(delaySeconds);
             var workflowId = string.IsNullOrWhiteSpace(taskSettings.WorkflowId) ? "none" : taskSettings.WorkflowId;
-            TroubleshootingHelper.Log(taskSettings.Job.ToString(), "CAPTURE_DELAY", $"WorkflowId={workflowId}, Category={category}, DelaySeconds={delaySeconds:F3}, DelayMs={delayMs}");
+            XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "CAPTURE_DELAY", $"WorkflowId={workflowId}, Category={category}, DelaySeconds={delaySeconds:F3}, DelayMs={delayMs}");
 
             try
             {
                 await Task.Delay(delayMs, token);
-                TroubleshootingHelper.Log(taskSettings.Job.ToString(), "CAPTURE_DELAY", $"WorkflowId={workflowId}, Category={category}, DelayCompleted=true");
+                XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "CAPTURE_DELAY", $"WorkflowId={workflowId}, Category={category}, DelayCompleted=true");
                 return true;
             }
             catch (OperationCanceledException)
             {
-                TroubleshootingHelper.Log(taskSettings.Job.ToString(), "CAPTURE_DELAY", $"WorkflowId={workflowId}, Category={category}, DelayCancelled=true");
+                XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "CAPTURE_DELAY", $"WorkflowId={workflowId}, Category={category}, DelayCancelled=true");
                 Status = TaskStatus.Stopped;
                 OnStatusChanged();
                 return false;

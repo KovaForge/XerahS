@@ -70,7 +70,7 @@ namespace XerahS.CLI
 
                 var taskManager = services.GetRequiredService<IDesktopTaskManager>();
                 var recordingCoordinator = services.GetRequiredService<IScreenRecordingCoordinator>();
-                var assistantCliService = new AssistantCliService(new AssistantService());
+                var assistantCliService = new AssistantCliService(new AssistantService(taskManager));
 
                 // Build command tree
                 var rootCommand = BuildRootCommand(taskManager, recordingCoordinator, assistantCliService);

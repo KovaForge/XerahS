@@ -89,11 +89,11 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
                 _dispatcherQueueController = WinRT.MarshalInterface<global::Windows.System.DispatcherQueueController>.FromAbi(controllerPtr);
                 _dispatcherQueue = _dispatcherQueueController.DispatcherQueue;
                 
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "THREAD", "Dedicated DispatcherQueue thread created successfully.");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "THREAD", "Dedicated DispatcherQueue thread created successfully.");
             }
             catch (Exception ex)
             {
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "THREAD", $"Failed to create dedicated thread: {ex}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "THREAD", $"Failed to create dedicated thread: {ex}");
                 throw;
             }
         }
@@ -109,7 +109,7 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
         bool enqueued = _dispatcherQueue.TryEnqueue(() =>
         {
             try { action(); }
-            catch (Exception ex) { Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "THREAD", $"Action failed: {ex}"); }
+            catch (Exception ex) { XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "THREAD", $"Action failed: {ex}"); }
         });
 
         if (!enqueued) throw new InvalidOperationException("Failed to enqueue operation");
@@ -130,7 +130,7 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
             }
             catch (Exception ex) 
             { 
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "THREAD", $"Async Action failed: {ex}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "THREAD", $"Async Action failed: {ex}");
                 tcs.SetException(ex);
             }
         });
@@ -154,7 +154,7 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
             }
             catch (Exception ex) 
             { 
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "THREAD", $"Action failed: {ex}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "THREAD", $"Action failed: {ex}");
                 tcs.SetException(ex);
             }
         });
@@ -172,46 +172,46 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
         {
             try
             {
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", "Checking Windows.Graphics.Capture support...");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", "Checking Windows.Graphics.Capture support...");
 
                 // Check Windows version >= 10.0.17134 (1803)
                 var version = Environment.OSVersion.Version;
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"OS Version: {version.Major}.{version.Minor}.{version.Build}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"OS Version: {version.Major}.{version.Minor}.{version.Build}");
 
                 if (version.Major < 10)
                 {
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"✗ OS Major version {version.Major} < 10");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"✗ OS Major version {version.Major} < 10");
                     return false;
                 }
 
                 if (version.Build < 17134)
                 {
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"✗ OS Build {version.Build} < 17134 (requires Windows 10 1803+)");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"✗ OS Build {version.Build} < 17134 (requires Windows 10 1803+)");
                     return false;
                 }
 
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"✓ OS version check passed (10.{version.Minor}.{version.Build})");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"✓ OS version check passed (10.{version.Minor}.{version.Build})");
 
                 // Try to create a test capture item to verify API availability
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", "Calling GraphicsCaptureSession.IsSupported()...");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", "Calling GraphicsCaptureSession.IsSupported()...");
                 bool apiSupported = WGC.GraphicsCaptureSession.IsSupported();
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"GraphicsCaptureSession.IsSupported() = {apiSupported}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"GraphicsCaptureSession.IsSupported() = {apiSupported}");
 
                 if (apiSupported)
                 {
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", "✓ Windows.Graphics.Capture is fully supported");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", "✓ Windows.Graphics.Capture is fully supported");
                 }
                 else
                 {
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", "✗ GraphicsCaptureSession.IsSupported() returned false");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", "✗ GraphicsCaptureSession.IsSupported() returned false");
                 }
 
                 return apiSupported;
             }
             catch (Exception ex)
             {
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"✗ EXCEPTION checking WGC support: {ex.GetType().Name}: {ex.Message}");
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"Stack trace: {ex.StackTrace}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"✗ EXCEPTION checking WGC support: {ex.GetType().Name}: {ex.Message}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"Stack trace: {ex.StackTrace}");
                 return false;
             }
         }
@@ -277,11 +277,11 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
 
         // Check if running on Windows 10 20H1+ for monitor capture
         var version = Environment.OSVersion.Version;
-        Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"Windows version: {version.Major}.{version.Minor}.{version.Build}");
+        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"Windows version: {version.Major}.{version.Minor}.{version.Build}");
         
         if (version.Build < 19041)
         {
-            Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"✗ Build {version.Build} < 19041, monitor capture not supported");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"✗ Build {version.Build} < 19041, monitor capture not supported");
             throw new PlatformNotSupportedException(
                 $"Monitor capture requires Windows 10 20H1 (build 19041) or later. Current build: {version.Build}");
         }
@@ -291,45 +291,45 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
             try
             {
                 System.Console.WriteLine("[WGC] Creating D3D11 device (on Capture Thread)...");
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "Creating D3D11 device (on Capture Thread)...");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "Creating D3D11 device (on Capture Thread)...");
                 _d3dDevice = CreateD3DDevice();
                 System.Console.WriteLine("[WGC] ✓ D3D device created successfully");
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "✓ D3D device created successfully");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "✓ D3D device created successfully");
 
                 System.Console.WriteLine("[WGC] Creating IDirect3DDevice from D3D11...");
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "Creating IDirect3DDevice from D3D11...");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "Creating IDirect3DDevice from D3D11...");
                 _device = CreateDirect3DDeviceFromD3D11Device(_d3dDevice);
                 System.Console.WriteLine("[WGC] ✓ IDirect3DDevice created successfully");
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "✓ IDirect3DDevice created successfully");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "✓ IDirect3DDevice created successfully");
 
                 System.Console.WriteLine("[WGC] Getting primary monitor handle...");
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "Getting primary monitor handle...");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "Getting primary monitor handle...");
                 var monitorHandle = GetPrimaryMonitorHandle();
                 System.Console.WriteLine($"[WGC] Primary monitor handle: 0x{monitorHandle:X}");
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"Primary monitor handle: 0x{monitorHandle:X}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"Primary monitor handle: 0x{monitorHandle:X}");
 
                 if (monitorHandle == IntPtr.Zero)
                 {
                     System.Console.WriteLine("[WGC] ✗ Monitor handle is NULL");
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "✗ Monitor handle is NULL");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "✗ Monitor handle is NULL");
                     throw new InvalidOperationException("Failed to get primary monitor handle");
                 }
 
                 System.Console.WriteLine("[WGC] Calling CaptureHelper.CreateItemForMonitor...");
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "Calling CaptureHelper.CreateItemForMonitor...");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "Calling CaptureHelper.CreateItemForMonitor...");
                 _captureItem = CaptureHelper.CreateItemForMonitor(monitorHandle);
                 System.Console.WriteLine($"[WGC] ✓ Capture item created: {_captureItem?.DisplayName ?? "null"}");
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"✓ Capture item created: {_captureItem?.DisplayName ?? "null"}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"✓ Capture item created: {_captureItem?.DisplayName ?? "null"}");
 
                 if (_captureItem == null)
                 {
                     System.Console.WriteLine("[WGC] ✗ Capture item is NULL");
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "✗ Capture item is NULL");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "✗ Capture item is NULL");
                     throw new InvalidOperationException("Failed to create capture item for monitor");
                 }
 
                 System.Console.WriteLine($"[WGC] Creating frame pool (size: {_captureItem.Size.Width}x{_captureItem.Size.Height})...");
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"Creating frame pool (size: {_captureItem.Size.Width}x{_captureItem.Size.Height})...");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"Creating frame pool (size: {_captureItem.Size.Width}x{_captureItem.Size.Height})...");
                 _framePool = WGC.Direct3D11CaptureFramePool.Create(
                     _device,
                     global::Windows.Graphics.DirectX.DirectXPixelFormat.B8G8R8A8UIntNormalized,
@@ -338,7 +338,7 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
 
                 _framePool.FrameArrived += OnFrameArrived;
                 System.Console.WriteLine("[WGC] ✓ Frame pool created and event wired");
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "✓ Frame pool created and event wired");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", "✓ Frame pool created and event wired");
             }
             catch (Exception ex)
             {
@@ -349,12 +349,12 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
                 }
                 System.Console.WriteLine($"[WGC]   Stack: {ex.StackTrace}");
 
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"✗ InitializeForPrimaryMonitor FAILED: {ex.GetType().Name}: {ex.Message}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"✗ InitializeForPrimaryMonitor FAILED: {ex.GetType().Name}: {ex.Message}");
                 if (ex.InnerException != null)
                 {
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"  Inner exception: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"  Inner exception: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
                 }
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"  Stack trace: {ex.StackTrace}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INIT", $"  Stack trace: {ex.StackTrace}");
                 Dispose();
                 throw new PlatformNotSupportedException(
                     "Failed to initialize Windows.Graphics.Capture for monitor.",
@@ -379,10 +379,10 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
                 _session = _framePool.CreateCaptureSession(_captureItem);
                 _session.IsCursorCaptureEnabled = ShowCursor; // Stage 2: Configurable cursor capture
                 
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", "StartCaptureAsync: Calling _session.StartCapture()...");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", "StartCaptureAsync: Calling _session.StartCapture()...");
                 System.Console.WriteLine("WGC: Calling _session.StartCapture()...");
                 _session.StartCapture();
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", "StartCaptureAsync: _session.StartCapture() returned.");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", "StartCaptureAsync: _session.StartCapture() returned.");
                 System.Console.WriteLine("WGC: _session.StartCapture() returned. Capture started.");
                 
                 _isCapturing = true;
@@ -414,7 +414,7 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
         // Log sparingly
         if ((_frameCount % 30) == 0)
         {
-             Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"OnFrameArrived! Frame {_frameCount}");
+             XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"OnFrameArrived! Frame {_frameCount}");
              System.Console.WriteLine($"WGC: OnFrameArrived! Frame {_frameCount}");
         }
 
@@ -607,7 +607,7 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
             }
             catch (Exception ex)
             {
-                 Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "DISPOSE", $"Error disposing: {ex}");
+                 XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "DISPOSE", $"Error disposing: {ex}");
             }
             finally
             {
@@ -668,44 +668,44 @@ internal static class CaptureHelper
     public static WGC.GraphicsCaptureItem? CreateItemForMonitor(IntPtr hmonitor)
     {
         System.Console.WriteLine($"[WGC_INTEROP] CreateItemForMonitor called with handle: 0x{hmonitor:X}");
-        Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", $"CreateItemForMonitor called with handle: 0x{hmonitor:X}");
+        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", $"CreateItemForMonitor called with handle: 0x{hmonitor:X}");
 
         var interop = GraphicsCaptureItemInterop.GetInterop();
         if (interop == null)
         {
             System.Console.WriteLine("[WGC_INTEROP] ✗ GetInterop() returned null - WGC activation factory not available");
-            Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", "✗ GetInterop() returned null - WGC activation factory not available");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", "✗ GetInterop() returned null - WGC activation factory not available");
             throw new InvalidOperationException("Failed to get IGraphicsCaptureItemInterop activation factory. Windows.Graphics.Capture may not be supported.");
         }
 
         System.Console.WriteLine("[WGC_INTEROP] ✓ Interop factory obtained, calling CreateForMonitor...");
-        Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", "✓ Interop factory obtained, calling CreateForMonitor...");
+        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", "✓ Interop factory obtained, calling CreateForMonitor...");
         var guid = GraphicsCaptureItemGuid;
         var hr = interop.CreateForMonitor(hmonitor, ref guid, out var itemPtr);
 
         System.Console.WriteLine($"[WGC_INTEROP] CreateForMonitor returned HRESULT: 0x{hr:X8}, itemPtr=0x{itemPtr:X}");
-        Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", $"CreateForMonitor returned HRESULT: 0x{hr:X8}, itemPtr=0x{itemPtr:X}");
+        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", $"CreateForMonitor returned HRESULT: 0x{hr:X8}, itemPtr=0x{itemPtr:X}");
 
         if (hr != 0)
         {
             System.Console.WriteLine($"[WGC_INTEROP] ✗ CreateForMonitor FAILED with HRESULT 0x{hr:X8}");
-            Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", $"✗ CreateForMonitor FAILED with HRESULT 0x{hr:X8}");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", $"✗ CreateForMonitor FAILED with HRESULT 0x{hr:X8}");
             throw new InvalidOperationException($"CreateForMonitor failed with HRESULT 0x{hr:X8}. Monitor handle: 0x{hmonitor:X}");
         }
 
         if (itemPtr == IntPtr.Zero)
         {
             System.Console.WriteLine("[WGC_INTEROP] ✗ CreateForMonitor returned null pointer");
-            Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", "✗ CreateForMonitor returned null pointer");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", "✗ CreateForMonitor returned null pointer");
             throw new InvalidOperationException($"CreateForMonitor returned null for monitor handle 0x{hmonitor:X}");
         }
 
         // Use CsWinRT marshaling - properly handles WinRT type projection from COM interface pointer
         System.Console.WriteLine("[WGC_INTEROP] Marshaling IntPtr to GraphicsCaptureItem using CsWinRT...");
-        Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", "Marshaling IntPtr to GraphicsCaptureItem using CsWinRT...");
+        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", "Marshaling IntPtr to GraphicsCaptureItem using CsWinRT...");
         var item = WinRT.MarshalInterface<WGC.GraphicsCaptureItem>.FromAbi(itemPtr);
         System.Console.WriteLine($"[WGC_INTEROP] ✓ GraphicsCaptureItem created successfully: {item.DisplayName}");
-        Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", $"✓ GraphicsCaptureItem created successfully: {item.DisplayName}");
+        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC_INTEROP", $"✓ GraphicsCaptureItem created successfully: {item.DisplayName}");
         return item;
     }
 }

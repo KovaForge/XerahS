@@ -67,7 +67,7 @@ namespace XerahS.Core.Managers
                 return;
             }
 
-            TroubleshootingHelper.Log(taskSettings.Job.ToString(), "TASK_MANAGER", "StartTask Entry");
+            XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "TASK_MANAGER", "StartTask Entry");
 
             var task = WorkerTask.Create(taskSettings, inputImage);
 
@@ -93,7 +93,7 @@ namespace XerahS.Core.Managers
                 }
             }
 
-            TroubleshootingHelper.Log(task.Info?.TaskSettings?.Job.ToString() ?? "Unknown", "TASK_MANAGER", "Task created");
+            XerahS.Common.TroubleshootingHelper.Log(task.Info?.TaskSettings?.Job.ToString() ?? "Unknown", "TASK_MANAGER", "Task created");
 
             task.StatusChanged += (s, e) => DebugHelper.WriteLine($"Task Status: {task.Status}");
             task.TaskCompleted += (s, e) =>
@@ -104,9 +104,9 @@ namespace XerahS.Core.Managers
 
             TaskStarted?.Invoke(this, task);
 
-            TroubleshootingHelper.Log(task.Info?.TaskSettings?.Job.ToString() ?? "Unknown", "TASK_MANAGER", "Calling task.StartAsync...");
+            XerahS.Common.TroubleshootingHelper.Log(task.Info?.TaskSettings?.Job.ToString() ?? "Unknown", "TASK_MANAGER", "Calling task.StartAsync...");
             await task.StartAsync();
-            TroubleshootingHelper.Log(task.Info?.TaskSettings?.Job.ToString() ?? "Unknown", "TASK_MANAGER", "task.StartAsync completed");
+            XerahS.Common.TroubleshootingHelper.Log(task.Info?.TaskSettings?.Job.ToString() ?? "Unknown", "TASK_MANAGER", "task.StartAsync completed");
         }
 
         public async Task StartFileTask(TaskSettings? taskSettings, string filePath)
@@ -123,7 +123,7 @@ namespace XerahS.Core.Managers
                 return;
             }
 
-            TroubleshootingHelper.Log(taskSettings?.Job.ToString() ?? "Unknown", "TASK_MANAGER", $"StartFileTask Entry: FilePath={filePath}");
+            XerahS.Common.TroubleshootingHelper.Log(taskSettings?.Job.ToString() ?? "Unknown", "TASK_MANAGER", $"StartFileTask Entry: FilePath={filePath}");
 
             var safeTaskSettings = taskSettings ?? new TaskSettings();
             var task = WorkerTask.Create(safeTaskSettings);
@@ -181,7 +181,7 @@ namespace XerahS.Core.Managers
                 return;
             }
 
-            TroubleshootingHelper.Log(taskSettings.Job.ToString(), "TASK_MANAGER", "StartImageUploadTask Entry");
+            XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "TASK_MANAGER", "StartImageUploadTask Entry");
 
             var safeTaskSettings = taskSettings;
             var task = WorkerTask.Create(safeTaskSettings, image);
@@ -237,7 +237,7 @@ namespace XerahS.Core.Managers
             }
 
             TaskSettings safeTaskSettings = taskSettings;
-            TroubleshootingHelper.Log(safeTaskSettings.Job.ToString(), "TASK_MANAGER", $"StartTextTask Entry: textLength={text.Length}");
+            XerahS.Common.TroubleshootingHelper.Log(safeTaskSettings.Job.ToString(), "TASK_MANAGER", $"StartTextTask Entry: textLength={text.Length}");
             DebugHelper.WriteLine(
                 $"[UploadContentDebug] StartTextTask: job={safeTaskSettings.Job}, workflowId=\"{safeTaskSettings.WorkflowId ?? string.Empty}\", " +
                 $"destinationInstanceId=\"{safeTaskSettings.DestinationInstanceId ?? string.Empty}\", " +

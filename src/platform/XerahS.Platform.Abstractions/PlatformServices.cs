@@ -28,7 +28,8 @@ using XerahS.Services.Abstractions;
 namespace XerahS.Platform.Abstractions
 {
     /// <summary>
-    /// Central service locator for platform services
+    /// Compatibility registry populated by platform initializers.
+    /// New host composition captures these capabilities once and passes them explicitly.
     /// </summary>
     public static class PlatformServices
     {
@@ -272,28 +273,11 @@ namespace XerahS.Platform.Abstractions
             _imageEncoderService = imageEncoderService ?? throw new ArgumentNullException(nameof(imageEncoderService));
         }
 
-        private static IServiceProvider? _rootProvider;
-
-        /// <summary>
-        /// Root DI container built from platform and app services. Set after composition root runs.
-        /// Use for constructor injection and gradual migration away from static access.
-        /// </summary>
-        public static IServiceProvider? RootProvider => _rootProvider;
-
-        /// <summary>
-        /// Sets the root service provider (called by composition root after building the container).
-        /// </summary>
-        public static void SetRootProvider(IServiceProvider provider)
-        {
-            _rootProvider = provider ?? throw new ArgumentNullException(nameof(provider));
-        }
-
         /// <summary>
         /// Resets all platform services (mainly for testing)
         /// </summary>
         public static void Reset()
         {
-            _rootProvider = null;
             _platformInfo = null;
             _screenService = null;
             _clipboardService = null;
