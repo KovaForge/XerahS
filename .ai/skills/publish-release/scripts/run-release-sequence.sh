@@ -378,9 +378,11 @@ XerahS-${version}-mac-x64.tar.gz
 XerahS-${version}-linux-x64.tar.gz
 XerahS-${version}-linux-x64.deb
 XerahS-${version}-linux-x64.rpm
+XerahS-${version}-linux-x64.AppImage
 XerahS-${version}-linux-arm64.tar.gz
 XerahS-${version}-linux-arm64.deb
 XerahS-${version}-linux-arm64.rpm
+XerahS-${version}-linux-arm64.AppImage
 com.xerahs.XerahS-${version}-linux-x64.flatpak
 xerahs.${version}.nupkg
 EOF

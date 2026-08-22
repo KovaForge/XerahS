@@ -42,6 +42,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\build\linux\XerahS.Packaging\XerahS.Packaging.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj"
                       AdditionalProperties="EnableAppDrivenPluginBuild=false;SkipBundlePlugins=true" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Assistant\XerahS.Assistant.csproj" />

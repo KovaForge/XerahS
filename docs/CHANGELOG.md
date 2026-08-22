@@ -10,6 +10,13 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.25.6
+
+### Features
+- **Linux**: Ship self-contained AppImage packages for linux-x64 and linux-arm64 (`XerahS-{version}-linux-{arch}.AppImage`) alongside tar.gz, deb, rpm, and Flatpak. Flatpak packaging is unchanged.
+
+---
+
 ## v0.25.5
 
 ### Fixes

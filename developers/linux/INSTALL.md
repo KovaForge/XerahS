@@ -31,7 +31,7 @@ cd /path/to/xerahs
 ./build/linux/package-linux.sh
 ```
 
-This produces `.tar.gz`, `.deb`, and `.rpm` artifacts under `dist/`.
+This produces `.tar.gz`, `.deb`, `.rpm`, and `.AppImage` artifacts under `dist/` (linux-x64 and linux-arm64). Flatpak is built separately and is unchanged.
 
 Install:
 
@@ -41,6 +41,10 @@ sudo apt install ./dist/XerahS-*-linux-x64.deb
 
 # Fedora
 sudo dnf install ./dist/XerahS-*-linux-x64.rpm
+
+# AppImage (no install)
+chmod +x ./dist/XerahS-*-linux-x64.AppImage
+./dist/XerahS-*-linux-x64.AppImage
 ```
 
 The `.deb` and `.rpm` packages **recommend** `wl-clipboard` and `xclip` for CLI/background clipboard workflows. `apt` installs Recommends by default; on Fedora use `sudo dnf install wl-clipboard xclip` if they were not pulled in.

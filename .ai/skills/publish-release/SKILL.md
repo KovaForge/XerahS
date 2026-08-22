@@ -58,6 +58,7 @@ Step 6 performs:
 - After the release is published, the tag workflow also builds, smoke-tests, and attaches `xerahs.X.Y.Z.nupkg` to the GitHub release.
 - `build/windows/chocolatey/Sync-ChocolateyPackage.ps1 -Version X.Y.Z` remains the manual recovery path for re-syncing checksums or repacking.
 - Expected Windows release assets per architecture: `XerahS-X.Y.Z-win-x64.exe`, `XerahS-X.Y.Z-win-x64.msi`, `XerahS-X.Y.Z-win-arm64.exe`, `XerahS-X.Y.Z-win-arm64.msi`.
+- Expected Linux AppImage assets: `XerahS-X.Y.Z-linux-x64.AppImage`, `XerahS-X.Y.Z-linux-arm64.AppImage` (in addition to tar.gz/deb/rpm and the existing Flatpak bundle).
 
 Optional Step 8 performs:
 - Runs `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh --tag vX.Y.Z --repo owner/name --lint`.

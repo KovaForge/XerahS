@@ -335,6 +335,7 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     # 2. Package
     echo "Packaging ($ARCH)..."
     echo "Note: rpmbuild is required to produce RPM packages."
+    echo "Note: squashfs-tools is required to produce AppImage packages."
     dotnet run --no-restore --project "$PACKAGING_TOOL" -- "$PUBLISH_DIR" "$OUTPUT_DIR" "$VERSION" "$ARCH"
 done
 
