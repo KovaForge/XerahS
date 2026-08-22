@@ -5617,3 +5617,14 @@ Added candidates (8):
 - Commit: null (record SHA in Step 9 only; do not self-reference)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
 - Skill: xerahs-bugfix/SKILL.md v1.1.22 (no patch this tick)
+
+### 2026-08-22 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. Fork: HEAD was already declan/develop (f95eccf4). Upstream merge 6a28b421 integrated e606459e (release v0.25.6) + 6deff9f9 (AppImage packager / release maintenance); Directory.Build.props conflict resolved by keeping KovaForge Version 0.26.0. ShareX.ImageEditor pointer clean at d4f4029; pushed 4 unpublished local commits to origin/develop. No stale deferred-last-runs files.
+- Status: no-op
+- Build/test: n/a (empty queue; no code change)
+- Commit: null (record SHA in Step 9 only; do not self-reference)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.23 patched (1 new pitfall: keep KovaForge Version over lower upstream release bump)
