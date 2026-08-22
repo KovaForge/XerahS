@@ -149,6 +149,12 @@ h2 {
   max-width: 30rem;
   margin: 5vh auto;
 }
+.consent-stack {
+  display: grid;
+  gap: 1rem;
+  max-width: 38rem;
+  margin: 5vh auto;
+}
 .stack {
   display: grid;
   gap: 1rem;

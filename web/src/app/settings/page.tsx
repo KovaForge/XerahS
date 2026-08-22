@@ -5,6 +5,7 @@ import { ProfileSetup } from "@/components/profile-setup";
 import { SettingsControls } from "@/components/settings-controls";
 import { requireAuthenticatedUser } from "@/lib/auth";
 import { getAccountSummary } from "@/lib/database";
+import { getPublicEnv } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -80,7 +81,10 @@ export default async function SettingsPage() {
           <p>Paid status: {summary?.subscriptionStatus ?? "None"}</p>
         </article>
       </div>
-      <MfaControls strongAuth={user.aal === "aal2"} />
+      <MfaControls
+        passkeysEnabled={getPublicEnv().NEXT_PUBLIC_PASSKEYS_ENABLED}
+        strongAuth={user.aal === "aal2"}
+      />
       {!summary && user.aal === "aal2" && <ProfileSetup />}
       {summary && (
         <SettingsControls

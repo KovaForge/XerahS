@@ -4,17 +4,22 @@ import { useEffect } from "react";
 
 export function DesktopOAuthRelay({
   code,
+  error,
   state,
 }: {
-  code: string;
+  code?: string;
+  error?: string;
   state: string;
 }) {
   useEffect(() => {
     history.replaceState(null, "", "/auth/desktop/callback");
+    const result = code
+      ? `code=${encodeURIComponent(code)}`
+      : `error=${encodeURIComponent(error ?? "access_denied")}`;
     location.replace(
-      `xerahs://oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
+      `xerahs://oauth/callback?${result}&state=${encodeURIComponent(state)}`,
     );
-  }, [code, state]);
+  }, [code, error, state]);
 
   return (
     <section className="card sign-wall">

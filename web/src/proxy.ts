@@ -44,7 +44,7 @@ export async function proxy(request: NextRequest) {
       process.env.APP_ENV === "production",
     );
   if (
-    /^\/(?:api|auth|settings)(?:\/|$)/.test(request.nextUrl.pathname) ||
+    /^\/(?:api|auth|oauth|settings)(?:\/|$)/.test(request.nextUrl.pathname) ||
     /^\/[^/]+\/?$/.test(request.nextUrl.pathname)
   ) {
     applyNoStore(response.headers);

@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 
 import type { GalleryItem } from "@/lib/database";
+import { utcRangeForZonedDay } from "@/lib/time-zone";
 import { markdownImage } from "@/lib/validation";
 
 interface GalleryProps {
   initialItems: GalleryItem[];
   initialNextCursor: string | null;
   slug: string;
+  timeZone: string;
 }
 interface CalendarCount {
   day: string;
@@ -19,10 +21,13 @@ export function Gallery({
   initialItems,
   initialNextCursor,
   slug,
+  timeZone,
 }: GalleryProps) {
   const [items, setItems] = useState(initialItems);
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
-  const [cursorHistory, setCursorHistory] = useState<string[]>([]);
+  const [currentCursor, setCurrentCursor] = useState<string | null>(null);
+  const [cursorHistory, setCursorHistory] = useState<Array<string | null>>([]);
+  const [activeDay, setActiveDay] = useState<string | null>(null);
   const [kind, setKind] = useState("all");
   const [view, setView] = useState<"grid" | "calendar">("grid");
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -30,20 +35,25 @@ export function Gallery({
   const [message, setMessage] = useState("");
 
   const load = useCallback(
-    async (cursor?: string, day?: string, selectedKind = kind) => {
+    async (
+      cursor: string | null = null,
+      day: string | null = null,
+      selectedKind = kind,
+    ): Promise<boolean> => {
       const query = new URLSearchParams({ limit: "50" });
       if (selectedKind !== "all") query.set("kind", selectedKind);
       if (cursor) query.set("cursor", cursor);
       if (day) {
-        query.set("from", `${day}T00:00:00.000Z`);
-        query.set("to", `${day}T23:59:59.999Z`);
+        const range = utcRangeForZonedDay(day, timeZone);
+        query.set("from", range.from);
+        query.set("to", range.to);
       }
       const response = await fetch(`/api/v1/items?${query}`, {
         cache: "no-store",
       });
       if (!response.ok) {
         setMessage("Could not load the gallery.");
-        return;
+        return false;
       }
       const page = (await response.json()) as {
         items: GalleryItem[];
@@ -52,8 +62,9 @@ export function Gallery({
       setItems(page.items);
       setNextCursor(page.nextCursor);
       setMessage("");
+      return true;
     },
-    [kind],
+    [kind, timeZone],
   );
 
   useEffect(() => {
@@ -72,10 +83,13 @@ export function Gallery({
     await navigator.clipboard.writeText(text);
     setMessage("Copied to clipboard.");
   }
-  function changeKind(selectedKind: string) {
+  async function changeKind(selectedKind: string) {
     setKind(selectedKind);
-    setCursorHistory([]);
-    void load(undefined, undefined, selectedKind);
+    if (await load(null, null, selectedKind)) {
+      setCurrentCursor(null);
+      setCursorHistory([]);
+      setActiveDay(null);
+    }
   }
   async function unpublish(item: GalleryItem) {
     if (
@@ -114,7 +128,7 @@ export function Gallery({
           <label>
             <span className="sr-only">Media kind</span>
             <select
-              onChange={(event) => changeKind(event.target.value)}
+              onChange={(event) => void changeKind(event.target.value)}
               value={kind}
             >
               <option value="all">All media</option>
@@ -166,8 +180,14 @@ export function Gallery({
                   disabled={!count}
                   key={day}
                   onClick={() => {
-                    setView("grid");
-                    void load(undefined, day);
+                    void (async () => {
+                      if (await load(null, day)) {
+                        setCurrentCursor(null);
+                        setCursorHistory([]);
+                        setActiveDay(day);
+                        setView("grid");
+                      }
+                    })();
                   }}
                 >
                   {index + 1}
@@ -253,22 +273,31 @@ export function Gallery({
         <nav className="pager" aria-label="Gallery pages">
           <button
             disabled={cursorHistory.length === 0}
-            onClick={() => {
-              const history = [...cursorHistory];
-              const previous = history.pop();
-              setCursorHistory(history);
-              void load(previous);
-            }}
+            onClick={() =>
+              void (async () => {
+                const history = [...cursorHistory];
+                const previous = history.at(-1) ?? null;
+                if (await load(previous, activeDay)) {
+                  history.pop();
+                  setCursorHistory(history);
+                  setCurrentCursor(previous);
+                }
+              })()
+            }
           >
             Previous
           </button>
           <button
             disabled={!nextCursor}
-            onClick={() => {
-              if (!nextCursor) return;
-              setCursorHistory((current) => [...current, nextCursor]);
-              void load(nextCursor);
-            }}
+            onClick={() =>
+              void (async () => {
+                if (!nextCursor) return;
+                if (await load(nextCursor, activeDay)) {
+                  setCursorHistory((history) => [...history, currentCursor]);
+                  setCurrentCursor(nextCursor);
+                }
+              })()
+            }
           >
             Next
           </button>

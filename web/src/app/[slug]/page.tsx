@@ -60,6 +60,7 @@ export default async function ProfilePage({ params }: PageProps) {
       initialItems={data.page.items}
       initialNextCursor={data.page.nextCursor}
       slug={data.summary.slug}
+      timeZone={data.summary.timeZone}
     />
   );
 }

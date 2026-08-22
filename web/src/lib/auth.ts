@@ -35,7 +35,13 @@ function latestStrongAuthentication(
         ? (entry as Record<string, unknown>)
         : {},
     )
-    .filter((entry) => entry.method === "totp" || entry.method === "mfa")
+    .filter(
+      (entry) =>
+        entry.method === "totp" ||
+        entry.method === "mfa" ||
+        entry.method === "mfa/totp" ||
+        entry.method === "mfa/webauthn",
+    )
     .map((entry) => entry.timestamp)
     .filter(
       (value): value is number =>
@@ -56,7 +62,7 @@ export async function requireAuthenticatedUser(
 
   const claims = data.claims as Record<string, unknown>;
   const id = claimString(claims, "sub");
-  const email = claimString(claims, "email");
+  let email = claimString(claims, "email");
   const aal = claimString(claims, "aal") === "aal2" ? "aal2" : "aal1";
   const authenticatedAt = latestStrongAuthentication(claims);
   if (!id || !email)
@@ -81,13 +87,20 @@ export async function requireAuthenticatedUser(
   }
   if (requirements.verifiedEmail) {
     const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData.user?.email_confirmed_at) {
+    if (
+      userError ||
+      !userData.user?.email_confirmed_at ||
+      !userData.user.email
+    ) {
       throw new ApiError(
         403,
         "email_verification_required",
         "Verify your email address to continue.",
       );
     }
+    // getUser() is authoritative after an email change; the access-token claim can
+    // remain stale until refresh and must not seed the one-trial identity ledger.
+    email = userData.user.email;
   }
 
   return {

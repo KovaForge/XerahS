@@ -11,9 +11,16 @@ interface TotpEnrollment {
   secret: string;
 }
 
-export function MfaControls({ strongAuth }: { strongAuth: boolean }) {
+export function MfaControls({
+  strongAuth,
+  passkeysEnabled,
+}: {
+  strongAuth: boolean;
+  passkeysEnabled: boolean;
+}) {
   const router = useRouter();
   const [verifiedFactorId, setVerifiedFactorId] = useState<string | null>(null);
+  const [passkeyFactorId, setPasskeyFactorId] = useState<string | null>(null);
   const [enrollment, setEnrollment] = useState<TotpEnrollment | null>(null);
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
@@ -30,6 +37,7 @@ export function MfaControls({ strongAuth }: { strongAuth: boolean }) {
               factor.status === "verified",
           )?.id ?? null,
         );
+        setPasskeyFactorId(result.data.webauthn[0]?.id ?? null);
       }
     }
     void loadFactors();
@@ -69,6 +77,33 @@ export function MfaControls({ strongAuth }: { strongAuth: boolean }) {
     setCode("");
     setEnrollment(null);
     setMessage("Strong authentication is active for this session.");
+    router.refresh();
+  }
+
+  async function registerPasskey() {
+    setBusy(true);
+    setMessage("");
+    const { error } =
+      await createSupabaseBrowserClient().auth.mfa.webauthn.register({
+        friendlyName: "XerahS Cloud passkey",
+      });
+    setBusy(false);
+    if (error) return setMessage(error.message);
+    setMessage("Passkey registered and verified for this session.");
+    router.refresh();
+  }
+
+  async function authenticatePasskey() {
+    if (!passkeyFactorId) return;
+    setBusy(true);
+    setMessage("");
+    const { error } =
+      await createSupabaseBrowserClient().auth.mfa.webauthn.authenticate({
+        factorId: passkeyFactorId,
+      });
+    setBusy(false);
+    if (error) return setMessage(error.message);
+    setMessage("Passkey authentication is active for this session.");
     router.refresh();
   }
 
@@ -130,6 +165,30 @@ export function MfaControls({ strongAuth }: { strongAuth: boolean }) {
             </button>
           )}
         </>
+      )}
+      {passkeysEnabled && (
+        <div className="stack">
+          <h3>Passkeys (preview)</h3>
+          <p>
+            Passkeys use Supabase&apos;s experimental WebAuthn support and
+            remain disabled unless this deployment passes the RP ID and browser
+            acceptance gate.
+          </p>
+          {passkeyFactorId && !strongAuth && (
+            <button
+              className="primary"
+              disabled={busy}
+              onClick={() => void authenticatePasskey()}
+            >
+              Verify with passkey
+            </button>
+          )}
+          {strongAuth && (
+            <button disabled={busy} onClick={() => void registerPasskey()}>
+              Add passkey
+            </button>
+          )}
+        </div>
       )}
       <p aria-live="polite" className="status">
         {message}

@@ -5,13 +5,37 @@ import { DesktopOAuthRelay } from "@/components/desktop-oauth-relay";
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ code?: string; state?: string }>;
+  searchParams: Promise<{
+    code?: string | string[];
+    error?: string | string[];
+    state?: string | string[];
+  }>;
+}
+
+function one(value: string | string[] | undefined): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
 }
 
 export default async function DesktopOAuthCallbackPage({
   searchParams,
 }: PageProps) {
-  const { code, state } = await searchParams;
-  if (!code || !state || code.length > 4096 || state.length > 1024) notFound();
-  return <DesktopOAuthRelay code={code} state={state} />;
+  const input = await searchParams;
+  const code = one(input.code);
+  const error = one(input.error);
+  const state = one(input.state);
+  if (
+    !state ||
+    state.length > 1024 ||
+    (code === null) === (error === null) ||
+    (code?.length ?? 0) > 4096 ||
+    (error !== null && !/^[A-Za-z0-9_]{1,128}$/.test(error))
+  )
+    notFound();
+  return (
+    <DesktopOAuthRelay
+      code={code ?? undefined}
+      error={error ?? undefined}
+      state={state}
+    />
+  );
 }

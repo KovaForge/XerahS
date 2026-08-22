@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-export function AuthForm() {
+export function AuthForm({ next = "/settings" }: { next?: string }) {
   const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [message, setMessage] = useState("");
@@ -26,7 +26,11 @@ export function AuthForm() {
             email,
             password,
             options: {
-              emailRedirectTo: `${location.origin}/auth/callback?next=/settings`,
+              emailRedirectTo: (() => {
+                const callback = new URL("/auth/callback", location.origin);
+                callback.searchParams.set("next", next);
+                return callback.href;
+              })(),
             },
           });
     setBusy(false);
@@ -38,7 +42,7 @@ export function AuthForm() {
       setMessage("Check your email to verify your account, then sign in.");
       return;
     }
-    router.push("/settings");
+    router.push(next);
     router.refresh();
   }
 
