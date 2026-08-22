@@ -1,4 +1,4 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     XerahS - The Avalonia UI implementation of ShareX
@@ -45,20 +45,20 @@ namespace XerahS.Core.Tasks
         /// </summary>
         internal async Task HandleToolWorkflowAsync(CancellationToken token)
         {
-            TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "TOOL_WORKFLOW", "HandleToolWorkflowAsync Entry");
+            XerahS.Common.TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "TOOL_WORKFLOW", "HandleToolWorkflowAsync Entry");
 
             if (HandleToolWorkflowCallback != null)
             {
-                TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "TOOL_WORKFLOW", $"Executing tool workflow via callback: {Info.TaskSettings.Job}");
+                XerahS.Common.TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "TOOL_WORKFLOW", $"Executing tool workflow via callback: {Info.TaskSettings.Job}");
                 await HandleToolWorkflowCallback(Info.TaskSettings.Job, Info.TaskSettings);
             }
             else
             {
                 DebugHelper.WriteLine($"Tool workflow callback not set for job: {Info.TaskSettings.Job}");
-                TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "TOOL_WORKFLOW", "WARNING: HandleToolWorkflowCallback is null");
+                XerahS.Common.TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "TOOL_WORKFLOW", "WARNING: HandleToolWorkflowCallback is null");
             }
 
-            TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "TOOL_WORKFLOW", "HandleToolWorkflowAsync Complete");
+            XerahS.Common.TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "TOOL_WORKFLOW", "HandleToolWorkflowAsync Complete");
         }
     }
 }

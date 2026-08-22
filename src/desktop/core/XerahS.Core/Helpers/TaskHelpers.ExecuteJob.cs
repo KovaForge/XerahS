@@ -53,12 +53,12 @@ public static partial class TaskHelpers
         // Use job type as category (for folder/file naming), log workflow ID in content
         var logCategory = workflow?.Job.ToString() ?? "Unknown";
 
-        TroubleshootingHelper.Log(logCategory, "EXECUTE_WORKFLOW", $"Entry: workflowId={id}, workflow={workflow?.Name ?? "null"}, Job={workflow?.Job.ToString() ?? "null"}");
+        XerahS.Common.TroubleshootingHelper.Log(logCategory, "EXECUTE_WORKFLOW", $"Entry: workflowId={id}, workflow={workflow?.Name ?? "null"}, Job={workflow?.Job.ToString() ?? "null"}");
 
         if (workflow == null)
         {
             DebugHelper.WriteLine("ExecuteWorkflow: workflow is null");
-            TroubleshootingHelper.Log(logCategory, "EXECUTE_WORKFLOW", "ABORT: workflow is null");
+            XerahS.Common.TroubleshootingHelper.Log(logCategory, "EXECUTE_WORKFLOW", "ABORT: workflow is null");
             return;
         }
 
@@ -68,7 +68,7 @@ public static partial class TaskHelpers
             workflow.TaskSettings.WorkflowId = id;
         }
 
-        TroubleshootingHelper.Log(logCategory, "EXECUTE_WORKFLOW", $"Calling ExecuteJob, TaskSettings={workflow.TaskSettings != null}");
+        XerahS.Common.TroubleshootingHelper.Log(logCategory, "EXECUTE_WORKFLOW", $"Calling ExecuteJob, TaskSettings={workflow.TaskSettings != null}");
         await ExecuteJob(workflow.Job, workflow.TaskSettings, id, hideMainWindow);
     }
 
@@ -84,13 +84,13 @@ public static partial class TaskHelpers
         // Use job type as category (for folder/file naming), log workflow ID in content
         var logCategory = job.ToString();
 
-        TroubleshootingHelper.Log(logCategory, "EXECUTE_JOB", $"Entry: workflowId={workflowId ?? "null"}, taskSettings={taskSettings != null}");
+        XerahS.Common.TroubleshootingHelper.Log(logCategory, "EXECUTE_JOB", $"Entry: workflowId={workflowId ?? "null"}, taskSettings={taskSettings != null}");
         DebugHelper.WriteLine($"Executing job: {job}");
 
         if (!PlatformServices.IsInitialized)
         {
             DebugHelper.WriteLine("Platform services not initialized.");
-            TroubleshootingHelper.Log(logCategory, "EXECUTE_JOB", "ABORT: Platform services not initialized");
+            XerahS.Common.TroubleshootingHelper.Log(logCategory, "EXECUTE_JOB", "ABORT: Platform services not initialized");
             return;
         }
 
@@ -142,13 +142,13 @@ public static partial class TaskHelpers
 
             // Start the task via TaskManager
             // This ensures it appears in the UI and follows the standard lifecycle
-            TroubleshootingHelper.Log(logCategory, "EXECUTE_JOB", "Calling TaskManager.StartTask");
+            XerahS.Common.TroubleshootingHelper.Log(logCategory, "EXECUTE_JOB", "Calling TaskManager.StartTask");
             await TaskManagerService.StartTask(taskSettings);
-            TroubleshootingHelper.Log(logCategory, "EXECUTE_JOB", "TaskManager.StartTask completed");
+            XerahS.Common.TroubleshootingHelper.Log(logCategory, "EXECUTE_JOB", "TaskManager.StartTask completed");
         }
         catch (Exception ex)
         {
-            TroubleshootingHelper.Log(logCategory, "EXECUTE_JOB", $"ERROR: {ex.Message}");
+            XerahS.Common.TroubleshootingHelper.Log(logCategory, "EXECUTE_JOB", $"ERROR: {ex.Message}");
             DebugHelper.WriteException(ex, $"Error starting job {job}");
         }
         finally

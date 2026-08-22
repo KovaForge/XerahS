@@ -23,19 +23,21 @@
 
 #endregion License Information (GPL v3)
 
-using XerahS.Platform.Abstractions;
-
 namespace XerahS.UI.Services;
 
 public static class UiViewModelFactoryAccessor
 {
+    private static IUiViewModelFactory? _factory;
+
+    public static void Configure(IUiViewModelFactory factory)
+    {
+        _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+    }
+
+    public static void Reset() => _factory = null;
+
     public static IUiViewModelFactory GetRequired()
     {
-        if (PlatformServices.RootProvider?.GetService(typeof(IUiViewModelFactory)) is IUiViewModelFactory factory)
-        {
-            return factory;
-        }
-
-        throw new InvalidOperationException("UI view model factory is not available.");
+        return _factory ?? throw new InvalidOperationException("UI view model factory is not available.");
     }
 }

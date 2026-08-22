@@ -61,6 +61,11 @@ public sealed class AssistantService : IAssistantService
     {
     }
 
+    public AssistantService(IDesktopTaskManager taskManager)
+        : this(new AssistantCommandRouter(), new AssistantHistoryService(), new AssistantPrivacyGuard(), taskManager, null, null, null)
+    {
+    }
+
     public AssistantService(
         AssistantCommandRouter router,
         IAssistantHistoryService history,
@@ -73,7 +78,7 @@ public sealed class AssistantService : IAssistantService
         _router = router;
         _history = history;
         _privacyGuard = privacyGuard;
-        _taskManager = taskManager ?? PlatformServices.RootProvider?.GetService(typeof(IDesktopTaskManager)) as IDesktopTaskManager;
+        _taskManager = taskManager;
         _memoryStore = memoryStore ?? new AssistantLocalMemoryStore();
         _activeProviderResolver = activeProviderResolver ?? ResolveActiveProvider;
         _providerFactory = providerFactory ?? AssistantModelProviderFactory.Create;

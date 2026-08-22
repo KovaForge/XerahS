@@ -67,26 +67,7 @@ namespace XerahS.Bootstrap
                 InitializePlatformServices(options.ScreenCaptureService);
                 result.PlatformServicesInitialized = true;
 
-                // 4. Build DI container and wire up RootProvider
-                var provider = DesktopHostComposition.CreateServiceProvider(options.ConfigureServices);
-                result.ServiceProvider = provider;
-
-                var taskManager = provider.GetRequiredService<ITaskManager>();
-                var screenRecordingManager = provider.GetRequiredService<IScreenRecordingManager>();
-                XerahS.Core.Helpers.TaskHelpers.TaskManagerService = taskManager;
-                WatchFolderManager.Instance.TaskManagerService = taskManager;
-                WorkerTask.RecordingManagerService = screenRecordingManager;
-
-                PlatformServices.SetRootProvider(provider);
-
-                // 5. Initialize recording (async, critical for ScreenRecorder)
-                if (options.InitializeRecording)
-                {
-                    await InitializeRecordingAsync();
-                    result.RecordingInitialized = true;
-                }
-
-                // 6. Register UI services if provided
+                // 4. Register optional presentation capabilities before capturing explicit host dependencies.
                 if (options.UIService != null)
                 {
                     PlatformServices.RegisterUIService(options.UIService);
@@ -95,6 +76,27 @@ namespace XerahS.Bootstrap
                 if (options.ToastService != null)
                 {
                     PlatformServices.RegisterToastService(options.ToastService);
+                }
+
+                var hostServices = DesktopHostServices.FromCurrentProcess(
+                    options.UIService,
+                    options.ToastService);
+
+                // 5. Build the canonical host container and wire legacy consumers during migration.
+                var provider = DesktopHostComposition.CreateServiceProvider(hostServices, options.ConfigureServices);
+                result.ServiceProvider = provider;
+
+                var taskManager = provider.GetRequiredService<ITaskManager>();
+                var screenRecordingManager = provider.GetRequiredService<IScreenRecordingManager>();
+                XerahS.Core.Helpers.TaskHelpers.TaskManagerService = taskManager;
+                hostServices.Application.WatchFolderManager.TaskManagerService = taskManager;
+                WorkerTask.RecordingManagerService = screenRecordingManager;
+
+                // 6. Initialize recording (async, critical for ScreenRecorder)
+                if (options.InitializeRecording)
+                {
+                    await InitializeRecordingAsync();
+                    result.RecordingInitialized = true;
                 }
 
                 return result;
@@ -287,11 +289,11 @@ namespace XerahS.Bootstrap
         /// </summary>
         private static async Task InitializeRecordingAsync()
         {
-            Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "=== InitializeRecordingAsync() CALLED ===");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "=== InitializeRecordingAsync() CALLED ===");
 
             try
             {
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "Starting recording initialization");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "Starting recording initialization");
                 DebugHelper.WriteLine("Starting recording initialization...");
 
                 // InitializeRecording performs CPU-bound work (COM initialization, DirectX setup)
@@ -299,29 +301,29 @@ namespace XerahS.Bootstrap
 #if WINDOWS
                 if (OperatingSystem.IsWindows())
                 {
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "Platform is Windows, calling WindowsPlatform.InitializeRecording()");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "Platform is Windows, calling WindowsPlatform.InitializeRecording()");
                     await Task.Run(() => Platform.Windows.WindowsPlatform.InitializeRecording());
                 }
 #elif MACOS
                 if (OperatingSystem.IsMacOS())
                 {
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "Platform is macOS, calling MacOSPlatform.InitializeRecording()");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "Platform is macOS, calling MacOSPlatform.InitializeRecording()");
                     await Task.Run(() => Platform.MacOS.MacOSPlatform.InitializeRecording());
                 }
 #elif LINUX
                 if (OperatingSystem.IsLinux())
                 {
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "Platform is Linux, calling LinuxPlatform.InitializeRecording()");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "Platform is Linux, calling LinuxPlatform.InitializeRecording()");
                     await Task.Run(() => Platform.Linux.LinuxPlatform.InitializeRecording());
                 }
 #endif
 
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "Recording initialization completed successfully");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "Recording initialization completed successfully");
                 DebugHelper.WriteLine("Recording initialization completed successfully");
             }
             catch (Exception ex)
             {
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", $"✗ Recording initialization EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", $"✗ Recording initialization EXCEPTION: {ex.GetType().Name}: {ex.Message}");
                 DebugHelper.WriteException(ex, "Failed to initialize recording capabilities");
                 // Don't rethrow - allow app to continue with fallback
             }
@@ -333,7 +335,7 @@ namespace XerahS.Bootstrap
         /// </summary>
         public static void StartRecordingInitializationAsync()
         {
-            Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "=== StartRecordingInitializationAsync() CALLED ===");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "BOOTSTRAP", "=== StartRecordingInitializationAsync() CALLED ===");
 
             // Run on a background thread to avoid blocking UI and store task in shared location
             Core.Managers.ScreenRecordingManager.PlatformInitializationTask = Task.Run(async () =>

@@ -57,34 +57,34 @@ public class MediaFoundationEncoder : IVideoEncoder
         {
             try
             {
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF", "Checking Media Foundation availability...");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF", "Checking Media Foundation availability...");
 
                 // Try to initialize MF
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF", $"Calling MFStartup(version={MF_VERSION:X}, flags=MFSTARTUP_FULL)...");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF", $"Calling MFStartup(version={MF_VERSION:X}, flags=MFSTARTUP_FULL)...");
                 var startTime = System.Diagnostics.Stopwatch.StartNew();
                 var hr = MFStartup(MF_VERSION, MFSTARTUP_FULL);
                 startTime.Stop();
 
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF", $"MFStartup() returned HRESULT: 0x{hr:X8} (took {startTime.ElapsedMilliseconds}ms)");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF", $"MFStartup() returned HRESULT: 0x{hr:X8} (took {startTime.ElapsedMilliseconds}ms)");
 
                 if (hr == 0)
                 {
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF", "[OK] MFStartup succeeded (S_OK)");
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF", "Calling MFShutdown()...");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF", "[OK] MFStartup succeeded (S_OK)");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF", "Calling MFShutdown()...");
                     MFShutdown();
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF", "[OK] Media Foundation is available");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF", "[OK] Media Foundation is available");
                     return true;
                 }
                 else
                 {
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF", $"[Error] MFStartup failed with HRESULT 0x{hr:X8}");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF", $"[Error] MFStartup failed with HRESULT 0x{hr:X8}");
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF", $"[Error] EXCEPTION checking MF availability: {ex.GetType().Name}: {ex.Message}");
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF", $"Stack trace: {ex.StackTrace}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF", $"[Error] EXCEPTION checking MF availability: {ex.GetType().Name}: {ex.Message}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF", $"Stack trace: {ex.StackTrace}");
                 return false;
             }
         }
@@ -125,7 +125,7 @@ public class MediaFoundationEncoder : IVideoEncoder
 
     private void CreateSinkWriter()
     {
-        Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "CreateSinkWriter() starting...");
+        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "CreateSinkWriter() starting...");
 
         if (_format?.Codec != VideoCodec.H264)
         {
@@ -135,23 +135,23 @@ public class MediaFoundationEncoder : IVideoEncoder
         }
         
         // Create attributes
-        Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "Calling MFCreateAttributes...");
+        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "Calling MFCreateAttributes...");
         var hr = MFCreateAttributes(out var attributes, 1);
-        Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"MFCreateAttributes returned HRESULT: 0x{hr:X8}");
+        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"MFCreateAttributes returned HRESULT: 0x{hr:X8}");
         if (hr != 0) throw new COMException("Failed to create MF attributes", hr);
 
         try
         {
             // Set hardware encoding hint (Stage 3: will expose as option)
-            Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "Calling attributes.SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS)...");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "Calling attributes.SetUINT32(MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS)...");
             var key = MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS;
             ComFunctions.SetUINT32(attributes, key, 1);
-            Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "[OK] SetUINT32 succeeded");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "[OK] SetUINT32 succeeded");
 
             // Create sink writer
-            Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"Calling MFCreateSinkWriterFromURL, outputPath={_outputPath}...");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"Calling MFCreateSinkWriterFromURL, outputPath={_outputPath}...");
             hr = MFCreateSinkWriterFromURL(_outputPath ?? string.Empty, IntPtr.Zero, attributes, out _sinkWriter);
-            Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"MFCreateSinkWriterFromURL returned HRESULT: 0x{hr:X8}");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"MFCreateSinkWriterFromURL returned HRESULT: 0x{hr:X8}");
             if (hr != 0 || _sinkWriter == IntPtr.Zero)
             {
                 throw new COMException("Failed to create MF sink writer. Driver issues or missing codecs.", hr);
@@ -230,7 +230,7 @@ public class MediaFoundationEncoder : IVideoEncoder
             {
                 if (_frameCount == 0 || _frameCount % 30 == 0)
                 {
-                    Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"WriteFrame[{_frameCount}] calling. Stride={frame.Stride}, Height={frame.Height}, SampleTime={_sampleTime}");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"WriteFrame[{_frameCount}] calling. Stride={frame.Stride}, Height={frame.Height}, SampleTime={_sampleTime}");
                     System.Console.WriteLine($"MF_ENCODER: WriteFrame[{_frameCount}] calling.");
                 }
 
@@ -296,7 +296,7 @@ public class MediaFoundationEncoder : IVideoEncoder
             }
             catch (Exception ex)
             {
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"WriteFrame FAILED: {ex.Message}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"WriteFrame FAILED: {ex.Message}");
                 throw new InvalidOperationException("Failed to write frame to encoder", ex);
             }
         }
@@ -308,23 +308,23 @@ public class MediaFoundationEncoder : IVideoEncoder
         {
             if (_finalized)
             {
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "Finalize skipped (already finalized)");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "Finalize skipped (already finalized)");
                 return;
             }
 
             _finalized = true;
-            Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"Finalize called. Total frames: {_frameCount}");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"Finalize called. Total frames: {_frameCount}");
 
             if (!_initialized || _sinkWriter == IntPtr.Zero)
             {
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "Finalize skipped: encoder not initialized or sink writer missing");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", "Finalize skipped: encoder not initialized or sink writer missing");
                 return;
             }
 
             try
             {
                 var hr = ComFunctions.Finalize(_sinkWriter);
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"Finalize returned HRESULT: 0x{hr:X8}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"Finalize returned HRESULT: 0x{hr:X8}");
                 if (hr != 0)
                 {
                     System.Diagnostics.Debug.WriteLine($"Warning: Sink writer finalize returned error: {hr}");
@@ -335,17 +335,17 @@ public class MediaFoundationEncoder : IVideoEncoder
                     try
                     {
                         var fileInfo = new System.IO.FileInfo(_outputPath);
-                        Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"Finalize file state: exists={fileInfo.Exists}, size={fileInfo.Length} bytes");
+                        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"Finalize file state: exists={fileInfo.Exists}, size={fileInfo.Length} bytes");
                     }
                     catch (Exception sizeEx)
                     {
-                        Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"Finalize size check failed: {sizeEx.Message}");
+                        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"Finalize size check failed: {sizeEx.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"Finalize EXCEPTION: {ex.Message}");
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "MF_ENCODER", $"Finalize EXCEPTION: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"Error finalizing encoder: {ex.Message}");
             }
             finally

@@ -51,6 +51,7 @@ namespace XerahS.UI;
 public partial class App : Application
 {
     public static bool IsExiting { get; set; } = false;
+    public IServiceProvider? ServiceProvider { get; private set; }
     private static readonly TimeSpan ClipboardViewerAutoOpenCooldown = TimeSpan.FromSeconds(2);
     private IWorkflowOrchestrator? _workflowOrchestrator;
     private ITrayIconController? _trayIconController;
@@ -129,19 +130,21 @@ public partial class App : Application
             Platform.Abstractions.PlatformServices.RegisterUIService(uiService);
 
             // Register Toast Service
-            Platform.Abstractions.PlatformServices.RegisterToastService(new Services.AvaloniaToastService());
+            var toastService = new Services.AvaloniaToastService();
+            Platform.Abstractions.PlatformServices.RegisterToastService(toastService);
 
             // Register Image Encoder Service (supports PNG, JPEG, BMP, GIF, WEBP, TIFF via Skia; AVIF via FFmpeg)
-            PlatformServices.RegisterImageEncoderService(
-                ImageEncoderService.CreateDefault(() => PathsManager.GetFFmpegPath()));
+            var imageEncoderService = ImageEncoderService.CreateDefault(() => PathsManager.GetFFmpegPath());
+            PlatformServices.RegisterImageEncoderService(imageEncoderService);
 
             // Build DI container from platform and app services (single composition root)
-            Services.CompositionRoot.BuildAndSetRootProvider();
+            ServiceProvider = Services.CompositionRoot.BuildServiceProvider(uiService, toastService, imageEncoderService);
 
-            var desktopHostProvider = PlatformServices.RootProvider
-                ?? throw new InvalidOperationException("Desktop host services were not initialized during Avalonia startup.");
-            var taskManager = desktopHostProvider.GetRequiredService<IDesktopTaskManager>();
-            var screenRecordingCoordinator = desktopHostProvider.GetRequiredService<IScreenRecordingCoordinator>();
+            var taskManager = ServiceProvider.GetRequiredService<IDesktopTaskManager>();
+            var screenRecordingCoordinator = ServiceProvider.GetRequiredService<IScreenRecordingCoordinator>();
+            var uiViewModelFactory = ServiceProvider.GetRequiredService<IUiViewModelFactory>();
+            Services.UiViewModelFactoryAccessor.Configure(uiViewModelFactory);
+            toastService.Configure(taskManager);
 
             uiService.Configure(taskManager);
 

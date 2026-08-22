@@ -385,16 +385,16 @@ namespace XerahS.UI.Services
                 var delayMs = XerahS.Core.TaskHelpers.GetCaptureStartDelayMilliseconds(effectiveOptions.CaptureStartDelaySeconds);
                 var workflowId = string.IsNullOrWhiteSpace(effectiveOptions.WorkflowId) ? "none" : effectiveOptions.WorkflowId;
                 var workflowCategory = string.IsNullOrWhiteSpace(effectiveOptions.WorkflowCategory) ? "Unknown" : effectiveOptions.WorkflowCategory;
-                TroubleshootingHelper.Log("CaptureDelay", "REGION", $"WorkflowId={workflowId}, Category={workflowCategory}, DelaySeconds={effectiveOptions.CaptureStartDelaySeconds:F3}, DelayMs={delayMs}");
+                XerahS.Common.TroubleshootingHelper.Log("CaptureDelay", "REGION", $"WorkflowId={workflowId}, Category={workflowCategory}, DelaySeconds={effectiveOptions.CaptureStartDelaySeconds:F3}, DelayMs={delayMs}");
 
                 try
                 {
                     await Task.Delay(delayMs, effectiveOptions.CaptureStartDelayCancellationToken);
-                    TroubleshootingHelper.Log("CaptureDelay", "REGION", $"WorkflowId={workflowId}, Category={workflowCategory}, DelayCompleted=true");
+                    XerahS.Common.TroubleshootingHelper.Log("CaptureDelay", "REGION", $"WorkflowId={workflowId}, Category={workflowCategory}, DelayCompleted=true");
                 }
                 catch (OperationCanceledException)
                 {
-                    TroubleshootingHelper.Log("CaptureDelay", "REGION", $"WorkflowId={workflowId}, Category={workflowCategory}, DelayCancelled=true");
+                    XerahS.Common.TroubleshootingHelper.Log("CaptureDelay", "REGION", $"WorkflowId={workflowId}, Category={workflowCategory}, DelayCancelled=true");
                     DebugHelper.Flush();
                     return null;
                 }

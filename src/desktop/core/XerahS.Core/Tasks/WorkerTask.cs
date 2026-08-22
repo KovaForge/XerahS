@@ -213,7 +213,7 @@ namespace XerahS.Core.Tasks
             Info.TaskSettings ??= new TaskSettings();
             Info.Metadata ??= new TaskMetadata();
 
-            TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "WORKER_TASK", "DoWorkAsync Entry");
+            XerahS.Common.TroubleshootingHelper.Log(Info.TaskSettings.Job.ToString(), "WORKER_TASK", "DoWorkAsync Entry");
             
             Status = TaskStatus.Working;
             OnStatusChanged();

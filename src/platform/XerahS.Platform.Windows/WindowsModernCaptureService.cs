@@ -102,12 +102,7 @@ namespace XerahS.Platform.Windows
         }
         public async Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
         {
-            var captureSettings = options?.WorkflowId != null 
-                ? XerahS.Core.SettingsManager.GetWorkflowTaskSettings(options.WorkflowId)?.CaptureSettings 
-                : XerahS.Core.SettingsManager.DefaultTaskSettings.CaptureSettings;
-
-            // Default true to match TaskSettingsCapture.UseModernCapture and CaptureOptions; prefer DXGI over GDI.
-            bool useModern = options?.UseModernCapture ?? captureSettings?.UseModernCapture ?? true;
+            bool useModern = ShouldUseModernCapture(options);
 
             if (!IsSupported || !useModern)
             {
@@ -154,12 +149,7 @@ namespace XerahS.Platform.Windows
 
         public async Task<SKBitmap?> CaptureFullScreenAsync(CaptureOptions? options = null)
         {
-            var captureSettings = options?.WorkflowId != null 
-                ? XerahS.Core.SettingsManager.GetWorkflowTaskSettings(options.WorkflowId)?.CaptureSettings 
-                : XerahS.Core.SettingsManager.DefaultTaskSettings.CaptureSettings;
-
-            // Default true to match TaskSettingsCapture.UseModernCapture and CaptureOptions; prefer DXGI over GDI.
-            bool useModern = options?.UseModernCapture ?? captureSettings?.UseModernCapture ?? true;
+            bool useModern = ShouldUseModernCapture(options);
 
             if (!IsSupported || !useModern)
             {
@@ -185,6 +175,12 @@ namespace XerahS.Platform.Windows
             }
             return fullResult;
         }
+
+        /// <summary>
+        /// Resolves the capture backend policy supplied by the application layer.
+        /// </summary>
+        internal static bool ShouldUseModernCapture(CaptureOptions? options) =>
+            options?.UseModernCapture ?? true;
 
         public async Task<SKBitmap?> CaptureActiveWindowAsync(IWindowService windowService, CaptureOptions? options = null)
         {

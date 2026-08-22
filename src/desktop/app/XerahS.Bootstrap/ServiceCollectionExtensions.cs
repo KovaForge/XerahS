@@ -25,7 +25,6 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using XerahS.Core.Managers;
 using XerahS.Platform.Abstractions;
 using XerahS.Services.Abstractions;
 
@@ -37,17 +36,119 @@ namespace XerahS.Bootstrap
     public static class ServiceCollectionExtensions
     {
         /// <summary>
-        /// Registers the shared desktop host composition used by bootstrap, CLI, and daemon hosts.
+        /// Registers platform capabilities from instances explicitly owned by the host.
+        /// </summary>
+        public static IServiceCollection AddXerahSPlatformServices(
+            this IServiceCollection services,
+            DesktopPlatformServices platform)
+        {
+            ArgumentNullException.ThrowIfNull(services);
+            ArgumentNullException.ThrowIfNull(platform);
+
+            services.TryAddSingleton(platform.PlatformInfo);
+            services.TryAddSingleton(platform.Screen);
+            services.TryAddSingleton(platform.Clipboard);
+            services.TryAddSingleton(platform.ClipboardMonitor);
+            services.TryAddSingleton(platform.Window);
+            services.TryAddSingleton(platform.Input);
+            services.TryAddSingleton(platform.Fonts);
+            services.TryAddSingleton(platform.Hotkey);
+            services.TryAddSingleton(platform.ScreenCapture);
+            services.TryAddSingleton(platform.Startup);
+            services.TryAddSingleton(platform.System);
+            services.TryAddSingleton(platform.Diagnostic);
+            services.TryAddSingleton(platform.WatchFolderDaemon);
+
+            TryAddOptionalSingleton(services, platform.ShellIntegration);
+            TryAddOptionalSingleton(services, platform.Notification);
+            TryAddOptionalSingleton(services, platform.Theme);
+            TryAddOptionalSingleton(services, platform.ScrollingCapture);
+            TryAddOptionalSingleton(services, platform.Ocr);
+            TryAddOptionalSingleton(services, platform.UI);
+            TryAddOptionalSingleton(services, platform.Toast);
+            TryAddOptionalSingleton(services, platform.ImageEncoder);
+
+            return services;
+        }
+
+        /// <summary>
+        /// Registers application managers and their host-facing adapters.
+        /// </summary>
+        public static IServiceCollection AddXerahSApplicationServices(
+            this IServiceCollection services,
+            DesktopApplicationServices application)
+        {
+            ArgumentNullException.ThrowIfNull(services);
+            ArgumentNullException.ThrowIfNull(application);
+
+            services.TryAddSingleton(application.TaskManager);
+            services.TryAddSingleton<ITaskManager>(application.TaskManager);
+            services.TryAddSingleton<IDesktopTaskManager, DesktopTaskManagerAdapter>();
+
+            services.TryAddSingleton(application.ScreenRecordingManager);
+            services.TryAddSingleton<IScreenRecordingManager>(application.ScreenRecordingManager);
+            services.TryAddSingleton<IScreenRecordingCoordinator, ScreenRecordingCoordinatorAdapter>();
+
+            services.TryAddSingleton(application.WatchFolderManager);
+            services.TryAddSingleton<IWatchFolderDaemonController, WatchFolderDaemonControllerAdapter>();
+
+            return services;
+        }
+
+        /// <summary>
+        /// Registers the canonical composition shared by desktop, CLI, daemon, and MCP hosts.
+        /// </summary>
+        public static IServiceCollection AddXerahSDesktopHostServices(
+            this IServiceCollection services,
+            DesktopHostServices hostServices)
+        {
+            ArgumentNullException.ThrowIfNull(services);
+            ArgumentNullException.ThrowIfNull(hostServices);
+
+            return services
+                .AddXerahSPlatformServices(hostServices.Platform)
+                .AddXerahSApplicationServices(hostServices.Application);
+        }
+
+        /// <summary>
+        /// Compatibility shim for callers that still use the process-wide registries.
         /// </summary>
         public static IServiceCollection AddXerahSDesktopHostServices(this IServiceCollection services)
         {
             ArgumentNullException.ThrowIfNull(services);
 
-            // Platform services are resolved lazily from the static locator so hosts can share
-            // one registration path without requiring Avalonia startup.
+            if (PlatformServices.IsInitialized)
+            {
+                return services.AddXerahSDesktopHostServices(DesktopHostServices.FromCurrentProcess());
+            }
+
+            AddLegacyPlatformServiceAccessors(services);
+            return services.AddXerahSApplicationServices(DesktopApplicationServices.FromCurrentProcess());
+        }
+
+        /// <summary>
+        /// Compatibility shim for the former all-in-one platform registration method.
+        /// </summary>
+        public static IServiceCollection AddXerahSPlatformServices(this IServiceCollection services) =>
+            services.AddXerahSDesktopHostServices();
+
+        private static void TryAddOptionalSingleton<TService>(
+            IServiceCollection services,
+            TService? instance)
+            where TService : class
+        {
+            if (instance != null)
+            {
+                services.TryAddSingleton(instance);
+            }
+        }
+
+        private static void AddLegacyPlatformServiceAccessors(IServiceCollection services)
+        {
             services.TryAddSingleton(_ => PlatformServices.PlatformInfo);
             services.TryAddSingleton(_ => PlatformServices.Screen);
             services.TryAddSingleton(_ => PlatformServices.Clipboard);
+            services.TryAddSingleton(_ => PlatformServices.ClipboardMonitor);
             services.TryAddSingleton(_ => PlatformServices.Window);
             services.TryAddSingleton(_ => PlatformServices.Input);
             services.TryAddSingleton(_ => PlatformServices.Fonts);
@@ -58,36 +159,8 @@ namespace XerahS.Bootstrap
             services.TryAddSingleton(_ => PlatformServices.Diagnostic);
             services.TryAddSingleton(_ => PlatformServices.WatchFolderDaemon);
 
-            var shellIntegration = PlatformServices.GetShellIntegrationIfAvailable();
-            if (shellIntegration != null)
-            {
-                services.TryAddSingleton(_ => shellIntegration);
-            }
-
-            var notification = PlatformServices.GetNotificationIfAvailable();
-            if (notification != null)
-            {
-                services.TryAddSingleton(_ => notification);
-            }
-
-            services.TryAddSingleton(_ => TaskManager.Instance);
-            services.TryAddSingleton<ITaskManager>(_ => TaskManager.Instance);
-            services.TryAddSingleton<IDesktopTaskManager, DesktopTaskManagerAdapter>();
-
-            services.TryAddSingleton(_ => ScreenRecordingManager.Instance);
-            services.TryAddSingleton<IScreenRecordingManager>(_ => ScreenRecordingManager.Instance);
-            services.TryAddSingleton<IScreenRecordingCoordinator, ScreenRecordingCoordinatorAdapter>();
-
-            services.TryAddSingleton(_ => WatchFolderManager.Instance);
-            services.TryAddSingleton<IWatchFolderDaemonController, WatchFolderDaemonControllerAdapter>();
-
-            return services;
+            TryAddOptionalSingleton(services, PlatformServices.GetShellIntegrationIfAvailable());
+            TryAddOptionalSingleton(services, PlatformServices.GetNotificationIfAvailable());
         }
-
-        /// <summary>
-        /// Compatibility shim for existing callers. Prefer <see cref="AddXerahSDesktopHostServices"/>.
-        /// </summary>
-        public static IServiceCollection AddXerahSPlatformServices(this IServiceCollection services) =>
-            services.AddXerahSDesktopHostServices();
     }
 }
