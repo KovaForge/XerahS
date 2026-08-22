@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-22 23:02 AWST",
+  "last_updated": "2026-08-23 00:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2345,6 +2345,14 @@
         "Clawpatch --limit 3 returned 3 jobs/3 features but the report contained 127 findings (review mode shows first 4 high-confidence candidates per feature set); the limit constrains features, not per-feature finding count."
       ],
       "commit_sha_short": "b4c5f35"
+    },
+    {
+      "ts": "2026-08-23 00:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero next_candidates after fork/upstream/submodule sync. HEAD == declan/develop == origin/develop (34c5c051). upstream/develop merge-base == HEAD (d807a49a; no merge). ShareX.ImageEditor pointer clean at d4f4029. No deferred-last-runs files. Pre-existing unstaged docs/CHANGELOG.md left untouched."
     }
   ],
   "last_run_outcome": "no-op",
