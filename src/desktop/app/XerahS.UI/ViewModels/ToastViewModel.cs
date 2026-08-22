@@ -571,9 +571,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
             return;
         }
 
-        var taskManager = _taskManager
-            ?? PlatformServices.RootProvider?.GetService(typeof(IDesktopTaskManager)) as IDesktopTaskManager;
-        if (taskManager == null)
+        if (_taskManager == null)
         {
             DebugHelper.WriteLine("Toast upload skipped, desktop task manager is not available.");
             return;
@@ -583,7 +581,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         {
             var settings = GetUploadTaskSettings();
             settings.Job = WorkflowType.FileUpload;
-            await taskManager.StartFileTask(settings, _config.FilePath);
+            await _taskManager.StartFileTask(settings, _config.FilePath);
         }
         catch (Exception ex)
         {

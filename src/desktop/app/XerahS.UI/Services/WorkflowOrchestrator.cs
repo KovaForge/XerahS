@@ -66,7 +66,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
         ConfigureWorkerTaskCallbacks();
         InitializeHotkeys();
-        _assistantOverlayCoordinator ??= new AssistantOverlayCoordinator();
+        _assistantOverlayCoordinator ??= new AssistantOverlayCoordinator(_taskManager);
         _assistantOverlayCoordinator.Start();
         if (_workflowManager != null)
         {

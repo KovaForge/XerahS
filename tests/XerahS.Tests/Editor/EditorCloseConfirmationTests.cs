@@ -25,7 +25,6 @@
 
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
-using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using ShareX.ImageEditor.Core.ImageEffects.Filters;
 using ShareX.ImageEditor.Hosting;
@@ -50,17 +49,15 @@ public class EditorCloseConfirmationTests
         // ApplicationSettingsView (instantiated during NavigateToSettings) requires a
         // registered IUiViewModelFactory. Tests in this fixture navigate to the settings
         // page to exercise the shell modal overlay logic, so we install a fake factory
-        // before each test and reset platform services afterwards. NonParallelizable
-        // keeps the static PlatformServices state from racing other fixtures.
-        var services = new ServiceCollection();
-        services.AddSingleton<IUiViewModelFactory, FakeUiViewModelFactory>();
-        PlatformServices.SetRootProvider(services.BuildServiceProvider());
+        // before each test and reset that narrow accessor afterwards. NonParallelizable
+        // keeps the accessor state from racing other fixtures.
+        UiViewModelFactoryAccessor.Configure(new FakeUiViewModelFactory());
     }
 
     [TearDown]
     public void TearDown()
     {
-        PlatformServices.Reset();
+        UiViewModelFactoryAccessor.Reset();
     }
     [Test]
     public void RequestClose_DoesNotCreateDuplicateConfirmation_WhenModalAlreadyOpen()

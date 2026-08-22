@@ -37,65 +37,31 @@ namespace XerahS.UI.Services
     public static class CompositionRoot
     {
         /// <summary>
-        /// Builds the service provider from current <see cref="PlatformServices"/> state
-        /// and sets it as the root provider. No-op if platform services are not initialized.
+        /// Builds the UI service provider from explicit host services captured at the
+        /// application boundary.
         /// </summary>
-        public static void BuildAndSetRootProvider()
+        public static IServiceProvider BuildServiceProvider(
+            IUIService uiService,
+            IToastService toastService,
+            IImageEncoderService imageEncoderService)
         {
             if (!PlatformServices.IsInitialized)
             {
-                return;
+                throw new InvalidOperationException("Platform services must be initialized before UI composition.");
             }
 
-            var services = new ServiceCollection();
-            services.AddXerahSDesktopHostServices();
+            DesktopHostServices hostServices = DesktopHostServices.FromCurrentProcess(
+                uiService,
+                toastService,
+                imageEncoderService);
 
-            if (PlatformServices.IsThemeServiceInitialized)
+            return DesktopHostComposition.CreateServiceProvider(hostServices, services =>
             {
-                services.AddSingleton(_ => PlatformServices.Theme);
-            }
-
-            if (PlatformServices.ScrollingCapture is { } scrollingCapture)
-            {
-                services.AddSingleton(_ => scrollingCapture);
-            }
-
-            if (PlatformServices.Ocr is { } ocr)
-            {
-                services.AddSingleton(_ => ocr);
-            }
-
-            // App services (registered in OnFrameworkInitializationCompleted before this is called)
-            if (PlatformServices.IsToastServiceInitialized)
-            {
-                services.AddSingleton(_ => PlatformServices.Toast);
-            }
-
-            try
-            {
-                services.AddSingleton(_ => PlatformServices.UI);
-            }
-            catch (InvalidOperationException)
-            {
-                // UI not registered (e.g. headless/bootstrap)
-            }
-
-            try
-            {
-                services.AddSingleton(_ => PlatformServices.ImageEncoder);
-            }
-            catch (InvalidOperationException)
-            {
-                // ImageEncoder not registered
-            }
-
-            services.AddSingleton<IViewDialogService, AvaloniaDialogService>();
-            services.AddSingleton<IDialogService, AvaloniaDialogServiceAdapter>();
-            services.AddSingleton<ILifecycleService, AvaloniaLifecycleService>();
-            services.AddSingleton<IUiViewModelFactory, UiViewModelFactory>();
-
-            IServiceProvider provider = services.BuildServiceProvider();
-            PlatformServices.SetRootProvider(provider);
+                services.AddSingleton<IViewDialogService, AvaloniaDialogService>();
+                services.AddSingleton<IDialogService, AvaloniaDialogServiceAdapter>();
+                services.AddSingleton<ILifecycleService, AvaloniaLifecycleService>();
+                services.AddSingleton<IUiViewModelFactory, UiViewModelFactory>();
+            });
         }
     }
 }

@@ -53,7 +53,7 @@ namespace XerahS.Core.Tasks
             var taskSettings = Info.TaskSettings ?? new TaskSettings();
             var metadata = Info.Metadata ?? new TaskMetadata();
 
-            TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", $"HandleStartRecordingAsync Entry: mode={mode}, region={region}");
+            XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", $"HandleStartRecordingAsync Entry: mode={mode}, region={region}");
 
             try
             {
@@ -77,7 +77,7 @@ namespace XerahS.Core.Tasks
                 if (region.HasValue)
                 {
                     recordingOptions.Region = region.Value;
-                    TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", $"Recording region set: {region.Value}");
+                    XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", $"Recording region set: {region.Value}");
                 }
 
                 // [2026-01-10T14:40:00+08:00] Align screen recording output with screenshot naming/destination using TaskHelpers.
@@ -103,7 +103,7 @@ namespace XerahS.Core.Tasks
                     recordingOptions.Settings.ForceFFmpeg = true;
                 }
 
-                TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Calling ScreenRecordingManager.StartRecordingAsync");
+                XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Calling ScreenRecordingManager.StartRecordingAsync");
                 DebugHelper.WriteLine($"Starting recording: Mode={mode}, Codec={recordingOptions.Settings?.Codec}, FPS={recordingOptions.Settings?.FPS}");
                 DebugHelper.WriteLine($"Output path: {recordingOptions.OutputPath}");
 
@@ -112,12 +112,12 @@ namespace XerahS.Core.Tasks
                 await recordingCoordinator.StartRecordingAsync(recordingOptions);
                 recordingOptions.OutputPath = recordingCoordinator.PlannedOutputPath ?? recordingOptions.OutputPath;
                 Info.FilePath = recordingOptions.OutputPath;
-                TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "ScreenRecordingManager.StartRecordingAsync completed");
+                XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "ScreenRecordingManager.StartRecordingAsync completed");
 
                 // 2. Wait for stop signal (ASYNC WAIT - Yields thread, keeps task alive)
-                TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Waiting for stop signal...");
+                XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Waiting for stop signal...");
                 await recordingCoordinator.WaitForStopSignalAsync();
-                TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Stop signal received. Resuming...");
+                XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Stop signal received. Resuming...");
 
                 // 3. Stop recording
                 DebugHelper.WriteLine("Stopping recording...");
@@ -161,7 +161,7 @@ namespace XerahS.Core.Tasks
 
                     if (isGifJob && !string.IsNullOrEmpty(outputPath) && File.Exists(outputPath))
                     {
-                         TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Converting video to GIF...");
+                         XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Converting video to GIF...");
                          DebugHelper.WriteLine($"[GIF] Conversion requested. Job={taskSettings.Job}, Source={outputPath}");
                          string gifPath = Path.ChangeExtension(outputPath, ".gif");
                          int gifFps = taskSettings.CaptureSettings?.GIFFPS > 0
@@ -172,7 +172,7 @@ namespace XerahS.Core.Tasks
                          DebugHelper.WriteLine($"[GIF] FFmpegPath={(string.IsNullOrWhiteSpace(ffmpegPath) ? "(missing)" : ffmpegPath)}");
                          if (string.IsNullOrWhiteSpace(ffmpegPath))
                          {
-                             TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "FFmpeg not found. GIF conversion skipped.");
+                             XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "FFmpeg not found. GIF conversion skipped.");
                              DebugHelper.WriteLine("FFmpeg not found. GIF conversion skipped.");
                              try
                              {
@@ -212,7 +212,7 @@ namespace XerahS.Core.Tasks
 
                          if (success)
                          {
-                             TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Conversion successful. Switching result to GIF.");
+                             XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Conversion successful. Switching result to GIF.");
 
                              // Delete original MP4 if conversion succeeded
                              try { File.Delete(outputPath); } catch { }
@@ -222,7 +222,7 @@ namespace XerahS.Core.Tasks
                          }
                          else
                          {
-                             TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Conversion failed. Keeping MP4.");
+                             XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Conversion failed. Keeping MP4.");
                          }
                     }
 

@@ -637,7 +637,7 @@ namespace XerahS.App
         /// </summary>
         private static void InitializeBackgroundServicesAsync()
         {
-            XerahS.Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "=== InitializeBackgroundServicesAsync() CALLED ===");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "=== InitializeBackgroundServicesAsync() CALLED ===");
 
             // Capture startup time on main thread
             double startupTimeMs = 0;
@@ -658,7 +658,7 @@ namespace XerahS.App
                 var asyncStopwatch = System.Diagnostics.Stopwatch.StartNew();
                 try
                 {
-                    XerahS.Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Background task started");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Background task started");
                     XerahS.Common.DebugHelper.WriteLine("Starting async services initialization...");
                     
                     // 1. Initialize Plugins (ProviderCatalog)
@@ -695,21 +695,21 @@ namespace XerahS.App
 #if WINDOWS
                     if (OperatingSystem.IsWindows())
                     {
-                        XerahS.Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Platform is Windows, calling WindowsPlatform.InitializeRecording()");
+                        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Platform is Windows, calling WindowsPlatform.InitializeRecording()");
                         XerahS.Platform.Windows.WindowsPlatform.InitializeRecording();
                     }
 #endif
 #if MACOS
                     if (OperatingSystem.IsMacOS())
                     {
-                        XerahS.Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Platform is macOS, calling MacOSPlatform.InitializeRecording()");
+                        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Platform is macOS, calling MacOSPlatform.InitializeRecording()");
                         XerahS.Platform.MacOS.MacOSPlatform.InitializeRecording();
                     }
 #endif
 #if LINUX
                     if (OperatingSystem.IsLinux())
                     {
-                        XerahS.Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Platform is Linux, calling LinuxPlatform.InitializeRecording()");
+                        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Platform is Linux, calling LinuxPlatform.InitializeRecording()");
                         XerahS.Platform.Linux.LinuxPlatform.InitializeRecording();
                     }
 #endif
@@ -721,27 +721,27 @@ namespace XerahS.App
 #if LINUX
                         if (OperatingSystem.IsLinux())
                         {
-                            XerahS.Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Fallback: Linux detected, calling LinuxPlatform.InitializeRecording()");
+                            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Fallback: Linux detected, calling LinuxPlatform.InitializeRecording()");
                             XerahS.Platform.Linux.LinuxPlatform.InitializeRecording();
                         }
 #endif
 #if MACOS
                         if (OperatingSystem.IsMacOS())
                         {
-                            XerahS.Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Fallback: macOS detected, calling MacOSPlatform.InitializeRecording()");
+                            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Fallback: macOS detected, calling MacOSPlatform.InitializeRecording()");
                             XerahS.Platform.MacOS.MacOSPlatform.InitializeRecording();
                         }
 #endif
 #if WINDOWS
                         if (OperatingSystem.IsWindows())
                         {
-                            XerahS.Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Fallback: Windows detected, calling WindowsPlatform.InitializeRecording()");
+                            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Fallback: Windows detected, calling WindowsPlatform.InitializeRecording()");
                             XerahS.Platform.Windows.WindowsPlatform.InitializeRecording();
                         }
 #endif
                     }
                     asyncStopwatch.Stop();
-                    XerahS.Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Background task completed successfully");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Background task completed successfully");
                     XerahS.Common.DebugHelper.WriteLine("Async services initialization completed successfully");
                     
                     // Log startup time (captured on main thread) and async init time
@@ -749,7 +749,7 @@ namespace XerahS.App
                 }
                 catch (Exception ex)
                 {
-                    XerahS.Core.Helpers.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", $"✗ Background task EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+                    XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", $"✗ Background task EXCEPTION: {ex.GetType().Name}: {ex.Message}");
                     XerahS.Common.DebugHelper.WriteException(ex, "Failed to initialize background services");
 
                     // Notify user that recording/services may not be available
@@ -1096,7 +1096,7 @@ namespace XerahS.App
         {
             try
             {
-                var taskManager = PlatformServices.RootProvider?.GetService<ITaskManager>();
+                var taskManager = (Application.Current as XerahS.UI.App)?.ServiceProvider?.GetService<ITaskManager>();
                 if (taskManager == null)
                 {
                     XerahS.Common.DebugHelper.WriteLine("Shell integration: Task manager unavailable for incoming files.");
@@ -1120,7 +1120,7 @@ namespace XerahS.App
         {
             try
             {
-                var taskManager = PlatformServices.RootProvider?.GetService<ITaskManager>();
+                var taskManager = (Application.Current as XerahS.UI.App)?.ServiceProvider?.GetService<ITaskManager>();
                 if (taskManager == null)
                 {
                     XerahS.Common.DebugHelper.WriteLine("Shell integration: Task manager unavailable for Send-to items.");
