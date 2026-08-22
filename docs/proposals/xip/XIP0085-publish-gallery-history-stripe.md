@@ -210,7 +210,7 @@ Owner browser ── direct no-referrer media request/navigation ──► desti
 
 ### Production web platform (locked)
 
-- A single **Next.js 16 App Router** application with React, strict TypeScript, Node.js 24 LTS, and a committed `pnpm-lock.yaml`.
+- A single **Next.js 16 App Router** application with React, strict **TypeScript 7.0**, Node.js 24 LTS, and a committed `pnpm-lock.yaml`. Next invokes the native TypeScript 7 CLI through `experimental.useTypeScriptCli`; because TypeScript 7 intentionally does not expose the JavaScript compiler API required by `typescript-eslint`, ESLint runs in the isolated `web/tooling/eslint` workspace against Microsoft's official `@typescript/typescript6` compatibility package. The application compiler and production build never fall back to TypeScript 6.
 - **Vercel Pro** hosts the owner UI and Route Handler API. Database, Auth, Stripe, WebAuthn, and webhook routes use the default Node.js runtime; Edge Runtime is not used in v1.
 - The Vercel Function region and Supabase primary region are Sydney (`syd1` / `ap-southeast-2`). Static assets remain globally distributed. Moving data regions requires a migration plan and an XIP amendment.
 - **Supabase Auth** provides verified email/password and TOTP MFA. **Supabase Postgres** stores profiles, gallery metadata, entitlements, idempotency records, and audit events.
@@ -581,6 +581,12 @@ New **XerahS Cloud** group (all desktop platforms):
 
 First Publish with no session launches the Supabase OAuth 2.1 system-browser flow and resumes the original action only after PKCE token exchange and `/api/v1/me` confirm the registered desktop client, strong authentication, and entitlement.
 
+## Repository Implementation Snapshot (2026-08-22)
+
+The staged repository implementation is complete through the code and automation boundary: desktop History/Toast actions, durable local identity, system-browser OAuth with PKCE and protocol activation, `/api/v1/me` verification, Application Settings integration, owner-only web gallery/calendar, OAuth consent and denial relay, TOTP plus feature-gated WebAuthn, recovery-code generation, trial and Stripe Checkout/Portal/webhook reconciliation, RLS/idempotency/outbox migrations, deletion workers, private R2 ledger verification/restore tooling, health checks, drift checks, and protected staging/production deployment workflows. The web application compiles with stable TypeScript 7.0 while ESLint remains isolated on the official TypeScript 6 compatibility package.
+
+The feature remains fail-closed and disabled by default. This snapshot does **not** assert that external infrastructure is provisioned or that production is launched. Supabase project creation/configuration, Stripe sandbox catalog/webhook creation, Cloudflare R2 enablement and credentials, Vercel project/environment setup, DNS, recovery consumption/notification drills, WebAuthn acceptance, tax/legal approval, and every Production Launch Gate below require their recorded owner approval and live verification. No code commit or successful local build may be used as a substitute for those gates.
+
 ## Implementation Phases (after acceptance)
 
 ### Phase 1 — Menu affordance (desktop-only, no network)
@@ -712,6 +718,7 @@ Pin Supabase/Stripe/Next.js packages and commit lockfiles. Create migrations wit
 | Calendar view | Yes | Stated |
 | Web home | `web/` in this repo | Stated |
 | Web stack | Next.js App Router on Vercel; Node runtime | Concrete, same-origin UI/API with supported server dependencies |
+| TypeScript | TypeScript 7 native CLI; isolated TypeScript 6 compatibility API for ESLint only | Uses the production-ready native compiler while respecting the current `typescript-eslint` compiler-API boundary |
 | Data/Auth | Supabase Auth + Postgres with RLS | Managed verified email, TOTP, sessions, relational ownership, backups |
 | Trial | One no-card app-managed seven-day grant | Avoids contradictory Stripe trial models and unwanted charges |
 | Menu vs After Capture | Menu-only in v1 | Explicit curating |
@@ -743,6 +750,8 @@ These are not implementation choices. Production traffic is blocked until every 
 
 Validated against current platform guidance on 2026-08-22:
 
+- [TypeScript 7.0 announcement and native compiler compatibility guidance](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)
+- [Next.js `experimental.useTypeScriptCli` configuration](https://nextjs.org/docs/app/api-reference/config/next-config-js/useTypeScriptCli)
 - [Supabase passkeys (experimental)](https://supabase.com/docs/guides/auth/passkeys)
 - [Supabase MFA](https://supabase.com/docs/guides/auth/auth-mfa)
 - [Supabase SSR client and session validation](https://supabase.com/docs/guides/auth/server-side/creating-a-client)
