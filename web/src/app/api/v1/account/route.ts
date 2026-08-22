@@ -5,6 +5,7 @@ import { rpc } from "@/lib/database";
 import { enforceSameOriginMutation, readJson } from "@/lib/request";
 import { pending } from "@/lib/responses";
 import { handleApi } from "@/lib/route-handler";
+import { attemptImmediateLedgerDispatch } from "@/lib/ledger/dispatcher";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -31,6 +32,7 @@ export async function DELETE(request: Request) {
       "request_gallery_account_deletion",
       { p_idempotency_key: idempotencyKey },
     );
+    await attemptImmediateLedgerDispatch(1);
     return pending(operationId);
   });
 }

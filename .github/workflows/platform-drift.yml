@@ -10,7 +10,11 @@ permissions:
 
 jobs:
   verify:
-    environment: xerahs-cloud-staging
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [xerahs-cloud-staging, xerahs-cloud-production]
+    environment: ${{ matrix.environment }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -19,7 +23,7 @@ jobs:
           node-version: 24.19.0
       - name: Verify Cloudflare R2 desired state
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_ADMIN_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_CONFIG_READ_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           R2_BUCKET: ${{ vars.R2_LEDGER_BUCKET }}
         shell: bash

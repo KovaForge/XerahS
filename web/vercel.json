@@ -6,6 +6,14 @@
     {
       "path": "/api/internal/ledger/dispatch",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/internal/account/deletions",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/internal/stripe/reconcile",
+      "schedule": "17 3 * * *"
     }
   ]
 }

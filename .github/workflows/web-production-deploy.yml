@@ -1,18 +1,24 @@
-name: XerahS Cloud Staging Deploy
+name: XerahS Cloud Production Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type DEPLOY to confirm the protected production rollout
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: xerahs-cloud-staging
+  group: xerahs-cloud-production
   cancel-in-progress: false
 
 jobs:
-  deploy-staging:
-    environment: xerahs-cloud-staging
+  deploy-production:
+    if: inputs.confirmation == 'DEPLOY'
+    environment: xerahs-cloud-production
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -24,7 +30,7 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
-      APP_ENV: staging
+      APP_ENV: production
       APP_ORIGIN: ${{ vars.APP_ORIGIN }}
     steps:
       - uses: actions/checkout@v5
@@ -50,18 +56,37 @@ jobs:
       - run: supabase db push --include-all
       - run: node scripts/render-supabase-config.mjs
       - run: supabase config push --project-ref "$SUPABASE_PROJECT_ID"
-      # Stable staging has a dedicated Vercel project. It must use that
-      # project's production target because Vercel Cron skips Preview builds.
       - run: pnpm dlx vercel@59.4.0 pull --yes --environment=production --token="$VERCEL_TOKEN"
       - run: pnpm dlx vercel@59.4.0 build --prod --token="$VERCEL_TOKEN"
+      - id: known-good
+        name: Record known-good production deployment
+        shell: bash
+        run: |
+          response=$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&teamId=$VERCEL_ORG_ID&target=production&state=READY&limit=1")
+          url=$(jq -r '.deployments[0].url // empty' <<<"$response")
+          test -n "$url"
+          echo "url=https://$url" >> "$GITHUB_OUTPUT"
       - id: deploy
         shell: bash
         run: |
           url=$(pnpm dlx vercel@59.4.0 deploy --prebuilt --prod --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
-      - run: pnpm dlx vercel@59.4.0 inspect "${{ steps.deploy.outputs.url }}" --wait --timeout=5m --token="$VERCEL_TOKEN"
-      - name: Smoke test staging
+      - name: Inspect and smoke test production
         shell: bash
         run: |
-          curl --fail --silent --show-error --retry 5 --retry-all-errors "${{ steps.deploy.outputs.url }}/api/healthz"
-          curl --fail --silent --show-error --retry 5 --retry-all-errors "$APP_ORIGIN/api/healthz"
+          set +e
+          pnpm dlx vercel@59.4.0 inspect "${{ steps.deploy.outputs.url }}" --wait --timeout=5m --token="$VERCEL_TOKEN"
+          inspect_status=$?
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            "${{ steps.deploy.outputs.url }}/api/healthz"
+          smoke_status=$?
+          curl --fail --silent --show-error --retry 5 --retry-all-errors \
+            "$APP_ORIGIN/api/healthz"
+          alias_status=$?
+          if [ "$inspect_status" -ne 0 ] || [ "$smoke_status" -ne 0 ] || [ "$alias_status" -ne 0 ]; then
+            pnpm dlx vercel@59.4.0 rollback "${{ steps.known-good.outputs.url }}" \
+              --yes --timeout=5m --token="$VERCEL_TOKEN"
+            exit 1
+          fi

@@ -3,6 +3,8 @@ import { rpc } from "@/lib/database";
 import { enforceSameOriginMutation } from "@/lib/request";
 import { json, pending } from "@/lib/responses";
 import { handleApi } from "@/lib/route-handler";
+import { registerVerifiedIdentity } from "@/lib/identity";
+import { attemptImmediateLedgerDispatch } from "@/lib/ledger/dispatcher";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -17,15 +19,18 @@ interface TrialResult {
 export async function POST(request: Request) {
   return handleApi(request, async () => {
     enforceSameOriginMutation(request);
-    await requireAuthenticatedUser(request, {
+    const user = await requireAuthenticatedUser(request, {
       strong: true,
       recent: true,
       verifiedEmail: true,
     });
-    const result = await rpc<TrialResult>(
-      await createSupabaseServerClient(request),
-      "start_my_trial",
-    );
+    await registerVerifiedIdentity(user.id, user.email);
+    const supabase = await createSupabaseServerClient(request);
+    let result = await rpc<TrialResult>(supabase, "start_my_trial");
+    if (!result.replicated) {
+      await attemptImmediateLedgerDispatch(1);
+      result = await rpc<TrialResult>(supabase, "start_my_trial");
+    }
     return result.replicated
       ? json({ status: result.status }, { status: 201 })
       : pending(result.operationId);

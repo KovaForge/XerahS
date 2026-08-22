@@ -3,6 +3,7 @@ import { rpc, type GalleryItem } from "@/lib/database";
 import { enforceSameOriginMutation, readJson } from "@/lib/request";
 import { empty, json, pending } from "@/lib/responses";
 import { handleApi } from "@/lib/route-handler";
+import { attemptImmediateLedgerDispatch } from "@/lib/ledger/dispatcher";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   clientItemIdSchema,
@@ -60,8 +61,9 @@ export async function DELETE(request: Request, context: RouteContext) {
     const clientItemId = clientItemIdSchema.parse(
       (await context.params).clientItemId,
     );
-    const result = await rpc<UnpublishResult>(
-      await createSupabaseServerClient(request),
+    const supabase = await createSupabaseServerClient(request);
+    let result = await rpc<UnpublishResult>(
+      supabase,
       "request_gallery_item_unpublish",
       {
         p_client_item_id: clientItemId,
@@ -69,6 +71,19 @@ export async function DELETE(request: Request, context: RouteContext) {
           request.headers.get("idempotency-key") ?? `unpublish:${clientItemId}`,
       },
     );
+    if (!result.replicated && result.operationId) {
+      await attemptImmediateLedgerDispatch(1);
+      result = await rpc<UnpublishResult>(
+        supabase,
+        "request_gallery_item_unpublish",
+        {
+          p_client_item_id: clientItemId,
+          p_idempotency_key:
+            request.headers.get("idempotency-key") ??
+            `unpublish:${clientItemId}`,
+        },
+      );
+    }
     if (result.replicated || !result.operationId) return empty();
     return pending(result.operationId);
   });

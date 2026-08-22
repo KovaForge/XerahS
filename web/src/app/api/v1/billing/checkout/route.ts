@@ -13,6 +13,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 interface CheckoutContext {
+  attemptId: string;
   customerId: string | null;
   customerIdempotencyKey: string;
   checkoutIdempotencyKey: string;
@@ -64,7 +65,11 @@ export async function POST(request: Request) {
         success_url: `${env.APP_ORIGIN}/settings?checkout=success`,
         cancel_url: `${env.APP_ORIGIN}/settings?checkout=cancelled`,
         integration_identifier: integrationIdentifier(),
-        metadata: { xerahs_user_id: user.id, xerahs_plan: plan },
+        metadata: {
+          xerahs_user_id: user.id,
+          xerahs_plan: plan,
+          xerahs_checkout_attempt_id: context.attemptId,
+        },
         subscription_data: { metadata: { xerahs_user_id: user.id } },
         ...(env.STRIPE_TAX_ENABLED
           ? {
@@ -81,6 +86,10 @@ export async function POST(request: Request) {
         "integration_unavailable",
         "Stripe did not return a Checkout URL.",
       );
+    await rpc(supabase, "finalize_my_stripe_checkout", {
+      p_attempt_id: context.attemptId,
+      p_session_id: session.id,
+    });
     return json({ url: session.url }, { status: 201 });
   });
 }

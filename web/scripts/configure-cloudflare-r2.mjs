@@ -49,6 +49,15 @@ try {
   });
 }
 
+// Refuse a shared/public bucket before making retention changes. This check is
+// intentionally before all mutations so a custom domain cannot survive a
+// partially failed provisioning run.
+const custom = await request(`/${bucket}/domains/custom`);
+assert(
+  custom.domains.length === 0,
+  "Refusing to continue: the ledger bucket has a custom domain.",
+);
+
 await request(`/${bucket}/domains/managed`, {
   method: "PUT",
   body: JSON.stringify({ enabled: desired.publicAccess }),
@@ -61,9 +70,3 @@ await request(`/${bucket}/lifecycle`, {
   method: "PUT",
   body: JSON.stringify(desired.lifecycle),
 });
-
-const custom = await request(`/${bucket}/domains/custom`);
-assert(
-  custom.domains.length === 0,
-  "Refusing to continue: the ledger bucket has a custom domain.",
-);

@@ -14,7 +14,10 @@ const fakeStore = new FakeLedgerStore();
 
 function ledgerStore(): LedgerStore {
   const env = getServerEnv();
-  if (env.LEDGER_USE_LOCAL_FAKE && env.APP_ENV !== "production")
+  if (
+    env.LEDGER_USE_LOCAL_FAKE &&
+    (env.APP_ENV === "development" || env.APP_ENV === "preview")
+  )
     return fakeStore;
   if (
     !env.R2_LEDGER_ACCOUNT_ID ||
@@ -34,9 +37,21 @@ function ledgerStore(): LedgerStore {
 
 function signingSecret(version: string): string {
   const env = getServerEnv();
-  if (version !== "v1" || !env.LEDGER_HMAC_SECRET_V1)
-    throw new Error(`Ledger HMAC key ${version} is unavailable.`);
-  return env.LEDGER_HMAC_SECRET_V1;
+  if (env.LEDGER_HMAC_SECRETS_JSON) {
+    let keys: unknown;
+    try {
+      keys = JSON.parse(env.LEDGER_HMAC_SECRETS_JSON);
+    } catch {
+      throw new Error("Ledger HMAC key ring is invalid JSON.");
+    }
+    if (typeof keys === "object" && keys !== null) {
+      const secret = (keys as Record<string, unknown>)[version];
+      if (typeof secret === "string" && secret.length >= 32) return secret;
+    }
+  }
+  if (version === "v1" && env.LEDGER_HMAC_SECRET_V1)
+    return env.LEDGER_HMAC_SECRET_V1;
+  throw new Error(`Ledger HMAC key ${version} is unavailable.`);
 }
 
 interface ClaimedLedgerEvent {
@@ -112,4 +127,19 @@ export async function dispatchLedgerBatch(
     }
   }
   return { claimed: events.length, replicated, failed };
+}
+
+export async function attemptImmediateLedgerDispatch(limit = 1): Promise<void> {
+  try {
+    const result = await dispatchLedgerBatch(limit);
+    if (result.failed > 0)
+      console.error("ledger_immediate_dispatch_failed", {
+        claimed: result.claimed,
+        failed: result.failed,
+      });
+  } catch (error) {
+    console.error("ledger_immediate_dispatch_unavailable", {
+      errorCode: errorCode(error),
+    });
+  }
 }
