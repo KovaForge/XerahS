@@ -1,11 +1,15 @@
 <services>
-  <!-- OBS source service. Watches the GitHub release tarball for the stamped tag.
-       This file is generated/stamped by prepare-distro-repo-assets.sh.
-       It does not publish. An operator must osc checkout / osc commit. -->
+  <!-- OBS source service. Downloads both GitHub release tarballs for the stamped tag. -->
   <service name="download_url">
     <param name="protocol">https</param>
     <param name="host">github.com</param>
     <param name="path">/@REPO@/releases/download/v@VERSION@/XerahS-@VERSION@-linux-x64.tar.gz</param>
     <param name="filename">XerahS-@VERSION@-linux-x64.tar.gz</param>
+  </service>
+  <service name="download_url">
+    <param name="protocol">https</param>
+    <param name="host">github.com</param>
+    <param name="path">/@REPO@/releases/download/v@VERSION@/XerahS-@VERSION@-linux-arm64.tar.gz</param>
+    <param name="filename">XerahS-@VERSION@-linux-arm64.tar.gz</param>
   </service>
 </services>

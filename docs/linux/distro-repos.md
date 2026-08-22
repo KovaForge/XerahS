@@ -8,83 +8,100 @@ auto-updating distro repositories, not more GitHub one-off artifacts.
 | GitHub `.deb` / `.rpm` / `.tar.gz` / AppImage | all | Have | One-off install. No `apt` / `dnf` / `zypper` update. |
 | Flatpak bundle | all | Have | Distro-agnostic. Flathub PR is still a separate ops step. |
 | Community AUR `xerahs-git` | Arch | Have | Documented in the README. |
-| Launchpad PPA | Ubuntu / Debian | **Prep only** | Templates + stamp script. No live PPA. |
-| Fedora COPR | Fedora / EPEL | **Prep only** | Templates + stamp script. No live COPR project. |
-| openSUSE OBS | Leap / Tumbleweed / SLES | **Prep only** | Templates + stamp script. No live OBS project. |
+| Launchpad PPA | Ubuntu / Debian | Publish path | `publish-distro-repos.sh` + `LAUNCHPAD_*` secrets. |
+| Fedora COPR | Fedora / EPEL | Publish path | `publish-distro-repos.sh` + `COPR_CONFIG`. |
+| openSUSE OBS | Leap / Tumbleweed / SLES | Publish path | `publish-distro-repos.sh` + `OSC_*` secrets. |
 
-## What landed
+Packages are **binary repacks** of the GitHub release tarball
+(`XerahS-<version>-linux-<arch>.tar.gz`). Distro builders do not compile .NET.
 
-Templates live in `build/linux/repo-staging/`. After a successful GitHub
-release, stamp candidates with:
-
-```bash
-.ai/skills/publish-release/scripts/prepare-distro-repo-assets.sh --tag vX.Y.Z --repo KovaForge/XerahS
-```
-
-Or as optional Step 9 of `publish-release`:
+## User install (after the project exists)
 
 ```bash
-./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --prepare-distro-repo-source --bump z --yes
+# Ubuntu / Debian
+sudo add-apt-repository ppa:sharex/xerahs
+sudo apt update
+sudo apt install xerahs
+
+# Fedora
+sudo dnf copr enable sharex/xerahs
+sudo dnf install xerahs
+
+# openSUSE Tumbleweed (URL follows the OBS project path)
+sudo zypper ar -f https://download.opensuse.org/repositories/home:/ShareX:/XerahS/openSUSE_Tumbleweed/ xerahs
+sudo zypper refresh
+sudo zypper in xerahs
 ```
 
-Output: `dist/distro-repo/` (gitignored) plus `REPO-PUBLISH.md`.
+A maintainer must create the empty Launchpad PPA, COPR project, and OBS
+project once. Until then the commands above 404.
 
-The stamp script **does not publish**. It refuses `--push`, `--upload`,
-`--dput`, `--copr`, `--osc`, and `--publish`. A human must own the Launchpad
-PPA, Fedora COPR project, and OBS project before any live upload.
-
-## How each channel works
+## One-time maintainer setup
 
 ### Launchpad PPA
 
-Wraps the existing GitHub `XerahS-*-linux-*.tar.gz` in a Debian source
-package (`debian/control`, `rules`, `changelog`, `copyright`). Operator
-runs `debuild -S` then `dput` to a Launchpad PPA they own. Launchpad
-rejects unsigned uploads: `debsign` the `.changes` with the same GPG
-key attached to the Launchpad account before `dput`.
-
-Build amd64 and arm64 as **separate** `debuild` runs. Each run needs the
-matching tarball next to `debian/`. One tree, two tarballs, two source
-uploads if you want both arches.
+1. Create PPA `xerahs` under the ShareX Launchpad team (or your team).
+2. Upload a GPG key to Launchpad and to `keyserver.ubuntu.com`.
+3. GitHub secrets:
+   - `LAUNCHPAD_PPA` — `ppa:sharex/xerahs`
+   - `LAUNCHPAD_GPG_PRIVATE_KEY` — armored private key
+   - `LAUNCHPAD_GPG_PASSPHRASE` — optional
+   - `LAUNCHPAD_GPG_KEY_ID` — optional fingerprint
+4. Default Ubuntu series: `noble jammy` (`XERAHS_PPA_SERIES`).
 
 ### Fedora COPR
 
-Uses a first-party `xerahs.spec` whose `Source0` is the GitHub release
-tarball (same payload as the AUR PKGBUILD, not the internal
-`XerahS.Packaging` staging tarball). Two specs: `x86_64` and `aarch64`.
-Operator runs `copr-cli build` against a COPR project they own.
+1. Create project `sharex/xerahs` at <https://copr.fedorainfracloud.org>.
+2. Enable chroots `fedora-latest-x86_64` and `fedora-latest-aarch64`.
+3. Copy API config from <https://copr.fedorainfracloud.org/api/>.
+4. GitHub secrets:
+   - `COPR_CONFIG` — full `~/.config/copr` file contents
+   - `COPR_PROJECT` — `sharex/xerahs` (optional; that is the default)
 
-`desktop-file-utils` is a `BuildRequires` only. Local `rpmbuild` hosts
-need `rpm-build` and `desktop-file-utils` installed.
+### Open Build Service
 
-COPR and OBS fetch `Source0` over HTTPS from GitHub Releases. If the
-target repo later requires auth for release assets, those builds 404
-until the URL or token is updated. The community AUR `xerahs-git`
-PKGBUILD still uses a local `file://` source on purpose; do not "fix"
-that to match COPR/OBS.
+1. Create project `home:ShareX:XerahS` (or a team project) at
+   <https://build.opensuse.org>.
+2. Add repositories for openSUSE Tumbleweed/Leap (and Fedora/Debian if wanted).
+3. GitHub secrets:
+   - `OSC_USERNAME`
+   - `OSC_PASSWORD` (application password / token is fine)
+   - `OBS_PROJECT` — `home:ShareX:XerahS` (optional default)
 
-### openSUSE OBS
+## Publish commands
 
-Same spec as COPR, minus `ExclusiveArch` so Leap / Tumbleweed multibuild
-can cover both arches. `_service` downloads the **linux-x64** GitHub
-tarball. An operator who wants a first-class arm64 OBS package must add
-a second package or a second `_service` entry. OBS can also emit Ubuntu
-and Fedora repos from that one project, which is the "cover almost
-everything at once" path from #253.
+Stamp only:
+
+```bash
+.ai/skills/publish-release/scripts/prepare-distro-repo-assets.sh --tag vX.Y.Z --repo ShareX/XerahS
+```
+
+Stamp and upload (skips a backend when its secrets or tools are missing):
+
+```bash
+.ai/skills/publish-release/scripts/publish-distro-repos.sh --tag vX.Y.Z --repo ShareX/XerahS
+```
+
+From `publish-release` after the GitHub tag workflow has attached linux tarballs:
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --publish-distro-repos --bump z --yes
+```
+
+The tag workflow job `publish-linux-repos` runs the same script. Forks
+without secrets stay green.
 
 ## Do not stamp unpublished tags
 
 `Source0` and `_service` point at
 `https://github.com/<repo>/releases/download/vX.Y.Z/XerahS-X.Y.Z-linux-*.tar.gz`.
-A draft or missing GitHub release 404s the build. Stamp only after the
+A draft or missing GitHub release 404s the build. Publish only after the
 tag workflow has attached the linux tarballs.
 
 ## What this is not
 
 - Not a second `.deb` / `.rpm` format. GitHub assets stay the one-off
   installers.
-- Not a live `add-apt-repository` / `dnf copr enable` / `zypper ar`
-  channel until a human creates those projects.
 - Not a replacement for AppImage, Flatpak, or AUR.
 
 See also `build/linux/repo-staging/README.md` and

@@ -10,6 +10,13 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.28.0
+
+### Features
+- **Linux — Distro repos (#253)**: Add first-party Launchpad PPA, Fedora COPR, and openSUSE OBS publish support. `publish-release --publish-distro-repos` and the tag workflow upload when maintainer secrets are set, and skip a backend when they are not.
+
+---
+
 ## v0.25.6
 
 ### Features

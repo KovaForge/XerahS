@@ -13,6 +13,11 @@ TARBALL_ARCH := linux-x64
 endif
 
 TARBALL := XerahS-$(VERSION)-$(TARBALL_ARCH).tar.gz
+ifeq ($(wildcard $(TARBALL)),)
+ifneq ($(wildcard tarballs/$(TARBALL)),)
+TARBALL := tarballs/$(TARBALL)
+endif
+endif
 
 %:
 	dh $@
@@ -21,6 +26,9 @@ override_dh_auto_configure:
 	@test -f "$(TARBALL)" || { echo "missing $(TARBALL); copy the GitHub release asset next to debian/" >&2; exit 1; }
 
 override_dh_auto_build:
+	@true
+
+override_dh_auto_test:
 	@true
 
 override_dh_auto_install:
@@ -37,7 +45,13 @@ override_dh_auto_install:
 	mkdir -p debian/xerahs/usr/share/pixmaps
 	if [ -f debian/xerahs/usr/lib/xerahs/Logo.png ]; then \
 	  cp debian/xerahs/usr/lib/xerahs/Logo.png debian/xerahs/usr/share/pixmaps/xerahs.png; \
+	elif [ -f debian/xerahs/usr/lib/xerahs/ShareX.iconset/icon_512x512.png ]; then \
+	  cp debian/xerahs/usr/lib/xerahs/ShareX.iconset/icon_512x512.png debian/xerahs/usr/share/pixmaps/xerahs.png; \
+	elif [ -f debian/xerahs/usr/lib/xerahs/xerahs.png ]; then \
+	  cp debian/xerahs/usr/lib/xerahs/xerahs.png debian/xerahs/usr/share/pixmaps/xerahs.png; \
 	fi
+	install -D -m 644 debian/99-xerahs-input.rules debian/xerahs/usr/lib/udev/rules.d/99-xerahs-input.rules
+	install -D -m 644 debian/com.xerahs.input.policy debian/xerahs/usr/share/polkit-1/actions/com.xerahs.input.policy
 
 override_dh_strip:
 	@true

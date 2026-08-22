@@ -1,4 +1,4 @@
-xerahs (@VERSION@-1) unstable; urgency=medium
+xerahs (@VERSION@-1~@UBUNTU_SERIES@1) @UBUNTU_SERIES@; urgency=medium
 
   * Official Linux payload from GitHub release v@VERSION@.
 

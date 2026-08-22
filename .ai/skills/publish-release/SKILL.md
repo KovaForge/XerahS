@@ -16,7 +16,7 @@ Use this skill to run release steps in strict order:
 - Step 6: Ensure standard release notes block is present on the GitHub release
 - Step 7: Apply repo release-channel policy (see below)
 - Optional Step 8: Generate a Flathub source-build manifest candidate from the successful release tag; do not open or automate a Flathub PR
-- Optional Step 9: Stamp Launchpad PPA / Fedora COPR / openSUSE OBS candidates from the same GitHub linux tarball; do not dput, copr-cli build, or osc commit
+- Optional Step 9: Stamp Launchpad PPA / Fedora COPR / openSUSE OBS candidates, or publish them with `--publish-distro-repos` (secrets-gated skip per backend; see `docs/linux/distro-repos.md`)
 - GitHub Actions release upload steps must match the same repo policy (`prerelease` / `make_latest` by `github.repository`); do not rely only on the post-workflow `gh release edit` guard.
 
 Repository target behavior (dual-repo):
@@ -70,10 +70,10 @@ Optional Step 8 performs:
 - Keeps this as a pre-release validation path. Do not mark a release stable for Flathub until the source-build manifest, dependency sources, manifest lint, repo lint, and manual smoke tests pass.
 
 Optional Step 9 performs:
-- Runs `.ai/skills/publish-release/scripts/prepare-distro-repo-assets.sh --tag vX.Y.Z --repo owner/name`.
-- Stamps `dist/distro-repo/` from `build/linux/repo-staging/` (PPA `debian/`, COPR specs, OBS `_service` + spec).
-- Writes `dist/distro-repo/REPO-PUBLISH.md` with the operator commands for Launchpad / COPR / OBS.
-- Refuses `--push` / `--upload` / `--dput` / `--copr` / `--osc` / `--publish`. A human must own the Launchpad PPA, Fedora COPR project, and OBS project before any live publish.
+- `--prepare-distro-repo-source` runs `.ai/skills/publish-release/scripts/prepare-distro-repo-assets.sh --tag vX.Y.Z --repo owner/name` and stamps `dist/distro-repo/` from `build/linux/repo-staging/`.
+- `--publish-distro-repos` runs `.ai/skills/publish-release/scripts/publish-distro-repos.sh --tag vX.Y.Z --repo owner/name`: stamp, then `dput` / `copr-cli build` / `osc commit` when credentials exist.
+- Missing Launchpad GPG, COPR config, or OBS login skips that backend and does not fail the release. A backend with credentials that fails the upload does fail.
+- One-time project creation and secret names live in `docs/linux/distro-repos.md`.
 - Does not invent a second `.deb` / `.rpm` format. GitHub release assets remain the one-off installers; these channels are the `apt` / `dnf` / `zypper` update path from ShareX/XerahS#253.
 
 ## Primary Command
@@ -148,10 +148,17 @@ Patch bump and stamp PPA/COPR/OBS candidates (does not publish):
 ./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --prepare-distro-repo-source --bump z --yes
 ```
 
-Stamp candidates for an existing tag without running the rest of the sequence:
+Patch bump and publish PPA/COPR/OBS (skips a backend without credentials):
+
+```bash
+./.ai/skills/publish-release/scripts/run-release-sequence.sh --assume-changelog-done --monitor --publish-distro-repos --bump z --yes
+```
+
+Stamp or publish an existing tag without running the rest of the sequence:
 
 ```bash
 ./.ai/skills/publish-release/scripts/prepare-distro-repo-assets.sh --tag vX.Y.Z --repo KovaForge/XerahS
+./.ai/skills/publish-release/scripts/publish-distro-repos.sh --tag vX.Y.Z --repo KovaForge/XerahS
 ```
 
 Minor bump with custom commit token/summary:
@@ -229,12 +236,11 @@ On environments where `bash` is not in PATH, execute the sequence manually:
    - Generate and add offline dependency sources for NuGet/.NET packages and `ShareX.VideoEditor/frontend` npm packages before attempting a network-disabled Flathub build.
    - Build and lint the generated manifest locally before a human maintainer manually opens the Flathub PR.
 
-9. Optional PPA / COPR / OBS candidate stamp (does not publish)
-   - Run `.ai/skills/publish-release/scripts/prepare-distro-repo-assets.sh --tag v<new-version> --repo owner/name`.
-   - Confirm `dist/distro-repo/REPO-PUBLISH.md` names the Launchpad / COPR / OBS commands.
+9. Optional PPA / COPR / OBS
+   - Stamp only: `.ai/skills/publish-release/scripts/prepare-distro-repo-assets.sh --tag v<new-version> --repo owner/name`.
+   - Publish: `.ai/skills/publish-release/scripts/publish-distro-repos.sh --tag v<new-version> --repo owner/name` (or `--publish-distro-repos` on the sequence script).
    - Confirm Source0 / `_service` URLs point at `XerahS-<version>-linux-x64.tar.gz` (or arm64), not a doubled `linux-linux-` path.
-   - Do not `dput`, `copr-cli build`, or `osc commit` from this skill. A human must own those accounts.
-   - Copy the GitHub tarball next to `ppa/debian/` before `debuild -S` (`--download-tarballs` only fetches into `dist/distro-repo/tarballs/`).
+   - Secret names and one-time Launchpad / COPR / OBS setup: `docs/linux/distro-repos.md`.
 
 10. Optional post-release Chocolatey maintenance
    - The tag workflow should already have produced and smoke-tested `xerahs.<new-version>.nupkg`.
@@ -289,7 +295,7 @@ When executing this skill:
 6. Ensure release notes include changelog link + macOS troubleshooting block.
 8. If requested explicitly, override channel with `--set-prerelease` or `--no-prerelease`; otherwise apply repo defaults.
 9. If preparing for Flathub, run the source-build helper and report which of the source/dependency gates passed or failed.
-10. If preparing first-party Linux repos, run the distro-repo helper and report the stamped `dist/distro-repo/` path. Do not publish.
+10. If preparing first-party Linux repos, run the distro-repo stamp helper. If publishing, run `publish-distro-repos.sh` and report which backends uploaded vs skipped.
 11. Report final version, commit hash, branch push status, tag push status, run URL, repo target, and release channel (pre-release vs latest).
 
 Default release-channel policy: `ShareX/XerahS` = pre-release; `KovaForge/XerahS` = full latest release. Use `--set-prerelease` / `--no-prerelease` only for intentional overrides.
@@ -313,7 +319,7 @@ Default release-channel policy: `ShareX/XerahS` = pre-release; `KovaForge/XerahS
 - Flathub submission manifests must not depend on local `dist/xerahs-flatpak-staging`; generate a tag-pinned source-build candidate with `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh`.
 - Flathub source-build candidates must include pinned submodule commits; GitHub source archives do not automatically include submodule contents.
 - Flathub source-build candidates are not ready until NuGet/.NET and npm dependency sources are generated and a network-disabled Flatpak build passes.
-- Distro-repo candidates (PPA / COPR / OBS) wrap the existing GitHub linux tarball. They are not a second package format and they are not live update channels until a human creates the Launchpad PPA, COPR project, and OBS project.
+- Distro-repo candidates (PPA / COPR / OBS) wrap the existing GitHub linux tarball. They are not a second package format. `publish-distro-repos.sh` uploads when secrets are present and skips a backend when they are not.
 - Flatpak build commands install into `/app`, not `/usr`; expose launchers through `/app/bin`.
 - Flatpak build commands run from the module build directory, not the repository root; add icons, desktop files, metainfo, or other repository assets as explicit manifest sources before installing them.
 - Flatpak `finish-args` must use options supported by `flatpak build-finish`; clipboard read/write flags are not valid `finish-args`.

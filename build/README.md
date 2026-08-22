@@ -27,6 +27,7 @@ build/
 │   ├── aur/                          # Arch packaging metadata
 │   │   └── xerahs-git/
 │   │       └── PKGBUILD             # Local PKGBUILD used by package-aur.sh
+│   ├── repo-staging/                  # PPA / COPR / OBS templates (#253)
 │   └── XerahS.Packaging/             # C# packaging tool
 │       ├── Program.cs                # Packaging logic (tar.gz, .deb, .rpm)
 │       └── XerahS.Packaging.csproj   # Project file

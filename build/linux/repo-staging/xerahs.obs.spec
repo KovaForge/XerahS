@@ -1,6 +1,5 @@
-# First-party COPR spec for the published Linux payload.
-# Consumes the GitHub release tarball (same layout as the AUR PKGBUILD),
-# not the internal rpmbuild staging tarball used by XerahS.Packaging.
+# First-party OBS spec. Lists both GitHub tarballs so Leap/Tumbleweed
+# can build x86_64 and aarch64 from one package. _service downloads them.
 #
 # Stamped by .ai/skills/publish-release/scripts/prepare-distro-repo-assets.sh.
 
@@ -16,11 +15,11 @@ Release:        1%{?dist}
 Summary:        XerahS - Cross-platform screen capture tool
 License:        GPL-3.0-or-later
 URL:            https://github.com/@REPO@
-# @TARBALL_ARCH@ is the RID suffix only: x64 or arm64 (not linux-x64).
-Source0:        https://github.com/@REPO@/releases/download/v%{version}/XerahS-%{version}-linux-@TARBALL_ARCH@.tar.gz
-Source1:        https://raw.githubusercontent.com/@REPO@/v%{version}/build/linux/packaging/99-xerahs-input.rules
-Source2:        https://raw.githubusercontent.com/@REPO@/v%{version}/build/linux/packaging/com.xerahs.input.policy
-ExclusiveArch:  @RPM_ARCH@
+Source0:        https://github.com/@REPO@/releases/download/v%{version}/XerahS-%{version}-linux-x64.tar.gz
+Source1:        https://github.com/@REPO@/releases/download/v%{version}/XerahS-%{version}-linux-arm64.tar.gz
+Source2:        99-xerahs-input.rules
+Source3:        com.xerahs.input.policy
+ExclusiveArch:  x86_64 aarch64
 BuildRequires:  desktop-file-utils
 BuildRequires:  tar
 BuildRequires:  gzip
@@ -35,25 +34,28 @@ On GNOME, install gnome-shell-extension-appindicator to enable the
 system tray icon (Settings > Show tray icon).
 
 This package installs the official self-contained Linux payload from
-the GitHub release. It is the COPR counterpart of the
-XerahS-%{version}-linux-*.rpm asset already attached to each release.
+the GitHub release. Distro builders do not compile .NET.
 
 %prep
-%setup -c -n %{name}-%{version}
+rm -rf payload
+mkdir -p payload
+%ifarch x86_64
+tar -xf %{SOURCE0} -C payload
+%endif
+%ifarch aarch64
+tar -xf %{SOURCE1} -C payload
+%endif
 
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/lib/xerahs
-cp -a * %{buildroot}/usr/lib/xerahs/
+cp -a payload/. %{buildroot}/usr/lib/xerahs/
 mkdir -p %{buildroot}%{_bindir}
 rm -f %{buildroot}%{_bindir}/xerahs
 ln -s ../lib/xerahs/XerahS %{buildroot}%{_bindir}/xerahs
 chmod 755 %{buildroot}/usr/lib/xerahs/XerahS
 if [ -f %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon ]; then
   chmod 755 %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon
-fi
-if [ -f %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon.exe ]; then
-  chmod 755 %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon.exe
 fi
 
 mkdir -p %{buildroot}%{_datadir}/applications
@@ -83,8 +85,8 @@ elif [ -f %{buildroot}/usr/lib/xerahs/xerahs.png ]; then
   cp %{buildroot}/usr/lib/xerahs/xerahs.png %{buildroot}%{_datadir}/pixmaps/xerahs.png
 fi
 
-install -D -m 644 %{SOURCE1} %{buildroot}/usr/lib/udev/rules.d/99-xerahs-input.rules
-install -D -m 644 %{SOURCE2} %{buildroot}/usr/share/polkit-1/actions/com.xerahs.input.policy
+install -D -m 644 %{SOURCE2} %{buildroot}/usr/lib/udev/rules.d/99-xerahs-input.rules
+install -D -m 644 %{SOURCE3} %{buildroot}/usr/share/polkit-1/actions/com.xerahs.input.policy
 
 %post
 if ! getent group input >/dev/null 2>&1; then groupadd --system input || true; fi

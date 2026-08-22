@@ -9,14 +9,15 @@ Stamp first-party Linux repo templates (Launchpad PPA, Fedora COPR,
 openSUSE OBS) for a XerahS release tag. Writes candidates under
 dist/distro-repo/ plus an operator checklist.
 
-This script does NOT publish. It refuses --push / --upload / --dput /
---copr / --osc flags. An operator must create the Launchpad/COPR/OBS
-project and run the commands in REPO-PUBLISH.md.
+This script only stamps. Live upload is
+.ai/skills/publish-release/scripts/publish-distro-repos.sh
+(secrets-gated; skips a backend when credentials are missing).
 
 Options:
   --tag <vX.Y.Z>          Release tag (default: v<Directory.Build.props Version>)
   --repo <owner/name>     GitHub repository (default: resolved from origin)
   --output-dir <path>     Output directory (default: dist/distro-repo)
+  --ubuntu-series <name>  debian/changelog series (default: noble)
   --download-tarballs     Fetch linux-x64 and linux-arm64 release tarballs
   -h, --help              Show this help
 
@@ -60,18 +61,21 @@ stamp_file() {
   local rpm_arch="$6"
   local changelog_date="$7"
   local rfc2822_date="$8"
+  local ubuntu_series="$9"
 
   mkdir -p "$(dirname "$dest")"
-  local content
-  content="$(cat "$src")"
-  content="${content//@VERSION@/${version}}"
-  content="${content//@REPO@/${repo}}"
-  content="${content//@TARBALL_ARCH@/${tarball_arch}}"
-  content="${content//@RPM_ARCH@/${rpm_arch}}"
-  content="${content//@CHANGELOG_DATE@/${changelog_date}}"
-  content="${content//@RFC2822_DATE@/${rfc2822_date}}"
-  printf '%s' "$content" > "$dest"
-  if [[ "$(basename "$dest")" == "rules" ]]; then
+  sed \
+    -e "s|@VERSION@|${version}|g" \
+    -e "s|@REPO@|${repo}|g" \
+    -e "s|@TARBALL_ARCH@|${tarball_arch}|g" \
+    -e "s|@RPM_ARCH@|${rpm_arch}|g" \
+    -e "s|@CHANGELOG_DATE@|${changelog_date}|g" \
+    -e "s|@RFC2822_DATE@|${rfc2822_date}|g" \
+    -e "s|@UBUNTU_SERIES@|${ubuntu_series}|g" \
+    "$src" > "$dest"
+  local base
+  base="$(basename "$dest")"
+  if [[ "$base" == "rules" || "$base" == "postinst" || "$base" == "postrm" ]]; then
     chmod 755 "$dest"
   fi
 }
@@ -80,6 +84,7 @@ TAG_NAME=""
 GH_TARGET_REPO=""
 OUTPUT_DIR=""
 DOWNLOAD_TARBALLS=0
+UBUNTU_SERIES="noble"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -98,13 +103,17 @@ while [[ $# -gt 0 ]]; do
       OUTPUT_DIR="$2"
       shift 2
       ;;
+    --ubuntu-series)
+      [[ $# -ge 2 ]] || { echo "Error: --ubuntu-series requires a value." >&2; exit 1; }
+      UBUNTU_SERIES="$2"
+      shift 2
+      ;;
     --download-tarballs)
       DOWNLOAD_TARBALLS=1
       shift
       ;;
     --push|--upload|--dput|--copr|--osc|--publish)
-      echo "Error: $1 is refused. This script only stamps candidates; it does not publish." >&2
-      echo "See dist/distro-repo/REPO-PUBLISH.md after a successful run." >&2
+      echo "Error: $1 is refused here. Use publish-distro-repos.sh for live upload." >&2
       exit 1
       ;;
     -h|--help)
@@ -150,6 +159,7 @@ fi
 VERSION="${TAG_NAME#v}"
 OUTPUT_DIR="${OUTPUT_DIR:-$repo_root/dist/distro-repo}"
 TEMPLATE_ROOT="$repo_root/build/linux/repo-staging"
+PACKAGING_ROOT="$repo_root/build/linux/packaging"
 
 if [[ ! -d "$TEMPLATE_ROOT" ]]; then
   echo "Error: template root missing: $TEMPLATE_ROOT" >&2
@@ -169,42 +179,40 @@ mkdir -p "$OUTPUT_DIR/ppa/debian/source" \
          "$OUTPUT_DIR/obs" \
          "$OUTPUT_DIR/tarballs"
 
-stamp_file "$TEMPLATE_ROOT/xerahs.spec" \
-  "$OUTPUT_DIR/copr/xerahs-linux-x64.spec" \
-  "$VERSION" "$GH_TARGET_REPO" "x64" "x86_64" "$CHANGELOG_DATE" "$RFC2822_DATE"
-stamp_file "$TEMPLATE_ROOT/xerahs.spec" \
-  "$OUTPUT_DIR/copr/xerahs-linux-arm64.spec" \
-  "$VERSION" "$GH_TARGET_REPO" "arm64" "aarch64" "$CHANGELOG_DATE" "$RFC2822_DATE"
+stamp() {
+  stamp_file "$1" "$2" "$VERSION" "$GH_TARGET_REPO" "$3" "$4" \
+    "$CHANGELOG_DATE" "$RFC2822_DATE" "$UBUNTU_SERIES"
+}
 
-# OBS uses the same payload spec without ExclusiveArch so Leap/Tumbleweed
-# multibuild can cover x86_64 and aarch64 from one package.
-cp "$OUTPUT_DIR/copr/xerahs-linux-x64.spec" "$OUTPUT_DIR/obs/xerahs.spec"
-if grep -q '^ExclusiveArch:' "$OUTPUT_DIR/obs/xerahs.spec"; then
-  sed -i.bak '/^ExclusiveArch:/d' "$OUTPUT_DIR/obs/xerahs.spec"
-  rm -f "$OUTPUT_DIR/obs/xerahs.spec.bak"
-fi
-stamp_file "$TEMPLATE_ROOT/_service" \
-  "$OUTPUT_DIR/obs/_service" \
-  "$VERSION" "$GH_TARGET_REPO" "linux-x64" "x86_64" "$CHANGELOG_DATE" "$RFC2822_DATE"
+stamp "$TEMPLATE_ROOT/xerahs.spec" \
+  "$OUTPUT_DIR/copr/xerahs-linux-x64.spec" "x64" "x86_64"
+stamp "$TEMPLATE_ROOT/xerahs.spec" \
+  "$OUTPUT_DIR/copr/xerahs-linux-arm64.spec" "arm64" "aarch64"
+stamp "$TEMPLATE_ROOT/xerahs.obs.spec" \
+  "$OUTPUT_DIR/obs/xerahs.spec" "x64" "x86_64"
+stamp "$TEMPLATE_ROOT/_service" \
+  "$OUTPUT_DIR/obs/_service" "linux-x64" "x86_64"
 
-stamp_file "$TEMPLATE_ROOT/debian/control" \
-  "$OUTPUT_DIR/ppa/debian/control" \
-  "$VERSION" "$GH_TARGET_REPO" "linux-x64" "x86_64" "$CHANGELOG_DATE" "$RFC2822_DATE"
-stamp_file "$TEMPLATE_ROOT/debian/rules" \
-  "$OUTPUT_DIR/ppa/debian/rules" \
-  "$VERSION" "$GH_TARGET_REPO" "linux-x64" "x86_64" "$CHANGELOG_DATE" "$RFC2822_DATE"
-stamp_file "$TEMPLATE_ROOT/debian/changelog.in" \
-  "$OUTPUT_DIR/ppa/debian/changelog" \
-  "$VERSION" "$GH_TARGET_REPO" "linux-x64" "x86_64" "$CHANGELOG_DATE" "$RFC2822_DATE"
-stamp_file "$TEMPLATE_ROOT/debian/copyright" \
-  "$OUTPUT_DIR/ppa/debian/copyright" \
-  "$VERSION" "$GH_TARGET_REPO" "linux-x64" "x86_64" "$CHANGELOG_DATE" "$RFC2822_DATE"
-stamp_file "$TEMPLATE_ROOT/debian/watch" \
-  "$OUTPUT_DIR/ppa/debian/watch" \
-  "$VERSION" "$GH_TARGET_REPO" "linux-x64" "x86_64" "$CHANGELOG_DATE" "$RFC2822_DATE"
+stamp "$TEMPLATE_ROOT/debian/control" \
+  "$OUTPUT_DIR/ppa/debian/control" "linux-x64" "x86_64"
+stamp "$TEMPLATE_ROOT/debian/rules" \
+  "$OUTPUT_DIR/ppa/debian/rules" "linux-x64" "x86_64"
+stamp "$TEMPLATE_ROOT/debian/changelog.in" \
+  "$OUTPUT_DIR/ppa/debian/changelog" "linux-x64" "x86_64"
+stamp "$TEMPLATE_ROOT/debian/copyright" \
+  "$OUTPUT_DIR/ppa/debian/copyright" "linux-x64" "x86_64"
+stamp "$TEMPLATE_ROOT/debian/watch" \
+  "$OUTPUT_DIR/ppa/debian/watch" "linux-x64" "x86_64"
 cp "$TEMPLATE_ROOT/debian/xerahs.desktop" "$OUTPUT_DIR/ppa/debian/xerahs.desktop"
 cp "$TEMPLATE_ROOT/debian/source/format" "$OUTPUT_DIR/ppa/debian/source/format"
 cp "$TEMPLATE_ROOT/debian/compat" "$OUTPUT_DIR/ppa/debian/compat"
+cp "$TEMPLATE_ROOT/debian/postinst" "$OUTPUT_DIR/ppa/debian/postinst"
+cp "$TEMPLATE_ROOT/debian/postrm" "$OUTPUT_DIR/ppa/debian/postrm"
+chmod 755 "$OUTPUT_DIR/ppa/debian/postinst" "$OUTPUT_DIR/ppa/debian/postrm"
+cp "$PACKAGING_ROOT/99-xerahs-input.rules" "$OUTPUT_DIR/ppa/debian/99-xerahs-input.rules"
+cp "$PACKAGING_ROOT/com.xerahs.input.policy" "$OUTPUT_DIR/ppa/debian/com.xerahs.input.policy"
+cp "$PACKAGING_ROOT/99-xerahs-input.rules" "$OUTPUT_DIR/obs/99-xerahs-input.rules"
+cp "$PACKAGING_ROOT/com.xerahs.input.policy" "$OUTPUT_DIR/obs/com.xerahs.input.policy"
 
 if [[ $DOWNLOAD_TARBALLS -eq 1 ]]; then
   require_cmd curl
@@ -213,7 +221,9 @@ if [[ $DOWNLOAD_TARBALLS -eq 1 ]]; then
     url="https://github.com/${GH_TARGET_REPO}/releases/download/${TAG_NAME}/${name}"
     dest="$OUTPUT_DIR/tarballs/${name}"
     echo "Downloading $url"
-    if ! curl -fsSL -o "$dest" "$url"; then
+    if curl -fsSL -o "$dest" "$url"; then
+      cp -f "$dest" "$OUTPUT_DIR/ppa/${name}"
+    else
       echo "Warning: failed to download $name from $GH_TARGET_REPO $TAG_NAME." >&2
       echo "Copy the GitHub release tarball next to debian/ before debuild." >&2
       rm -f "$dest"
@@ -225,97 +235,45 @@ cat > "$OUTPUT_DIR/REPO-PUBLISH.md" <<EOF
 # Distro repo publish checklist (${TAG_NAME} / ${GH_TARGET_REPO})
 
 Generated by \`.ai/skills/publish-release/scripts/prepare-distro-repo-assets.sh\`.
-This file is an operator runbook. The prep script never publishes.
 
-## What already ships (do not reinvent)
+Live upload (secrets-gated; skips a backend when credentials are missing):
 
-- GitHub one-off installers: \`.deb\`, \`.rpm\`, \`.tar.gz\`, \`.AppImage\`
-- Flatpak bundle + optional Flathub source-build candidate
-- Community AUR: \`xerahs-git\`
+\`\`\`bash
+.ai/skills/publish-release/scripts/publish-distro-repos.sh --tag ${TAG_NAME} --repo ${GH_TARGET_REPO}
+\`\`\`
 
-These channels exist so \`apt\` / \`dnf\` / \`zypper\` can update after that.
+Operator setup and secret names: \`docs/linux/distro-repos.md\`.
 
 ## Ubuntu / Debian — Launchpad PPA
 
-Prerequisites: Launchpad account, GPG key, a PPA (suggested name: \`xerahs\`).
+Staged tree: \`ppa/\`. Users after the PPA exists:
 
-1. Copy \`XerahS-${VERSION}-linux-x64.tar.gz\` (and arm64 if building both) next to \`ppa/debian/\`.
-2. On Ubuntu:
-   \`\`\`bash
-   sudo apt install devscripts debhelper dput
-   cd ${OUTPUT_DIR}/ppa
-   debuild -S -sa
-   dput ppa:<launchpad-user>/xerahs ../xerahs_${VERSION}-1_source.changes
-   \`\`\`
-3. Wait for Launchpad to build amd64 + arm64.
-4. Users:
-   \`\`\`bash
-   sudo add-apt-repository ppa:<launchpad-user>/xerahs
-   sudo apt update
-   sudo apt install xerahs
-   \`\`\`
-
-Do not dput from CI until a human owns the PPA.
+\`\`\`bash
+sudo add-apt-repository ppa:sharex/xerahs
+sudo apt update
+sudo apt install xerahs
+\`\`\`
 
 ## Fedora — COPR
 
-Prerequisites: Fedora account, \`copr-cli\`, a project (suggested name: \`xerahs\`).
+Staged specs: \`copr/xerahs-linux-x64.spec\`, \`copr/xerahs-linux-arm64.spec\`.
+Users after the project exists:
 
-1. Specs are already stamped:
-   - \`copr/xerahs-linux-x64.spec\` (\`ExclusiveArch: x86_64\`, Source0 = GitHub tarball)
-   - \`copr/xerahs-linux-arm64.spec\` (\`ExclusiveArch: aarch64\`)
-2. Create the project once:
-   \`\`\`bash
-   copr-cli create xerahs --chroot fedora-latest-x86_64 --chroot fedora-latest-aarch64
-   \`\`\`
-3. Build:
-   \`\`\`bash
-   copr-cli build xerahs ${OUTPUT_DIR}/copr/xerahs-linux-x64.spec
-   copr-cli build xerahs ${OUTPUT_DIR}/copr/xerahs-linux-arm64.spec
-   \`\`\`
-4. Users:
-   \`\`\`bash
-   sudo dnf copr enable <fedora-user>/xerahs
-   sudo dnf install xerahs
-   \`\`\`
-
-Do not \`copr-cli build\` from CI until a human owns the project.
+\`\`\`bash
+sudo dnf copr enable sharex/xerahs
+sudo dnf install xerahs
+\`\`\`
 
 ## openSUSE / SLES — OBS
 
-Prerequisites: openSUSE account, \`osc\`, a home or org project
-(suggested: \`home:<user>:xerahs\` or \`XerahS:release\`).
+Staged: \`obs/xerahs.spec\`, \`obs/_service\`, udev/polkit files.
+Users after the project exists (URL follows the OBS project path):
 
-1. Files:
-   - \`obs/xerahs.spec\`
-   - \`obs/_service\` (downloads the GitHub linux-x64 tarball)
-2. First checkout + commit:
-   \`\`\`bash
-   osc checkout home:<user>:xerahs
-   cp ${OUTPUT_DIR}/obs/xerahs.spec ${OUTPUT_DIR}/obs/_service home:<user>:xerahs/xerahs/
-   cd home:<user>:xerahs/xerahs
-   osc add xerahs.spec _service
-   osc commit -m "XerahS ${VERSION} from ${GH_TARGET_REPO} ${TAG_NAME}"
-   \`\`\`
-3. Enable Leap 15.6 + Tumbleweed (+ SLE_15_SP6 if you want enterprise).
-4. Users:
-   \`\`\`bash
-   sudo zypper ar -f https://download.opensuse.org/repositories/home:/<user>:/xerahs/openSUSE_Tumbleweed/ xerahs
-   sudo zypper refresh
-   sudo zypper in xerahs
-   \`\`\`
-
-OBS can also emit Ubuntu/Debian/Fedora repos from the same spec. That is
-the "cover almost everything at once" path from #253. Do not \`osc commit\`
-from CI until a human owns the project.
-
-## What this prep does not do
-
-- Create Launchpad / COPR / OBS accounts or tokens
-- Sign packages
-- Run \`dput\`, \`copr-cli build\`, or \`osc commit\`
-- Replace AppImage / Flatpak / AUR
-- Invent a second RPM or DEB format
+\`\`\`bash
+sudo zypper ar -f https://download.opensuse.org/repositories/home:/ShareX:/XerahS/openSUSE_Tumbleweed/ xerahs
+sudo zypper refresh
+sudo zypper in xerahs
+\`\`\`
 
 ## Related
 
@@ -327,4 +285,3 @@ EOF
 
 echo "Stamped distro-repo candidates for ${TAG_NAME} (${GH_TARGET_REPO}) in ${OUTPUT_DIR}"
 echo "Operator checklist: ${OUTPUT_DIR}/REPO-PUBLISH.md"
-echo "No packages were uploaded."

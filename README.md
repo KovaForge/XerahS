@@ -116,6 +116,14 @@ If you skip submodule initialization and run `dotnet build src/desktop/XerahS.sl
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - Node.js `^20.19.0 || >=22.12.0` for the `ShareX.VideoEditor` frontend build
 
+### Linux distro repositories
+First-party auto-update channels (Launchpad PPA, Fedora COPR, openSUSE OBS) are documented in [docs/linux/distro-repos.md](docs/linux/distro-repos.md). They publish after a maintainer creates the empty projects and sets GitHub secrets.
+
+```bash
+sudo add-apt-repository ppa:sharex/xerahs && sudo apt update && sudo apt install xerahs
+sudo dnf copr enable sharex/xerahs && sudo dnf install xerahs
+```
+
 ### Arch Linux (AUR)
 Arch Linux users can install the latest development version via the community-maintained AUR package [`xerahs-git`](https://aur.archlinux.org/packages/xerahs-git) (maintained by @unicxrn).
 

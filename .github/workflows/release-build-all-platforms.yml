@@ -516,3 +516,51 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-linux-repos:
+    if: github.ref_type == 'tag'
+    needs:
+      - validate-version
+      - release
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download linux-x64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-release-x64
+          path: dist
+
+      - name: Download linux-arm64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-release-arm64
+          path: dist
+
+      - name: Install distro-repo tools
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev devscripts debhelper dput gnupg rpm python3-pip python3-setuptools
+          python3 -m pip install --user copr-cli osc
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Publish PPA / COPR / OBS
+        shell: bash
+        env:
+          LAUNCHPAD_PPA: ${{ secrets.LAUNCHPAD_PPA }}
+          LAUNCHPAD_GPG_PRIVATE_KEY: ${{ secrets.LAUNCHPAD_GPG_PRIVATE_KEY }}
+          LAUNCHPAD_GPG_PASSPHRASE: ${{ secrets.LAUNCHPAD_GPG_PASSPHRASE }}
+          LAUNCHPAD_GPG_KEY_ID: ${{ secrets.LAUNCHPAD_GPG_KEY_ID }}
+          COPR_CONFIG: ${{ secrets.COPR_CONFIG }}
+          COPR_PROJECT: ${{ secrets.COPR_PROJECT }}
+          OSC_USERNAME: ${{ secrets.OSC_USERNAME }}
+          OSC_PASSWORD: ${{ secrets.OSC_PASSWORD }}
+          OBS_PROJECT: ${{ secrets.OBS_PROJECT }}
+        run: |
+          chmod +x .ai/skills/publish-release/scripts/prepare-distro-repo-assets.sh \
+                   .ai/skills/publish-release/scripts/publish-distro-repos.sh
+          .ai/skills/publish-release/scripts/publish-distro-repos.sh \
+            --tag "v${{ needs.validate-version.outputs.version }}" \
+            --repo "${{ github.repository }}"

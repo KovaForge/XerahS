@@ -1,6 +1,30 @@
 # Installing XerahS on Linux
 
-This guide covers building and installing XerahS on **Ubuntu**, **Fedora**, and **Arch** from the repository. For Flatpak, see [docs/linux/](../../docs/linux/). First-party PPA / COPR / OBS candidates (not live repos) are documented in [docs/linux/distro-repos.md](../../docs/linux/distro-repos.md).
+This guide covers building and installing XerahS on **Ubuntu**, **Fedora**, and **Arch** from the repository. For Flatpak, see [docs/linux/](../../docs/linux/). First-party PPA / COPR / OBS update channels are documented in [docs/linux/distro-repos.md](../../docs/linux/distro-repos.md).
+
+---
+
+## Distro repositories (auto-update)
+
+After a maintainer creates the projects (see [docs/linux/distro-repos.md](../../docs/linux/distro-repos.md)):
+
+```bash
+# Ubuntu / Debian
+sudo add-apt-repository ppa:sharex/xerahs
+sudo apt update
+sudo apt install xerahs
+
+# Fedora
+sudo dnf copr enable sharex/xerahs
+sudo dnf install xerahs
+
+# openSUSE Tumbleweed
+sudo zypper ar -f https://download.opensuse.org/repositories/home:/ShareX:/XerahS/openSUSE_Tumbleweed/ xerahs
+sudo zypper refresh
+sudo zypper in xerahs
+```
+
+Until those projects exist, install the GitHub `.deb` / `.rpm` / AppImage from a release, or the community AUR package below.
 
 ---
 

@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+if ! getent group input >/dev/null 2>&1; then
+    groupadd --system input || true
+fi
+if command -v udevadm >/dev/null 2>&1; then
+    udevadm control --reload-rules || true
+    udevadm trigger --subsystem-match=input || true
+fi
+echo "XerahS: For global hotkeys on Wayland/X11, add your user to the 'input' group:"
+echo "  sudo usermod -aG input \$USER   (then log out and back in)"
+echo "Verify with: xerahs doctor --linux-input"
+exit 0
