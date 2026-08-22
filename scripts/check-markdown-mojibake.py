@@ -69,12 +69,24 @@ def resolve_paths(repo_root: Path, raw_paths: list[str]) -> list[Path]:
     return resolved
 
 
+UTF8_BOM = b"\xef\xbb\xbf"
+
+
+def strip_utf8_bom(path: Path) -> bool:
+    data = path.read_bytes()
+    if not data.startswith(UTF8_BOM):
+        return False
+    path.write_bytes(data[len(UTF8_BOM) :])
+    return True
+
+
 def scan_markdown(path: Path) -> list[tuple[int, str, str]]:
     findings: list[tuple[int, str, str]] = []
     data = path.read_bytes()
 
-    if data.startswith(b"\xef\xbb\xbf"):
+    if data.startswith(UTF8_BOM):
         findings.append((1, "UTF-8 BOM present", "File begins with a BOM marker"))
+        data = data[len(UTF8_BOM) :]
 
     try:
         text = data.decode("utf-8")
@@ -102,6 +114,11 @@ def main() -> int:
         action="store_true",
         help="Scan staged Markdown files instead of all tracked Markdown files",
     )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Strip UTF-8 BOM markers from scanned Markdown files, then re-scan.",
+    )
     args = parser.parse_args()
 
     repo_root = get_repo_root()
@@ -116,6 +133,11 @@ def main() -> int:
     if not markdown_files:
         print("OK: No Markdown files to scan.")
         return 0
+
+    if args.fix:
+        stripped = [path for path in markdown_files if strip_utf8_bom(path)]
+        if stripped:
+            print(f"Stripped UTF-8 BOM from {len(stripped)} Markdown file(s).")
 
     all_findings: list[tuple[Path, int, str, str]] = []
     for markdown_file in markdown_files:

@@ -314,14 +314,21 @@ When applying updates, ensure the preamble exists at the top. Insert new version
 ### Mojibake cleanup (after any write)
 
 ```powershell
-$c = [System.IO.File]::ReadAllText('docs/CHANGELOG.md', [System.Text.Encoding]::UTF8)
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+$bytes = [System.IO.File]::ReadAllBytes('docs/CHANGELOG.md')
+if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+    $bytes = $bytes[3..($bytes.Length - 1)]
+}
+$c = $utf8NoBom.GetString($bytes)
 $c = $c -replace [char]0x00C2 + [char]0x00A7, [char]0x2014
 $c = $c -replace [char]0x00C2 + [char]0x00A7, [char]0x00A7
 $c = $c -replace "\r?\n", "`n"
 $c = $c -replace "`n{3,}", "`n`n"
 $c = $c -replace "`n", "`r`n"
-[System.IO.File]::WriteAllText('docs/CHANGELOG.md', $c, [System.Text.Encoding]::UTF8)
+[System.IO.File]::WriteAllText('docs/CHANGELOG.md', $c, $utf8NoBom)
 ```
+
+Never use `[System.Text.Encoding]::UTF8` when writing Markdown. On Windows PowerShell that encoding emits a UTF-8 BOM and the Markdown Hygiene workflow fails.
 
 ---
 

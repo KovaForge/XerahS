@@ -769,13 +769,18 @@ if ($Apply) {
         throw "Changelog file not found: $resolvedChangelog"
     }
 
-    $existing = Get-Content -Path $resolvedChangelog -Raw
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    $existingBytes = [System.IO.File]::ReadAllBytes($resolvedChangelog)
+    if ($existingBytes.Length -ge 3 -and $existingBytes[0] -eq 0xEF -and $existingBytes[1] -eq 0xBB -and $existingBytes[2] -eq 0xBF) {
+        $existingBytes = $existingBytes[3..($existingBytes.Length - 1)]
+    }
+    $existing = $utf8NoBom.GetString($existingBytes)
     $existing = Ensure-ChangelogPreamble -Content $existing
     $updated = Upsert-ChangelogSection -Content $existing -Version $resolvedVersion -Section $section
 
     $updated = Normalize-ChangelogText -Text $updated
 
-    [System.IO.File]::WriteAllText($resolvedChangelog, $updated, [System.Text.UTF8Encoding]::new($false))
+    [System.IO.File]::WriteAllText($resolvedChangelog, $updated, $utf8NoBom)
 }
 
 Write-Host "Target version : v$resolvedVersion"

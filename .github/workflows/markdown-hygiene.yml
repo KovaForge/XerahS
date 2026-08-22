@@ -24,3 +24,5 @@ jobs:
 
       - name: Run Markdown hygiene check
         run: python scripts/check-markdown-mojibake.py
+        # CI must fail on remaining BOM/mojibake. Local pre-commit strips UTF-8 BOM
+        # from staged Markdown; changelog writers must use UTF-8 without BOM.

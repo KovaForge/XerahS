@@ -119,5 +119,5 @@ $content = [System.Text.RegularExpressions.Regex]::Replace(
     $new1811
 )
 
-[System.IO.File]::WriteAllText($file, $content, [System.Text.Encoding]::UTF8)
+[System.IO.File]::WriteAllText($file, $content, [System.Text.UTF8Encoding]::new($false))
 Write-Host "Done. Sections replaced successfully."

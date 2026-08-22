@@ -49,7 +49,14 @@ if [ ${#STAGED_MD_FILES[@]} -gt 0 ]; then
     fi
 
     echo "Checking Markdown files for mojibake and BOM issues..."
-    "$PYTHON_CMD" "$MARKDOWN_CHECKER" "${STAGED_MD_FILES[@]}"
+    set +e
+    "$PYTHON_CMD" "$MARKDOWN_CHECKER" --fix "${STAGED_MD_FILES[@]}"
+    markdown_check_exit=$?
+    set -e
+    git add -- "${STAGED_MD_FILES[@]}"
+    if [ "$markdown_check_exit" -ne 0 ]; then
+        exit "$markdown_check_exit"
+    fi
 fi
 
 # --- C# files ---

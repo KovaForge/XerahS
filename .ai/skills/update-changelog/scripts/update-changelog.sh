@@ -372,7 +372,7 @@ if apply_arg:
     changelog = Path(changelog_path_arg)
     if not changelog.is_absolute():
         changelog = repo_root / changelog
-    existing = ensure_preamble(changelog.read_text(encoding="utf-8"))
+    existing = ensure_preamble(changelog.read_text(encoding="utf-8-sig"))
     changelog.write_text(upsert(existing, version, section), encoding="utf-8")
 
 print(f"Target version : v{version}")

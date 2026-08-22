@@ -44,12 +44,14 @@ if ($STAGED_MD_FILES) {
 
     Write-Host "Checking Markdown files for mojibake and BOM issues..."
     if ($PythonCommand -eq "py") {
-        & py -3 $MarkdownChecker @STAGED_MD_FILES
+        & py -3 $MarkdownChecker --fix @STAGED_MD_FILES
     } else {
-        & python $MarkdownChecker @STAGED_MD_FILES
+        & python $MarkdownChecker --fix @STAGED_MD_FILES
     }
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
+    $markdownCheckExit = $LASTEXITCODE
+    git add -- @STAGED_MD_FILES
+    if ($markdownCheckExit -ne 0) {
+        exit $markdownCheckExit
     }
 }
 
