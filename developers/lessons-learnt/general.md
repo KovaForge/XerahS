@@ -325,3 +325,9 @@ This forces the build system to include the correct Windows SDK reference assemb
 - Never run a `--no-restore` solution build after pulling central package-version changes; always restore the solution first because stale project assets can mix incompatible managed assembly versions and produce misleading compiler failures.
 - Never remove a project reference based only on `using`-directive searches; search fully qualified namespace expressions and build the affected project directly because expression-qualified calls can hide a real dependency without importing its namespace.
 - Never use a product executable project as a bounded compile check unless recursive staging is explicitly disabled; route agent checks through `build/verify.ps1` so plugin builds, daemon staging, and VideoEditor frontend work happen only in product-assembly lanes.
+
+### Keep Subdaily Jobs Portable Across Hosting Plans
+
+**Context**: XIP0085 needs one-minute ledger dispatch and five-minute account-deletion processing, but Vercel Hobby rejects Cron Jobs that run more than once per day.
+
+**Lesson**: Treat subdaily scheduling as an independently deployable adapter. Keep the business logic behind idempotent, secret-authenticated internal routes, and let a versioned Cloudflare Cron Worker invoke the exact allowlisted paths when the Vercel plan cannot provide the required cadence. Store the shared secret independently in both providers, generate Worker binding types from `wrangler.jsonc`, configure staging and production as explicit Wrangler environments, and keep the Worker out of the application request-delivery path.
