@@ -5687,3 +5687,13 @@ Added candidates (8):
 - Commit: null (record SHA in Step 9 only; do not self-reference)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
 - Skill: xerahs-bugfix/SKILL.md v1.1.23 (no patch this tick)
+
+### 2026-08-23 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — audit only)
+- Findings: next_candidates=0 after fork sync FF d1261e0fe..27ce28c94 (24 commits from declan/develop). upstream/develop 0 commits behind. ShareX.ImageEditor clean at d4f4029. No deferred-last-runs files.
+- Status: no-op
+- Build/test: n/a
+- Commit: none (empty-queue audit; SHA recorded in Step 9 only)
+- Follow-up: keep queue consumer healthy; await next xerahs-review ingest
