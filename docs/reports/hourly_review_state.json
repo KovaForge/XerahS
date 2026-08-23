@@ -2377,7 +2377,7 @@
       "agent": "nadia",
       "outcome": "ok",
       "item": "xerahs-review producer queue",
-      "commit": "PENDING",
+      "commit": "99db7eaae",
       "summary": "Daily cron run at 2026-08-23 23:05 AWST. Fork sync: FF-merged nadia/develop (34c5c051a..e4d7ca495) — 9 commits from nadia (Cloud OAuth Prettier + Bearer + AAL2 hook + access tokens + OAuth CLI command + OAuth callback pipe + consent POST origin + matching origin + OAuth aal2). Upstream sync: upstream/develop == HEAD (no merge; KovaForge fork at v0.28.0, ShareX upstream at v0.25.6). Submodule sync: ShareX.ImageEditor HEAD == upstream tip == origin/develop (d4f4029; Mikhail 4 local commits ahead of origin untouched). Clawpatch review: ran 20260823T150323-7d7387 with --limit 3 features (XerahS.RegionCapture/UI, XerahS.Uploaders.PluginSystem, XerahS.Platform.MacOS/Native); 2 findings returned, full report enumerates ~313 findings across 3 reports. Post-gate eligible items: 1 unique (OverlayWindow.Capture.cs:95-99 HasAnnotations guard — region-capture annotation layer rendering bug). The other candidate candidates all hit downstream dedupe: 3 area-fixed (ImmichUploader.cs:220-233), 80 release-history-fixed (FileDownloader, HSB, DPAPI, AnimatedGifCreator, etc.), 48 recently-pivoted (WindowsGraphicsCaptureSource.cs:107 dispatcher null-check cluster + earlier consumer pivots). Producer-side only — no fix attempts, no area-status changes, no other agents' last_runs rows touched."
     }
   ],
