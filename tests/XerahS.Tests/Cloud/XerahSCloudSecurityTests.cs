@@ -292,6 +292,83 @@ public sealed class XerahSCloudSecurityTests
     }
 
     [Test]
+    public void TokenValidator_RejectsAccessTokenLifetimeAboveOneHour()
+    {
+        var validator = new SupabaseXerahSCloudTokenValidator(
+            new HttpClient(new StubHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK))),
+            new FakeClock(DateTimeOffset.UtcNow));
+
+        XerahSCloudSecurityException? ex = Assert.ThrowsAsync<XerahSCloudSecurityException>(async () =>
+            await validator.ValidateAsync(
+                "header.payload.signature",
+                "refresh",
+                idToken: null,
+                expiresInSeconds: 3601,
+                expectedNonce: "nonce",
+                CreateOptions(),
+                CancellationToken.None));
+
+        Assert.That(ex!.Message, Does.Contain("3601s"));
+    }
+
+    [Test]
+    public async Task TokenValidator_AcceptsOneHourAccessTokenLifetime()
+    {
+        DateTimeOffset now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+        using RSA rsa = RSA.Create(2048);
+        RSAParameters publicKey = rsa.ExportParameters(includePrivateParameters: false);
+        string jwks = JsonSerializer.Serialize(new
+        {
+            keys = new[]
+            {
+                new
+                {
+                    kid = "key-1",
+                    kty = "RSA",
+                    alg = "RS256",
+                    n = Base64Url(publicKey.Modulus!),
+                    e = Base64Url(publicKey.Exponent!)
+                }
+            }
+        });
+        var validator = new SupabaseXerahSCloudTokenValidator(
+            new HttpClient(new StubHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(jwks, Encoding.UTF8, "application/json")
+            })),
+            new FakeClock(now));
+        string accessToken = CreateJwt(rsa, new
+        {
+            iss = "https://project.supabase.co/auth/v1",
+            aud = "authenticated",
+            sub = "owner-a",
+            client_id = "desktop-public-client",
+            session_id = "session-a",
+            aal = "aal2",
+            exp = now.AddHours(1).ToUnixTimeSeconds()
+        });
+        string idToken = CreateJwt(rsa, new
+        {
+            iss = "https://project.supabase.co/auth/v1",
+            aud = "desktop-public-client",
+            sub = "owner-a",
+            nonce = "expected-nonce",
+            exp = now.AddHours(1).ToUnixTimeSeconds()
+        });
+
+        XerahSCloudSession session = await validator.ValidateAsync(
+            accessToken,
+            "refresh-rotated",
+            idToken,
+            expiresInSeconds: 3600,
+            expectedNonce: "expected-nonce",
+            CreateOptions(),
+            CancellationToken.None);
+
+        Assert.That(session.OwnerSubject, Is.EqualTo("owner-a"));
+    }
+
+    [Test]
     public async Task ApiClient_RestoresRotatedRefreshCredentialAndRetriesUnauthorizedOnce()
     {
         int requestCount = 0;

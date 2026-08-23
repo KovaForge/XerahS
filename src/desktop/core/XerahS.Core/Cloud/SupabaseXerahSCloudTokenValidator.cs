@@ -27,7 +27,9 @@ public sealed class SupabaseXerahSCloudTokenValidator : IXerahSCloudTokenValidat
 {
     private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan JwksCacheLifetime = TimeSpan.FromMinutes(15);
-    private static readonly TimeSpan MaximumAccessTokenLifetime = TimeSpan.FromMinutes(20);
+    // Hosted Supabase defaults to 3600s. Local config.toml uses 900s. Reject anything longer
+    // than one hour so a public desktop client never accepts week-long access tokens.
+    private static readonly TimeSpan MaximumAccessTokenLifetime = TimeSpan.FromHours(1);
 
     private readonly HttpClient _httpClient;
     private readonly IXerahSCloudClock _clock;
@@ -60,7 +62,8 @@ public sealed class SupabaseXerahSCloudTokenValidator : IXerahSCloudTokenValidat
 
         if (expiresInSeconds <= 0 || expiresInSeconds > MaximumAccessTokenLifetime.TotalSeconds)
         {
-            throw new XerahSCloudSecurityException("OAuth access-token lifetime is outside the accepted desktop policy.");
+            throw new XerahSCloudSecurityException(
+                $"OAuth access-token lifetime is outside the accepted desktop policy ({expiresInSeconds}s).");
         }
 
         string issuer = new Uri(options.OAuthAuthority, "/auth/v1").AbsoluteUri.TrimEnd('/');
@@ -71,11 +74,14 @@ public sealed class SupabaseXerahSCloudTokenValidator : IXerahSCloudTokenValidat
         string clientId = RequireString(accessClaims, "client_id");
         string aal = RequireString(accessClaims, "aal");
 
-        if (!string.Equals(clientId, options.OAuthClientId, StringComparison.Ordinal) ||
-            !string.Equals(aal, "aal2", StringComparison.Ordinal) ||
-            string.IsNullOrWhiteSpace(sessionId))
+        if (!string.Equals(clientId, options.OAuthClientId, StringComparison.Ordinal))
         {
-            throw new XerahSCloudSecurityException("OAuth access token was not issued to this desktop client with strong authentication.");
+            throw new XerahSCloudSecurityException("OAuth access token was not issued to this desktop client.");
+        }
+
+        if (!string.Equals(aal, "aal2", StringComparison.Ordinal) || string.IsNullOrWhiteSpace(sessionId))
+        {
+            throw new XerahSCloudSecurityException("OAuth access token was not issued with strong authentication.");
         }
 
         if (accessExpiry - _clock.UtcNow > MaximumAccessTokenLifetime + ClockSkew)

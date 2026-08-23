@@ -90,9 +90,15 @@ namespace XerahS.UI.ViewModels
                     .ConfigureAwait(true);
                 if (completion != XerahSCloudOAuthCompletion.Accepted)
                 {
-                    CloudStatusText = completion == XerahSCloudOAuthCompletion.Denied
-                        ? "Authorization was denied."
-                        : $"Sign-in did not complete ({completion}).";
+                    CloudStatusText = completion switch
+                    {
+                        XerahSCloudOAuthCompletion.Denied => "Authorization was denied.",
+                        XerahSCloudOAuthCompletion.Expired => "The sign-in request expired. Try again.",
+                        XerahSCloudOAuthCompletion.TokenRejected =>
+                            "The returned session did not pass XerahS Cloud security checks.",
+                        XerahSCloudOAuthCompletion.InvalidCallback => "The sign-in callback was invalid.",
+                        _ => "The sign-in callback was unknown or had already been used."
+                    };
                     return;
                 }
 

@@ -18,6 +18,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using XerahS.Common;
 
 namespace XerahS.Core.Cloud;
 
@@ -279,6 +280,7 @@ public sealed class XerahSCloudOAuthCoordinator : IXerahSCloudOAuthCoordinator
         }
         catch (Exception ex) when (ex is XerahSCloudException or HttpRequestException or JsonException)
         {
+            DebugHelper.WriteException(ex, "XerahS Cloud OAuth token exchange rejected");
             CompleteWaiter(callback.State, XerahSCloudOAuthCompletion.TokenRejected);
             return XerahSCloudOAuthCompletion.TokenRejected;
         }
@@ -341,7 +343,8 @@ public sealed class XerahSCloudOAuthTokenExchange : IXerahSCloudOAuthTokenExchan
         using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            throw new XerahSCloudSecurityException($"OAuth token exchange failed with HTTP {(int)response.StatusCode}.");
+            throw new XerahSCloudSecurityException(
+                $"OAuth token exchange failed with HTTP {(int)response.StatusCode}.");
         }
 
         OAuthTokenResponse? token = await response.Content
