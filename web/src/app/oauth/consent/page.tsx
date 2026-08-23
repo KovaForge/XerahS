@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { ConsentDecisionForm } from "@/components/consent-decision-form";
 import { MfaControls } from "@/components/mfa-controls";
 import { requireAuthenticatedUser } from "@/lib/auth";
 import { getPublicEnv, getServerEnv } from "@/lib/env";
@@ -126,20 +127,7 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
         The desktop application can act with the same owner permissions as this
         session. Approve only if you started this request from XerahS.
       </p>
-      <form className="actions" action="/api/oauth/decision" method="post">
-        <input name="authorization_id" type="hidden" value={authorizationId} />
-        <button
-          className="primary"
-          name="decision"
-          type="submit"
-          value="approve"
-        >
-          Authorize desktop
-        </button>
-        <button name="decision" type="submit" value="deny">
-          Deny
-        </button>
-      </form>
+      <ConsentDecisionForm authorizationId={authorizationId} />
     </section>
   );
 }

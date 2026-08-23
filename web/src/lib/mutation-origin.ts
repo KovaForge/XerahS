@@ -1,13 +1,26 @@
 export function tryOrigin(value: string | null | undefined): string | null {
   if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "null") return null;
   try {
-    return new URL(value).origin;
+    return new URL(trimmed).origin;
   } catch {
     try {
-      return new URL(`https://${value}`).origin;
+      return new URL(`https://${trimmed}`).origin;
     } catch {
       return null;
     }
+  }
+}
+
+function addCandidateOrigins(
+  allowed: Set<string>,
+  candidate: string | null | undefined,
+): void {
+  if (!candidate) return;
+  for (const part of candidate.split(",")) {
+    const origin = tryOrigin(part);
+    if (origin) allowed.add(origin);
   }
 }
 
@@ -18,10 +31,10 @@ export function mutationAllowedOrigins(
   host?: string | null,
 ): Set<string> {
   const allowed = new Set<string>();
-  for (const candidate of [requestUrl, appOrigin, forwardedHost, host]) {
-    const origin = tryOrigin(candidate);
-    if (origin) allowed.add(origin);
-  }
+  addCandidateOrigins(allowed, requestUrl);
+  addCandidateOrigins(allowed, appOrigin);
+  addCandidateOrigins(allowed, forwardedHost);
+  addCandidateOrigins(allowed, host);
   return allowed;
 }
 
@@ -31,10 +44,10 @@ export function isAllowedMutationOrigin(
   secFetchSite?: string | null,
   referer?: string | null,
 ): boolean {
-  if (secFetchSite === "cross-site") return false;
-  if (origin && origin !== "null" && allowed.has(origin)) return true;
+  const normalized = tryOrigin(origin);
+  if (normalized && allowed.has(normalized)) return true;
   if (
-    (!origin || origin === "null") &&
+    !normalized &&
     secFetchSite === "same-origin" &&
     referer
   ) {

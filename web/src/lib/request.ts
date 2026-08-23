@@ -3,6 +3,7 @@ import { getServerEnv } from "@/lib/env";
 import {
   isAllowedMutationOrigin,
   mutationAllowedOrigins,
+  tryOrigin,
 } from "@/lib/mutation-origin";
 
 export function correlationId(request: Request): string {
@@ -18,20 +19,29 @@ export function hasBearerAuthorization(request: Request): boolean {
 export function enforceSameOriginMutation(request: Request): void {
   if (hasBearerAuthorization(request)) return;
 
+  const origin = request.headers.get("origin");
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = request.headers.get("host");
+  const secFetchSite = request.headers.get("sec-fetch-site");
+  const referer = request.headers.get("referer");
+  const appOrigin = getServerEnv().APP_ORIGIN;
   const allowed = mutationAllowedOrigins(
     request.url,
-    getServerEnv().APP_ORIGIN,
-    request.headers.get("x-forwarded-host"),
-    request.headers.get("host"),
+    appOrigin,
+    forwardedHost,
+    host,
   );
-  if (
-    !isAllowedMutationOrigin(
-      request.headers.get("origin"),
-      allowed,
-      request.headers.get("sec-fetch-site"),
-      request.headers.get("referer"),
-    )
-  ) {
+  if (!isAllowedMutationOrigin(origin, allowed, secFetchSite, referer)) {
+    console.warn("mutation_origin_rejected", {
+      origin,
+      appOrigin,
+      host,
+      forwardedHost,
+      secFetchSite,
+      refererOrigin: tryOrigin(referer),
+      requestOrigin: tryOrigin(request.url),
+      allowed: [...allowed],
+    });
     throw new ApiError(403, "forbidden", "The request origin is not allowed.");
   }
 }
