@@ -1,6 +1,7 @@
 import "server-only";
 
 import { ApiError } from "@/lib/errors";
+import { bearerAccessToken } from "@/lib/request";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export interface AuthenticatedUser {
@@ -56,7 +57,10 @@ export async function requireAuthenticatedUser(
   requirements: AuthRequirements = {},
 ): Promise<AuthenticatedUser> {
   const supabase = await createSupabaseServerClient(request);
-  const { data, error } = await supabase.auth.getClaims();
+  const accessToken = request ? bearerAccessToken(request) : null;
+  const { data, error } = accessToken
+    ? await supabase.auth.getClaims(accessToken)
+    : await supabase.auth.getClaims();
   if (error || !data?.claims)
     throw new ApiError(401, "authentication_required", "Sign in is required.");
 
@@ -65,8 +69,16 @@ export async function requireAuthenticatedUser(
   let email = claimString(claims, "email");
   const aal = claimString(claims, "aal") === "aal2" ? "aal2" : "aal1";
   const authenticatedAt = latestStrongAuthentication(claims);
-  if (!id || !email)
+  if (!id)
     throw new ApiError(401, "authentication_required", "Sign in is required.");
+  if (!email) {
+    const { data: userData, error: userError } = accessToken
+      ? await supabase.auth.getUser(accessToken)
+      : await supabase.auth.getUser();
+    email = userData.user?.email ?? undefined;
+    if (userError || !email)
+      throw new ApiError(401, "authentication_required", "Sign in is required.");
+  }
   if (requirements.strong && aal !== "aal2") {
     throw new ApiError(
       403,

@@ -1,3 +1,7 @@
+import {
+  bearerAccessToken as parseBearerAccessToken,
+  hasBearerAuthorization as headerHasBearer,
+} from "@/lib/bearer";
 import { ApiError } from "@/lib/errors";
 import { getServerEnv } from "@/lib/env";
 import {
@@ -13,7 +17,11 @@ export function correlationId(request: Request): string {
 }
 
 export function hasBearerAuthorization(request: Request): boolean {
-  return /^Bearer\s+\S+$/i.test(request.headers.get("authorization") ?? "");
+  return headerHasBearer(request.headers.get("authorization"));
+}
+
+export function bearerAccessToken(request: Request): string | null {
+  return parseBearerAccessToken(request.headers.get("authorization"));
 }
 
 export function enforceSameOriginMutation(request: Request): void {

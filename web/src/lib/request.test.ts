@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { bearerAccessToken, hasBearerAuthorization } from "@/lib/bearer";
 import {
   isAllowedMutationOrigin,
   mutationAllowedOrigins,
@@ -73,6 +74,13 @@ describe("mutation origin checks", () => {
         "https://staging.xerahs.com/oauth/consent?authorization_id=abc",
       ),
     ).toBe(true);
+  });
+
+  it("extracts a bearer access token", () => {
+    expect(hasBearerAuthorization("Bearer abc.def.ghi")).toBe(true);
+    expect(bearerAccessToken("Bearer abc.def.ghi")).toBe("abc.def.ghi");
+    expect(hasBearerAuthorization("Basic abc")).toBe(false);
+    expect(bearerAccessToken(null)).toBeNull();
   });
 
   it("rejects a missing origin when Sec-Fetch-Site is cross-site", () => {

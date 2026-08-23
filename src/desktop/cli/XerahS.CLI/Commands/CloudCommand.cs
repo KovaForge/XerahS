@@ -184,9 +184,23 @@ public static class CloudCommand
                 return 1;
             }
 
-            XerahSCloudAccountSummary account = await client.GetAccountAsync(cancellationToken).ConfigureAwait(false);
-            WriteSignedIn(json, account);
-            return 0;
+            try
+            {
+                XerahSCloudAccountSummary account = await client
+                    .GetAccountAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                WriteSignedIn(json, account);
+                return 0;
+            }
+            catch (Exception ex) when (ex is XerahSCloudException or HttpRequestException)
+            {
+                WriteResult(
+                    json,
+                    ok: false,
+                    "account_verification_failed",
+                    ex.Message);
+                return 1;
+            }
         }
         finally
         {
