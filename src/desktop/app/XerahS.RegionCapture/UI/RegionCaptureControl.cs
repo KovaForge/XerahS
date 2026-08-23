@@ -677,6 +677,7 @@ public sealed class RegionCaptureControl : UserControl
 
                 // Draw resize handles at corners
                 DrawResizeHandles(context, rect);
+                DrawSelectionCenterCrosshair(context, rect);
 
                 // Draw mode-specific overlays
                 if (_mode == RegionCaptureMode.Ruler)
@@ -828,39 +829,52 @@ public sealed class RegionCaptureControl : UserControl
 
         // Cache pens to avoid per-frame allocations (Avalonia high-frequency rendering; issue #19363)
         _crosshairLinePen ??= new Pen(new SolidColorBrush(Color.FromUInt32(_crosshairLineColor)), 1);
-        _crosshairPen ??= new Pen(new SolidColorBrush(Color.FromUInt32(_crosshairColor)), 1.5);
+        _crosshairPen ??= new Pen(new SolidColorBrush(Color.FromUInt32(_crosshairColor)), 1);
 
-        const double crosshairLength = 32; // Length of the colored crosshair portion
+        int centerX = (int)Math.Floor(cursorLocal.X);
+        int centerY = (int)Math.Floor(cursorLocal.Y);
+        const double crosshairLength = 32;
 
-        // Vertical line - top portion (regular)
         context.DrawLine(_crosshairLinePen,
-            new Point(cursorLocal.X, 0),
-            new Point(cursorLocal.X, Math.Max(0, cursorLocal.Y - crosshairLength)));
-
-        // Vertical line - crosshair portion (colored, 32px centered on cursor)
+            new Point(centerX, 0),
+            new Point(centerX, Math.Max(0, centerY - crosshairLength)));
         context.DrawLine(_crosshairPen,
-            new Point(cursorLocal.X, Math.Max(0, cursorLocal.Y - crosshairLength)),
-            new Point(cursorLocal.X, Math.Min(bounds.Height, cursorLocal.Y + crosshairLength)));
-
-        // Vertical line - bottom portion (regular)
+            new Point(centerX, Math.Max(0, centerY - crosshairLength)),
+            new Point(centerX, Math.Min(bounds.Height, centerY + crosshairLength)));
         context.DrawLine(_crosshairLinePen,
-            new Point(cursorLocal.X, Math.Min(bounds.Height, cursorLocal.Y + crosshairLength)),
-            new Point(cursorLocal.X, bounds.Height));
+            new Point(centerX, Math.Min(bounds.Height, centerY + crosshairLength)),
+            new Point(centerX, bounds.Height));
 
-        // Horizontal line - left portion (regular)
         context.DrawLine(_crosshairLinePen,
-            new Point(0, cursorLocal.Y),
-            new Point(Math.Max(0, cursorLocal.X - crosshairLength), cursorLocal.Y));
-
-        // Horizontal line - crosshair portion (colored, 32px centered on cursor)
+            new Point(0, centerY),
+            new Point(Math.Max(0, centerX - crosshairLength), centerY));
         context.DrawLine(_crosshairPen,
-            new Point(Math.Max(0, cursorLocal.X - crosshairLength), cursorLocal.Y),
-            new Point(Math.Min(bounds.Width, cursorLocal.X + crosshairLength), cursorLocal.Y));
-
-        // Horizontal line - right portion (regular)
+            new Point(Math.Max(0, centerX - crosshairLength), centerY),
+            new Point(Math.Min(bounds.Width, centerX + crosshairLength), centerY));
         context.DrawLine(_crosshairLinePen,
-            new Point(Math.Min(bounds.Width, cursorLocal.X + crosshairLength), cursorLocal.Y),
-            new Point(bounds.Width, cursorLocal.Y));
+            new Point(Math.Min(bounds.Width, centerX + crosshairLength), centerY),
+            new Point(bounds.Width, centerY));
+    }
+
+    private static void DrawSelectionCenterCrosshair(DrawingContext context, Rect rectangle)
+    {
+        if (rectangle.Width < 2 || rectangle.Height < 2)
+        {
+            return;
+        }
+
+        int centerX = (int)Math.Floor(rectangle.Center.X);
+        int centerY = (int)Math.Floor(rectangle.Center.Y);
+        DrawPixelCross(context, Brushes.Black, centerX - 1, centerY - 1);
+        DrawPixelCross(context, Brushes.White, centerX, centerY);
+    }
+
+    private static void DrawPixelCross(DrawingContext context, IBrush brush, int centerX, int centerY)
+    {
+        const int radius = 10;
+        const int diameter = radius * 2 + 1;
+        context.DrawRectangle(brush, null, new Rect(centerX - radius, centerY, diameter, 1));
+        context.DrawRectangle(brush, null, new Rect(centerX, centerY - radius, 1, diameter));
     }
 
     private void DrawDimensionsText(DrawingContext context, Rect rect)
