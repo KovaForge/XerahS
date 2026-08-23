@@ -182,4 +182,21 @@ public class RegionCaptureUiSmokeTests
 
         Assert.That(control.CurrentPointForTests, Is.EqualTo(new CapturePixelPoint(125, 240)));
     }
+
+    [AvaloniaTest]
+    public void RegionCaptureControl_ArrowKeys_MoveCursorWhileHovering()
+    {
+        var monitor = new CaptureMonitorInfo(
+            DeviceName: "Display 1",
+            PhysicalBounds: new CapturePixelRect(100, 200, 1920, 1080),
+            WorkArea: new CapturePixelRect(100, 200, 1920, 1040),
+            ScaleFactor: 1.0,
+            IsPrimary: true);
+
+        var control = new RegionCaptureControl(monitor);
+        control.UpdateAimFromOverlayPointer(new Point(10, 20), KeyModifiers.None);
+        control.NudgeFromKeyboardForTests(1, 0, shift: false);
+
+        Assert.That(control.CurrentPointForTests, Is.EqualTo(new CapturePixelPoint(111, 220)));
+    }
 }

@@ -66,6 +66,18 @@ public sealed class CoordinateTranslationService
 #endif
     }
 
+    /// <summary>
+    /// Moves the OS cursor in physical pixels. Returns false when the platform cannot warp the pointer.
+    /// </summary>
+    public bool SetPhysicalCursorPosition(PixelPoint point)
+    {
+#if WINDOWS
+        return Platform.Windows.NativeMonitorService.SetPhysicalCursorPosition(point);
+#else
+        return false;
+#endif
+    }
+
     private PixelPoint GetFallbackCursorPosition()
     {
         // This is a fallback for non-Windows platforms

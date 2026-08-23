@@ -122,6 +122,19 @@ public sealed class RegionCaptureControl : UserControl
     private PixelRect _selectionRect => _stateMachine.SelectionRect;
     private WindowInfo? _hoveredWindow => _stateMachine.HoveredWindow;
     internal PixelPoint CurrentPointForTests => _currentPoint;
+
+    internal void NudgeFromKeyboardForTests(int dx, int dy, bool shift)
+    {
+        int step = shift ? 10 : 1;
+        if (_state == CaptureState.Hovering)
+        {
+            NudgePhysicalCursor(dx * step, dy * step);
+            return;
+        }
+
+        _stateMachine.NudgeSelection(dx * step, dy * step);
+        InvalidateVisual();
+    }
     internal int MagnifierPixelCountForTests => _magnifierPixelCount;
     internal bool MagnifierUsesSquareForTests => _useSquareMagnifier;
     internal MagnifierControl MagnifierForTests => _magnifier;
@@ -500,8 +513,14 @@ public sealed class RegionCaptureControl : UserControl
 
     private void HandleArrowKey(int dx, int dy, KeyEventArgs e)
     {
-        // Ctrl+Arrow resizes, plain Arrow moves
-        var step = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? 10 : 1;
+        int step = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? 10 : 1;
+
+        if (_state == CaptureState.Hovering)
+        {
+            NudgePhysicalCursor(dx * step, dy * step);
+            e.Handled = true;
+            return;
+        }
 
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
@@ -513,6 +532,22 @@ public sealed class RegionCaptureControl : UserControl
         }
 
         e.Handled = true;
+        InvalidateVisual();
+    }
+
+    private void NudgePhysicalCursor(int dx, int dy)
+    {
+        var next = new PixelPoint(_currentPoint.X + dx, _currentPoint.Y + dy);
+        _coordinateService.SetPhysicalCursorPosition(next);
+        _stateMachine.UpdateCursorPosition(next);
+
+        if (_state == CaptureState.Hovering && _enableWindowSnapping)
+        {
+            var window = _windowService.GetWindowAtPoint(next);
+            _stateMachine.UpdateHoveredWindow(window);
+        }
+
+        UpdateMagnifierHud();
         InvalidateVisual();
     }
 
