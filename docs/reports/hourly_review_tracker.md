@@ -5736,3 +5736,14 @@ Added candidates (8):
 - Commit: PENDING
 - Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
 - Skill: xerahs-review/SKILL.md v2.2.4 (no patch this tick)
+
+### 2026-08-24 00:05 AWST - Pivot / already-fixed
+
+- Area: OverlayWindow.CreateResultWithAnnotations HasAnnotations guard
+- Files: (none — pivot, no code change)
+- Findings: Clawpatch false positive — CreateResultWithAnnotations / RenderAnnotationLayer never read _backgroundBitmap (clawpatch fnd_sig-feat-library-83987ac2c7-99a5_6629772458). L96 early-return is HasAnnotations + canvas child count only; RenderAnnotationLayer uses _annotationCanvas + _monitor.PhysicalBounds/ScaleFactor.
+- Status: Pivot (already-fixed / false-positive)
+- Build/test: n/a (no code change)
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless RenderAnnotationLayer starts using _backgroundBitmap
+- Skill: xerahs-bugfix/SKILL.md v1.1.24 patched (1 new OverlayWindow _backgroundBitmap false-positive pitfall)
