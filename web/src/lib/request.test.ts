@@ -14,9 +14,9 @@ describe("mutation origin checks", () => {
       "staging.xerahs.com",
       "xerahs-cloud-staging.vercel.app",
     );
-    expect(
-      isAllowedMutationOrigin("https://staging.xerahs.com", allowed),
-    ).toBe(true);
+    expect(isAllowedMutationOrigin("https://staging.xerahs.com", allowed)).toBe(
+      true,
+    );
     expect(
       isAllowedMutationOrigin(
         "https://xerahs-cloud-staging.vercel.app",

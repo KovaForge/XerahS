@@ -46,11 +46,7 @@ export function isAllowedMutationOrigin(
 ): boolean {
   const normalized = tryOrigin(origin);
   if (normalized && allowed.has(normalized)) return true;
-  if (
-    !normalized &&
-    secFetchSite === "same-origin" &&
-    referer
-  ) {
+  if (!normalized && secFetchSite === "same-origin" && referer) {
     const refererOrigin = tryOrigin(referer);
     return refererOrigin !== null && allowed.has(refererOrigin);
   }

@@ -158,16 +158,10 @@ export function SettingsControls({ strongAuth, trialStatus }: Props) {
         >
           Manage billing
         </button>
-        <button
-          disabled={busy}
-          onClick={() => void exportAccount()}
-        >
+        <button disabled={busy} onClick={() => void exportAccount()}>
           Export account data
         </button>
-        <button
-          disabled={busy}
-          onClick={() => void generateRecoveryCodes()}
-        >
+        <button disabled={busy} onClick={() => void generateRecoveryCodes()}>
           Generate recovery codes
         </button>
         <button
