@@ -5697,3 +5697,42 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: none (empty-queue audit; SHA recorded in Step 9 only)
 - Follow-up: keep queue consumer healthy; await next xerahs-review ingest
+
+### 2026-08-23 23:04 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.2/v2.2.4)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 181
+  - triage=risk: 118
+  - triage=contract-mismatch: 42
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently-fixed (release-history): 80
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - ... and 70 more
+- Findings dropped as recently-pivoted: 48
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-08-23 23:05 AWST - xerahs-review producer run (Nadia)
+
+- Area: xerahs-review producer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md, .clawpatch/reports/20260823T150323-7d7387.md
+- Findings: Daily cron run at 2026-08-23 23:05 AWST (offset 1h before 00:06 AWST consumer drain). Fork sync: FF-merged nadia/develop (34c5c051a..e4d7ca495) — 9 commits from nadia (Cloud OAuth Prettier + Bearer + AAL2 hook + access tokens + OAuth CLI command + OAuth callback pipe + consent POST origin + matching origin + OAuth aal2). Upstream sync: upstream/develop == HEAD (no merge; KovaForge fork at v0.28.0, ShareX upstream at v0.25.6). Submodule sync: ShareX.ImageEditor HEAD == upstream tip == origin/develop (d4f4029; Mikhail 4 local commits ahead of origin untouched). Clawpatch review: ran 20260823T150323-7d7387 with --limit 3 features (XerahS.RegionCapture/UI, XerahS.Uploaders.PluginSystem, XerahS.Platform.MacOS/Native); 2 findings returned, full report enumerates ~313 findings across 3 reports. Post-gate eligible items: 1 unique (OverlayWindow.Capture.cs:95-99 HasAnnotations guard — region-capture annotation layer rendering bug). All other eligible candidates hit downstream dedupe: 3 area-fixed (ImmichUploader.cs:220-233), 80 release-history-fixed (FileDownloader, HSB, DPAPI, AnimatedGifCreator, etc.), 48 recently-pivoted (WindowsGraphicsCaptureSource.cs:107 dispatcher null-check cluster + earlier consumer pivots). Producer-side only — no fix attempts, no area-status changes, no other agents' last_runs rows touched.
+- Status: ok (1 new candidate ingested)
+- Build/test: n/a (no code change)
+- Commit: PENDING
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
+- Skill: xerahs-review/SKILL.md v2.2.4 (no patch this tick)
