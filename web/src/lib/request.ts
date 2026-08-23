@@ -1,5 +1,9 @@
 import { ApiError } from "@/lib/errors";
 import { getServerEnv } from "@/lib/env";
+import {
+  isAllowedMutationOrigin,
+  mutationAllowedOrigins,
+} from "@/lib/mutation-origin";
 
 export function correlationId(request: Request): string {
   return (
@@ -14,17 +18,21 @@ export function hasBearerAuthorization(request: Request): boolean {
 export function enforceSameOriginMutation(request: Request): void {
   if (hasBearerAuthorization(request)) return;
 
-  const origin = request.headers.get("origin");
-  const expected = new URL(getServerEnv().APP_ORIGIN).origin;
-  if (!origin || origin !== expected) {
+  const allowed = mutationAllowedOrigins(
+    request.url,
+    getServerEnv().APP_ORIGIN,
+    request.headers.get("x-forwarded-host"),
+    request.headers.get("host"),
+  );
+  if (
+    !isAllowedMutationOrigin(
+      request.headers.get("origin"),
+      allowed,
+      request.headers.get("sec-fetch-site"),
+      request.headers.get("referer"),
+    )
+  ) {
     throw new ApiError(403, "forbidden", "The request origin is not allowed.");
-  }
-  if (request.headers.get("sec-fetch-site") === "cross-site") {
-    throw new ApiError(
-      403,
-      "forbidden",
-      "Cross-site requests are not allowed.",
-    );
   }
 }
 
