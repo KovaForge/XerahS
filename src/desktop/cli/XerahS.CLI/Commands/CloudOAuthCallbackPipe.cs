@@ -8,43 +8,58 @@
 
 #endregion License Information (GPL v3)
 
-using System.IO.Pipes;
-using System.Text;
 using XerahS.Core.Cloud;
 
 namespace XerahS.CLI.Commands;
 
 /// <summary>
 /// Forwards the <c>xerahs://oauth/callback</c> URI from a protocol-activated
-/// secondary process to the waiting <c>cloud sign-in</c> process.
+/// secondary process to the waiting <c>cloud sign-in</c> process. A temp file
+/// is used so an elevated waiter can still receive a medium-integrity browser
+/// protocol launch.
 /// </summary>
 public static class CloudOAuthCallbackPipe
 {
     public const string DefaultName = "XerahS.CloudOAuth.Callback";
+
+    public static string GetCallbackPath(string pipeName = DefaultName) =>
+        Path.Combine(Path.GetTempPath(), pipeName + ".callback");
 
     public static async Task<Uri?> WaitAsync(
         TimeSpan timeout,
         CancellationToken cancellationToken = default,
         string pipeName = DefaultName)
     {
-        using var server = new NamedPipeServerStream(
-            pipeName,
-            PipeDirection.In,
-            1,
-            PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous);
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(timeout);
+        string path = GetCallbackPath(pipeName);
+        string readyPath = path + ".ready";
+        TryDelete(path);
+        File.WriteAllText(readyPath, "ready");
+        DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(timeout);
         try
         {
-            await server.WaitForConnectionAsync(timeoutCts.Token).ConfigureAwait(false);
-            using var reader = new StreamReader(server, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
-            string? value = await reader.ReadLineAsync(timeoutCts.Token).ConfigureAwait(false);
-            return TryCreateCallbackUri(value, out Uri? uri) ? uri : null;
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (File.Exists(path))
+                {
+                    string value = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+                    TryDelete(path);
+                    return TryCreateCallbackUri(value.Trim(), out Uri? uri) ? uri : null;
+                }
+
+                await Task.Delay(150, cancellationToken).ConfigureAwait(false);
+            }
+
+            return null;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return null;
+        }
+        finally
+        {
+            TryDelete(readyPath);
+            TryDelete(path);
         }
     }
 
@@ -58,17 +73,27 @@ public static class CloudOAuthCallbackPipe
             return false;
         }
 
-        try
-        {
-            using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.Out);
-            await client.ConnectAsync(3_000, cancellationToken).ConfigureAwait(false);
-            using var writer = new StreamWriter(client, Encoding.UTF8, leaveOpen: true) { AutoFlush = true };
-            await writer.WriteLineAsync(uri.AbsoluteUri).ConfigureAwait(false);
-            return true;
-        }
-        catch (Exception ex) when (ex is TimeoutException or IOException or ObjectDisposedException)
+        string path = GetCallbackPath(pipeName);
+        string readyPath = path + ".ready";
+        if (!File.Exists(readyPath))
         {
             return false;
+        }
+
+        string staging = path + ".tmp";
+        await File.WriteAllTextAsync(staging, uri.AbsoluteUri, cancellationToken).ConfigureAwait(false);
+        File.Move(staging, path, overwrite: true);
+        return true;
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (IOException)
+        {
         }
     }
 
