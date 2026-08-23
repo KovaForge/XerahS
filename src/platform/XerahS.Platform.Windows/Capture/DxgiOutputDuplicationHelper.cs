@@ -12,8 +12,10 @@
 
 #endregion License Information (GPL v3)
 
+using System.Runtime.InteropServices;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
+using XerahS.Common;
 
 namespace XerahS.Platform.Windows.Capture;
 
@@ -26,17 +28,35 @@ internal static class DxgiOutputDuplicationHelper
         Format.B8G8R8A8_UNorm
     ];
 
+    /// <summary>
+    /// Vortice's DuplicateOutput1 marshaller can access-violate (0xC0000005) on Windows
+    /// ARM64 GPU drivers instead of returning DXGI_ERROR. That cannot be caught in .NET,
+    /// so region capture must never call it there.
+    /// </summary>
+    internal static bool ShouldUseDuplicateOutput1(Architecture architecture) =>
+        architecture is Architecture.X64 or Architecture.X86;
+
     public static IDXGIOutputDuplication Create(IDXGIOutput output, ID3D11Device device)
     {
-        try
+        if (ShouldUseDuplicateOutput1(RuntimeInformation.ProcessArchitecture))
         {
-            using var output5 = output.QueryInterface<IDXGIOutput5>();
-            return output5.DuplicateOutput1(device, 0, PreferredFormats);
+            try
+            {
+                using var output5 = output.QueryInterface<IDXGIOutput5>();
+                return output5.DuplicateOutput1(device, 0, PreferredFormats);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"DxgiOutputDuplicationHelper: DuplicateOutput1 failed, using DuplicateOutput. {ex.Message}");
+            }
         }
-        catch
+        else
         {
-            using var output1 = output.QueryInterface<IDXGIOutput1>();
-            return output1.DuplicateOutput(device);
+            DebugHelper.WriteLine(
+                $"DxgiOutputDuplicationHelper: Skipping DuplicateOutput1 on {RuntimeInformation.ProcessArchitecture}; using DuplicateOutput.");
         }
+
+        using var output1 = output.QueryInterface<IDXGIOutput1>();
+        return output1.DuplicateOutput(device);
     }
 }
