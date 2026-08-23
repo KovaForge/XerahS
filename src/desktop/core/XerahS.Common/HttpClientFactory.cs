@@ -23,52 +23,95 @@
 
 #endregion License Information (GPL v3)
 
+using System.Net;
 using System.Net.Http.Headers;
 
 namespace XerahS.Common
 {
+    /// <summary>
+    /// Shared HttpClient pool for plugins and host code. Call Create() at the request
+    /// site; do not cache the returned instance across proxy changes.
+    /// Parameterless Create() is kept so already-compiled plugins keep binding.
+    /// </summary>
     public static class HttpClientFactory
     {
         private static readonly object lockObject = new object();
-
-        private static HttpClient? client;
+        private static readonly Dictionary<(bool AllowAutoRedirect, bool InfiniteTimeout), HttpClient> clients = new();
+        private static string? proxyKey;
 
         public static HttpClient Create()
         {
-            if (client == null)
+            return Create(allowAutoRedirect: true, infiniteTimeout: false);
+        }
+
+        public static HttpClient Create(bool allowAutoRedirect, bool infiniteTimeout)
+        {
+            lock (lockObject)
             {
-                lock (lockObject)
+                IWebProxy? proxy = HelpersOptions.CurrentProxy.GetWebProxy();
+                string currentProxyKey = GetProxyKey();
+
+                if (!string.Equals(proxyKey, currentProxyKey, StringComparison.Ordinal))
                 {
-                    if (client == null)
-                    {
-                        HttpClientHandler clientHandler = new HttpClientHandler()
-                        {
-                            Proxy = HelpersOptions.CurrentProxy.GetWebProxy()
-                        };
-
-                        client = new HttpClient(clientHandler);
-                        client.DefaultRequestHeaders.UserAgent.ParseAdd(AppResources.UserAgent);
-                        client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue()
-                        {
-                            NoCache = true
-                        };
-                    }
+                    DisposeClients();
+                    proxyKey = currentProxyKey;
                 }
-            }
 
-            return client;
+                (bool AllowAutoRedirect, bool InfiniteTimeout) clientKey = (allowAutoRedirect, infiniteTimeout);
+
+                if (!clients.TryGetValue(clientKey, out HttpClient? client))
+                {
+                    SocketsHttpHandler handler = new SocketsHttpHandler()
+                    {
+                        AllowAutoRedirect = allowAutoRedirect,
+                        ConnectTimeout = TimeSpan.FromSeconds(30),
+                        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+                        PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+                        Proxy = proxy,
+                        UseCookies = false,
+                        UseProxy = proxy != null
+                    };
+
+                    client = new HttpClient(handler)
+                    {
+                        Timeout = infiniteTimeout ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(100)
+                    };
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd(AppResources.UserAgent);
+                    client.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue()
+                    {
+                        NoCache = true
+                    };
+
+                    clients.Add(clientKey, client);
+                }
+
+                return client;
+            }
         }
 
         public static void Reset()
         {
             lock (lockObject)
             {
-                if (client != null)
-                {
-                    client.Dispose();
-                    client = null;
-                }
+                DisposeClients();
+                proxyKey = null;
             }
+        }
+
+        private static void DisposeClients()
+        {
+            foreach (HttpClient client in clients.Values)
+            {
+                client.Dispose();
+            }
+
+            clients.Clear();
+        }
+
+        private static string GetProxyKey()
+        {
+            ProxyInfo proxy = HelpersOptions.CurrentProxy;
+            return $"{proxy.ProxyMethod}\0{proxy.Host}\0{proxy.Port}\0{proxy.Username}\0{proxy.Password}";
         }
     }
 }
