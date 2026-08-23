@@ -32,8 +32,51 @@ export function isPostgresCode(error: unknown, code: string): boolean {
   );
 }
 
+function postgresMessage(error: unknown): string {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string"
+  )
+    return error.message;
+  return "";
+}
+
 export function mapDatabaseError(error: unknown): ApiError {
-  if (isPostgresCode(error, "P0001"))
+  const message = postgresMessage(error);
+  if (message === "trial_grants_disabled")
+    return new ApiError(
+      503,
+      "integration_unavailable",
+      "Trial grants are currently disabled.",
+    );
+  if (
+    message === "aal2_required" ||
+    message === "recent_strong_auth_required" ||
+    message === "session_required"
+  )
+    return new ApiError(
+      403,
+      "strong_auth_required",
+      "Complete a strong-authentication challenge to continue.",
+    );
+  if (
+    message === "verified_identity_not_registered" ||
+    message === "verified_email_required"
+  )
+    return new ApiError(
+      403,
+      "email_verification_required",
+      "Verify your email address to continue.",
+    );
+  if (message === "trial_already_granted_for_identity")
+    return new ApiError(
+      409,
+      "conflict",
+      "A trial has already been granted for this account.",
+    );
+  if (isPostgresCode(error, "P0001") || isPostgresCode(error, "42501"))
     return new ApiError(403, "forbidden", "The operation is not permitted.");
   if (isPostgresCode(error, "23505"))
     return new ApiError(

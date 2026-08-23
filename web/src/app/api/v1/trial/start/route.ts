@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       await attemptImmediateLedgerDispatch(1);
       result = await rpc<TrialResult>(supabase, "start_my_trial");
     }
-    return result.replicated
+    return result.status === "active" || result.replicated
       ? json({ status: result.status }, { status: 201 })
       : pending(result.operationId);
   });
