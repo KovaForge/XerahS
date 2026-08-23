@@ -1,8 +1,3 @@
--- Desktop OAuth code exchange issues a new session at aal1 even when consent
--- was approved by an aal2 browser session. Stamp aal2 on OAuth access tokens
--- when the owner has a verified MFA factor. Consent already refuses approval
--- without aal2.
-
 create or replace function app_private.custom_access_token_hook(event jsonb)
 returns jsonb
 language plpgsql
@@ -33,7 +28,3 @@ begin
   return jsonb_build_object('claims', claims);
 end;
 $$;
-
-revoke all on function app_private.custom_access_token_hook(jsonb) from public, anon, authenticated;
-grant execute on function app_private.custom_access_token_hook(jsonb) to supabase_auth_admin;
-grant usage on schema app_private to supabase_auth_admin;
