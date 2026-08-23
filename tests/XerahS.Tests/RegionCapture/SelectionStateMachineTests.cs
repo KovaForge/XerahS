@@ -112,6 +112,37 @@ public class SelectionStateMachineTests
     }
 
     [Test]
+    public void UpdateCursorPosition_WhenCtrlPressedDuringCreate_MovesSelectionWithoutResizing()
+    {
+        var stateMachine = new SelectionStateMachine(quickCrop: false);
+        stateMachine.BeginDrag(new PixelPoint(10, 20));
+        stateMachine.UpdateCursorPosition(new PixelPoint(50, 80));
+
+        Assert.That(stateMachine.SelectionRect, Is.EqualTo(new PixelRect(10, 20, 40, 60)));
+
+        stateMachine.SetModifiers(SelectionModifier.PixelNudge);
+        stateMachine.UpdateCursorPosition(new PixelPoint(70, 90));
+
+        Assert.That(stateMachine.SelectionRect, Is.EqualTo(new PixelRect(30, 30, 40, 60)));
+
+        stateMachine.SetModifiers(SelectionModifier.None);
+        stateMachine.UpdateCursorPosition(new PixelPoint(80, 100));
+
+        Assert.That(stateMachine.SelectionRect, Is.EqualTo(new PixelRect(30, 30, 50, 70)));
+    }
+
+    [Test]
+    public void UpdateCursorPosition_WhenCtrlHeldAtCreateStart_ContinuesResizing()
+    {
+        var stateMachine = new SelectionStateMachine(quickCrop: false);
+        stateMachine.SetModifiers(SelectionModifier.PixelNudge);
+        stateMachine.BeginDrag(new PixelPoint(10, 10));
+        stateMachine.UpdateCursorPosition(new PixelPoint(40, 50));
+
+        Assert.That(stateMachine.SelectionRect, Is.EqualTo(new PixelRect(10, 10, 30, 40)));
+    }
+
+    [Test]
     public void BeginResize_UpdatesOppositeEdge()
     {
         var stateMachine = new SelectionStateMachine(quickCrop: false);

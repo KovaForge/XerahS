@@ -1070,7 +1070,7 @@ public sealed class RegionCaptureControl : UserControl
             hints.Add("Alt: Expand from center");
 
         if (_activeModifiers.HasFlag(SelectionModifier.PixelNudge))
-            hints.Add("Ctrl: Resize mode");
+            hints.Add(_state == CaptureState.Dragging ? "Ctrl: Move selection" : "Ctrl: Resize mode");
 
         if (hints.Count == 0)
             return;
@@ -1134,11 +1134,11 @@ public sealed class RegionCaptureControl : UserControl
         if (_enableWindowSnapping)
         {
             return _windowPreselectionCapability.Level == WindowPreselectionSupportLevel.Partial
-                ? $"Drag to select region | Click to snap supported windows | Ctrl: toggle mode | {confirmHint}"
-                : $"Drag to select region | Click to snap window | Ctrl: toggle mode | {confirmHint}";
+                ? $"Drag to select region | Click to snap supported windows | Ctrl: move while dragging | {confirmHint}"
+                : $"Drag to select region | Click to snap window | Ctrl: move while dragging | {confirmHint}";
         }
 
-        return $"Drag to select region | Ctrl: toggle mode | {confirmHint}";
+        return $"Drag to select region | Ctrl: move while dragging | {confirmHint}";
     }
 
     private string? GetCapabilityMessage()

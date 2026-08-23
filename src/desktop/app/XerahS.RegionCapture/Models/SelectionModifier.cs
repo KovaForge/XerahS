@@ -38,7 +38,8 @@ public enum SelectionModifier
     LockAspectRatio = 1,
 
     /// <summary>
-    /// Ctrl key - enables pixel nudge mode with arrow keys.
+    /// Ctrl key - pixel-nudge with arrow keys, and move the in-progress
+    /// selection while dragging a new region.
     /// </summary>
     PixelNudge = 2,
 
