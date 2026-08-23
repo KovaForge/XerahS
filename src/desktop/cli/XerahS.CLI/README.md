@@ -134,6 +134,18 @@ xerahscli reclip status --json
 
 The setting is stored at `ReClipConfig.json` under the normal XerahS settings folder shown by `xerahscli config path`.
 
+## XerahS Cloud OAuth
+
+Use the CLI to sign in without driving the desktop UI. `cloud sign-in` opens the system browser, temporarily points `xerahs://` at this process, and waits for the authorization callback.
+
+```bash
+xerahscli cloud status --json
+xerahscli cloud sign-in --json
+xerahscli cloud sign-out --json
+```
+
+Authorize the desktop client in the browser (verified email + TOTP). The waiting command prints the account slug when the token exchange succeeds. `cloud complete` is invoked automatically by the protocol handler; do not paste access tokens on the command line.
+
 ## Useful commands for agents
 
 ```bash

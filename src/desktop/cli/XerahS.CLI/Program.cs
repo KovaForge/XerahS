@@ -39,6 +39,11 @@ namespace XerahS.CLI
         {
             try
             {
+                if (CloudCommand.TryForwardCallback(args, out int callbackExitCode))
+                {
+                    return callbackExitCode;
+                }
+
                 bool isAssistantMode = TryGetAssistantPrompt(args, out _);
                 bool needsRecording = CommandNeedsRecording(args);
 
@@ -73,7 +78,7 @@ namespace XerahS.CLI
                 var assistantCliService = new AssistantCliService(new AssistantService(taskManager));
 
                 // Build command tree
-                var rootCommand = BuildRootCommand(taskManager, recordingCoordinator, assistantCliService);
+                var rootCommand = BuildRootCommand(services, taskManager, recordingCoordinator, assistantCliService);
 
                 // Execute
                 return await rootCommand.Parse(args).InvokeAsync();
@@ -116,6 +121,7 @@ namespace XerahS.CLI
         }
 
         private static RootCommand BuildRootCommand(
+            IServiceProvider services,
             IDesktopTaskManager taskManager,
             IScreenRecordingCoordinator recordingCoordinator,
             AssistantCliService assistantCliService)
@@ -147,6 +153,7 @@ namespace XerahS.CLI
             rootCommand.Add(DoctorCommand.Create());
             rootCommand.Add(BootstrapCommand.Create());
             rootCommand.Add(OpenClawCommand.Create());
+            rootCommand.Add(CloudCommand.Create(services));
 
             rootCommand.SetAction(async parseResult =>
             {
