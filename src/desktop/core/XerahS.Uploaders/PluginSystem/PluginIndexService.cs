@@ -3,6 +3,22 @@
 /*
     XerahS - The Avalonia UI implementation of ShareX
     Copyright (c) 2007-2026 ShareX Team
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+    Optionally you can also view the license at <http://www.gnu.org/licenses/>.
 */
 
 #endregion License Information (GPL v3)
@@ -24,19 +40,21 @@ public sealed class PluginIndexService
     private const long MaxIndexBytes = 2_000_000; // 2MB
     private const long MaxPackageBytes = 100_000_000; // Keep aligned with PluginPackager.
 
-    private readonly HttpClient _httpClient;
+    private readonly HttpClient? _httpClient;
     private readonly string _indexUrl;
 
     public PluginIndexService()
-        : this(new HttpClient(), DefaultIndexUrl)
+        : this(httpClient: null, DefaultIndexUrl)
     {
     }
 
-    public PluginIndexService(HttpClient httpClient, string indexUrl = DefaultIndexUrl)
+    public PluginIndexService(HttpClient? httpClient, string indexUrl = DefaultIndexUrl)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient = httpClient;
         _indexUrl = indexUrl;
     }
+
+    private HttpClient Http => _httpClient ?? HttpClientFactory.Create();
 
     public async Task<CommunityPluginIndex> FetchIndexAsync(CancellationToken cancellationToken = default)
     {
@@ -45,7 +63,7 @@ public sealed class PluginIndexService
             throw new InvalidOperationException("Plugin index URL must use HTTPS.");
         }
 
-        using var response = await _httpClient.GetAsync(_indexUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        using var response = await Http.GetAsync(_indexUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         if (response.Content.Headers.ContentLength is > MaxIndexBytes)
@@ -82,7 +100,7 @@ public sealed class PluginIndexService
             throw new InvalidDataException($"Invalid plugin entry: {error ?? "Draft plugins cannot be downloaded."}");
         }
 
-        using var response = await _httpClient.GetAsync(plugin.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        using var response = await Http.GetAsync(plugin.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         if (response.Content.Headers.ContentLength is > MaxPackageBytes)

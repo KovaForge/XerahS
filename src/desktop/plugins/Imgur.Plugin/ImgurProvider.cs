@@ -25,6 +25,7 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using XerahS.Common;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
 using SysHttpClient = System.Net.Http.HttpClient;
@@ -181,7 +182,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
     // ─── IUploaderExplorer ───────────────────────────────────────────────────
 
-    private static readonly SysHttpClient _explorerHttpClient = new();
+    private static SysHttpClient ExplorerHttpClient => HttpClientFactory.Create();
 
     /// <inheritdoc/>
     public bool SupportsFolders => true; // Albums are folders
@@ -224,7 +225,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
         try
         {
-            return await _explorerHttpClient.GetByteArrayAsync(thumbUrl, cancellation);
+            return await ExplorerHttpClient.GetByteArrayAsync(thumbUrl, cancellation);
         }
         catch
         {
@@ -240,7 +241,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
         try
         {
-            var response = await _explorerHttpClient.GetAsync(url, cancellation);
+            var response = await ExplorerHttpClient.GetAsync(url, cancellation);
             return response.IsSuccessStatusCode ? await response.Content.ReadAsStreamAsync(cancellation) : null;
         }
         catch
@@ -264,7 +265,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
         request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + authInfo.Token.access_token);
         try
         {
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             return response.IsSuccessStatusCode;
         }
         catch
@@ -295,7 +296,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
         try
         {
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             if (!response.IsSuccessStatusCode) return new ExplorerPage();
 
             string json = await response.Content.ReadAsStringAsync(cancellation);
@@ -336,7 +337,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
         try
         {
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             if (!response.IsSuccessStatusCode) return new ExplorerPage();
 
             string json = await response.Content.ReadAsStringAsync(cancellation);
@@ -383,7 +384,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
         try
         {
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             if (!response.IsSuccessStatusCode) return new ExplorerPage();
 
             string json = await response.Content.ReadAsStringAsync(cancellation);

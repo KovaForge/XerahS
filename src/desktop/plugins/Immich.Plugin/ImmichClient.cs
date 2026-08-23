@@ -34,8 +34,6 @@ namespace ShareX.Immich.Plugin;
 
 public sealed class ImmichClient
 {
-    private static readonly HttpClient SharedHttpClient = HttpClientFactory.Create();
-
     private static readonly string[] ScopedApiKeyPermissions =
     {
         "apiKey.create",
@@ -57,10 +55,10 @@ public sealed class ImmichClient
 
     private readonly string _serverUrl;
     private readonly string _apiKey;
-    private readonly HttpClient _httpClient;
+    private readonly HttpClient? _httpClient;
 
     public ImmichClient(string serverUrl, string apiKey)
-        : this(serverUrl, apiKey, SharedHttpClient)
+        : this(serverUrl, apiKey, httpClient: null)
     {
     }
 
@@ -73,12 +71,14 @@ public sealed class ImmichClient
     {
     }
 
-    private ImmichClient(string serverUrl, string apiKey, HttpClient httpClient)
+    private ImmichClient(string serverUrl, string apiKey, HttpClient? httpClient)
     {
         _serverUrl = NormalizeServerUrl(serverUrl);
         _apiKey = apiKey?.Trim() ?? string.Empty;
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient = httpClient;
     }
+
+    private HttpClient Http => _httpClient ?? HttpClientFactory.Create(allowAutoRedirect: true, infiniteTimeout: true);
 
     public static string NormalizeServerUrl(string? serverUrl)
     {
@@ -351,7 +351,7 @@ public sealed class ImmichClient
         request.Content = form;
         request.Headers.TryAddWithoutValidation("x-immich-checksum", checksum);
 
-        using HttpResponseMessage response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+        using HttpResponseMessage response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
         string body = await response.Content.ReadAsStringAsync(cancellation);
         if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created)
         {
@@ -568,7 +568,7 @@ public sealed class ImmichClient
         CancellationToken cancellation = default)
     {
         using HttpRequestMessage request = CreateRequest(method, relativePath);
-        return await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
+        return await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation);
     }
 
     private async Task<HttpResponseMessage> SendAsync(
@@ -585,7 +585,7 @@ public sealed class ImmichClient
             request.Content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
         }
 
-        HttpResponseMessage response = await _httpClient.SendAsync(request, cancellation);
+        HttpResponseMessage response = await Http.SendAsync(request, cancellation);
         if (response.IsSuccessStatusCode)
         {
             return response;

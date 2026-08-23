@@ -42,14 +42,12 @@ namespace XerahS.Common
         {
             try
             {
-                // Replaced WebHelpers.DownloadStringAsync with HttpClient
-                using (HttpClient client = new HttpClient())
-                {
-                    string response = await client.GetStringAsync(URL);
+                HttpClient client = HttpClientFactory.Create();
+                string response = await client.GetStringAsync(URL);
 
-                    using (StringReader sr = new StringReader(response))
-                    using (XmlTextReader xml = new XmlTextReader(sr))
-                    {
+                using (StringReader sr = new StringReader(response))
+                using (XmlTextReader xml = new XmlTextReader(sr))
+                {
                         XDocument xd = XDocument.Load(xml);
 
                         string node;
@@ -96,7 +94,6 @@ namespace XerahS.Common
                                 }
                             }
                         }
-                    }
                 }
             }
             catch (Exception e)

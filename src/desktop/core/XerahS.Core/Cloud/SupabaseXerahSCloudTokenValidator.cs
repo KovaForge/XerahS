@@ -31,17 +31,19 @@ public sealed class SupabaseXerahSCloudTokenValidator : IXerahSCloudTokenValidat
     // than one hour so a public desktop client never accepts week-long access tokens.
     private static readonly TimeSpan MaximumAccessTokenLifetime = TimeSpan.FromHours(1);
 
-    private readonly HttpClient _httpClient;
+    private readonly HttpClient? _httpClient;
     private readonly IXerahSCloudClock _clock;
     private readonly SemaphoreSlim _jwksLock = new(1, 1);
     private IReadOnlyList<JsonWebKey> _keys = [];
     private DateTimeOffset _keysExpireAt;
 
-    public SupabaseXerahSCloudTokenValidator(HttpClient httpClient, IXerahSCloudClock clock)
+    public SupabaseXerahSCloudTokenValidator(HttpClient? httpClient, IXerahSCloudClock clock)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient = httpClient;
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
+
+    private HttpClient Http => _httpClient ?? XerahS.Common.HttpClientFactory.Create();
 
     public async Task<XerahSCloudSession> ValidateAsync(
         string accessToken,
@@ -205,7 +207,7 @@ public sealed class SupabaseXerahSCloudTokenValidator : IXerahSCloudTokenValidat
                 }
 
                 Uri jwksEndpoint = new(options.OAuthAuthority, "/auth/v1/.well-known/jwks.json");
-                using HttpResponseMessage response = await _httpClient.GetAsync(jwksEndpoint, cancellationToken).ConfigureAwait(false);
+                using HttpResponseMessage response = await Http.GetAsync(jwksEndpoint, cancellationToken).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
                     throw new XerahSCloudSecurityException($"OAuth JWKS request failed with HTTP {(int)response.StatusCode}.");

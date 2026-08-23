@@ -302,19 +302,21 @@ public sealed class XerahSCloudOAuthCoordinator : IXerahSCloudOAuthCoordinator
 
 public sealed class XerahSCloudOAuthTokenExchange : IXerahSCloudOAuthTokenExchange
 {
-    private readonly HttpClient _httpClient;
+    private readonly HttpClient? _httpClient;
     private readonly XerahSCloudOptions _options;
     private readonly IXerahSCloudTokenValidator _tokenValidator;
 
     public XerahSCloudOAuthTokenExchange(
-        HttpClient httpClient,
+        HttpClient? httpClient,
         XerahSCloudOptions options,
         IXerahSCloudTokenValidator tokenValidator)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient = httpClient;
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _tokenValidator = tokenValidator ?? throw new ArgumentNullException(nameof(tokenValidator));
     }
+
+    private HttpClient Http => _httpClient ?? XerahS.Common.HttpClientFactory.Create();
 
     public async Task<XerahSCloudSession> ExchangeAsync(
         string code,
@@ -340,7 +342,7 @@ public sealed class XerahSCloudOAuthTokenExchange : IXerahSCloudOAuthTokenExchan
             })
         };
 
-        using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        using HttpResponseMessage response = await Http.SendAsync(request, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             throw new XerahSCloudSecurityException(
@@ -386,7 +388,7 @@ public sealed class XerahSCloudOAuthTokenExchange : IXerahSCloudOAuthTokenExchan
             })
         };
 
-        using HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        using HttpResponseMessage response = await Http.SendAsync(request, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             if ((int)response.StatusCode is >= 400 and < 500)

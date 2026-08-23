@@ -194,7 +194,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
 
     // ─── IUploaderExplorer ───────────────────────────────────────────────────
 
-    private static readonly SysHttpClient _explorerHttpClient = new();
+    private static SysHttpClient ExplorerHttpClient => HttpClientFactory.Create();
 
     /// <inheritdoc/>
     public bool SupportsFolders => true;
@@ -298,7 +298,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         try
         {
             using var request = BuildSignedRequest("DELETE", host, canonicalUri, "", region, ak, sk, st);
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             return response.IsSuccessStatusCode
                 || response.StatusCode == System.Net.HttpStatusCode.NoContent;
         }
@@ -339,7 +339,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         try
         {
             using var request = BuildSignedRequest("GET", host, canonicalUri, "", region, ak, sk, st);
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadAsByteArrayAsync(cancellation);
         }
@@ -353,7 +353,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
     {
         try
         {
-            using var response = await _explorerHttpClient.GetAsync(url, cancellation);
+            using var response = await ExplorerHttpClient.GetAsync(url, cancellation);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadAsByteArrayAsync(cancellation);
         }
@@ -367,7 +367,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         string region, string ak, string sk, string? st, CancellationToken cancellation)
     {
         using var request = BuildSignedRequest("GET", host, canonicalUri, canonicalQs, region, ak, sk, st);
-        using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+        using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
         string body = await response.Content.ReadAsStringAsync(cancellation);
 
         if (response.IsSuccessStatusCode)

@@ -54,7 +54,7 @@ public class DropboxProvider : UploaderProviderBase, IUploaderExplorer
     private const string UrlDownload = UrlContent + "/files/download";
     private const string UrlGetThumbnail = UrlContent + "/files/get_thumbnail";
 
-    private static readonly SysHttpClient _explorerHttpClient = new();
+    private static SysHttpClient ExplorerHttpClient => HttpClientFactory.Create();
     private readonly object _latestSettingsLock = new();
     private string? _latestSettingsJson;
 
@@ -567,7 +567,7 @@ public class DropboxProvider : UploaderProviderBase, IUploaderExplorer
 
         try
         {
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             if (!response.IsSuccessStatusCode)
             {
                 return null;
@@ -597,7 +597,7 @@ public class DropboxProvider : UploaderProviderBase, IUploaderExplorer
 
         try
         {
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             if (!response.IsSuccessStatusCode)
             {
                 return null;
@@ -615,7 +615,7 @@ public class DropboxProvider : UploaderProviderBase, IUploaderExplorer
     {
         try
         {
-            using var response = await _explorerHttpClient.GetAsync(url, cancellation);
+            using var response = await ExplorerHttpClient.GetAsync(url, cancellation);
             if (!response.IsSuccessStatusCode)
             {
                 return null;
@@ -638,7 +638,7 @@ public class DropboxProvider : UploaderProviderBase, IUploaderExplorer
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-        using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+        using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
         string responseBody = await response.Content.ReadAsStringAsync(cancellation);
 
         if (!response.IsSuccessStatusCode)

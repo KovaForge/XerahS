@@ -174,11 +174,20 @@ namespace XerahS.Bootstrap
             services.TryAddSingleton<ISecretStore>(_ => ProviderContextManager.EnsureProviderContext().Secrets);
             services.TryAddSingleton<IXerahSCloudSessionStore, XerahSCloudSessionStore>();
             services.TryAddSingleton<IXerahSCloudClock, SystemXerahSCloudClock>();
-            services.TryAddSingleton(_ => new HttpClient());
-            services.TryAddSingleton<IXerahSCloudTokenValidator, SupabaseXerahSCloudTokenValidator>();
-            services.TryAddSingleton<IXerahSCloudOAuthTokenExchange, XerahSCloudOAuthTokenExchange>();
+            services.TryAddSingleton<IXerahSCloudTokenValidator>(sp =>
+                new SupabaseXerahSCloudTokenValidator(httpClient: null, sp.GetRequiredService<IXerahSCloudClock>()));
+            services.TryAddSingleton<IXerahSCloudOAuthTokenExchange>(sp =>
+                new XerahSCloudOAuthTokenExchange(
+                    httpClient: null,
+                    sp.GetRequiredService<XerahSCloudOptions>(),
+                    sp.GetRequiredService<IXerahSCloudTokenValidator>()));
             services.TryAddSingleton<IXerahSCloudOAuthCoordinator, XerahSCloudOAuthCoordinator>();
-            services.TryAddSingleton<IXerahSCloudClient, XerahSCloudApiClient>();
+            services.TryAddSingleton<IXerahSCloudClient>(sp =>
+                new XerahSCloudApiClient(
+                    httpClient: null,
+                    sp.GetRequiredService<IXerahSCloudSessionStore>(),
+                    sp.GetRequiredService<IXerahSCloudOAuthTokenExchange>(),
+                    sp.GetRequiredService<XerahSCloudOptions>()));
             return services;
         }
     }

@@ -22,24 +22,26 @@ namespace XerahS.Core.Cloud;
 public sealed class XerahSCloudApiClient : IXerahSCloudClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private readonly HttpClient _httpClient;
+    private readonly HttpClient? _httpClient;
     private readonly IXerahSCloudSessionStore _sessionStore;
     private readonly IXerahSCloudOAuthTokenExchange _tokenExchange;
     private readonly XerahSCloudOptions _options;
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
     public XerahSCloudApiClient(
-        HttpClient httpClient,
+        HttpClient? httpClient,
         IXerahSCloudSessionStore sessionStore,
         IXerahSCloudOAuthTokenExchange tokenExchange,
         XerahSCloudOptions options)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient = httpClient;
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
         _tokenExchange = tokenExchange ?? throw new ArgumentNullException(nameof(tokenExchange));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         XerahSCloudOptions.RequireSecureHttpEndpoint(options.ApiBaseAddress, nameof(options.ApiBaseAddress));
     }
+
+    private HttpClient Http => _httpClient ?? XerahS.Common.HttpClientFactory.Create();
 
     public bool IsConfigured => _options.IsOAuthConfigured;
 
@@ -238,7 +240,7 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
     {
         using (HttpRequestMessage request = requestFactory(session.AccessToken))
         {
-            HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            HttpResponseMessage response = await Http.SendAsync(request, cancellationToken).ConfigureAwait(false);
             if (response.StatusCode != HttpStatusCode.Unauthorized)
             {
                 return response;
@@ -249,7 +251,7 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
 
         XerahSCloudSession refreshed = await GetSessionAsync(forceRefresh: true, cancellationToken).ConfigureAwait(false);
         using HttpRequestMessage retry = requestFactory(refreshed.AccessToken);
-        return await _httpClient.SendAsync(retry, cancellationToken).ConfigureAwait(false);
+        return await Http.SendAsync(retry, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<XerahSCloudSession> GetSessionAsync(bool forceRefresh, CancellationToken cancellationToken)

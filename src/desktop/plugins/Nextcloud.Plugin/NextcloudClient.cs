@@ -42,7 +42,7 @@ public sealed class NextcloudClient
     private const string OcsHeaderValue = "true";
     private const int DefaultChunkSizeMiB = 10;
     private const int MinimumChunkSizeMiB = 5;
-    private static readonly HttpClient HttpClient = XerahS.Common.HttpClientFactory.Create();
+    private static HttpClient HttpClient => XerahS.Common.HttpClientFactory.Create(allowAutoRedirect: true, infiniteTimeout: true);
 
     private readonly string _serverUrl;
     private readonly string _loginName;
