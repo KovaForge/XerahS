@@ -56,6 +56,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     private bool _isDurationEnd;
     private bool _isMouseInside;
     private bool _isMenuOpen;
+    private bool _isFileDragActive;
     private bool _disposed;
 
     public event EventHandler? CloseRequested;
@@ -264,6 +265,23 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         CheckFade();
     }
 
+    public void OnFileDragStarted()
+    {
+        _isFileDragActive = true;
+        _fadeTimer.Stop();
+        _opacity = 1.0;
+        OpacityChanged?.Invoke(this, _opacity);
+    }
+
+    public void OnFileDragEnded(bool pointerInside)
+    {
+        _isFileDragActive = false;
+        _isMouseInside = pointerInside;
+        CheckFade();
+    }
+
+    internal bool IsFadeTimerRunning => _fadeTimer.IsEnabled;
+
     public void ExecuteLeftClick()
     {
         ExecuteAction(_config.LeftClickAction);
@@ -292,7 +310,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
 
     private void CheckFade()
     {
-        if (_isDurationEnd && _config.AutoHide && !_isMouseInside && !_isMenuOpen)
+        if (_isDurationEnd && _config.AutoHide && !_isMouseInside && !_isMenuOpen && !_isFileDragActive)
         {
             StartFade();
         }
@@ -323,6 +341,11 @@ public partial class ToastViewModel : ObservableObject, IDisposable
 
     private void StartFade()
     {
+        if (_isFileDragActive)
+        {
+            return;
+        }
+
         if (_config.FadeDuration <= 0)
         {
             CloseRequested?.Invoke(this, EventArgs.Empty);

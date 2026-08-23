@@ -293,7 +293,7 @@ public partial class ToastWindow : OverlayWindow
             }
 
             var storageFile = await storageProvider.TryGetFileFromPathAsync(_config.FilePath);
-            if (storageFile == null)
+            if (storageFile == null || _dragStartEventArgs == null)
             {
                 return;
             }
@@ -301,10 +301,16 @@ public partial class ToastWindow : OverlayWindow
             var dataTransfer = new DataTransfer();
             dataTransfer.Add(DataTransferItem.CreateFile(storageFile));
 
-            // Start drag operation
-            if (_dragStartEventArgs != null)
+            // Pointer leave during DoDragDrop would otherwise start the fade and
+            // close the toast mid-drag (ShareX #8562).
+            _viewModel?.OnFileDragStarted();
+            try
             {
                 await DragDrop.DoDragDropAsync(_dragStartEventArgs, dataTransfer, DragDropEffects.Copy | DragDropEffects.Move);
+            }
+            finally
+            {
+                _viewModel?.OnFileDragEnded(IsPointerOver);
             }
         }
     }
