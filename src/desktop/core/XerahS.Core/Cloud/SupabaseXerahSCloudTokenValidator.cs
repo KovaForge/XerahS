@@ -79,9 +79,15 @@ public sealed class SupabaseXerahSCloudTokenValidator : IXerahSCloudTokenValidat
             throw new XerahSCloudSecurityException("OAuth access token was not issued to this desktop client.");
         }
 
-        if (!string.Equals(aal, "aal2", StringComparison.Ordinal) || string.IsNullOrWhiteSpace(sessionId))
+        if (string.IsNullOrWhiteSpace(sessionId))
         {
-            throw new XerahSCloudSecurityException("OAuth access token was not issued with strong authentication.");
+            throw new XerahSCloudSecurityException("OAuth access token is missing a session identifier.");
+        }
+
+        if (!string.Equals(aal, "aal2", StringComparison.Ordinal))
+        {
+            throw new XerahSCloudSecurityException(
+                $"OAuth access token authenticator assurance is '{aal}', expected aal2.");
         }
 
         if (accessExpiry - _clock.UtcNow > MaximumAccessTokenLifetime + ClockSkew)
