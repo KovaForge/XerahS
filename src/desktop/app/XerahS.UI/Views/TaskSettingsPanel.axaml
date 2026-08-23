@@ -205,11 +205,11 @@
                             <StackPanel Spacing="16">
                                 <Grid ColumnDefinitions="Auto, 16, *">
                                     <TextBlock Grid.Column="0" Text="Name pattern:" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Column="2" Text="{Binding NameFormatPattern, Mode=TwoWay}" AutomationProperties.Name="Name Pattern"/>
+                                    <TextBox x:Name="NameFormatPatternTextBox" Grid.Column="2" Text="{Binding NameFormatPattern, Mode=TwoWay}" AutomationProperties.Name="Name Pattern"/>
                                 </Grid>
                                 <Grid ColumnDefinitions="Auto, 16, *">
                                     <TextBlock Grid.Column="0" Text="Active window name pattern:" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Column="2" Text="{Binding NameFormatPatternActiveWindow, Mode=TwoWay}" AutomationProperties.Name="Active Window Name Pattern"/>
+                                    <TextBox x:Name="NameFormatPatternActiveWindowTextBox" Grid.Column="2" Text="{Binding NameFormatPatternActiveWindow, Mode=TwoWay}" AutomationProperties.Name="Active Window Name Pattern"/>
                                 </Grid>
                                 
                                 <StackPanel Spacing="10">

@@ -241,7 +241,7 @@
                                     <CheckBox IsChecked="{Binding UseSaveImageSubFolderPattern}" Content="Create subfolders using pattern" AutomationProperties.Name="Use Subfolder Pattern"/>
                                     <Grid ColumnDefinitions="Auto, 16, *" IsEnabled="{Binding UseSaveImageSubFolderPattern}">
                                         <TextBlock Grid.Column="0" Text="Pattern:" VerticalAlignment="Center"/>
-                                        <TextBox Grid.Column="2" Text="{Binding SaveImageSubFolderPattern}" PlaceholderText="%y-%mo" AutomationProperties.Name="Subfolder Pattern"/>
+                                        <TextBox x:Name="SaveImageSubFolderPatternTextBox" Grid.Column="2" Text="{Binding SaveImageSubFolderPattern}" PlaceholderText="%y-%mo" AutomationProperties.Name="Subfolder Pattern"/>
                                     </Grid>
                                     <TextBlock Text="Example: 2025-01" FontSize="12" Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                                 </StackPanel>

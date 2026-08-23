@@ -26,7 +26,9 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using XerahS.Common;
 using XerahS.Core;
+using XerahS.UI.Helpers;
 using XerahS.UI.Services;
 using XerahS.UI.Controls;
 
@@ -39,6 +41,12 @@ namespace XerahS.UI.Views
         public ApplicationSettingsView()
         {
             InitializeComponent();
+            TextBox? subfolderPattern = this.FindControl<TextBox>("SaveImageSubFolderPatternTextBox");
+            if (subfolderPattern != null)
+            {
+                NamePatternMenu.Attach(subfolderPattern, CodeMenuEntryFilename.n);
+            }
+
             var uiFactory = UiViewModelFactoryAccessor.GetRequired();
             var vm = uiFactory.CreateApplicationSettingsViewModel();
             DataContext = vm;
