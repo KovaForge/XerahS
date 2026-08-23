@@ -79,8 +79,34 @@ namespace XerahS.Media
             return Run(FFmpegPath, args);
         }
 
+        internal static bool IsAllowedExecutablePath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
+
+            if (!OperatingSystem.IsWindows())
+            {
+                return true;
+            }
+
+            string extension = Path.GetExtension(path);
+            if (string.IsNullOrEmpty(extension))
+            {
+                return true;
+            }
+
+            return string.Equals(extension, ".exe", StringComparison.OrdinalIgnoreCase);
+        }
+
         protected bool Run(string path, string args)
         {
+            if (!IsAllowedExecutablePath(path))
+            {
+                return false;
+            }
+
             StopRequested = false;
             int errorCode = Open(path, args);
             IsEncoding = false;
