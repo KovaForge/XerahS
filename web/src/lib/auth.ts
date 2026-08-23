@@ -77,7 +77,11 @@ export async function requireAuthenticatedUser(
       : await supabase.auth.getUser();
     email = userData.user?.email ?? undefined;
     if (userError || !email)
-      throw new ApiError(401, "authentication_required", "Sign in is required.");
+      throw new ApiError(
+        401,
+        "authentication_required",
+        "Sign in is required.",
+      );
   }
   if (requirements.strong && aal !== "aal2") {
     throw new ApiError(
