@@ -153,6 +153,22 @@
                                 <Grid>
                                     <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}"
                                            Stretch="Uniform"/>
+                                    <Border HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Width="44"
+                                            Height="44"
+                                            CornerRadius="22"
+                                            Background="#B8181818"
+                                            IsHitTestVisible="False"
+                                            IsVisible="{Binding IsVideo}"
+                                            AutomationProperties.Name="Video recording">
+                                        <TextBlock Text="▶"
+                                                   FontSize="16"
+                                                   Foreground="#A9A9A9"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   Margin="3,0,0,1"/>
+                                    </Border>
                                     <Border HorizontalAlignment="Right"
                                             VerticalAlignment="Top"
                                             Margin="6"
@@ -230,6 +246,22 @@
                                 <Grid>
                                     <Image Source="{Binding FilePath, Converter={x:Static vm:HistoryViewModel.ThumbnailConverter}}"
                                            Stretch="UniformToFill"/>
+                                    <Border HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Width="18"
+                                            Height="18"
+                                            CornerRadius="9"
+                                            Background="#B8181818"
+                                            IsHitTestVisible="False"
+                                            IsVisible="{Binding IsVideo}"
+                                            AutomationProperties.Name="Video recording">
+                                        <TextBlock Text="▶"
+                                                   FontSize="8"
+                                                   Foreground="#A9A9A9"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   Margin="1,0,0,0"/>
+                                    </Border>
                                     <Border HorizontalAlignment="Right"
                                             VerticalAlignment="Top"
                                             Width="10"

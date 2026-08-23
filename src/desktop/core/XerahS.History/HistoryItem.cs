@@ -25,6 +25,7 @@
 
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using XerahS.Common;
 
 namespace XerahS.History
 {
@@ -90,6 +91,18 @@ namespace XerahS.History
                 }
 
                 return false;
+            }
+        }
+
+        [JsonIgnore]
+        public bool IsVideo
+        {
+            get
+            {
+                string candidate = !string.IsNullOrWhiteSpace(FilePath) ? FilePath : FileName;
+                return FileHelpers.IsVideoFile(candidate) ||
+                    Type.Equals("Video", StringComparison.OrdinalIgnoreCase) ||
+                    Type.Equals("Screencast", StringComparison.OrdinalIgnoreCase);
             }
         }
 
