@@ -449,6 +449,29 @@ public sealed class XerahSCloudSecurityTests
     private static string Base64Url(byte[] bytes) =>
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
+    [Test]
+    public void CloudOptions_UnsetEnvironmentUsesStagingPublicClient()
+    {
+        XerahSCloudOptions options = XerahSCloudOptions.FromValues(null, null, null, null, null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(options.IsOAuthConfigured, Is.True);
+            Assert.That(options.ApiBaseAddress, Is.EqualTo(XerahSCloudOptions.StagingApiBaseAddress));
+            Assert.That(options.OAuthAuthority, Is.EqualTo(XerahSCloudOptions.StagingOAuthAuthority));
+            Assert.That(options.OAuthClientId, Is.EqualTo(XerahSCloudOptions.StagingOAuthClientId));
+        });
+    }
+
+    [Test]
+    public void CloudOptions_ExplicitDisableKeepsDesktopLaunchGated()
+    {
+        XerahSCloudOptions options = XerahSCloudOptions.FromValues(null, null, null, null, "false");
+
+        Assert.That(options.IsOAuthConfigured, Is.False);
+        Assert.That(options.FeatureEnabled, Is.False);
+    }
+
     private static XerahSCloudOptions CreateOptions() => new()
     {
         FeatureEnabled = true,

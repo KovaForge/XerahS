@@ -129,7 +129,7 @@ export function SettingsControls({ strongAuth, trialStatus }: Props) {
       {trialStatus === "not_started" && (
         <button
           className="primary"
-          disabled={busy || !strongAuth}
+          disabled={busy}
           onClick={() => void post("/api/v1/trial/start")}
         >
           Start 7-day trial
@@ -137,7 +137,7 @@ export function SettingsControls({ strongAuth, trialStatus }: Props) {
       )}
       <div className="actions">
         <button
-          disabled={busy || !strongAuth}
+          disabled={busy}
           onClick={() =>
             void post("/api/v1/billing/checkout", { plan: "monthly" })
           }
@@ -145,7 +145,7 @@ export function SettingsControls({ strongAuth, trialStatus }: Props) {
           Subscribe monthly · $1.99 USD
         </button>
         <button
-          disabled={busy || !strongAuth}
+          disabled={busy}
           onClick={() =>
             void post("/api/v1/billing/checkout", { plan: "annual" })
           }
@@ -153,26 +153,26 @@ export function SettingsControls({ strongAuth, trialStatus }: Props) {
           Subscribe yearly · $19.99 USD
         </button>
         <button
-          disabled={busy || !strongAuth}
+          disabled={busy}
           onClick={() => void post("/api/v1/billing/portal")}
         >
           Manage billing
         </button>
         <button
-          disabled={busy || !strongAuth}
+          disabled={busy}
           onClick={() => void exportAccount()}
         >
           Export account data
         </button>
         <button
-          disabled={busy || !strongAuth}
+          disabled={busy}
           onClick={() => void generateRecoveryCodes()}
         >
           Generate recovery codes
         </button>
         <button
           className="danger"
-          disabled={busy || !strongAuth}
+          disabled={busy}
           onClick={() => void deleteAccount()}
         >
           Delete XerahS Cloud account

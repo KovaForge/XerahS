@@ -62,7 +62,7 @@ namespace XerahS.UI.ViewModels
             CloudStatusText = IsCloudConfigured
                 ? IsCloudSignedIn
                     ? "A saved Cloud session is available. Refresh to verify account status."
-                    : "Sign in or create an account to publish from History."
+                    : "Sign in or create an account to publish from History. Staging Cloud is enabled for this build."
                 : "XerahS Cloud is disabled until the production OAuth configuration passes its launch gate.";
         }
 
