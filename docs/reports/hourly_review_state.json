@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-24 00:05 AWST",
+  "last_updated": "2026-08-24 08:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2377,9 +2377,17 @@
       "item": "xerahs-review producer queue",
       "commit": "99db7eaae",
       "summary": "Daily cron run at 2026-08-23 23:05 AWST. Fork sync: FF-merged nadia/develop (34c5c051a..e4d7ca495) — 9 commits from nadia (Cloud OAuth Prettier + Bearer + AAL2 hook + access tokens + OAuth CLI command + OAuth callback pipe + consent POST origin + matching origin + OAuth aal2). Upstream sync: upstream/develop == HEAD (no merge; KovaForge fork at v0.28.0, ShareX upstream at v0.25.6). Submodule sync: ShareX.ImageEditor HEAD == upstream tip == origin/develop (d4f4029; Mikhail 4 local commits ahead of origin untouched). Clawpatch review: ran 20260823T150323-7d7387 with --limit 3 features (XerahS.RegionCapture/UI, XerahS.Uploaders.PluginSystem, XerahS.Platform.MacOS/Native); 2 findings returned, full report enumerates ~313 findings across 3 reports. Post-gate eligible items: 1 unique (OverlayWindow.Capture.cs:95-99 HasAnnotations guard — region-capture annotation layer rendering bug). The other candidate candidates all hit downstream dedupe: 3 area-fixed (ImmichUploader.cs:220-233), 80 release-history-fixed (FileDownloader, HSB, DPAPI, AnimatedGifCreator, etc.), 48 recently-pivoted (WindowsGraphicsCaptureSource.cs:107 dispatcher null-check cluster + earlier consumer pivots). Producer-side only — no fix attempts, no area-status changes, no other agents' last_runs rows touched."
+    },
+    {
+      "ts": "2026-08-24 08:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero next_candidates after fork FF b431e0030->ba1e7068e + upstream already-up-to-date + ShareX.ImageEditor pointer clean at d4f4029. Deleted stale deferred-last-runs-20260824-000530.json (v1.1.16 consecutive no-op cleanup)."
     }
   ],
-  "last_run_outcome": "pivot",
+  "last_run_outcome": "no-op",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
