@@ -39,6 +39,8 @@ public sealed class XBackBoneProvider : UploaderProviderBase, IInstanceSecretMig
     public override UploaderCategory[] SupportedCategories =>
         new[] { UploaderCategory.Image, UploaderCategory.Text, UploaderCategory.File };
     public override Type ConfigModelType => typeof(XBackBoneConfigModel);
+    public override UploaderCapabilities Capabilities =>
+        UploaderCapabilities.Cancellation | UploaderCapabilities.Progress;
 
     public override Uploader CreateInstance(string settingsJson)
     {

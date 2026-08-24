@@ -9,6 +9,8 @@
   "assemblyFileName": "XerahS.Immich.Plugin.dll",
   "supportedCategories": ["Image", "File"],
   "supportsExplorer": true,
+  "supportsCancellation": true,
+  "supportsProgress": true,
   "configViewId": "immich",
   "dependencies": [],
   "homepageUrl": "https://immich.app/"

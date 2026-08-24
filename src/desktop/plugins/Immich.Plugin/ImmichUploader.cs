@@ -26,10 +26,11 @@
 using System.Security.Cryptography;
 using XerahS.Common;
 using XerahS.Uploaders;
+using XerahS.Uploaders.PluginSystem;
 
 namespace ShareX.Immich.Plugin;
 
-public sealed class ImmichUploader : FileUploader
+public sealed class ImmichUploader : FileUploader, IUploadHandler
 {
     private readonly ImmichConfigModel _config;
     private readonly string _apiKey;
@@ -44,146 +45,138 @@ public sealed class ImmichUploader : FileUploader
 
     public override UploadResult Upload(Stream stream, string fileName)
     {
-        UploadResult result = new();
+        return UploadAsync(new UploadRequest
+        {
+            Content = stream,
+            FileName = fileName,
+            Category = UploaderCategory.Image
+        }, CancellationToken.None).GetAwaiter().GetResult().ToUploadResult();
+    }
 
+    public async Task<UploadOutcome> UploadAsync(UploadRequest request, CancellationToken cancellationToken = default)
+    {
         if (string.IsNullOrWhiteSpace(_config.ServerUrl))
         {
-            Errors.Add("Immich server URL is required.");
-            return result;
+            return UploadOutcome.Failed("Immich server URL is required.");
         }
 
         if (string.IsNullOrWhiteSpace(_apiKey))
         {
-            Errors.Add("Immich API key is required.");
-            return result;
+            return UploadOutcome.Failed("Immich API key is required.");
         }
 
+        MemoryStream? ownedCopy = null;
         try
         {
-            MemoryStream? ownedCopy = null;
-            try
+            Stream workingStream = request.Content;
+            if (!request.Content.CanSeek)
             {
-                Stream workingStream = stream;
-                if (!stream.CanSeek)
-                {
-                    ownedCopy = new MemoryStream();
-                    stream.CopyTo(ownedCopy);
-                    ownedCopy.Position = 0;
-                    workingStream = ownedCopy;
-                }
-
-                if (workingStream.CanSeek)
-                {
-                    workingStream.Position = 0;
-                }
-
-                string checksum = ComputeSha1Hex(workingStream);
-                DateTimeOffset createdAt = ResolveCreatedAt(stream);
-                DateTimeOffset modifiedAt = ResolveModifiedAt(stream);
-
-                if (workingStream.CanSeek)
-                {
-                    workingStream.Position = 0;
-                }
-
-                ProgressManager progress = new(workingStream.Length);
-                ImmichClient client = new(_config.ServerUrl, _apiKey);
-
-                string assetId = UploadAssetWithDuplicateCheck(client, workingStream, fileName, checksum, createdAt, modifiedAt, progress);
-
-                string? albumId = null;
-                if (_config.AddToAlbum)
-                {
-                    albumId = ResolveTargetAlbumId(client, assetId);
-                }
-
-                result.IsSuccess = true;
-                result.Response = "Immich upload completed.";
-
-                if (_config.ShareMode == ImmichShareMode.None)
-                {
-                    result.IsURLExpected = false;
-                    return result;
-                }
-
-                ImmichSharedLink sharedLink = _config.ShareMode == ImmichShareMode.Album
-                    ? CreateOrReuseAlbumShare(client, albumId)
-                    : client.CreateSharedLinkAsync(
-                        _config.ShareMode,
-                        new[] { assetId },
-                        null,
-                        _config.ShareSlug,
-                        _sharePassword,
-                        _config.UseShareExpiry,
-                        _config.ExpireAfterDays,
-                        _config.AllowShareDownload,
-                        _config.AllowShareUpload,
-                        _config.ShowMetadata).GetAwaiter().GetResult();
-
-                result.URL = client.BuildSharedLinkUrl(sharedLink, _config.ExternalDomain);
-                result.IsSuccess = !string.IsNullOrWhiteSpace(result.URL);
-
-                if (string.IsNullOrWhiteSpace(result.URL))
-                {
-                    Errors.Add("Immich upload succeeded but no shared link URL was returned.");
-                }
-
-                return result;
+                ownedCopy = new MemoryStream();
+                await request.Content.CopyToAsync(ownedCopy, cancellationToken).ConfigureAwait(false);
+                ownedCopy.Position = 0;
+                workingStream = ownedCopy;
             }
-            finally
+
+            if (workingStream.CanSeek)
             {
-                ownedCopy?.Dispose();
+                workingStream.Position = 0;
             }
+
+            string checksum = ComputeSha1Hex(workingStream);
+            DateTimeOffset createdAt = ResolveCreatedAt(request.Content);
+            DateTimeOffset modifiedAt = ResolveModifiedAt(request.Content);
+
+            if (workingStream.CanSeek)
+            {
+                workingStream.Position = 0;
+            }
+
+            ImmichClient client = new(_config.ServerUrl, _apiKey);
+            string assetId = await UploadAssetWithDuplicateCheckAsync(
+                client, workingStream, request.FileName, checksum, createdAt, modifiedAt, request.Progress, cancellationToken).ConfigureAwait(false);
+
+            string? albumId = null;
+            if (_config.AddToAlbum)
+            {
+                albumId = await ResolveTargetAlbumIdAsync(client, assetId, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (_config.ShareMode == ImmichShareMode.None)
+            {
+                return UploadOutcome.Success(url: null, "Immich upload completed.", urlExpected: false);
+            }
+
+            ImmichSharedLink sharedLink = _config.ShareMode == ImmichShareMode.Album
+                ? await CreateOrReuseAlbumShareAsync(client, albumId, cancellationToken).ConfigureAwait(false)
+                : await client.CreateSharedLinkAsync(
+                    _config.ShareMode,
+                    new[] { assetId },
+                    null,
+                    _config.ShareSlug,
+                    _sharePassword,
+                    _config.UseShareExpiry,
+                    _config.ExpireAfterDays,
+                    _config.AllowShareDownload,
+                    _config.AllowShareUpload,
+                    _config.ShowMetadata,
+                    cancellationToken).ConfigureAwait(false);
+
+            string? url = client.BuildSharedLinkUrl(sharedLink, _config.ExternalDomain);
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return UploadOutcome.Failed("Immich upload succeeded but no shared link URL was returned.");
+            }
+
+            return UploadOutcome.Success(url, "Immich upload completed.");
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            Errors.Add(ex.Message);
-            return result;
+            return UploadOutcome.Failed(ex.Message);
+        }
+        finally
+        {
+            ownedCopy?.Dispose();
         }
     }
 
-    private string UploadAssetWithDuplicateCheck(
+    private async Task<string> UploadAssetWithDuplicateCheckAsync(
         ImmichClient client,
         Stream stream,
         string fileName,
         string checksum,
         DateTimeOffset createdAt,
         DateTimeOffset modifiedAt,
-        ProgressManager progress)
+        IProgress<UploadProgressReport>? progress,
+        CancellationToken cancellationToken)
     {
         if (_config.UseDuplicateCheck && _config.DuplicateDetectionEnabled)
         {
             string requestId = $"{Path.GetFileName(fileName)}-{checksum[..Math.Min(12, checksum.Length)]}";
-            ImmichDuplicateCheckResult duplicate = client.CheckDuplicateAsync(checksum, requestId).GetAwaiter().GetResult();
+            ImmichDuplicateCheckResult duplicate = await client.CheckDuplicateAsync(checksum, requestId, cancellationToken).ConfigureAwait(false);
             if (duplicate.IsDuplicate && !string.IsNullOrWhiteSpace(duplicate.AssetId))
             {
-                if (AllowReportProgress && progress.UpdateProgress(stream.Length))
-                {
-                    OnProgressChanged(progress);
-                }
-
+                progress?.Report(new UploadProgressReport(stream.CanSeek ? stream.Length : 0, stream.CanSeek ? stream.Length : null));
                 return duplicate.AssetId!;
             }
         }
 
-        ImmichAssetUploadResult upload = client.UploadAssetAsync(
+        ImmichAssetUploadResult upload = await client.UploadAssetAsync(
             stream,
             fileName,
             checksum,
             createdAt,
             modifiedAt,
-            bytesTransferred =>
-            {
-                if (AllowReportProgress && progress.UpdateProgress(bytesTransferred))
-                {
-                    OnProgressChanged(progress);
-                }
-            }).GetAwaiter().GetResult();
+            bytesTransferred => progress?.Report(new UploadProgressReport(bytesTransferred, stream.CanSeek ? stream.Length : null)),
+            cancellationToken).ConfigureAwait(false);
 
         return upload.AssetId;
     }
 
-    private string ResolveTargetAlbumId(ImmichClient client, string assetId)
+    private async Task<string> ResolveTargetAlbumIdAsync(ImmichClient client, string assetId, CancellationToken cancellationToken)
     {
         string? albumId = !string.IsNullOrWhiteSpace(_config.AlbumId) ? _config.AlbumId.Trim() : null;
         string parsedAlbumName = string.IsNullOrWhiteSpace(_config.AlbumName)
@@ -192,7 +185,7 @@ public sealed class ImmichUploader : FileUploader
 
         if (string.IsNullOrWhiteSpace(albumId) && !string.IsNullOrWhiteSpace(parsedAlbumName))
         {
-            IReadOnlyList<ImmichAlbum> albums = client.GetAlbumsAsync().GetAwaiter().GetResult();
+            IReadOnlyList<ImmichAlbum> albums = await client.GetAlbumsAsync(cancellationToken).ConfigureAwait(false);
             albumId = albums.FirstOrDefault(album => string.Equals(album.AlbumName, parsedAlbumName, StringComparison.OrdinalIgnoreCase))?.Id;
         }
 
@@ -203,21 +196,21 @@ public sealed class ImmichUploader : FileUploader
                 throw new InvalidOperationException("Immich album selection is required when album mode is enabled.");
             }
 
-            albumId = client.CreateAlbumAsync(parsedAlbumName).GetAwaiter().GetResult().Id;
+            albumId = (await client.CreateAlbumAsync(parsedAlbumName, cancellationToken).ConfigureAwait(false)).Id;
         }
 
-        client.AddAssetsToAlbumAsync(albumId, new[] { assetId }).GetAwaiter().GetResult();
+        await client.AddAssetsToAlbumAsync(albumId, new[] { assetId }, cancellationToken).ConfigureAwait(false);
         return albumId;
     }
 
-    private ImmichSharedLink CreateOrReuseAlbumShare(ImmichClient client, string? albumId)
+    private async Task<ImmichSharedLink> CreateOrReuseAlbumShareAsync(ImmichClient client, string? albumId, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(albumId))
         {
             throw new InvalidOperationException("Album sharing requires an Immich album destination.");
         }
 
-        ImmichSharedLink? existing = client.GetSharedLinksAsync(albumId).GetAwaiter().GetResult()
+        ImmichSharedLink? existing = (await client.GetSharedLinksAsync(albumId, cancellationToken).ConfigureAwait(false))
             .FirstOrDefault(link => string.Equals(link.AlbumId, albumId, StringComparison.OrdinalIgnoreCase));
 
         if (existing != null && SecurityMatches(existing))
@@ -225,7 +218,7 @@ public sealed class ImmichUploader : FileUploader
             return existing;
         }
 
-        return client.CreateSharedLinkAsync(
+        return await client.CreateSharedLinkAsync(
             ImmichShareMode.Album,
             null,
             albumId,
@@ -235,7 +228,8 @@ public sealed class ImmichUploader : FileUploader
             _config.ExpireAfterDays,
             _config.AllowShareDownload,
             _config.AllowShareUpload,
-            _config.ShowMetadata).GetAwaiter().GetResult();
+            _config.ShowMetadata,
+            cancellationToken).ConfigureAwait(false);
     }
 
     internal bool SecurityMatches(ImmichSharedLink link)

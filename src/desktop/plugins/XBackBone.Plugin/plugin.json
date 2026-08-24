@@ -9,6 +9,8 @@
   "assemblyFileName": "XerahS.XBackBone.Plugin.dll",
   "supportedCategories": ["Image", "Text", "File"],
   "supportsExplorer": false,
+  "supportsCancellation": true,
+  "supportsProgress": true,
   "configViewId": "xbackbone",
   "dependencies": [],
   "homepageUrl": "https://xbackbone.app/"

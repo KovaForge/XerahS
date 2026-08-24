@@ -41,6 +41,8 @@ public sealed class ImmichProvider : UploaderProviderBase, IUploaderExplorer, II
     public override Version Version => new(1, 0, 0);
     public override UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image, UploaderCategory.File };
     public override Type ConfigModelType => typeof(ImmichConfigModel);
+    public override UploaderCapabilities Capabilities =>
+        UploaderCapabilities.Cancellation | UploaderCapabilities.Progress | UploaderCapabilities.Explorer;
 
     public bool SupportsFolders => true;
 

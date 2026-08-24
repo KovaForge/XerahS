@@ -25,10 +25,11 @@
 
 using XerahS.Common;
 using XerahS.Uploaders;
+using XerahS.Uploaders.PluginSystem;
 
 namespace ShareX.Nextcloud.Plugin;
 
-public sealed class NextcloudUploader : FileUploader
+public sealed class NextcloudUploader : FileUploader, IUploadHandler
 {
     private readonly NextcloudConfigModel _config;
     private readonly string _appPassword;
@@ -43,39 +44,42 @@ public sealed class NextcloudUploader : FileUploader
 
     public override UploadResult Upload(Stream stream, string fileName)
     {
-        UploadResult result = new();
+        return UploadAsync(new UploadRequest
+        {
+            Content = stream,
+            FileName = fileName,
+            Category = UploaderCategory.File
+        }, CancellationToken.None).GetAwaiter().GetResult().ToUploadResult();
+    }
 
+    public async Task<UploadOutcome> UploadAsync(UploadRequest request, CancellationToken cancellationToken = default)
+    {
         if (string.IsNullOrWhiteSpace(_config.ServerUrl))
         {
-            Errors.Add("Nextcloud server URL is required.");
-            return result;
+            return UploadOutcome.Failed("Nextcloud server URL is required.");
         }
 
         string loginName = !string.IsNullOrWhiteSpace(_config.LoginName) ? _config.LoginName : _config.UserId;
         if (string.IsNullOrWhiteSpace(loginName) || string.IsNullOrWhiteSpace(_appPassword))
         {
-            Errors.Add("Nextcloud login name and app password are required.");
-            return result;
+            return UploadOutcome.Failed("Nextcloud login name and app password are required.");
         }
 
         if (_config.CreatePublicShare)
         {
             if (!_config.SupportsPublicShares)
             {
-                Errors.Add("This Nextcloud server does not support public shares. Disable public share creation or refresh the server profile.");
-                return result;
+                return UploadOutcome.Failed("This Nextcloud server does not support public shares. Disable public share creation or refresh the server profile.");
             }
 
             if (_config.AutoExpireShare && !_config.SupportsExpireDate)
             {
-                Errors.Add("This Nextcloud server does not support share expiry. Disable auto-expire or refresh the server profile.");
-                return result;
+                return UploadOutcome.Failed("This Nextcloud server does not support share expiry. Disable auto-expire or refresh the server profile.");
             }
 
             if (!string.IsNullOrWhiteSpace(_sharePassword) && !_config.SupportsSharePasswords)
             {
-                Errors.Add("This Nextcloud server does not support share passwords. Clear the share password or refresh the server profile.");
-                return result;
+                return UploadOutcome.Failed("This Nextcloud server does not support share passwords. Clear the share password or refresh the server profile.");
             }
         }
 
@@ -83,57 +87,46 @@ public sealed class NextcloudUploader : FileUploader
         {
             string userId = !string.IsNullOrWhiteSpace(_config.UserId) ? _config.UserId : loginName;
             string relativeFolderPath = NameParser.Parse(NameParserType.Default, NextcloudClient.NormalizeRelativePath(_config.RemotePath));
-            string relativeFilePath = NextcloudClient.CombineRelativePath(relativeFolderPath, fileName);
+            string relativeFilePath = NextcloudClient.CombineRelativePath(relativeFolderPath, request.FileName);
             string sharePath = "/" + relativeFilePath;
 
-            long streamLength = stream.CanSeek ? stream.Length : 0;
-            ProgressManager? progress = streamLength > 0 ? new ProgressManager(streamLength) : null;
             NextcloudClient client = new(_config.ServerUrl, loginName, _appPassword);
-
-            client.UploadFileAsync(
-                stream,
+            await client.UploadFileAsync(
+                request.Content,
                 userId,
                 relativeFolderPath,
-                fileName,
+                request.FileName,
                 _config.UseChunkedUpload && _config.SupportsChunking,
                 _config.ChunkSizeMiB,
-                bytesTransferred =>
-                {
-                    if (progress != null && AllowReportProgress && progress.UpdateProgress(bytesTransferred))
-                    {
-                        OnProgressChanged(progress);
-                    }
-                }).GetAwaiter().GetResult();
-
-            result.IsSuccess = true;
-            result.Response = "Nextcloud upload completed.";
+                bytesTransferred => request.Progress?.Report(new UploadProgressReport(bytesTransferred, request.ContentLength)),
+                cancellationToken).ConfigureAwait(false);
 
             if (!_config.CreatePublicShare)
             {
-                result.IsURLExpected = false;
-                return result;
+                return UploadOutcome.Success(url: null, "Nextcloud upload completed.", urlExpected: false);
             }
 
-            NextcloudShareInfo? shareInfo = client.CreatePublicShareAsync(
+            NextcloudShareInfo? shareInfo = await client.CreatePublicShareAsync(
                 sharePath,
                 _config.AutoExpireShare && _config.SupportsExpireDate,
                 _config.ExpireAfterDays,
-                _config.SupportsSharePasswords ? _sharePassword : string.Empty).GetAwaiter().GetResult();
+                _config.SupportsSharePasswords ? _sharePassword : string.Empty,
+                cancellationToken).ConfigureAwait(false);
 
-            result.URL = shareInfo?.Url;
-            result.IsSuccess = !string.IsNullOrWhiteSpace(result.URL);
-
-            if (string.IsNullOrWhiteSpace(result.URL))
+            if (string.IsNullOrWhiteSpace(shareInfo?.Url))
             {
-                Errors.Add("Nextcloud upload succeeded but the public share URL was not returned.");
+                return UploadOutcome.Failed("Nextcloud upload succeeded but the public share URL was not returned.");
             }
 
-            return result;
+            return UploadOutcome.Success(shareInfo.Url, "Nextcloud upload completed.");
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            Errors.Add(ex.Message);
-            return result;
+            return UploadOutcome.Failed(ex.Message);
         }
     }
 }
