@@ -5769,3 +5769,52 @@ Added candidates (8):
 - Commit: none (audit only; SHA recorded in Step 9 summary)
 - Follow-up: await producer ingest of fresh next_candidates
 - Skill: xerahs-bugfix/SKILL.md v1.1.24 unchanged (no efficiency blockers this run)
+
+### 2026-08-24 23:06 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.4)
+
+- Reports parsed: 3
+- Submodule drops: 66 (ShareX.ImageEditor / ShareX.VideoEditor paths)
+- Findings dropped at severity gate: 186
+  - triage=risk: 122
+  - triage=contract-mismatch: 43
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare) x3
+- Findings dropped as recently-fixed (release-history, v2.1.2): 81
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp) [v0.23.127]
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285 [v0.23.127]
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286 [v0.23.127]
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_IgnoresStaleCachedText) [v0.23.29]
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/Random/RandomCrypto.cs:91 (max)
+  - [bug/confirmed-bug] src/desktop/plugins/GitHubGist.Plugin/GitHubGistUploader.cs:120 (CustomURLAPI)
+  - [security/confirmed-bug] src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs:62-77 (IsSafePluginId)
+  - [bug/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichClient.cs:417-430 (DownloadAssetAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/Settings/DPAPIEncryptedStringValueProvider.cs:46 (DPAPIEncryptedStringValueProvider.GetValue)
+  - ... and 66 more (full list suppressed; visible in .clawpatch/reports/*.md and parser debug)
+- Findings dropped as recently-pivoted: 50
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-08-24 23:06 AWST - xerahs-review producer run (Nadia)
+
+- Owner: nadia-valeva-kf
+- Fork sync: nadia/develop already at HEAD (3ffa45e2a); no commit needed
+- Upstream sync: KovaForge develop ahead of upstream by 58 commits; no merge needed
+- ShareX.ImageEditor: develop clean at d4f4029; no push needed
+- Clawpatch review: 3 features, 1 finding returned
+  - fnd_sig-feat-library-87f6df5e74-517b_81ab98e24f: api-contract/contract-mismatch/high -> DROPPED at severity gate
+    - evidence: tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:201-223 (SearchScreenshotsAsync)
+- Ingest: 0 (only contract-mismatch finding; fails v2.1.0 confirmed-bug gate)
+- Anomaly: clawpatch review surface area is shrinking; today's run returned only 1 finding vs typical 30-130. Likely related to recent v0.28.0 plugin-config schema changes already absorbing prior findings.
+- Queue: next_candidates remains empty; bugfix drain continues to see no-op at 00:06 AWST
+- Status: No-op (no producer-side writes beyond last_runs[] + tracker)
+- Build/test: n/a (no code change)
+- Commit: 4322d5700 (xerahs-review: producer tick (nadia-daily, 2026-08-24 23:06 AWST))
+- Follow-up: If v0.28.0 plugin-schema fallout continues to suppress clawpatch output, consider whether the v2.1.0 severity gate should be relaxed for triage=risk when category in {data-loss, security}; today 3 risk/data-loss drops are arguably worth re-evaluating.
