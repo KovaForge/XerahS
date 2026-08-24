@@ -10,6 +10,18 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.28.1
+
+### Features
+- **Destinations**: Add an async plugin upload contract (`IUploadHandler`) so destinations can take cancellation and progress without inheriting the legacy `HttpWebRequest` engine. Nextcloud, Immich, and XBackBone implement it; custom uploaders and remaining destinations are adapted.
+- **HTTP**: Pool shared `HttpClient` instances with `SocketsHttpHandler`, proxy-key recycle, and infinite timeout for large uploads/downloads. Plugins resolve the factory at request time so proxy changes do not leave a disposed client.
+- **Plugins**: Optional host-rendered config schema and injectable `IProviderCatalog`. Manifest capability flags (`supportsCancellation`, `supportsProgress`, `supportsResume`) are additive.
+
+### Fixes
+- **Cloud**: Accept desktop Bearer tokens on the account API and stamp OAuth JWTs with `aal2` when MFA is verified (staging).
+
+---
+
 ## v0.28.0
 
 ### Features
