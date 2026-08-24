@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using XerahS.Common;
+using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.Uploaders.CustomUploader;
 
@@ -31,7 +32,7 @@ namespace XerahS.Uploaders.CustomUploader;
 /// Unified execution engine for custom uploaders.
 /// Handles all upload types: Image, Text, File, URL Shortening, URL Sharing.
 /// </summary>
-public sealed class CustomUploaderExecutor : GenericUploader
+public sealed class CustomUploaderExecutor : GenericUploader, IUploadHandler
 {
     private readonly CustomUploaderItem _uploader;
     private readonly CustomUploaderExecutionMode _mode;
@@ -66,6 +67,17 @@ public sealed class CustomUploaderExecutor : GenericUploader
     {
         _uploader = uploaderItem ?? throw new ArgumentNullException(nameof(uploaderItem));
         _mode = mode;
+    }
+
+    public Task<UploadOutcome> UploadAsync(UploadRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            UploadResult result = Upload(request.Content, request.FileName);
+            return UploadOutcomeMapper.FromUploadResult(result);
+        }, cancellationToken);
     }
 
     /// <summary>
