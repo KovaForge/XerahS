@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using XerahS.Common;
 using XerahS.Core.Security;
 using XerahS.Uploaders.PluginSystem;
 
@@ -75,5 +76,18 @@ public static class ProviderContextManager
         }
 
         public ISecretStore Secrets { get; }
+
+        public HttpClient CreateHttpClient(bool allowAutoRedirect = true, bool infiniteTimeout = false)
+        {
+            return HttpClientFactory.Create(allowAutoRedirect, infiniteTimeout);
+        }
+
+        public void Log(string message)
+        {
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                DebugHelper.WriteLine(message);
+            }
+        }
     }
 }
