@@ -221,6 +221,16 @@ public partial class UploaderInstanceViewModel : ViewModelBase
             ConfigViewModel = provider.CreateConfigViewModel();
             ConfigView = provider.CreateConfigView();
 
+            if (ConfigViewModel == null && ConfigView == null)
+            {
+                UploaderConfigSchema? schema = provider.GetConfigSchema();
+                if (schema != null && schema.Fields.Count > 0)
+                {
+                    ConfigViewModel = new SchemaConfigViewModel(schema);
+                    ConfigView = new Views.SchemaConfigView();
+                }
+            }
+
             // Custom uploaders use the full editor form inline in the provider settings area.
             if (ConfigViewModel == null && ConfigView == null && ProviderId.StartsWith("custom_", StringComparison.OrdinalIgnoreCase))
             {

@@ -26,10 +26,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using XerahS.Core.Cloud;
+using XerahS.Uploaders.PluginSystem;
 using XerahS.Core.Uploaders;
 using XerahS.Platform.Abstractions;
 using XerahS.Services.Abstractions;
-using XerahS.Uploaders.PluginSystem;
 
 namespace XerahS.Bootstrap
 {
@@ -94,6 +94,7 @@ namespace XerahS.Bootstrap
 
             services.TryAddSingleton(application.WatchFolderManager);
             services.TryAddSingleton<IWatchFolderDaemonController, WatchFolderDaemonControllerAdapter>();
+            services.TryAddSingleton<IProviderCatalog>(_ => ProviderCatalogService.Shared);
 
             return services;
         }
