@@ -5818,3 +5818,14 @@ Added candidates (8):
 - Build/test: n/a (no code change)
 - Commit: 4322d5700 (xerahs-review: producer tick (nadia-daily, 2026-08-24 23:06 AWST))
 - Follow-up: If v0.28.0 plugin-schema fallout continues to suppress clawpatch output, consider whether the v2.1.0 severity gate should be relaxed for triage=risk when category in {data-loss, security}; today 3 risk/data-loss drops are arguably worth re-evaluating.
+
+### 2026-08-25 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork already at 49336924f (Nadia producer tick 2026-08-24 23:06 AWST), upstream already up to date (KovaForge ahead of d807a49), ShareX.ImageEditor pointer clean at d4f4029. No deferred last_runs files present.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit only; SHA recorded in Step 9 summary)
+- Follow-up: await producer ingest of fresh next_candidates; clawpatch surface still shrinking (1 finding last producer tick vs typical 30-130)
+- Skill: xerahs-bugfix/SKILL.md v1.1.24 unchanged (no efficiency blockers this run)
