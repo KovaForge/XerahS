@@ -25,6 +25,27 @@
 
 namespace XerahS.Uploaders.PluginSystem;
 
-public interface IProviderContext : IDestinationHost
+public enum UploaderConfigFieldKind
 {
+    Text,
+    Password,
+    Integer,
+    Boolean,
+    Url
+}
+
+public sealed class UploaderConfigField
+{
+    public required string Key { get; init; }
+    public required string Label { get; init; }
+    public UploaderConfigFieldKind Kind { get; init; } = UploaderConfigFieldKind.Text;
+    public string? Description { get; init; }
+    public bool Required { get; init; }
+    public string? DefaultValue { get; init; }
+}
+
+public sealed class UploaderConfigSchema
+{
+    public string? Title { get; init; }
+    public IReadOnlyList<UploaderConfigField> Fields { get; init; } = Array.Empty<UploaderConfigField>();
 }

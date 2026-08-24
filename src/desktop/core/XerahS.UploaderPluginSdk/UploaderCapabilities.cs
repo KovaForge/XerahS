@@ -25,6 +25,12 @@
 
 namespace XerahS.Uploaders.PluginSystem;
 
-public interface IProviderContext : IDestinationHost
+[Flags]
+public enum UploaderCapabilities
 {
+    None = 0,
+    Cancellation = 1,
+    Progress = 2,
+    Explorer = 4,
+    Resume = 8
 }

@@ -25,6 +25,33 @@
 
 namespace XerahS.Uploaders.PluginSystem;
 
-public interface IProviderContext : IDestinationHost
+public sealed class UploadOutcome
 {
+    public bool Succeeded { get; init; }
+    public string? Url { get; init; }
+    public string? ThumbnailUrl { get; init; }
+    public string? DeletionUrl { get; init; }
+    public string? ShortenedUrl { get; init; }
+    public string? Response { get; init; }
+    public string? Error { get; init; }
+    public string? ErrorCode { get; init; }
+    public bool Retryable { get; init; }
+    public bool UrlExpected { get; init; } = true;
+
+    public static UploadOutcome Success(string? url, string? response = null, bool urlExpected = true) => new()
+    {
+        Succeeded = true,
+        Url = url,
+        Response = response,
+        UrlExpected = urlExpected
+    };
+
+    public static UploadOutcome Failed(string error, string? errorCode = null, bool retryable = false) => new()
+    {
+        Succeeded = false,
+        Error = error,
+        ErrorCode = errorCode,
+        Retryable = retryable,
+        UrlExpected = true
+    };
 }

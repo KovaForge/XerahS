@@ -11,7 +11,10 @@ Lightweight **contracts only** (interfaces and DTOs) for building XerahS uploade
 
 | Type | Description |
 |------|-------------|
-| `IUploaderProvider` | Entry point for a destination: metadata, `CreateInstance(settingsJson)`, config view/VM, validation. |
+| `IUploaderProvider` | Entry point for a destination: metadata, `CreateInstance(settingsJson)`, optional `IUploadHandler`, config view/VM/schema, capabilities. |
+| `IUploadHandler` | Preferred async upload contract (`UploadRequest` → `UploadOutcome`). |
+| `IDestinationHost` | Host HTTP factory, secrets, and logging injected into uploads. |
+| `IProviderCatalog` | Injectable catalog of loaded providers. |
 | `IUploaderExplorer` | Optional: Media Explorer (list/thumbnail/delete/create folder). |
 | `IUploaderConfigViewModel` | Optional: ViewModel for provider config UI. |
 | `UploaderCategory` | Image, Text, File, UrlShortener, UrlSharing. |

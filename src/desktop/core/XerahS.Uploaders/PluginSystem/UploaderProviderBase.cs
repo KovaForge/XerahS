@@ -47,6 +47,8 @@ public abstract class UploaderProviderBase : IUploaderProvider, IProviderContext
     public abstract UploaderCategory[] SupportedCategories { get; }
     public abstract Type ConfigModelType { get; }
 
+    public virtual UploaderCapabilities Capabilities => UploaderCapabilities.None;
+
     /// <summary>
     /// Get file types supported by this provider for each category.
     /// Override to specify which file extensions each category supports.

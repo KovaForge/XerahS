@@ -25,6 +25,4 @@
 
 namespace XerahS.Uploaders.PluginSystem;
 
-public interface IProviderContext : IDestinationHost
-{
-}
+public readonly record struct UploadProgressReport(long BytesTransferred, long? TotalBytes);

@@ -25,6 +25,17 @@
 
 namespace XerahS.Uploaders.PluginSystem;
 
-public interface IProviderContext : IDestinationHost
+public interface IProviderCatalog
 {
+    void SetProviderContext(IProviderContext context);
+    IProviderContext? GetProviderContext();
+    void LoadPlugins(IEnumerable<string> pluginDirectories, bool forceReload = false);
+    void LoadPlugins(string pluginsDirectory, bool forceReload = false);
+    void RegisterProvider(IUploaderProvider provider);
+    IUploaderProvider? GetProvider(string providerId);
+    IReadOnlyList<IUploaderProvider> GetAllProviders();
+    IReadOnlyList<IUploaderProvider> GetProvidersByCategory(UploaderCategory category);
+    bool ArePluginsLoaded();
+    IUploaderExplorer? GetExplorer(string providerId);
+    IReadOnlyList<IUploaderProvider> GetBrowsableProviders();
 }

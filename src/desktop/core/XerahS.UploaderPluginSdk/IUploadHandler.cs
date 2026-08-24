@@ -25,6 +25,11 @@
 
 namespace XerahS.Uploaders.PluginSystem;
 
-public interface IProviderContext : IDestinationHost
+/// <summary>
+/// Preferred destination upload contract. The host calls this when CreateInstance returns
+/// an IUploadHandler; otherwise it adapts legacy GenericUploader.Upload.
+/// </summary>
+public interface IUploadHandler
 {
+    Task<UploadOutcome> UploadAsync(UploadRequest request, CancellationToken cancellationToken = default);
 }

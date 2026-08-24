@@ -25,6 +25,14 @@
 
 namespace XerahS.Uploaders.PluginSystem;
 
-public interface IProviderContext : IDestinationHost
+public sealed class UploadRequest
 {
+    public required Stream Content { get; init; }
+    public required string FileName { get; init; }
+    public string? ContentType { get; init; }
+    public long? ContentLength { get; init; }
+    public UploaderCategory Category { get; init; }
+    public string? CorrelationId { get; init; }
+    public IProgress<UploadProgressReport>? Progress { get; init; }
+    public IDestinationHost? Host { get; init; }
 }
