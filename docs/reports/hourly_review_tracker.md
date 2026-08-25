@@ -5829,3 +5829,14 @@ Added candidates (8):
 - Commit: none (audit only; SHA recorded in Step 9 summary)
 - Follow-up: await producer ingest of fresh next_candidates; clawpatch surface still shrinking (1 finding last producer tick vs typical 30-130)
 - Skill: xerahs-bugfix/SKILL.md v1.1.24 unchanged (no efficiency blockers this run)
+
+### 2026-08-25 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork fast-forward to 79d4fbdfc (Michael D v0.28.1 release). Upstream already up to date (KovaForge at/ahead of d807a49). ShareX.ImageEditor pointer clean at d4f4029. No deferred last_runs files present.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit only; SHA recorded in Step 9 summary)
+- Follow-up: await producer ingest of fresh next_candidates; last producer tick still empty
+- Skill: xerahs-bugfix/SKILL.md v1.1.24 unchanged (no efficiency blockers this run)
