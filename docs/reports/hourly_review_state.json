@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-25 16:06 AWST",
+  "last_updated": "2026-08-25 23:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,7 +10,9 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "src/desktop/core/XerahS.Core/Helpers/CaptureDebugHelper.cs:50 (return string.Empty;)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -2426,9 +2428,19 @@
       "commit": null,
       "summary": "Step 5a found zero next_candidates (queue size 0) after fork fast-forward to 79d4fbdfc (Michael D v0.28.1 release at 2026-08-25 06:39 AWST) and be5e1845f (prior empty-queue audit at 08:06 AWST). Upstream already up to date (KovaForge at/ahead of upstream d807a49). ShareX.ImageEditor pointer clean at d4f4029. No deferred last_runs files present. Producer last_runs shows last ingest at 2026-08-24 23:06 AWST (Nadia) — clawpatch surface still shrinking.",
       "status": "no-op"
+    },
+    {
+      "ts": "2026-08-25 23:06 AWST",
+      "agent": "nadia",
+      "outcome": "ok",
+      "item": "xerahs-review producer queue",
+      "commit": "PENDING",
+      "summary": "Daily cron run at 2026-08-25 23:05 AWST (TS=20260825-230510). Fork sync: FF-merged nadia/develop (49336924f..c60d27b29) — 4 commits (v0.28.2 release + 4 Fix PRs: Preview gallery screenshots, Migrate cloud hosting to canonical domain, Recover revoked cloud sessions, Prevent gallery action overflow). Upstream sync: upstream/develop == HEAD (no merge; KovaForge at v0.28.2, ShareX upstream still on v0.25.6-era). Submodule sync: ShareX.ImageEditor HEAD == upstream tip == origin/develop (d4f4029b654c259315c5bd48d212dcb76ea10d31). Clawpatch review: ran 20260825T150600-ef2922 with --limit 3 features (XerahS.Core/Helpers, XerahS.Uploaders/BaseUploaders, XerahS.Platform.Windows/Properties); 3 findings returned, full report 133 findings (3 new vs 20260824T150337-d227e8 130). Step 5.5 ingest over 3 newest reports parsed 326 findings: 190 gate drops (124 risk, 45 contract-mismatch, 12 docs-gap, 9 test-gap), 0 submodule drops, 3 already-fixed (area-level), 87 recently-fixed (release-history), 45 recently-pivoted. 1 ingested: CaptureDebugHelper.cs:50 (return string.Empty;) — high/confirmed-bug, XerahS.Core/Helpers feature, evidence:50-54 empty-string fallback masks invalid input. next_candidates: 0 -> 1 (+1). Consumer drain at 00:06 AWST will see this single item.",
+      "status": "ok",
+      "clawpatch_report": "20260825T150600-ef2922.md"
     }
   ],
-  "last_run_outcome": "no-op",
+  "last_run_outcome": "ok",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
