@@ -5891,3 +5891,13 @@ Added candidates (8):
 - Drops: 190 severity gate (124 risk, 45 contract-mismatch, 12 docs-gap, 9 test-gap), 0 submodule-prefix, 3 already-fixed (area-level — ImmichUploader.cs:220-233), 87 recently-fixed (release-history), 45 recently-pivoted
 - next_candidates: 0 → 1 (+1)
 - Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
+
+### 2026-08-26 00:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Core/Helpers/CaptureDebugHelper.cs:50 (return string.Empty;)
+- Files: (none — pivot, no code change)
+- Findings: CaptureDebugHelper.WriteRegionCaptureDiagnostics has zero callers anywhere in src/, tests/, or .xaml/.axaml (grep verified). The "potential data loss" framing in the clawpatch finding is misleading — the function writes a diagnostic log file (no user data at risk). The bare `catch` is intentional and matches the documented contract ("empty string on failure" per XML docs at L40). Producer ingest will be skipped via recently_pivoted seed.
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only; audit row deferred per v1.1.13)
+- Follow-up: do not re-queue unless source regresses; producer ingest skipped via recently_pivoted seed
