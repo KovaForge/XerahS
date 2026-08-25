@@ -61,6 +61,12 @@ export function mapDatabaseError(error: unknown): ApiError {
       "strong_auth_required",
       "Complete a strong-authentication challenge to continue.",
     );
+  if (message === "session_revoked")
+    return new ApiError(
+      401,
+      "authentication_required",
+      "The session has expired. Sign in again to continue.",
+    );
   if (
     message === "verified_identity_not_registered" ||
     message === "verified_email_required"

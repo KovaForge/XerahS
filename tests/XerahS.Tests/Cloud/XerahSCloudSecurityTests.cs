@@ -482,6 +482,38 @@ public sealed class XerahSCloudSecurityTests
     }
 
     [Test]
+    public async Task ApiClient_RestoreSessionClearsCredentialWhenRefreshIsRejected()
+    {
+        var handler = new StubHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
+        {
+            Content = new StringContent(
+                "{\"error\":{\"code\":\"authentication_required\",\"message\":\"The session has expired.\"}}",
+                Encoding.UTF8,
+                "application/json")
+        });
+        var store = new MemorySessionStore
+        {
+            Current = new XerahSCloudSession("expired", "refresh", "owner-a", DateTimeOffset.UtcNow.AddMinutes(5)),
+            Credential = ("owner-a", "refresh")
+        };
+        var exchange = new FakeTokenExchange(new FakeClock(DateTimeOffset.UtcNow))
+        {
+            RefreshException = new XerahSCloudSecurityException("Refresh rejected.")
+        };
+        var client = new XerahSCloudApiClient(new HttpClient(handler), store, exchange, CreateOptions());
+
+        bool restored = await client.RestoreSessionAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(restored, Is.False);
+            Assert.That(exchange.RefreshCount, Is.EqualTo(1));
+            Assert.That(store.Current, Is.Null);
+            Assert.That(store.Credential, Is.Null);
+        });
+    }
+
+    [Test]
     public void ApiClient_SignOutClearsMemoryAndPersistedCredential()
     {
         var store = new MemorySessionStore
@@ -603,6 +635,7 @@ public sealed class XerahSCloudSecurityTests
         public string? LastVerifier { get; private set; }
         public string? LastNonce { get; private set; }
         public int RefreshCount { get; private set; }
+        public XerahSCloudSecurityException? RefreshException { get; init; }
 
         public Task<XerahSCloudSession> ExchangeAsync(
             string code,
@@ -618,6 +651,10 @@ public sealed class XerahSCloudSecurityTests
         public Task<XerahSCloudSession> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
         {
             RefreshCount++;
+            if (RefreshException != null)
+            {
+                throw RefreshException;
+            }
             return Task.FromResult(new XerahSCloudSession(
                 $"access-refreshed-{RefreshCount}",
                 $"refresh-rotated-{RefreshCount}",

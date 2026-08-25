@@ -838,7 +838,10 @@ namespace XerahS.UI.ViewModels
 
             if (_cloudClient.HasSessionCredential)
             {
-                return await _cloudClient.RestoreSessionAsync();
+                if (await _cloudClient.RestoreSessionAsync())
+                {
+                    return true;
+                }
             }
 
             if (_cloudOAuthCoordinator == null)

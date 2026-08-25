@@ -21,4 +21,14 @@ describe("mapDatabaseError", () => {
     expect(error.status).toBe(409);
     expect(error.code).toBe("conflict");
   });
+
+  it("maps a revoked session to reauthentication instead of authorization failure", () => {
+    const error = mapDatabaseError({
+      code: "42501",
+      message: "session_revoked",
+    });
+    expect(error.status).toBe(401);
+    expect(error.code).toBe("authentication_required");
+    expect(error.message).toContain("Sign in again");
+  });
 });

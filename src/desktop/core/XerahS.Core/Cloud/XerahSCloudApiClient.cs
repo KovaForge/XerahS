@@ -83,8 +83,16 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
             return false;
         }
 
-        await GetAccountAsync(cancellationToken).ConfigureAwait(false);
-        return true;
+        try
+        {
+            await GetAccountAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (XerahSCloudSecurityException)
+        {
+            _sessionStore.Clear();
+            return false;
+        }
     }
 
     public async Task<XerahSCloudAccountSummary> GetAccountAsync(CancellationToken cancellationToken = default)
@@ -97,7 +105,10 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
             cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            throw CreateResponseException("Account verification", response.StatusCode);
+            throw await CreateResponseExceptionAsync(
+                "Account verification",
+                response,
+                cancellationToken).ConfigureAwait(false);
         }
 
         AccountEnvelope? account = await response.Content
@@ -165,7 +176,7 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
             cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            throw CreateResponseException("Publish", response.StatusCode);
+            throw await CreateResponseExceptionAsync("Publish", response, cancellationToken).ConfigureAwait(false);
         }
 
         PublishEnvelope? envelope = await response.Content
@@ -221,7 +232,7 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
             return new XerahSCloudDeleteResponse(XerahSCloudDeleteState.Removed);
         }
 
-        throw CreateResponseException("Unpublish", response.StatusCode);
+        throw await CreateResponseExceptionAsync("Unpublish", response, cancellationToken).ConfigureAwait(false);
     }
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string relativePath, string accessToken)
@@ -321,10 +332,59 @@ public sealed class XerahSCloudApiClient : IXerahSCloudClient
         }
     }
 
-    private static XerahSCloudException CreateResponseException(string operation, HttpStatusCode statusCode) =>
-        new($"{operation} failed with HTTP {(int)statusCode} ({statusCode}).");
+    private static async Task<XerahSCloudException> CreateResponseExceptionAsync(
+        string operation,
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        string detail = string.Empty;
+        try
+        {
+            ProblemEnvelope? problem = await response.Content
+                .ReadFromJsonAsync<ProblemEnvelope>(JsonOptions, cancellationToken)
+                .ConfigureAwait(false);
+            response.Headers.TryGetValues("X-Correlation-ID", out IEnumerable<string>? correlationValues);
+            string code = SanitizeProblemText(problem?.Error?.Code, 64);
+            string message = SanitizeProblemText(problem?.Error?.Message, 256);
+            string correlationId = SanitizeProblemText(
+                problem?.Error?.CorrelationId ?? correlationValues?.FirstOrDefault(),
+                128);
+            if (!string.IsNullOrEmpty(code) || !string.IsNullOrEmpty(message))
+            {
+                detail = $" {code}{(!string.IsNullOrEmpty(code) && !string.IsNullOrEmpty(message) ? ": " : string.Empty)}{message}";
+            }
+            if (!string.IsNullOrEmpty(correlationId))
+            {
+                detail += $" (correlation {correlationId})";
+            }
+        }
+        catch (Exception ex) when (ex is JsonException or HttpRequestException or InvalidOperationException or NotSupportedException)
+        {
+            // Preserve the status-only error if the server did not return an API problem document.
+        }
+
+        string text = $"{operation} failed with HTTP {(int)response.StatusCode} ({response.StatusCode}).{detail}";
+        return response.StatusCode == HttpStatusCode.Unauthorized
+            ? new XerahSCloudSecurityException(text)
+            : new XerahSCloudException(text);
+    }
+
+    private static string SanitizeProblemText(string? value, int maximumLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        string sanitized = value.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        return sanitized.Length <= maximumLength ? sanitized : sanitized[..maximumLength];
+    }
 
     private sealed record PublishEnvelope(PublishedItem Item);
+
+    private sealed record ProblemEnvelope(ProblemDetail? Error);
+
+    private sealed record ProblemDetail(string? Code, string? Message, string? CorrelationId);
 
     private sealed record PublishedItem(string Id, DateTimeOffset PublishedAt);
 
