@@ -53,7 +53,7 @@ public sealed class XerahSCloudSecurityTests
     [TestCase("xerahs://oauth/callback?code=abc&error=access_denied&state=xyz", false)]
     [TestCase("xerahs://oauth/callback?code=abc&state=xyz&access_token=secret", false)]
     [TestCase("xerahs://hostile/callback?code=abc&state=xyz", false)]
-    [TestCase("https://xerahs.com/oauth/callback?code=abc&state=xyz", false)]
+    [TestCase("https://cloud.xerahs.com/oauth/callback?code=abc&state=xyz", false)]
     [TestCase("xerahs://oauth/callback?code=abc&code=again&state=xyz", false)]
     public void CallbackParser_EnforcesExactResultAndStateOnly(string value, bool expected)
     {
@@ -451,8 +451,8 @@ public sealed class XerahSCloudSecurityTests
         Assert.Multiple(() =>
         {
             Assert.That(account.Slug, Is.EqualTo("owner-name"));
-            Assert.That(account.ProfileUrl, Is.EqualTo(new Uri("https://xerahs.com/owner-name/")));
-            Assert.That(account.SettingsUrl, Is.EqualTo(new Uri("https://xerahs.com/settings")));
+            Assert.That(account.ProfileUrl, Is.EqualTo(new Uri("https://cloud.xerahs.com/owner-name/")));
+            Assert.That(account.SettingsUrl, Is.EqualTo(new Uri("https://cloud.xerahs.com/settings")));
             Assert.That(account.CanPublish, Is.True);
         });
     }
@@ -559,16 +559,16 @@ public sealed class XerahSCloudSecurityTests
         Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
     [Test]
-    public void CloudOptions_UnsetEnvironmentUsesStagingPublicClient()
+    public void CloudOptions_UnsetEnvironmentUsesCloudPublicClient()
     {
         XerahSCloudOptions options = XerahSCloudOptions.FromValues(null, null, null, null, null);
 
         Assert.Multiple(() =>
         {
             Assert.That(options.IsOAuthConfigured, Is.True);
-            Assert.That(options.ApiBaseAddress, Is.EqualTo(XerahSCloudOptions.StagingApiBaseAddress));
-            Assert.That(options.OAuthAuthority, Is.EqualTo(XerahSCloudOptions.StagingOAuthAuthority));
-            Assert.That(options.OAuthClientId, Is.EqualTo(XerahSCloudOptions.StagingOAuthClientId));
+            Assert.That(options.ApiBaseAddress, Is.EqualTo(XerahSCloudOptions.CloudApiBaseAddress));
+            Assert.That(options.OAuthAuthority, Is.EqualTo(XerahSCloudOptions.CloudOAuthAuthority));
+            Assert.That(options.OAuthClientId, Is.EqualTo(XerahSCloudOptions.CloudOAuthClientId));
         });
     }
 

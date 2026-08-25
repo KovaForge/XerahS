@@ -13,7 +13,7 @@
       "name": "xerahs-cloud-staging-scheduler",
       "workers_dev": true,
       "vars": {
-        "APP_ORIGIN": "https://staging.xerahs.com",
+        "APP_ORIGIN": "https://cloud.xerahs.com",
       },
       "secrets": {
         "required": ["CRON_SECRET"],
@@ -26,7 +26,7 @@
       "name": "xerahs-cloud-production-scheduler",
       "workers_dev": false,
       "vars": {
-        "APP_ORIGIN": "https://xerahs.com",
+        "APP_ORIGIN": "https://cloud.xerahs.com",
       },
       "secrets": {
         "required": ["CRON_SECRET"],

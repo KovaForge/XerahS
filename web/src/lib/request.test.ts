@@ -10,11 +10,11 @@ describe("mutation origin checks", () => {
   it("accepts the browser origin when it matches the request host", () => {
     const allowed = mutationAllowedOrigins(
       "https://xerahs-cloud-staging.vercel.app/api/oauth/decision",
-      "https://staging.xerahs.com",
-      "staging.xerahs.com",
+      "https://cloud.xerahs.com",
+      "cloud.xerahs.com",
       "xerahs-cloud-staging.vercel.app",
     );
-    expect(isAllowedMutationOrigin("https://staging.xerahs.com", allowed)).toBe(
+    expect(isAllowedMutationOrigin("https://cloud.xerahs.com", allowed)).toBe(
       true,
     );
     expect(
@@ -27,8 +27,8 @@ describe("mutation origin checks", () => {
 
   it("rejects a foreign origin even if the request host is trusted", () => {
     const allowed = mutationAllowedOrigins(
-      "https://staging.xerahs.com/api/oauth/decision",
-      "https://staging.xerahs.com",
+      "https://cloud.xerahs.com/api/oauth/decision",
+      "https://cloud.xerahs.com",
     );
     expect(isAllowedMutationOrigin("https://evil.example", allowed)).toBe(
       false,
@@ -41,20 +41,20 @@ describe("mutation origin checks", () => {
   it("accepts a matching origin even when Sec-Fetch-Site is cross-site", () => {
     const allowed = mutationAllowedOrigins(
       "https://xerahs-cloud-staging.vercel.app/api/oauth/decision",
-      "https://staging.xerahs.com",
-      "staging.xerahs.com, xerahs-cloud-staging.vercel.app",
+      "https://cloud.xerahs.com",
+      "cloud.xerahs.com, xerahs-cloud-staging.vercel.app",
       "xerahs-cloud-staging.vercel.app",
     );
     expect(
       isAllowedMutationOrigin(
-        "https://staging.xerahs.com",
+        "https://cloud.xerahs.com",
         allowed,
         "cross-site",
       ),
     ).toBe(true);
     expect(
       isAllowedMutationOrigin(
-        "https://staging.xerahs.com/",
+        "https://cloud.xerahs.com/",
         allowed,
         "cross-site",
       ),
@@ -63,15 +63,15 @@ describe("mutation origin checks", () => {
 
   it("allows a same-origin form POST that omitted Origin", () => {
     const allowed = mutationAllowedOrigins(
-      "https://staging.xerahs.com/api/oauth/decision",
-      "https://staging.xerahs.com",
+      "https://cloud.xerahs.com/api/oauth/decision",
+      "https://cloud.xerahs.com",
     );
     expect(
       isAllowedMutationOrigin(
         null,
         allowed,
         "same-origin",
-        "https://staging.xerahs.com/oauth/consent?authorization_id=abc",
+        "https://cloud.xerahs.com/oauth/consent?authorization_id=abc",
       ),
     ).toBe(true);
   });
@@ -85,15 +85,15 @@ describe("mutation origin checks", () => {
 
   it("rejects a missing origin when Sec-Fetch-Site is cross-site", () => {
     const allowed = mutationAllowedOrigins(
-      "https://staging.xerahs.com/api/oauth/decision",
-      "https://staging.xerahs.com",
+      "https://cloud.xerahs.com/api/oauth/decision",
+      "https://cloud.xerahs.com",
     );
     expect(
       isAllowedMutationOrigin(
         null,
         allowed,
         "cross-site",
-        "https://staging.xerahs.com/oauth/consent",
+        "https://cloud.xerahs.com/oauth/consent",
       ),
     ).toBe(false);
   });

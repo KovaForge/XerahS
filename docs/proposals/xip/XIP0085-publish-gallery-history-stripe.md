@@ -1,4 +1,4 @@
-# XIP0085: Publish Gallery from History (xerahs.com Profile, Stripe)
+# XIP0085: Publish Gallery from History (cloud.xerahs.com Profile, Stripe)
 
 **Status**: Accepted — staged implementation authorized 2026-08-22. Production launch remains blocked until every launch gate is closed.
 **Priority**: Medium
@@ -12,7 +12,7 @@
 
 ## Summary
 
-Add a **Publish** action to the existing History (and shared Toast) context menu. Publish is visible only for screenshot or screencast history items that already have a URL. Choosing Publish registers that URL in a remote XerahS gallery database. The **signed-in owner** then browses those captures on their profile (for example `https://xerahs.com/mcored/`) as thumbnail albums, similar to Google Photos. Nobody else can open the profile.
+Add a **Publish** action to the existing History (and shared Toast) context menu. Publish is visible only for screenshot or screencast history items that already have a URL. Choosing Publish registers that URL in a remote XerahS gallery database. The **signed-in owner** then browses those captures on their profile (for example `https://cloud.xerahs.com/mcored/`) as thumbnail albums, similar to Google Photos. Nobody else can open the profile.
 
 This is a **paid XerahS Cloud feature** with a one-time, application-managed **7-day trial**. First use — from Publish or from Application Settings — creates or signs in to a verified XerahS account. Email is the canonical login identifier; a unique username is the profile slug. Publishing requires either a current TOTP `aal2` session or a passkey-authenticated session. After the trial, billing is Stripe at **USD 1.99 / month** or **USD 19.99 / year**, excluding applicable tax.
 
@@ -22,7 +22,7 @@ The web app is designed and implemented in this repo at `web/` (`C:\Users\Public
 
 ## User Request
 
-> Currently in History there is a context menu and I want a Publish entry; this entry is only visible for screenshots or screencasts (videos) that has a URL; when user presses publish, XerahS will then update a remote database with the url; this remote database is used by a web app that shows all the screenshots/screencasts published by the user in a secure user profile e.g. `https://xerahs.com/mcored/` so it can display the published screencasts/screenshots with the thumbnails like albums in Google Photos; the user profile must be secured with username+password plus 2FA or Passkeys configurable by user when user first uses the feature via Publish or via Application Settings; this is a paid feature so this feature will be paid by the user via Stripe; Stripe can be charged via monthly or yearly, monthly let's say $1.99 per month or $19.99 per year.
+> Currently in History there is a context menu and I want a Publish entry; this entry is only visible for screenshots or screencasts (videos) that has a URL; when user presses publish, XerahS will then update a remote database with the url; this remote database is used by a web app that shows all the screenshots/screencasts published by the user in a secure user profile e.g. `https://cloud.xerahs.com/mcored/` so it can display the published screencasts/screenshots with the thumbnails like albums in Google Photos; the user profile must be secured with username+password plus 2FA or Passkeys configurable by user when user first uses the feature via Publish or via Application Settings; this is a paid feature so this feature will be paid by the user via Stripe; Stripe can be charged via monthly or yearly, monthly let's say $1.99 per month or $19.99 per year.
 
 Product follow-up (2026-08-22):
 
@@ -69,7 +69,7 @@ There is **no** existing XerahS account, Stripe, 2FA, or passkey stack in the de
 2. Show Publish only for screenshot or screencast items that have a non-empty URL and are not currently published.
 3. Add **Unpublish** on the same menu when the item is published, and matching Unpublish on the web app.
 4. On Publish, authenticate the user (create account / sign in / start trial or subscribe if needed) and upsert the item’s URL plus gallery metadata to the XerahS Cloud API.
-5. Store gallery items so `https://xerahs.com/{slug}/` renders an **owner-only** thumbnail gallery (50 per page, calendar view, screenshot/screencast albums).
+5. Store gallery items so `https://cloud.xerahs.com/{slug}/` renders an **owner-only** thumbnail gallery (50 per page, calendar view, screenshot/screencast albums).
 6. Web item actions: copy URL, copy markdown image URL, download.
 7. Title is always derived from filename (extension stripped). Generic placeholder tile is allowed when no thumbnail URL exists.
 8. Secure the profile with verified email + password, a unique username/slug, and either **TOTP MFA** or a **passkey**. Do not make the experimental passkey API the only launch path; TOTP remains the supported fallback until passkeys are accepted for production.
@@ -94,7 +94,7 @@ There is **no** existing XerahS account, Stripe, 2FA, or passkey stack in the de
 
 | Question | Decision |
 |---|---|
-| Who can open `https://xerahs.com/{slug}/`? | **Owner only.** Must be signed in as that account. Anyone else gets a sign-in wall, not a gallery. |
+| Who can open `https://cloud.xerahs.com/{slug}/`? | **Owner only.** Must be signed in as that account. Anyone else gets a sign-in wall, not a gallery. |
 | What is the web app for? | Owner’s remote list of **their** published screenshots/screencasts. |
 | Unpublish in v1? | **Yes**, from the web app and from XerahS History/Toast. |
 | Missing thumbnail? | Generic tile is OK. **Title always comes from filename** (strip extension). |
@@ -143,7 +143,7 @@ If signed in but trial expired and subscription inactive: Publish opens Checkout
 
 Application Settings **XerahS Cloud** panel:
 
-- signed-in identity and profile URL (`https://xerahs.com/{slug}/`);
+- signed-in identity and profile URL (`https://cloud.xerahs.com/{slug}/`);
 - trial remaining / plan status;
 - manage 2FA / passkeys;
 - regenerate recovery codes and review/revoke active sessions;
@@ -164,7 +164,7 @@ Application Settings **XerahS Cloud** panel:
 
 ### Web app (owner session)
 
-Route: `https://xerahs.com/{slug}/` (example `https://xerahs.com/mcored/`). Unauthenticated or different user → sign-in, never another person’s tiles.
+Route: `https://cloud.xerahs.com/{slug}/` (example `https://cloud.xerahs.com/mcored/`). Unauthenticated or different user → sign-in, never another person’s tiles.
 
 Views:
 
@@ -194,7 +194,7 @@ Click tile → lightbox (image) or player (video) using the stored URL. All medi
 Cloudflare DNS (DNS-only)
           │
           ▼
-Vercel: xerahs.com (Next.js UI + Route Handler API) ───────► Stripe Checkout / Portal
+Vercel: cloud.xerahs.com (Next.js UI + Route Handler API) ─► Stripe Checkout / Portal
           │                  │                                      │
           │                  ├──────────────────────────────────────┘ signed webhooks
           │                  ▼
@@ -214,7 +214,7 @@ Owner browser ── direct no-referrer media request/navigation ──► desti
 - **Vercel Pro** hosts the owner UI and Route Handler API. Database, Auth, Stripe, WebAuthn, and webhook routes use the default Node.js runtime; Edge Runtime is not used in v1.
 - The Vercel Function region and Supabase primary region are Sydney (`syd1` / `ap-southeast-2`). Static assets remain globally distributed. Moving data regions requires a migration plan and an XIP amendment.
 - **Supabase Auth** provides verified email/password and TOTP MFA. **Supabase Postgres** stores profiles, gallery metadata, entitlements, idempotency records, and audit events.
-- The production origin is `https://xerahs.com`; `https://www.xerahs.com` permanently redirects to it. The desktop API is `https://xerahs.com/api/v1/...`; v1 does not introduce a separate API hostname or cross-origin credential flow.
+- The canonical cloud application origin is `https://cloud.xerahs.com`. The apex and `www` hosts remain available for the general XerahS website and are not application aliases. The desktop API is `https://cloud.xerahs.com/api/v1/...`; v1 keeps UI, API, billing returns, and OAuth relay on the same origin.
 - Owner pages, authenticated JSON, auth, billing, and webhook responses are dynamic and return `Cache-Control: private, no-store`. Only content-addressed framework assets use long-lived immutable caching.
 
 ```text
@@ -254,7 +254,7 @@ The Avalonia app never displays a web password form, embeds a web view, or conta
 1. Generate a high-entropy `state`, nonce, and PKCE verifier/challenge (`S256`). Keep verifier/state only in memory for the pending attempt.
 2. Open the Supabase `/auth/v1/oauth/authorize` URL with the registered desktop `client_id`, exact registered redirect URI, `openid email profile`, state/nonce, and PKCE challenge.
 3. Supabase redirects to the XerahS authorization UI. Complete verified email/password and TOTP `aal2` (or an accepted passkey session), then show the named desktop client/scopes and approve only after the strong-session check passes.
-4. Supabase returns only to the exact registered HTTPS redirect `https://xerahs.com/auth/desktop/callback`. That no-store/no-referrer page immediately relays the short-lived `code` and `state` to the registered `xerahs://oauth/callback` OS URI without exchanging or logging them. PKCE prevents a different process that intercepts the custom URI from exchanging the code.
+4. Supabase returns only to the exact registered HTTPS redirect `https://cloud.xerahs.com/auth/desktop/callback`. That no-store/no-referrer page immediately relays the short-lived `code` and `state` to the registered `xerahs://oauth/callback` OS URI without exchanging or logging them. PKCE prevents a different process that intercepts the custom URI from exchanging the code.
 5. Desktop validates state and receives a short-lived, single-use authorization code, never access or refresh tokens in either callback URL.
 6. Exchange the code directly at Supabase `/auth/v1/oauth/token` with `client_id`, the original HTTPS redirect URI, and PKCE verifier; accept any successful 2xx response rather than hardcoding 201. No client secret is sent or stored. Verify issuer, audience/client ID, nonce, subject, expiry, `session_id`, and the tested strong-auth claim before accepting tokens.
 
@@ -422,7 +422,7 @@ Configure Stripe Billing to use Smart Retries for at most seven days and then **
 
 ### Stripe webhooks and reconciliation
 
-Stripe sends to `POST https://xerahs.com/api/webhooks/stripe`. The route remains publicly reachable and is excluded from custom login challenges and application rate limits; signature verification is mandatory.
+Stripe sends to `POST https://cloud.xerahs.com/api/webhooks/stripe`. The route remains publicly reachable and is excluded from custom login challenges and application rate limits; signature verification is mandatory.
 
 1. Read the unmodified raw body once and verify `Stripe-Signature` with the environment-specific webhook secret before JSON parsing.
 2. Reject signature or `livemode` mismatch. Test/staging/live have separate endpoints and signing secrets.
@@ -460,7 +460,7 @@ Stripe is authoritative for paid billing. The application database/server clock 
 
 In the request-delivery path, Cloudflare is the authoritative **DNS provider only**. Records terminating at Vercel are DNS-only (grey cloud) and use the exact verification/destination values shown by Vercel. Enable DNSSEC, registrar lock, protected registrar MFA, and least-privilege scoped API tokens. Cloudflare Cache Rules, Workers, WAF, Bot Fight Mode, challenges, and rate limiting do not sit in front of Vercel. The independently locked R2 deletion/trial ledger is an operations datastore, not a web reverse proxy or media store.
 
-A dedicated Cloudflare Cron Worker may originate authenticated calls to the internal ledger-dispatch, account-deletion, and Stripe-reconciliation routes when the Vercel plan does not support the required minute-level schedules. It holds only the shared `CRON_SECRET`, uses an exact allowlist of the three staging or production paths, follows the environment-specific `APP_ORIGIN`, and is never attached to the application hostname or request-delivery path. Its configuration, generated binding types, observability, and schedules are versioned under `web/infrastructure/cloudflare/scheduler`; the secret is set independently in Cloudflare and Vercel and rotated together.
+A dedicated Cloudflare Cron Worker may originate authenticated calls to the internal ledger-dispatch, account-deletion, and Stripe-reconciliation routes when the Vercel plan does not support the required minute-level schedules. It holds only the shared `CRON_SECRET`, uses an exact allowlist of those three internal paths, follows the environment-specific `APP_ORIGIN`, and is never attached to the application hostname or request-delivery path. Its configuration, generated binding types, observability, and schedules are versioned under `web/infrastructure/cloudflare/scheduler`; the secret is set independently in Cloudflare and Vercel and rotated together.
 
 Vercel owns TLS termination, CDN, automatic DDoS mitigation, WAF, Bot Protection, application delivery, and client-IP enforcement. This avoids a double-CDN reverse proxy that obscures client IPs, weakens Vercel firewall visibility, complicates cache invalidation, and can break WebAuthn, auth callbacks, or Stripe webhooks.
 
@@ -491,14 +491,14 @@ Restore runs with public traffic and all mutating jobs disabled. It paginates th
 
 | Environment | Vercel access | Supabase | Stripe | R2 ledger | WebAuthn |
 |---|---|---|---|---|---|
-| Production | Public origin; application auth enforced | Dedicated production project | Live mode | Dedicated locked production bucket/account | RP ID `xerahs.com`, exact origin `https://xerahs.com` |
-| Stable staging | Public `staging.xerahs.com`; application auth and WAF enforced; noindex | Dedicated staging project | Test mode with public signed staging webhook | Separate non-production bucket and credentials; same protocol with shorter documented retention | RP ID/origin `staging.xerahs.com` in a separate credential namespace |
+| Stable cloud | Public `cloud.xerahs.com`; application auth and WAF enforced | Dedicated cloud project | Test mode until the separately approved live-billing cutover, then live mode | Dedicated locked cloud bucket/account | RP ID `cloud.xerahs.com`, exact origin `https://cloud.xerahs.com` |
+| Ephemeral preview | Protected Vercel deployment URL; no custom application hostname | Isolated preview/fixture resources | Fixtures or restricted test mode | No production ledger credentials | Passkeys disabled |
 | Ephemeral PR Preview | Vercel Authentication; CI uses automation-bypass secret; noindex | Isolated preview branch/project with synthetic data | Signed fixtures only; no inbound Stripe endpoint | In-memory/local fake only; no Cloudflare credential | Passkeys disabled; no arbitrary `*.vercel.app` origin |
 | Development | Local only | Local or dedicated development project | Stripe CLI/test mode | Local fake or dedicated development bucket only | Registered loopback development origin only |
 
-Non-production deployments never receive production Supabase service credentials, Stripe live secrets, production signing keys, SMTP secrets, or production WebAuthn credentials. Production custom domains attach only to production deployments. Production and stable staging cannot be behind Vercel Deployment Protection because desktop/staging API traffic and Stripe webhooks must be reachable; application authentication, signature verification, and Vercel WAF protect them. Ephemeral Previews remain protected and use fixtures for external integrations.
+Non-production deployments never receive production Supabase service credentials, Stripe live secrets, production signing keys, SMTP secrets, or production WebAuthn credentials. Production custom domains attach only to production deployments. The stable cloud deployment cannot be behind Vercel Deployment Protection because desktop API traffic and Stripe webhooks must be reachable; application authentication, signature verification, and Vercel WAF protect them. Ephemeral Previews remain protected and use fixtures for external integrations.
 
-The WebAuthn RP ID is a permanent credential boundary. Do not change `xerahs.com` after passkey enrollment or accept arbitrary `*.vercel.app` origins.
+The WebAuthn RP ID is a permanent credential boundary. Do not change `cloud.xerahs.com` after passkey enrollment or accept arbitrary `*.vercel.app` origins.
 
 ### Security headers and browser protections
 
@@ -545,7 +545,7 @@ Vercel WAF is the edge plane. New rules progress through log-only, enforced Prev
 | List/calendar | 600 / 5 min | 120 / user / min |
 | Export/delete/factor changes | 20 / hour | 3 / user / hour plus recent strong-auth step-up |
 
-Browser `supabase-js` Auth calls go directly to `<project>.supabase.co` and therefore bypass Vercel WAF. They are protected by configured Supabase Auth rate limits, CAPTCHA, email controls, and application recovery cooldowns; Vercel limits apply only to `xerahs.com` routes. The exact Stripe webhook path is excluded from every custom or managed challenge, Bot Protection rule, and rate limit while retaining Vercel platform DDoS mitigation. Attack Mode cannot be enabled without preserving that exception or intentionally pausing and later replaying Stripe events. Edge rate limiting is not exact or globally transactional; database-backed account rules remain authoritative. Use hosted Checkout and Stripe Radar; XerahS never handles card numbers.
+Browser `supabase-js` Auth calls go directly to `<project>.supabase.co` and therefore bypass Vercel WAF. They are protected by configured Supabase Auth rate limits, CAPTCHA, email controls, and application recovery cooldowns; Vercel limits apply only to `cloud.xerahs.com` routes. The exact Stripe webhook path is excluded from every custom or managed challenge, Bot Protection rule, and rate limit while retaining Vercel platform DDoS mitigation. Attack Mode cannot be enabled without preserving that exception or intentionally pausing and later replaying Stripe events. Edge rate limiting is not exact or globally transactional; database-backed account rules remain authoritative. Use hosted Checkout and Stripe Radar; XerahS never handles card numbers.
 
 ### Data lifecycle, privacy, and recovery
 
@@ -583,15 +583,15 @@ New **XerahS Cloud** group (all desktop platforms):
 
 First Publish with no session launches the Supabase OAuth 2.1 system-browser flow and resumes the original action only after PKCE token exchange and `/api/v1/me` confirm the registered desktop client, strong authentication, and entitlement.
 
-## Repository Implementation Snapshot (2026-08-23)
+## Repository Implementation Snapshot (2026-08-25)
 
 The staged repository implementation is complete through the code and automation boundary: desktop History/Toast actions, durable local identity, system-browser OAuth with PKCE and protocol activation, `/api/v1/me` verification, Application Settings integration, owner-only web gallery/calendar, OAuth consent and denial relay, TOTP plus feature-gated WebAuthn, recovery-code generation, trial and Stripe Checkout/Portal/webhook reconciliation, RLS/idempotency/outbox migrations, deletion workers, private R2 ledger verification/restore tooling, health checks, drift checks, and protected staging/production deployment workflows. The web application compiles with stable TypeScript 7.0 while ESLint remains isolated on the official TypeScript 6 compatibility package.
 
-The dedicated staging Supabase project and migrations, OAuth public client, Stripe sandbox Product/Prices/Portal/webhook, Vercel staging project and environment variables, `staging.xerahs.com` DNS-only record, TLS deployment, and outbound Cloudflare Cron Worker were provisioned on 2026-08-23. The deployed health endpoint and a correctly signed non-mutating Stripe webhook probe returned HTTP 200. Live-mode Stripe, the apex production origin, and production traffic were not changed.
+The dedicated cloud Supabase project and migrations, OAuth public client, Stripe sandbox Product/Prices/Portal/webhook, Vercel project and environment variables, TLS deployment, and outbound Cloudflare Cron Worker were initially provisioned behind the temporary `staging.xerahs.com` hostname on 2026-08-23. On 2026-08-25 the canonical application hostname moved to `cloud.xerahs.com`; the former staging hostname remains only during the desktop OAuth compatibility window and is not the canonical origin. The Vercel alias/TLS configuration, DNS-only Cloudflare CNAME, Supabase Site URL and callback allowlists, desktop OAuth client, Stripe sandbox webhook, GitHub environment variables, desktop defaults, OpenAPI document, and scheduler origin all use the canonical hostname. Live-mode Stripe remains a separate financial launch gate.
 
-Cloudflare still rejects R2 API access until an account administrator enables the R2 subscription; its Dashboard activation control is unavailable to the current operator. Stable staging therefore remains explicitly incomplete: the deployed app runs with `APP_ENV=preview` and the local fake ledger so UI, Auth, and sandbox billing integration can be exercised, while durable trial, Unpublish, and account-deletion acceptance remains blocked. It must switch to `APP_ENV=staging`, `LEDGER_USE_LOCAL_FAKE=false`, and bucket-scoped staging R2 credentials before staging can satisfy the fail-closed configuration and ledger gates.
+The Cloudflare R2 subscription is active and the private `xerahs-cloud-staging-ledger` bucket is provisioned. The stable cloud deployment remains in `APP_ENV=preview` with the local fake ledger until a permanent `Object Read & Write` credential scoped only to that bucket is created in an authenticated Cloudflare Dashboard session and stored as Vercel sensitive variables. Durable trial, Unpublish, and account-deletion acceptance remains blocked until the deployment switches to `APP_ENV=staging` and `LEDGER_USE_LOCAL_FAKE=false`; temporary seven-day credentials are not an acceptable production substitute.
 
-The feature remains fail-closed and disabled by default. This snapshot does **not** assert that all external infrastructure is complete or that production is launched. R2 enablement and credentials, recovery consumption/notification drills, WebAuthn acceptance, tax/legal approval, and every Production Launch Gate below still require their recorded owner approval and live verification. No code commit, staging deployment, or successful build may be used as a substitute for those gates.
+The feature remains fail-closed and disabled by default. This snapshot does **not** assert that production is launched. Permanent bucket-scoped R2 credentials and the durable-ledger cutover, recovery consumption/notification drills, WebAuthn acceptance, tax/legal approval, and every Production Launch Gate below still require their recorded owner approval and live verification. No code commit, cloud deployment, or successful build may be used as a substitute for those gates.
 
 ## Implementation Phases (after acceptance)
 
@@ -691,7 +691,7 @@ Use Stripe sandbox/Test Clocks and signed test webhook fixtures; CI never calls 
 ### Infrastructure and operations
 
 1. Cloudflare records terminating at Vercel are DNS-only; DNSSEC and registrar protections are verified.
-2. Ephemeral Preview is protected/noindexed and cannot access production Supabase, Stripe, SMTP, or WebAuthn configuration; stable staging uses its exact origin and public signed test webhook.
+2. Ephemeral Preview is protected/noindexed and cannot access production Supabase, Stripe, SMTP, or WebAuthn configuration; stable cloud uses its exact origin and public signed test webhook.
 3. Production/staging webhooks remain reachable without application login, Bot Protection, Attack Mode challenge, or custom rate limit and reject invalid signatures.
 4. WAF rules are tested in log mode and Preview before production enforcement; limits return `429` and `Retry-After`.
 5. Security headers, cache headers, synthetic checks, log redaction, alerts, and kill switches are exercised.
@@ -780,4 +780,4 @@ Validated against current platform guidance on 2026-08-22:
 
 ## Implementation Authorization
 
-Staged implementation was authorized on 2026-08-22. Local code, automated tests, dedicated non-production resources, and Stripe sandbox configuration may proceed. Production traffic, paid infrastructure, live-mode billing, Cloudflare R2 enablement, and replacement of the existing `xerahs.com` DNS remain subject to the explicit cost, account, legal/tax, verification, and launch gates above.
+Staged implementation was authorized on 2026-08-22. Local code, automated tests, dedicated non-production resources, Stripe sandbox configuration, the `cloud.xerahs.com` DNS-only application hostname, and R2 subscription/bucket provisioning are authorized. Production traffic, live-mode billing, WebAuthn enrollment, and replacement of the existing apex `xerahs.com` website DNS remain subject to the explicit cost, account, legal/tax, verification, and launch gates above.

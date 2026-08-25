@@ -20,8 +20,20 @@ export interface OAuthAuthorizationDetails {
 
 export interface DesktopOAuthExpectation {
   clientId: string;
-  redirectUri: string;
+  redirectUris: readonly string[];
   userId: string;
+}
+
+const legacyDesktopRedirectUri =
+  "https://staging.xerahs.com/auth/desktop/callback";
+const canonicalDesktopRedirectUri =
+  "https://cloud.xerahs.com/auth/desktop/callback";
+
+export function desktopOAuthRedirectUris(appOrigin: string): readonly string[] {
+  const primary = new URL("/auth/desktop/callback", appOrigin).href;
+  return primary === canonicalDesktopRedirectUri
+    ? [primary, legacyDesktopRedirectUri]
+    : [primary];
 }
 
 function invalidAuthorization(): never {
@@ -59,6 +71,13 @@ function exactRedirectUri(actual: string, expected: string): boolean {
   }
 }
 
+function allowedRedirectUri(
+  actual: string,
+  expected: readonly string[],
+): boolean {
+  return expected.some((value) => exactRedirectUri(actual, value));
+}
+
 export function assertDesktopAuthorization(
   details: OAuthAuthorizationDetails,
   expected: DesktopOAuthExpectation,
@@ -67,7 +86,7 @@ export function assertDesktopAuthorization(
     details.client.id !== expected.clientId ||
     details.user.id !== expected.userId ||
     details.authorization_id.length === 0 ||
-    !exactRedirectUri(details.redirect_uri, expected.redirectUri) ||
+    !allowedRedirectUri(details.redirect_uri, expected.redirectUris) ||
     !exactScopes(details.scope)
   ) {
     invalidAuthorization();
@@ -76,20 +95,27 @@ export function assertDesktopAuthorization(
 
 export function assertDesktopOAuthRedirect(
   redirectUrl: string,
-  expectedRedirectUri: string,
+  expectedRedirectUris: readonly string[],
 ): URL {
   let actual: URL;
-  let expected: URL;
   try {
     actual = new URL(redirectUrl);
-    expected = new URL(expectedRedirectUri);
   } catch {
     return invalidAuthorization();
   }
   if (
     actual.protocol !== "https:" ||
-    actual.origin !== expected.origin ||
-    actual.pathname !== expected.pathname ||
+    !expectedRedirectUris.some((value) => {
+      try {
+        const expected = new URL(value);
+        return (
+          actual.origin === expected.origin &&
+          actual.pathname === expected.pathname
+        );
+      } catch {
+        return false;
+      }
+    }) ||
     actual.username ||
     actual.password ||
     actual.hash

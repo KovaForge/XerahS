@@ -331,3 +331,9 @@ This forces the build system to include the correct Windows SDK reference assemb
 **Context**: XIP0085 needs one-minute ledger dispatch and five-minute account-deletion processing, but Vercel Hobby rejects Cron Jobs that run more than once per day.
 
 **Lesson**: Treat subdaily scheduling as an independently deployable adapter. Keep the business logic behind idempotent, secret-authenticated internal routes, and let a versioned Cloudflare Cron Worker invoke the exact allowlisted paths when the Vercel plan cannot provide the required cadence. Store the shared secret independently in both providers, generate Worker binding types from `wrangler.jsonc`, configure staging and production as explicit Wrangler environments, and keep the Worker out of the application request-delivery path.
+
+### Confirm the Canonical Hostname Before Provisioning Exact-Origin Integrations
+
+**Context**: XIP0085 was first provisioned at the temporary `staging.xerahs.com` hostname before `cloud.xerahs.com` was confirmed as the stable application origin.
+
+**Lesson**: Never infer a stable public hostname from an environment label. Confirm and record the canonical application origin before provisioning DNS, TLS, authentication callbacks, OAuth clients, billing webhooks, schedulers, and desktop defaults because exact-origin integrations make a later migration coordinated and compatibility-sensitive. Preserve a narrowly scoped legacy callback window for already-shipped native clients instead of either silently breaking them or accepting wildcard redirects.

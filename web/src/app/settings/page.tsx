@@ -5,7 +5,7 @@ import { ProfileSetup } from "@/components/profile-setup";
 import { SettingsControls } from "@/components/settings-controls";
 import { requireAuthenticatedUser } from "@/lib/auth";
 import { getAccountSummary } from "@/lib/database";
-import { getPublicEnv } from "@/lib/env";
+import { getPublicEnv, getServerEnv } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +45,7 @@ export default async function SettingsPage() {
   }
 
   const { user, summary } = data;
+  const profileHost = new URL(getServerEnv().APP_ORIGIN).host;
   return (
     <section>
       <p className="eyebrow">XerahS Cloud</p>
@@ -55,7 +56,9 @@ export default async function SettingsPage() {
           <p>{user.email}</p>
           {summary && (
             <p>
-              <Link href={`/${summary.slug}`}>xerahs.com/{summary.slug}</Link>
+              <Link href={`/${summary.slug}`}>
+                {profileHost}/{summary.slug}
+              </Link>
             </p>
           )}
         </article>

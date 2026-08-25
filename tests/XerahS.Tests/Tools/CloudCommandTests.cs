@@ -20,7 +20,7 @@ public sealed class CloudCommandTests
     [TestCase(new[] { "xerahs://oauth/callback?code=abc&state=xyz" }, true)]
     [TestCase(new[] { "cloud", "complete", "xerahs://oauth/callback?code=abc&state=xyz" }, true)]
     [TestCase(new[] { "cloud", "status" }, false)]
-    [TestCase(new[] { "https://staging.xerahs.com/auth/desktop/callback?code=abc&state=xyz" }, false)]
+    [TestCase(new[] { "https://cloud.xerahs.com/auth/desktop/callback?code=abc&state=xyz" }, false)]
     public void TryGetCallbackArgument_AcceptsProtocolAndCompleteInvocation(string[] args, bool expected)
     {
         bool parsed = CloudOAuthCallbackPipe.TryGetCallbackArgument(args, out string? callback);
@@ -161,8 +161,8 @@ public sealed class CloudCommandTests
             AccountCalls++;
             return Task.FromResult(new XerahSCloudAccountSummary(
                 "owner-name",
-                new Uri("https://staging.xerahs.com/owner-name/"),
-                new Uri("https://staging.xerahs.com/settings"),
+                new Uri("https://cloud.xerahs.com/owner-name/"),
+                new Uri("https://cloud.xerahs.com/settings"),
                 "Australia/Perth",
                 true,
                 "active",

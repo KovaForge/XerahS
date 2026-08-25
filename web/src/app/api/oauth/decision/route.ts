@@ -8,6 +8,7 @@ import {
   assertDesktopAuthorization,
   assertDesktopOAuthRedirect,
   authorizationIdSchema,
+  desktopOAuthRedirectUris,
 } from "@/lib/oauth-validation";
 import { enforceSameOriginMutation } from "@/lib/request";
 import { handleApi } from "@/lib/route-handler";
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
         "integration_unavailable",
         "Desktop authorization is unavailable.",
       );
-    const redirectUri = new URL("/auth/desktop/callback", env.APP_ORIGIN).href;
+    const redirectUris = desktopOAuthRedirectUris(env.APP_ORIGIN);
     const supabase = await createSupabaseServerClient(request);
     const { data: details, error: detailsError } =
       await supabase.auth.oauth.getAuthorizationDetails(input.authorization_id);
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
       );
     assertDesktopAuthorization(details, {
       clientId,
-      redirectUri,
+      redirectUris,
       userId: user.id,
     });
 
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
         "invalid_request",
         "The authorization decision could not be completed.",
       );
-    const target = assertDesktopOAuthRedirect(data.redirect_url, redirectUri);
+    const target = assertDesktopOAuthRedirect(data.redirect_url, redirectUris);
     const response = NextResponse.redirect(target, 303);
     response.headers.set("Cache-Control", "private, no-store, max-age=0");
     response.headers.set("Referrer-Policy", "no-referrer");

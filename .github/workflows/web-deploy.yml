@@ -1,4 +1,4 @@
-name: XerahS Cloud Staging Deploy
+name: XerahS Cloud Deploy
 
 on:
   workflow_dispatch:
@@ -7,11 +7,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: xerahs-cloud-staging
+  group: xerahs-cloud
   cancel-in-progress: false
 
 jobs:
-  deploy-staging:
+  deploy-cloud:
     environment: xerahs-cloud-staging
     runs-on: ubuntu-latest
     defaults:
@@ -60,7 +60,7 @@ jobs:
           url=$(pnpm dlx vercel@59.4.0 deploy --prebuilt --prod --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
       - run: pnpm dlx vercel@59.4.0 inspect "${{ steps.deploy.outputs.url }}" --wait --timeout=5m --token="$VERCEL_TOKEN"
-      - name: Smoke test staging
+      - name: Smoke test cloud origin
         shell: bash
         run: |
           curl --fail --silent --show-error --retry 5 --retry-all-errors "${{ steps.deploy.outputs.url }}/api/healthz"

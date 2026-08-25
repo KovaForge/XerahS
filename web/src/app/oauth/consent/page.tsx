@@ -10,6 +10,7 @@ import {
   assertDesktopAuthorization,
   assertDesktopOAuthRedirect,
   authorizationIdSchema,
+  desktopOAuthRedirectUris,
 } from "@/lib/oauth-validation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -83,7 +84,7 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
     return (
       <ConsentError>Desktop authorization is not configured.</ConsentError>
     );
-  const redirectUri = new URL("/auth/desktop/callback", env.APP_ORIGIN).href;
+  const redirectUris = desktopOAuthRedirectUris(env.APP_ORIGIN);
   const supabase = await createSupabaseServerClient();
   const { data, error } =
     await supabase.auth.oauth.getAuthorizationDetails(authorizationId);
@@ -91,13 +92,13 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
     return <ConsentError>The authorization request has expired.</ConsentError>;
 
   if (!("authorization_id" in data)) {
-    redirect(assertDesktopOAuthRedirect(data.redirect_url, redirectUri).href);
+    redirect(assertDesktopOAuthRedirect(data.redirect_url, redirectUris).href);
   }
 
   try {
     assertDesktopAuthorization(data, {
       clientId,
-      redirectUri,
+      redirectUris,
       userId: user.id,
     });
   } catch {

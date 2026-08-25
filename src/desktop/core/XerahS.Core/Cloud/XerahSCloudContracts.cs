@@ -16,10 +16,10 @@ namespace XerahS.Core.Cloud;
 
 public sealed class XerahSCloudOptions
 {
-    public Uri ApiBaseAddress { get; init; } = new("https://xerahs.com/");
+    public Uri ApiBaseAddress { get; init; } = new("https://cloud.xerahs.com/");
     public Uri? OAuthAuthority { get; init; }
     public string? OAuthClientId { get; init; }
-    public Uri OAuthRedirectUri { get; init; } = new("https://xerahs.com/auth/desktop/callback");
+    public Uri OAuthRedirectUri { get; init; } = new("https://cloud.xerahs.com/auth/desktop/callback");
     public Uri OAuthCallbackUri { get; init; } = new("xerahs://oauth/callback");
     public bool FeatureEnabled { get; init; }
 
@@ -28,13 +28,12 @@ public sealed class XerahSCloudOptions
         !string.IsNullOrWhiteSpace(OAuthClientId);
 
     /// <summary>
-    /// Authorized staging public client. PKCE public clients have no secret;
-    /// production apex remains launch-gated until XIP0085 production gates close.
+    /// Authorized XerahS Cloud public client. PKCE public clients have no secret.
     /// </summary>
-    internal static readonly Uri StagingApiBaseAddress = new("https://staging.xerahs.com/");
-    internal static readonly Uri StagingOAuthAuthority = new("https://cvnywevwxmajyzhhpvzl.supabase.co/");
-    internal const string StagingOAuthClientId = "8d8adf92-86c4-4036-a4c9-09901230f2c4";
-    internal static readonly Uri StagingOAuthRedirectUri = new("https://staging.xerahs.com/auth/desktop/callback");
+    internal static readonly Uri CloudApiBaseAddress = new("https://cloud.xerahs.com/");
+    internal static readonly Uri CloudOAuthAuthority = new("https://cvnywevwxmajyzhhpvzl.supabase.co/");
+    internal const string CloudOAuthClientId = "8d8adf92-86c4-4036-a4c9-09901230f2c4";
+    internal static readonly Uri CloudOAuthRedirectUri = new("https://cloud.xerahs.com/auth/desktop/callback");
 
     public static XerahSCloudOptions FromEnvironment() =>
         FromValues(
@@ -53,19 +52,19 @@ public sealed class XerahSCloudOptions
     {
         bool parsedEnabled = bool.TryParse(enabledRaw, out bool enabledFlag);
         bool explicitlyDisabled = parsedEnabled && !enabledFlag;
-        bool useStagingDefaults = !explicitlyDisabled &&
+        bool useCloudDefaults = !explicitlyDisabled &&
             string.IsNullOrWhiteSpace(apiBaseAddress) &&
             string.IsNullOrWhiteSpace(authority) &&
             string.IsNullOrWhiteSpace(clientId);
 
-        if (useStagingDefaults)
+        if (useCloudDefaults)
         {
             return new XerahSCloudOptions
             {
-                ApiBaseAddress = StagingApiBaseAddress,
-                OAuthAuthority = StagingOAuthAuthority,
-                OAuthClientId = StagingOAuthClientId,
-                OAuthRedirectUri = StagingOAuthRedirectUri,
+                ApiBaseAddress = CloudApiBaseAddress,
+                OAuthAuthority = CloudOAuthAuthority,
+                OAuthClientId = CloudOAuthClientId,
+                OAuthRedirectUri = CloudOAuthRedirectUri,
                 FeatureEnabled = true
             };
         }
@@ -78,10 +77,10 @@ public sealed class XerahSCloudOptions
 
         return new XerahSCloudOptions
         {
-            ApiBaseAddress = parsedApiBaseAddress ?? new Uri("https://xerahs.com/"),
+            ApiBaseAddress = parsedApiBaseAddress ?? CloudApiBaseAddress,
             OAuthAuthority = TryCreateSecureUri(authority),
             OAuthClientId = string.IsNullOrWhiteSpace(clientId) ? null : clientId.Trim(),
-            OAuthRedirectUri = parsedRedirectUri ?? new Uri("https://xerahs.com/auth/desktop/callback"),
+            OAuthRedirectUri = parsedRedirectUri ?? CloudOAuthRedirectUri,
             FeatureEnabled = !explicitlyDisabled && parsedEnabled && !invalidEndpoint
         };
     }

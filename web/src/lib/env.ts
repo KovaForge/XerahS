@@ -95,8 +95,7 @@ export function assertProductionConfiguration(): void {
   ];
   const missing = required.filter((name) => !env[name]);
   const origin = new URL(env.APP_ORIGIN);
-  const expectedHost =
-    env.APP_ENV === "production" ? "xerahs.com" : "staging.xerahs.com";
+  const expectedHost = "cloud.xerahs.com";
   const invalidMode =
     (env.APP_ENV === "production" && !env.STRIPE_EXPECT_LIVEMODE) ||
     (env.APP_ENV === "staging" && env.STRIPE_EXPECT_LIVEMODE);

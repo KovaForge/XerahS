@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: Owner-only API for XIP0085. Auth is a Supabase browser session cookie or desktop bearer token.
 servers:
-  - url: https://xerahs.com
+  - url: https://cloud.xerahs.com
 security:
   - bearerAuth: []
 paths:

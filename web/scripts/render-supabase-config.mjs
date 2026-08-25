@@ -3,12 +3,9 @@ import { readFile, writeFile } from "node:fs/promises";
 
 const environment = process.env.APP_ENV;
 const origin = new URL(process.env.APP_ORIGIN ?? "");
-const expectedHost =
-  environment === "production"
-    ? "xerahs.com"
-    : environment === "staging"
-      ? "staging.xerahs.com"
-      : null;
+const expectedHost = ["staging", "production"].includes(environment)
+  ? "cloud.xerahs.com"
+  : null;
 assert(expectedHost, "APP_ENV must be staging or production.");
 assert(
   origin.protocol === "https:" &&
