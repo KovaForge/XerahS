@@ -17,6 +17,42 @@ interface CalendarCount {
   count: number;
 }
 
+function GalleryPreview({ item }: { item: GalleryItem }) {
+  const sources = [
+    item.thumbnailUrl,
+    item.kind === "screenshot" ? item.url : null,
+  ].filter(
+    (source, index, values): source is string =>
+      Boolean(source) && values.indexOf(source) === index,
+  );
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const source = sources[sourceIndex];
+
+  if (!source) {
+    return (
+      <span aria-hidden="true" className="placeholder">
+        {item.kind === "screenshot" ? "▧" : "▶"}
+      </span>
+    );
+  }
+
+  return (
+    <>
+      {/* Fetch owner media in the viewer's browser. Server-side optimization would proxy untrusted URLs. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        alt=""
+        decoding="async"
+        fetchPriority="low"
+        loading="lazy"
+        onError={() => setSourceIndex((index) => index + 1)}
+        referrerPolicy="no-referrer"
+        src={source}
+      />
+    </>
+  );
+}
+
 export function Gallery({
   initialItems,
   initialNextCursor,
@@ -216,22 +252,7 @@ export function Gallery({
                   target="_blank"
                   aria-label={`Open ${item.title}`}
                 >
-                  {item.thumbnailUrl ? (
-                    <>
-                      {/* Remote owner media must bypass Next image optimization to prevent server-side fetching. */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        alt=""
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                        src={item.thumbnailUrl}
-                      />
-                    </>
-                  ) : (
-                    <span aria-hidden="true" className="placeholder">
-                      {item.kind === "screenshot" ? "▧" : "▶"}
-                    </span>
-                  )}
+                  <GalleryPreview item={item} />
                 </a>
                 <div className="tile-body">
                   <h2 className="tile-title">{item.title}</h2>
