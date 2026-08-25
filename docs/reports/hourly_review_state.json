@@ -2434,7 +2434,7 @@
       "agent": "nadia",
       "outcome": "ok",
       "item": "xerahs-review producer queue",
-      "commit": "PENDING",
+      "commit": "9f0e17dd26283ae0408805ac5aa656749bf92bdc",
       "summary": "Daily cron run at 2026-08-25 23:05 AWST (TS=20260825-230510). Fork sync: FF-merged nadia/develop (49336924f..c60d27b29) — 4 commits (v0.28.2 release + 4 Fix PRs: Preview gallery screenshots, Migrate cloud hosting to canonical domain, Recover revoked cloud sessions, Prevent gallery action overflow). Upstream sync: upstream/develop == HEAD (no merge; KovaForge at v0.28.2, ShareX upstream still on v0.25.6-era). Submodule sync: ShareX.ImageEditor HEAD == upstream tip == origin/develop (d4f4029b654c259315c5bd48d212dcb76ea10d31). Clawpatch review: ran 20260825T150600-ef2922 with --limit 3 features (XerahS.Core/Helpers, XerahS.Uploaders/BaseUploaders, XerahS.Platform.Windows/Properties); 3 findings returned, full report 133 findings (3 new vs 20260824T150337-d227e8 130). Step 5.5 ingest over 3 newest reports parsed 326 findings: 190 gate drops (124 risk, 45 contract-mismatch, 12 docs-gap, 9 test-gap), 0 submodule drops, 3 already-fixed (area-level), 87 recently-fixed (release-history), 45 recently-pivoted. 1 ingested: CaptureDebugHelper.cs:50 (return string.Empty;) — high/confirmed-bug, XerahS.Core/Helpers feature, evidence:50-54 empty-string fallback masks invalid input. next_candidates: 0 -> 1 (+1). Consumer drain at 00:06 AWST will see this single item.",
       "status": "ok",
       "clawpatch_report": "20260825T150600-ef2922.md"
