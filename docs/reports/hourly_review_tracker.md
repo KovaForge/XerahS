@@ -5901,3 +5901,14 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: none (drain only; audit row deferred per v1.1.13)
 - Follow-up: do not re-queue unless source regresses; producer ingest skipped via recently_pivoted seed
+
+### 2026-08-26 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json
+- Findings: Step 5a found zero candidates; deleted stale deferred-last-runs-20260826-000533.json per v1.1.16
+- Status: no-op
+- Build/test: n/a
+- Commit: none (empty-queue audit; last_runs[].commit left null)
+- Follow-up: await producer ingest of fresh next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.25 unchanged (no efficiency blockers this run)
