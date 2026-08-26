@@ -5923,3 +5923,45 @@ Added candidates (8):
 - Commit: none (audit only; SHA in Step 9 summary)
 - Follow-up: wait for next xerahs-review clawpatch ingest
 - Skill: xerahs-bugfix/SKILL.md v1.1.26 unchanged (no efficiency blockers)
+
+### 2026-08-26 23:04 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3 (20260826T150257-4b03b2.md, 20260825T150600-ef2922.md, 20260824T150337-d227e8.md)
+- Submodule-prefix drops: 67
+- Findings dropped at severity gate: 194
+  - triage=risk: 126
+  - triage=contract-mismatch: 47
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 81
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - ... and 71 more
+- Skipped as duplicate of existing next_candidates: 0
+- Skipped as recently-pivoted: 53
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-08-26 23:04 AWST - xerahs-review producer run (Nadia)
+
+- TS: `20260826-230213`
+- Status: no-op (0 new candidates ingested)
+- Fork sync: nadia/develop == HEAD (8d35db0e7) — no FF needed
+- Upstream sync: upstream/develop == HEAD (KovaForge ahead at v0.28.2)
+- Submodule sync: ShareX.ImageEditor HEAD == origin/develop (`d4f4029b654c259315c5bd48d212dcb76ea10d31`) — clean, no push needed
+- Clawpatch review: ran `20260826T150257-4b03b2` with `--limit 3` (3 features: XerahS.UI/Properties, ShareX.ImageEditor/Core/Abstractions, ShareX.AmazonS3.Plugin); 2 findings in summary, 135 in full report (vs `20260825T150600-ef2922` 133)
+- Ingest: 0 added — `next_candidates` 0 -> 0 (+0)
+- Drops: 67 submodule-prefix, 194 severity gate (126 risk, 47 contract-mismatch, 12 docs-gap, 9 test-gap), 3 already-fixed (ImmichUploader.cs:220-233), 81 recently-fixed (release-history), 53 recently-pivoted
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this 0-item queue — expect another no-op audit row
