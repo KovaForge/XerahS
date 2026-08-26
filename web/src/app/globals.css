@@ -104,6 +104,13 @@ label {
   align-items: center;
   gap: 0.75rem;
 }
+.session-status,
+.session-summary {
+  color: var(--muted);
+}
+.session-status {
+  white-space: nowrap;
+}
 .main {
   padding: 2rem 0 5rem;
 }
@@ -188,10 +195,7 @@ h2 {
 }
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fill,
-    minmax(min(100%, 17rem), 1fr)
-  );
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
   gap: 1rem;
 }
 .tile {

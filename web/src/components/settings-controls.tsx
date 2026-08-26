@@ -44,9 +44,16 @@ export function SettingsControls({ strongAuth, trialStatus }: Props) {
 
   async function signOut(scope: "local" | "global") {
     setBusy(true);
-    await createSupabaseBrowserClient().auth.signOut({ scope });
-    router.push("/");
-    router.refresh();
+    setMessage("");
+    const { error } = await createSupabaseBrowserClient().auth.signOut({
+      scope,
+    });
+    if (error) {
+      setBusy(false);
+      setMessage(error.message);
+      return;
+    }
+    location.replace("/");
   }
 
   async function exportAccount() {

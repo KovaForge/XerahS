@@ -57,3 +57,11 @@ export function applyNoStore(headers: Headers): void {
   headers.set("Pragma", "no-cache");
   headers.append("Vary", "Cookie, Authorization");
 }
+
+export function isPersonalizedPath(pathname: string): boolean {
+  return (
+    pathname === "/" ||
+    /^\/(?:api|auth|oauth|settings)(?:\/|$)/.test(pathname) ||
+    /^\/[^/]+\/?$/.test(pathname)
+  );
+}

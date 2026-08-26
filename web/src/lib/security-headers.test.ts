@@ -4,6 +4,7 @@ import {
   applyNoStore,
   applySecurityHeaders,
   contentSecurityPolicy,
+  isPersonalizedPath,
 } from "@/lib/security-headers";
 
 describe("security headers", () => {
@@ -40,5 +41,13 @@ describe("security headers", () => {
     expect(headers.get("content-security-policy-report-only")).toContain(
       "nonce-abc",
     );
+  });
+
+  it("prevents caching every route that can render account state", () => {
+    expect(isPersonalizedPath("/")).toBe(true);
+    expect(isPersonalizedPath("/auth")).toBe(true);
+    expect(isPersonalizedPath("/settings")).toBe(true);
+    expect(isPersonalizedPath("/owner-profile")).toBe(true);
+    expect(isPersonalizedPath("/nested/static-route")).toBe(false);
   });
 });

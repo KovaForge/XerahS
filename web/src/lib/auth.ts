@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { ApiError } from "@/lib/errors";
 import { bearerAccessToken } from "@/lib/request";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -11,6 +13,21 @@ export interface AuthenticatedUser {
   sessionId: string | null;
   authenticatedAt: Date | null;
 }
+
+export const getOptionalAuthenticatedUser = cache(async function () {
+  try {
+    return await requireAuthenticatedUser();
+  } catch (error) {
+    if (
+      error instanceof ApiError &&
+      error.status === 401 &&
+      error.code === "authentication_required"
+    ) {
+      return null;
+    }
+    throw error;
+  }
+});
 
 interface AuthRequirements {
   strong?: boolean;

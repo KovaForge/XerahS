@@ -1,6 +1,11 @@
 import Link from "next/link";
 
-export default function HomePage() {
+import { getOptionalAuthenticatedUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const user = await getOptionalAuthenticatedUser();
   return (
     <section className="hero">
       <div>
@@ -11,9 +16,10 @@ export default function HomePage() {
           screencasts you explicitly publish from XerahS. Your original files
           remain with your chosen destination.
         </p>
+        {user && <p className="session-summary">Signed in as {user.email}</p>}
         <div className="actions">
-          <Link className="button primary" href="/auth">
-            Sign in
+          <Link className="button primary" href={user ? "/settings" : "/auth"}>
+            {user ? "Open your account" : "Sign in"}
           </Link>
           <a
             className="button"

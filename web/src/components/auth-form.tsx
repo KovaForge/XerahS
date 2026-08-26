@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export function AuthForm({ next = "/settings" }: { next?: string }) {
-  const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -42,8 +40,10 @@ export function AuthForm({ next = "/settings" }: { next?: string }) {
       setMessage("Check your email to verify your account, then sign in.");
       return;
     }
-    router.push(next);
-    router.refresh();
+    // Start a fresh document request after the browser client writes the auth
+    // cookie. This avoids serving prefetched anonymous React Server Component
+    // data immediately after sign-in.
+    location.replace(next);
   }
 
   return (

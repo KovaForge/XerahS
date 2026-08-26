@@ -1,7 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { applyNoStore, applySecurityHeaders } from "@/lib/security-headers";
+import {
+  applyNoStore,
+  applySecurityHeaders,
+  isPersonalizedPath,
+} from "@/lib/security-headers";
 
 function nonce(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(18));
@@ -43,10 +47,7 @@ export async function proxy(request: NextRequest) {
       supabaseUrl,
       process.env.APP_ENV === "production",
     );
-  if (
-    /^\/(?:api|auth|oauth|settings)(?:\/|$)/.test(request.nextUrl.pathname) ||
-    /^\/[^/]+\/?$/.test(request.nextUrl.pathname)
-  ) {
+  if (isPersonalizedPath(request.nextUrl.pathname)) {
     applyNoStore(response.headers);
   }
   return response;
