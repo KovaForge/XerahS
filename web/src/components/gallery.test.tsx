@@ -89,9 +89,7 @@ describe("gallery previews", () => {
     );
 
     const image = container.querySelector("img");
-    expect(image?.getAttribute("src")).toBe(
-      "https://thumbs.example/item.png",
-    );
+    expect(image?.getAttribute("src")).toBe("https://thumbs.example/item.png");
     fireEvent.error(image!);
     expect(container.querySelector("img")?.getAttribute("src")).toBe(
       screenshot.url,
