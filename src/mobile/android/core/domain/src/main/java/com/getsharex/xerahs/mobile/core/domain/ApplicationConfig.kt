@@ -34,7 +34,9 @@ data class ApplicationConfig(
     /** Convert HEIC/HEIF images to PNG before upload so they display in browsers instead of prompting download. */
     var convertHeicToPng: Boolean = true,
     /** User has acknowledged that uploads send selected files to their configured third-party destination. */
-    var firstUploadWarningAccepted: Boolean = false
+    var firstUploadWarningAccepted: Boolean = false,
+    /** Publish eligible image/video destination URLs to XerahS Cloud after upload. */
+    var cloudAutoPublish: Boolean = false
 )
 
 data class S3Config(

@@ -27,6 +27,10 @@ import com.getsharex.xerahs.mobile.core.data.HistoryRepository
 import com.getsharex.xerahs.mobile.core.data.QueueRepository
 import com.getsharex.xerahs.mobile.core.data.SettingsRepository
 import com.getsharex.xerahs.mobile.core.data.UploadQueueWorker
+import com.getsharex.xerahs.mobile.core.data.cloud.CloudApiClient
+import com.getsharex.xerahs.mobile.core.data.cloud.CloudCredentialStore
+import com.getsharex.xerahs.mobile.core.data.cloud.CloudOAuthManager
+import com.getsharex.xerahs.mobile.core.data.cloud.CloudRepository
 import java.io.File
 
 private const val MAX_CACHE_FILE_AGE_MILLIS = 24L * 60L * 60L * 1000L
@@ -42,8 +46,13 @@ class XerahSApplication : Application() {
     val settingsRepository: SettingsRepository by lazy { SettingsRepository() }
     val historyRepository: HistoryRepository by lazy { HistoryRepository() }
     val queueRepository: QueueRepository by lazy { QueueRepository() }
+    val cloudApiClient: CloudApiClient by lazy { CloudApiClient(CloudCredentialStore(this)) }
+    val cloudOAuthManager: CloudOAuthManager by lazy { CloudOAuthManager(cloudApiClient) }
+    val cloudRepository: CloudRepository by lazy {
+        CloudRepository(cloudApiClient, cloudOAuthManager, historyRepository)
+    }
     val uploadQueueWorker: UploadQueueWorker by lazy {
-        UploadQueueWorker(settingsRepository, queueRepository, historyRepository)
+        UploadQueueWorker(settingsRepository, queueRepository, historyRepository, cloudRepository)
     }
 
     /** Paths from share intent (or other) to process when Upload screen is ready. Cleared after consumed. */

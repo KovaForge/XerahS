@@ -24,6 +24,7 @@ package com.getsharex.xerahs.mobile.core.data
 import com.getsharex.xerahs.mobile.core.data.upload.CustomUploader
 import com.getsharex.xerahs.mobile.core.data.upload.S3Uploader
 import com.getsharex.xerahs.mobile.core.data.upload.UploadOutcome
+import com.getsharex.xerahs.mobile.core.data.cloud.CloudRepository
 import com.getsharex.xerahs.mobile.core.domain.UploadResultItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +47,7 @@ class UploadQueueWorker(
     private val settingsRepository: SettingsRepository,
     private val queueRepository: QueueRepository,
     private val historyRepository: HistoryRepository,
+    private val cloudRepository: CloudRepository? = null,
     private val s3Uploader: S3Uploader = S3Uploader(),
     private val customUploader: CustomUploader = CustomUploader()
 ) {
@@ -68,13 +70,16 @@ class UploadQueueWorker(
                 val result = uploadOne(item.filePath)
                 val resultUrl = result.url
                 if (result.success && resultUrl != null) {
-                    historyRepository.insertEntry(
+                    val historyId = historyRepository.insertEntry(
                         fileName = fileName,
                         filePath = item.filePath,
                         type = "File",
-                        host = "upload",
+                        host = runCatching { java.net.URI(resultUrl).host }.getOrNull().orEmpty().ifBlank { "upload" },
                         url = resultUrl
                     )
+                    if (historyId >= 0 && settingsRepository.getCloudAutoPublish() && cloudRepository?.apiClient?.hasCredential == true) {
+                        cloudRepository.publishUploaded(historyId, fileName, item.filePath, resultUrl)
+                    }
                 }
                 _itemCompleted.emit(result)
             }

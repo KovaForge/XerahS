@@ -24,6 +24,8 @@ package com.getsharex.xerahs.mobile.navigation
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -58,6 +60,8 @@ import com.getsharex.xerahs.mobile.feature.settings.AboutScreen
 import com.getsharex.xerahs.mobile.feature.settings.SettingsHubScreen
 import com.getsharex.xerahs.mobile.feature.settings.S3ConfigScreen
 import com.getsharex.xerahs.mobile.feature.settings.CustomUploaderConfigScreen
+import com.getsharex.xerahs.mobile.feature.history.CloudHistoryScreen
+import com.getsharex.xerahs.mobile.core.data.cloud.CLOUD_SETTINGS_URL
 import com.getsharex.xerahs.mobile.core.domain.UploadResultItem
 
 @Composable
@@ -151,7 +155,8 @@ fun XerahSNavGraph(
                     onAutoShareUploadFinished = onAutoShareUploadFinished,
                     initialPaths = pending,
                     historyRepository = app.historyRepository,
-                    settingsRepository = app.settingsRepository
+                    settingsRepository = app.settingsRepository,
+                    cloudRepository = app.cloudRepository
                 )
             } else {
                 PlaceholderUploadScreen()
@@ -165,6 +170,10 @@ fun XerahSNavGraph(
                     onBack = null,
                     onNavigateToS3 = { navController.navigate(Screen.S3Config.route) },
                     onNavigateToCustomUploader = { navController.navigate(Screen.CustomUploaderConfig.route) },
+                    cloudRepository = app.cloudRepository,
+                    onStartCloudSignIn = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
+                    onOpenCloudSettings = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(CLOUD_SETTINGS_URL))) },
+                    onNavigateCloudHistory = { navController.navigate(Screen.CloudHistory.route) },
                     onRefresh = { }
                 )
             } else {
@@ -182,6 +191,19 @@ fun XerahSNavGraph(
                 settingsRepository = app?.settingsRepository,
                 onBack = { navController.popBackStack() }
             )
+        }
+        composable(Screen.CloudHistory.route) {
+            val cloudRepository = app?.cloudRepository
+            if (cloudRepository != null) {
+                CloudHistoryScreen(
+                    repository = cloudRepository,
+                    onBack = { navController.popBackStack() },
+                    onOpenUrl = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
+                    onCopyUrl = onCopyToClipboard
+                )
+            } else {
+                Text("XerahS Cloud is unavailable.")
+            }
         }
         composable(Screen.About.route) {
             AboutScreen(onBack = null)

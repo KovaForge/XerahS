@@ -101,6 +101,12 @@ class SettingsRepository(
         save(c.copy(firstUploadWarningAccepted = value))
     }
 
+    fun getCloudAutoPublish(): Boolean = load().cloudAutoPublish
+    fun setCloudAutoPublish(value: Boolean) {
+        val c = load()
+        save(c.copy(cloudAutoPublish = value))
+    }
+
     private fun writeConfig(config: ApplicationConfig, file: File) {
         Paths.settingsFolder?.mkdirs()
         file.writeText(gson.toJson(config))

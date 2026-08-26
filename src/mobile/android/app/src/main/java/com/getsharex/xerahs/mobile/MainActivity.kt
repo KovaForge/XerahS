@@ -27,6 +27,7 @@ import android.os.Bundle
 import android.text.InputType
 import android.widget.EditText
 import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -46,6 +47,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.launch
 
 private const val MAX_REMOTE_SXCU_BYTES = 1024L * 1024L
 private const val MAX_REMOTE_SXCU_REDIRECTS = 5
@@ -84,6 +86,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleShareIntent(intent: Intent?) {
+        if (handleCloudOAuthCallback(intent)) return
         if (handleXerahsDeepLink(intent)) return
 
         val paths = ShareIntentHandler.handleIntent(this, intent) ?: return
@@ -108,6 +111,25 @@ class MainActivity : ComponentActivity() {
         }
 
         enqueueUploadPathsWithConsent(app, uploadPaths)
+    }
+
+    private fun handleCloudOAuthCallback(intent: Intent?): Boolean {
+        val uri = intent?.data ?: return false
+        if (!uri.scheme.equals("xerahs", ignoreCase = true) ||
+            !uri.host.equals("oauth", ignoreCase = true) || uri.path != "/callback") return false
+        val app = application as? XerahSApplication ?: return true
+        // Do not retain authorization codes in the Activity intent or replay them after recreation.
+        setIntent(Intent(Intent.ACTION_MAIN))
+        lifecycleScope.launch {
+            try {
+                app.cloudRepository.completeOAuth(uri)
+                Toast.makeText(this@MainActivity, "Signed in to XerahS Cloud.", Toast.LENGTH_LONG).show()
+                app.navController?.navigate(Screen.Settings.route) { launchSingleTop = true }
+            } catch (error: Exception) {
+                Toast.makeText(this@MainActivity, error.message ?: "XerahS Cloud sign-in failed.", Toast.LENGTH_LONG).show()
+            }
+        }
+        return true
     }
 
     private fun handleXerahsDeepLink(intent: Intent?): Boolean {
