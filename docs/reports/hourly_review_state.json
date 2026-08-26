@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-26 08:06 AWST",
+  "last_updated": "2026-08-26 16:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2444,6 +2444,15 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a found zero candidates; deleted stale /tmp/xerahs-bugfix/deferred-last-runs-20260826-000533.json per v1.1.16"
+    },
+    {
+      "ts": "2026-08-26 16:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero next_candidates (queue size 0). Fork already at 1acfce634 (HEAD == declan/develop == origin/develop). Upstream already up to date (KovaForge at/ahead of upstream d807a49). ShareX.ImageEditor pointer clean at d4f4029. No deferred last_runs files present. Producer last ingest 2026-08-25 23:06 AWST (Nadia). Working tree has unrelated src/mobile WIP left unstaged.",
+      "status": "no-op"
     }
   ],
   "last_run_outcome": "no-op",
