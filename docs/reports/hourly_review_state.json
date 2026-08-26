@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-26 23:04 AWST",
+  "last_updated": "2026-08-27 00:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2461,9 +2461,17 @@
       "item": "xerahs-review producer queue",
       "commit": "e13039b546067007569b9db3c5f28856fc518e36",
       "summary": "Daily producer tick at 2026-08-26 23:04 AWST (TS=20260826-230213). Fork sync: nadia/develop == HEAD (8d35db0e7) — no local fast-forward needed. Upstream sync: upstream/develop == HEAD (KovaForge ahead at v0.28.2). Submodule sync: ShareX.ImageEditor HEAD == origin/develop (d4f4029) — clean. Clawpatch review: ran 20260826T150257-4b03b2 with --limit 3 (3 features: XerahS.UI/Properties, ShareX.ImageEditor/Core/Abstractions, ShareX.AmazonS3.Plugin); 2 findings in summary, 135 in full report. Ingest: 0 added (next_candidates 0 -> 0). Drops: 67 submodule-prefix, 194 severity gate (126 risk, 47 contract-mismatch, 12 docs-gap, 9 test-gap), 3 already-fixed (ImmichUploader.cs:220-233), 81 recently-fixed (release-history), 53 recently-pivoted. Consumer (Declan) continues to drain empty queue; clawpatch surface has shrunk to all-stale."
+    },
+    {
+      "ts": "2026-08-27 00:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; recently_pivoted=31; producer tick e13039b54 added 0; deferred last_runs files none"
     }
   ],
-  "last_run_outcome": "no-op (0 added to next_candidates; all clawpatch signals stale or already-shipped)",
+  "last_run_outcome": "no-op",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",

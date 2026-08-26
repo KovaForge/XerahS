@@ -5965,3 +5965,14 @@ Added candidates (8):
 - Ingest: 0 added — `next_candidates` 0 -> 0 (+0)
 - Drops: 67 submodule-prefix, 194 severity gate (126 risk, 47 contract-mismatch, 12 docs-gap, 9 test-gap), 3 already-fixed (ImmichUploader.cs:220-233), 81 recently-fixed (release-history), 53 recently-pivoted
 - Follow-up: 00:06 AWST consumer drain (Declan) will read this 0-item queue — expect another no-op audit row
+
+### 2026-08-27 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json
+- Findings: Step 5a categoriser found 0 candidates; producer tick e13039b54 ingested 0; recently_pivoted=31; deferred last_runs files none
+- Status: no-op (empty queue)
+- Build/test: n/a
+- Commit: none (leave last_runs.commit null; SHA in Step 9 summary only)
+- Follow-up: do not re-queue unless source regresses; producer nadia-daily ran 23:04 AWST
+- Skill: xerahs-bugfix/SKILL.md v1.1.26 — no patch this tick
