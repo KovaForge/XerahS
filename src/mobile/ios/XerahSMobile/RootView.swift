@@ -32,6 +32,7 @@ private enum AppPhase {
 
 private enum AppTab: Hashable {
     case home
+    case cloud
     case settings
 }
 
@@ -185,7 +186,7 @@ struct RootView: View {
             .tag(AppTab.home)
 
             NavigationStack(path: $settingsPath) {
-                SettingsHubScreen(settingsRepository: appState.settingsRepository)
+                SettingsHubScreen(settingsRepository: appState.settingsRepository, cloudClient: appState.cloudClient)
                     .navigationDestination(for: Screen.self) { screen in
                         settingsDestination(for: screen)
                     }
@@ -194,6 +195,14 @@ struct RootView: View {
                 Label("Settings", systemImage: "gearshape")
             }
             .tag(AppTab.settings)
+
+            NavigationStack {
+                XerahSCloudHistoryScreen(client: appState.cloudClient)
+            }
+            .tabItem {
+                Label("Cloud", systemImage: "cloud")
+            }
+            .tag(AppTab.cloud)
         }
     }
 

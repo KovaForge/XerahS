@@ -28,6 +28,7 @@ struct HistoryEntryRow: View {
     let entry: HistoryEntry
     var onCopyUrl: () -> Void
     var onDelete: () -> Void
+    var onRetryCloudPublish: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -55,6 +56,11 @@ struct HistoryEntryRow: View {
                 }
                 Button(role: .destructive, action: onDelete) {
                     Label("Delete", systemImage: "trash")
+                }
+                if entry.tags["XerahSCloudPublishState"] ?? nil == "failed", let onRetryCloudPublish {
+                    Button(action: onRetryCloudPublish) {
+                        Label("Retry Cloud", systemImage: "arrow.clockwise.icloud")
+                    }
                 }
             }
             .buttonStyle(.borderless)

@@ -26,6 +26,7 @@ import SwiftUI
 
 struct SettingsHubScreen: View {
     let settingsRepository: SettingsRepository
+    let cloudClient: XerahSCloudClient
 
     @State private var config: ApplicationConfig = ApplicationConfig()
     @State private var convertHeicToPng: Bool = true
@@ -33,6 +34,10 @@ struct SettingsHubScreen: View {
 
     var body: some View {
         Form {
+            Section("XerahS Cloud") {
+                XerahSCloudSettingsView(client: cloudClient)
+            }
+
             Section {
                 activeDestinationSection
             } header: {

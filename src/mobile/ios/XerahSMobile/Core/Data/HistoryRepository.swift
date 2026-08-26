@@ -179,4 +179,18 @@ final class HistoryRepository {
             return sqlite3_last_insert_rowid(db)
         }
     }
+
+    func updateTags(id: Int64, tags: [String: String?]) -> Bool {
+        queue.sync {
+            guard let db = openDb() else { return false }
+            defer { sqlite3_close(db) }
+            let tagsJson = (try? encoder.encode(tags)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+            var stmt: OpaquePointer?
+            guard sqlite3_prepare_v2(db, "UPDATE History SET Tags = ? WHERE Id = ?", -1, &stmt, nil) == SQLITE_OK else { return false }
+            defer { sqlite3_finalize(stmt) }
+            sqlite3_bind_text(stmt, 1, (tagsJson as NSString).utf8String, -1, nil)
+            sqlite3_bind_int64(stmt, 2, id)
+            return sqlite3_step(stmt) == SQLITE_DONE && sqlite3_changes(db) > 0
+        }
+    }
 }

@@ -64,15 +64,18 @@ struct XerahSMobileApp: App {
         let settingsRepo = SettingsRepository()
         let queueRepo = QueueRepository()
         let historyRepo = HistoryRepository()
+        let cloudClient = XerahSCloudClient()
         let worker = UploadQueueWorker(
             settingsRepository: settingsRepo,
             queueRepository: queueRepo,
-            historyRepository: historyRepo
+            historyRepository: historyRepo,
+            cloudClient: cloudClient
         )
         return AppState(
             settingsRepository: settingsRepo,
             historyRepository: historyRepo,
-            uploadQueueWorker: worker
+            uploadQueueWorker: worker,
+            cloudClient: cloudClient
         )
     }()
 
