@@ -9,6 +9,7 @@
 #endregion License Information (GPL v3)
 
 using System.Reflection;
+using System.Runtime.Versioning;
 
 namespace XerahS.CLI.Commands;
 
@@ -55,6 +56,7 @@ public static class CloudProtocolBinding
         }
     }
 
+    [SupportedOSPlatform("windows")]
     private sealed class WindowsBinding : IDisposable
     {
         private readonly string? _previous;
