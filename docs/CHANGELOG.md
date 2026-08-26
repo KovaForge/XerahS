@@ -10,6 +10,13 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.28.2
+
+### Features
+- **After Capture**: Choose Copy Image, Copy File Path, or Copy URL as the goal. Required flags (save, upload, clipboard) are selected automatically; non-conflicting extras such as save, annotate, OCR, and URL follow-ups stay optional.
+
+---
+
 ## v0.28.1
 
 ### Features
