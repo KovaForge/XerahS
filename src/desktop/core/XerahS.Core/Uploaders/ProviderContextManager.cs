@@ -68,7 +68,7 @@ public static class ProviderContextManager
         }
     }
 
-    private sealed class CoreProviderContext : IProviderContext
+    private sealed class CoreProviderContext : IDestinationHost
     {
         public CoreProviderContext(ISecretStore secrets)
         {

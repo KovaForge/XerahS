@@ -521,7 +521,7 @@ namespace XerahS.Core.Tasks.Processors
                     Category = category,
                     CorrelationId = info.CorrelationId,
                     Progress = progress,
-                    Host = ProviderCatalog.GetProviderContext()
+                    Host = ProviderCatalog.GetProviderContext() as IDestinationHost
                 };
 
                 UploadOutcome outcome = await UploaderUploadAdapter.UploadAsync(uploader, request, token).ConfigureAwait(false);

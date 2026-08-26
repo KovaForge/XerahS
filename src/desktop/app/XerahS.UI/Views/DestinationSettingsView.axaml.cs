@@ -43,7 +43,14 @@ namespace XerahS.UI.Views
             {
                 if (DataContext is ViewModels.DestinationSettingsViewModel vm)
                 {
-                    await vm.Initialize();
+                    try
+                    {
+                        await vm.Initialize();
+                    }
+                    catch (Exception ex)
+                    {
+                        XerahS.Common.DebugHelper.WriteException(ex, "Destination Settings failed to initialize");
+                    }
                 }
             };
 

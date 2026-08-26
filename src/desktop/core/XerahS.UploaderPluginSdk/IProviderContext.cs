@@ -25,6 +25,18 @@
 
 namespace XerahS.Uploaders.PluginSystem;
 
-public interface IProviderContext : IDestinationHost
+/// <summary>
+/// Host context passed into plugins. <see cref="Secrets"/> must stay declared on this
+/// interface so plugins compiled against SDK 1.0 keep resolving get_Secrets.
+/// </summary>
+public interface IProviderContext
 {
+    ISecretStore Secrets { get; }
+
+    HttpClient CreateHttpClient(bool allowAutoRedirect = true, bool infiniteTimeout = false)
+        => throw new NotSupportedException("This host does not provide HttpClient.");
+
+    void Log(string message)
+    {
+    }
 }

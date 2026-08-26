@@ -29,14 +29,6 @@ namespace XerahS.Uploaders.PluginSystem;
 /// Host services injected into destination plugins. Plugins should use this for HTTP and secrets
 /// instead of inheriting a shared upload engine.
 /// </summary>
-public interface IDestinationHost
+public interface IDestinationHost : IProviderContext
 {
-    ISecretStore Secrets { get; }
-
-    HttpClient CreateHttpClient(bool allowAutoRedirect = true, bool infiniteTimeout = false)
-        => throw new NotSupportedException("This host does not provide HttpClient.");
-
-    void Log(string message)
-    {
-    }
 }

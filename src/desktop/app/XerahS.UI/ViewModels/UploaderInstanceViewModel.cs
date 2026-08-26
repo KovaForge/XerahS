@@ -218,8 +218,17 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         {
             Common.DebugHelper.WriteLine($"[UploaderInstanceVM] Provider found: {provider.Name}");
 
-            ConfigViewModel = provider.CreateConfigViewModel();
-            ConfigView = provider.CreateConfigView();
+            try
+            {
+                ConfigViewModel = provider.CreateConfigViewModel();
+                ConfigView = provider.CreateConfigView();
+            }
+            catch (Exception ex)
+            {
+                Common.DebugHelper.WriteException(ex, $"Failed to create config UI for {ProviderId}");
+                ConfigViewModel = null;
+                ConfigView = null;
+            }
 
             if (ConfigViewModel == null && ConfigView == null)
             {
@@ -251,7 +260,14 @@ public partial class UploaderInstanceViewModel : ViewModelBase
                 var context = ProviderCatalog.GetProviderContext();
                 if (context != null)
                 {
-                    contextAware.SetContext(context);
+                    try
+                    {
+                        contextAware.SetContext(context);
+                    }
+                    catch (Exception ex)
+                    {
+                        Common.DebugHelper.WriteException(ex, $"Failed to apply provider context for {ProviderId}");
+                    }
                 }
             }
         }
@@ -265,13 +281,20 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         {
             Common.DebugHelper.WriteLine($"[UploaderInstanceVM] Loading settings from JSON for {ProviderId}");
 
-            if (ConfigViewModel is CustomUploaderEditorViewModel customUploaderConfigViewModel)
+            try
             {
-                customUploaderConfigViewModel.SetFallbackName(provider?.Name);
-                customUploaderConfigViewModel.IsNameReadOnly = true;
-            }
+                if (ConfigViewModel is CustomUploaderEditorViewModel customUploaderConfigViewModel)
+                {
+                    customUploaderConfigViewModel.SetFallbackName(provider?.Name);
+                    customUploaderConfigViewModel.IsNameReadOnly = true;
+                }
 
-            SynchronizeConfigViewModel(() => ConfigViewModel.LoadFromJson(SettingsJson));
+                SynchronizeConfigViewModel(() => ConfigViewModel.LoadFromJson(SettingsJson));
+            }
+            catch (Exception ex)
+            {
+                Common.DebugHelper.WriteException(ex, $"Failed to load settings JSON for {ProviderId}");
+            }
 
             if (ConfigViewModel is ObservableObject obs)
             {

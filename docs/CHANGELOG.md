@@ -15,6 +15,9 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 ### Features
 - **After Capture**: Choose Copy Image, Copy File Path, or Copy URL as the goal. Required flags (save, upload, clipboard) are selected automatically; non-conflicting extras such as save, annotate, OCR, and URL follow-ups stay optional.
 
+### Fixes
+- **Destinations**: Opening Destination Settings no longer crashes when a plugin compiled against the previous `IProviderContext` contract reads secrets (`MissingMethodException` on `get_Secrets`).
+
 ---
 
 ## v0.28.1

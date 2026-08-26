@@ -172,7 +172,16 @@ public partial class CategoryViewModel : ViewModelBase
             .OrderByDescending(instance => defaultInstance != null && instance.InstanceId == defaultInstance.InstanceId)
             .ThenByDescending(instance => instance.CreatedAt))
         {
-            var vm = new UploaderInstanceViewModel(instance);
+            UploaderInstanceViewModel vm;
+            try
+            {
+                vm = new UploaderInstanceViewModel(instance);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, $"Failed to load destination instance {instance.DisplayName} ({instance.ProviderId})");
+                continue;
+            }
 
             if (defaultInstance != null && instance.InstanceId == defaultInstance.InstanceId)
             {
