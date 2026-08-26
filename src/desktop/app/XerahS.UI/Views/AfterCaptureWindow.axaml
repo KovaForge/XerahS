@@ -45,6 +45,7 @@
     <Thickness x:Key="CardPaddingCompact">12</Thickness>
     <Thickness x:Key="ButtonPadding">16,8</Thickness>
     <Thickness x:Key="CheckBoxPadding">8,4</Thickness>
+    <Thickness x:Key="RadioPadding">8,6</Thickness>
     <Thickness x:Key="BorderThin">1</Thickness>
 
     <CornerRadius x:Key="CornerMd">8</CornerRadius>
@@ -95,6 +96,15 @@
       <Setter Property="Padding" Value="{StaticResource CheckBoxPadding}"/>
       <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
+    <Style Selector="CheckBox:disabled">
+      <Setter Property="Opacity" Value="0.75"/>
+    </Style>
+    <Style Selector="RadioButton">
+      <Setter Property="FontSize" Value="{StaticResource FontBody}"/>
+      <Setter Property="Padding" Value="{StaticResource RadioPadding}"/>
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+      <Setter Property="VerticalContentAlignment" Value="Top"/>
+    </Style>
   </Window.Styles>
 
   <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
@@ -105,9 +115,9 @@
     <!-- Header -->
     <Border Grid.Row="0" Classes="card" Padding="{StaticResource CardPadding}">
       <Grid RowDefinitions="Auto, Auto" RowSpacing="{StaticResource SpaceXS}">
-        <TextBlock Text="After capture tasks" Classes="title" AutomationProperties.Name="After Capture Title"/>
+        <TextBlock Text="After capture" Classes="title" AutomationProperties.Name="After Capture Title"/>
         <TextBlock Grid.Row="1"
-                   Text="Choose what happens to the image before you continue."
+                   Text="Choose what to put on the clipboard."
                    Classes="caption"
                    AutomationProperties.Name="After Capture Description"/>
       </Grid>
@@ -140,57 +150,107 @@
                     HorizontalAlignment="Stretch"
                     Background="{DynamicResource CardStrokeColorDefaultBrush}"/>
 
-      <!-- Tasks Column: MaxWidth keeps checklist compact so preview gets more space on wide windows -->
+      <!-- Goals Column -->
       <ScrollViewer Grid.Column="2"
                     VerticalScrollBarVisibility="Auto"
                     HorizontalScrollBarVisibility="Disabled"
                     MaxWidth="380">
         <StackPanel Spacing="{StaticResource SpaceL}">
           <StackPanel Spacing="{StaticResource SpaceXS}">
-            <TextBlock Text="After capture" Classes="section-header" AutomationProperties.Name="After Capture Heading"/>
-            <TextBlock Text="Run these actions immediately after the capture." Classes="caption" AutomationProperties.Name="After Capture Section Description"/>
+            <TextBlock Text="What do you want on the clipboard?" Classes="section-header" AutomationProperties.Name="Goal Heading"/>
+            <TextBlock Text="Required steps are selected from your goal. You can add extras that do not conflict." Classes="caption" AutomationProperties.Name="Goal Section Description"/>
+          </StackPanel>
+          <Border Classes="card" Padding="{StaticResource CardPadding}">
+            <StackPanel Spacing="{StaticResource SpaceM}">
+              <RadioButton GroupName="AfterCaptureGoal"
+                           IsChecked="{Binding IsCopyImageGoal}"
+                           AutomationProperties.Name="Copy Image">
+                <StackPanel Spacing="{StaticResource SpaceXS}">
+                  <TextBlock Text="Copy Image" FontWeight="SemiBold"/>
+                  <TextBlock Text="Puts the picture on the clipboard." Classes="caption"/>
+                </StackPanel>
+              </RadioButton>
+              <RadioButton GroupName="AfterCaptureGoal"
+                           IsChecked="{Binding IsCopyFilePathGoal}"
+                           AutomationProperties.Name="Copy File Path">
+                <StackPanel Spacing="{StaticResource SpaceXS}">
+                  <TextBlock Text="Copy File Path" FontWeight="SemiBold"/>
+                  <TextBlock Text="Saves the image, then copies the path." Classes="caption"/>
+                </StackPanel>
+              </RadioButton>
+              <RadioButton GroupName="AfterCaptureGoal"
+                           IsChecked="{Binding IsCopyUrlGoal}"
+                           AutomationProperties.Name="Copy URL">
+                <StackPanel Spacing="{StaticResource SpaceXS}">
+                  <TextBlock Text="Copy URL" FontWeight="SemiBold"/>
+                  <TextBlock Text="Uploads the image, then copies the link." Classes="caption"/>
+                </StackPanel>
+              </RadioButton>
+            </StackPanel>
+          </Border>
+
+          <StackPanel Spacing="{StaticResource SpaceXS}">
+            <TextBlock Text="Required for this goal" Classes="section-header" AutomationProperties.Name="Required Heading"/>
+            <TextBlock Text="These actions run so the selected goal can succeed." Classes="caption" AutomationProperties.Name="Required Section Description"/>
+          </StackPanel>
+          <Border Classes="card" Padding="{StaticResource CardPadding}">
+            <StackPanel Spacing="{StaticResource SpaceM}">
+              <CheckBox Content="Copy image to clipboard"
+                        IsChecked="{Binding CopyImageToClipboard}"
+                        IsEnabled="False"
+                        IsVisible="{Binding IsCopyImageGoal}"
+                        AutomationProperties.Name="Copy Image to Clipboard"/>
+              <CheckBox Content="Save image to file"
+                        IsChecked="{Binding SaveImageToFile}"
+                        IsEnabled="False"
+                        IsVisible="{Binding IsCopyFilePathGoal}"
+                        AutomationProperties.Name="Save Image to File Required"/>
+              <CheckBox Content="Copy file path to clipboard"
+                        IsChecked="{Binding CopyFilePathToClipboard}"
+                        IsEnabled="False"
+                        IsVisible="{Binding IsCopyFilePathGoal}"
+                        AutomationProperties.Name="Copy File Path to Clipboard"/>
+              <CheckBox Content="Upload image to host"
+                        IsChecked="{Binding UploadImageToHost}"
+                        IsEnabled="False"
+                        IsVisible="{Binding IsCopyUrlGoal}"
+                        AutomationProperties.Name="Upload Image to Host"/>
+              <CheckBox Content="Copy URL to clipboard"
+                        IsChecked="{Binding CopyURLToClipboard}"
+                        IsEnabled="False"
+                        IsVisible="{Binding IsCopyUrlGoal}"
+                        AutomationProperties.Name="Copy URL to Clipboard"/>
+            </StackPanel>
+          </Border>
+
+          <StackPanel Spacing="{StaticResource SpaceXS}">
+            <TextBlock Text="Also" Classes="section-header" AutomationProperties.Name="Optional Heading"/>
+            <TextBlock Text="Optional extras. Copy OCR text overwrites the clipboard." Classes="caption" AutomationProperties.Name="Optional Section Description"/>
           </StackPanel>
           <Border Classes="card" Padding="{StaticResource CardPadding}">
             <StackPanel Spacing="{StaticResource SpaceM}">
               <CheckBox Content="Save image to file"
                         IsChecked="{Binding SaveImageToFile}"
+                        IsVisible="{Binding ShowSaveImageOption}"
                         AutomationProperties.Name="Save Image to File"/>
-              <CheckBox Content="Copy image to clipboard"
-                        IsChecked="{Binding CopyImageToClipboard}"
-                        AutomationProperties.Name="Copy Image to Clipboard"/>
-              <CheckBox Content="Copy file path to clipboard"
-                        IsChecked="{Binding CopyFilePathToClipboard}"
-                        AutomationProperties.Name="Copy File Path to Clipboard"/>
               <CheckBox Content="Annotate media"
                         IsChecked="{Binding AnnotateMedia}"
                         AutomationProperties.Name="Annotate Media"/>
-              <CheckBox Content="Upload image to host"
-                        IsChecked="{Binding UploadImageToHost}"
-                        AutomationProperties.Name="Upload Image to Host"/>
               <CheckBox Content="Copy OCR text to clipboard"
                         IsChecked="{Binding CopyOcrTextToClipboard}"
                         AutomationProperties.Name="Copy OCR Text to Clipboard"/>
-            </StackPanel>
-          </Border>
-
-          <StackPanel Spacing="{StaticResource SpaceXS}">
-            <TextBlock Text="After upload" Classes="section-header" AutomationProperties.Name="After Upload Heading"/>
-            <TextBlock Text="Choose follow-up actions once the upload completes." Classes="caption" AutomationProperties.Name="After Upload Section Description"/>
-          </StackPanel>
-          <Border Classes="card" Padding="{StaticResource CardPadding}">
-            <StackPanel Spacing="{StaticResource SpaceM}">
-              <CheckBox Content="Show after upload window"
-                        IsChecked="{Binding ShowAfterUploadWindow}"
-                        AutomationProperties.Name="Show After Upload Window"/>
-              <CheckBox Content="Copy URL to clipboard"
-                        IsChecked="{Binding CopyURLToClipboard}"
-                        AutomationProperties.Name="Copy URL to Clipboard"/>
               <CheckBox Content="Use URL shortener"
                         IsChecked="{Binding UseURLShortener}"
+                        IsVisible="{Binding ShowUrlOptions}"
                         AutomationProperties.Name="Use URL Shortener"/>
               <CheckBox Content="Share URL"
                         IsChecked="{Binding ShareURL}"
+                        IsVisible="{Binding ShowUrlOptions}"
                         AutomationProperties.Name="Share URL"/>
+              <CheckBox Content="Show after upload window"
+                        IsChecked="{Binding ShowAfterUploadWindow}"
+                        IsVisible="{Binding ShowUrlOptions}"
+                        AutomationProperties.Name="Show After Upload Window"/>
             </StackPanel>
           </Border>
         </StackPanel>
@@ -199,21 +259,12 @@
 
     <!-- Action Bar -->
     <Border Grid.Row="2" Classes="card" Padding="{StaticResource CardPaddingCompact}">
-      <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="{StaticResource SpaceM}" VerticalAlignment="Center">
-        <StackPanel Orientation="Horizontal"
-                    Spacing="{StaticResource SpaceS}">
-          <Button Content="Copy image"
-                  Command="{Binding CopyImageCommand}"
-                  AutomationProperties.Name="Copy Image"/>
-          <Button Content="Copy file path"
-                  Command="{Binding CopyFilePathCommand}"
-                  AutomationProperties.Name="Copy File Path"/>
-        </StackPanel>
-        <TextBlock Grid.Column="1"
-                   Text="Quick actions finish the workflow without a notification."
+      <Grid ColumnDefinitions="*, Auto" ColumnSpacing="{StaticResource SpaceM}" VerticalAlignment="Center">
+        <TextBlock Text="Required steps stay locked to your goal."
                    Classes="caption"
+                   VerticalAlignment="Center"
                    AutomationProperties.Name="After Capture Footer Note"/>
-        <StackPanel Grid.Column="2"
+        <StackPanel Grid.Column="1"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="{StaticResource SpaceS}">

@@ -36,6 +36,15 @@ namespace XerahS.Tests.Uploaders;
 public sealed class DestinationContractTests
 {
     [Test]
+    public void IProviderContext_KeepsSecretsGetterForPluginAbi()
+    {
+        Assert.That(
+            typeof(IProviderContext).GetMethod("get_Secrets"),
+            Is.Not.Null,
+            "IProviderContext.get_Secrets must remain on this interface so existing plugins bind.");
+    }
+
+    [Test]
     public void Manifest_DeclaredCapabilities_AreAdditive()
     {
         PluginManifest manifest = new()
