@@ -2459,7 +2459,7 @@
       "agent": "nadia",
       "outcome": "no-op",
       "item": "xerahs-review producer queue",
-      "commit": "PENDING",
+      "commit": "e13039b546067007569b9db3c5f28856fc518e36",
       "summary": "Daily producer tick at 2026-08-26 23:04 AWST (TS=20260826-230213). Fork sync: nadia/develop == HEAD (8d35db0e7) — no local fast-forward needed. Upstream sync: upstream/develop == HEAD (KovaForge ahead at v0.28.2). Submodule sync: ShareX.ImageEditor HEAD == origin/develop (d4f4029) — clean. Clawpatch review: ran 20260826T150257-4b03b2 with --limit 3 (3 features: XerahS.UI/Properties, ShareX.ImageEditor/Core/Abstractions, ShareX.AmazonS3.Plugin); 2 findings in summary, 135 in full report. Ingest: 0 added (next_candidates 0 -> 0). Drops: 67 submodule-prefix, 194 severity gate (126 risk, 47 contract-mismatch, 12 docs-gap, 9 test-gap), 3 already-fixed (ImmichUploader.cs:220-233), 81 recently-fixed (release-history), 53 recently-pivoted. Consumer (Declan) continues to drain empty queue; clawpatch surface has shrunk to all-stale."
     }
   ],
