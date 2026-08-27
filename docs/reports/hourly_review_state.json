@@ -2493,7 +2493,7 @@
       "agent": "nadia",
       "outcome": "ok",
       "item": "xerahs-review producer queue",
-      "commit": null,
+      "commit": "65080e0e9a91703c73cc67c9db6749e8330ad708",
       "summary": "Step 5 clawpatch review (minimax/MiniMax-Text-01, limit 3 features) yielded 4 fresh findings across 3 features (Linux Services#2=1, Linux Capture/Kde=3, UI Auditing=0). v2.2.4 ingest: parsed 407 findings across 3 newest reports, 68 dropped as submodule-prefixed, 198 dropped at severity gate (risk=129, contract-mismatch=48, docs-gap=12, test-gap=9), 3 dropped as already-fixed (area-level dedupe: ImmichUploader.cs:220-233), 83 dropped as recently fixed in release history, 54 skipped as recently_pivoted, 0 skipped as duplicate. Ingested 1 high-signal candidate."
     }
   ],
