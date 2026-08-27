@@ -5998,3 +5998,57 @@ Added candidates (8):
 - Commit: none (leave last_runs.commit null; SHA in Step 9 summary only)
 - Follow-up: await producer ingest of fresh next_candidates
 - Skill: xerahs-bugfix/SKILL.md v1.1.26 — no patch this tick
+
+### 2026-08-27 23:07 AWST - clawpatch-ingest gate drops (skill v2.2.4)
+
+- Reports parsed: 3
+  - 20260827T150525-537062.md
+  - 20260826T150257-4b03b2.md
+  - 20260825T150600-ef2922.md
+- Findings dropped as submodule-prefixed: 68
+  - [bug/confirmed-bug] ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)
+  - [build-release/risk] ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4
+  - [data-loss/risk] ShareX.ImageEditor/src/ShareX.ImageEditor/Core/ImageEffects/Filters/RemoveBackgroundImageEffect.cs:54-232 (RemoveBackgro
+  - [build-release/risk] Directory.Packages.props:7-57 (PackageVersion)
+  - [api-contract/contract-mismatch] Directory.Packages.props:8-19
+  - [bug/confirmed-bug] ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagn
+  - [data-loss/confirmed-bug] ShareX.VideoEditor/backend/Core/ThumbnailExtractor.cs:96
+  - [maintainability/risk] Directory.Packages.props:4 (ManagePackageVersionsCentrally)
+  - [api-contract/contract-mismatch] Directory.Packages.props:40-42
+  - [api-contract/contract-mismatch] Directory.Packages.props:7-9
+  - ... and 58 more
+- Findings dropped at severity gate: 198
+  - triage=risk: 129
+  - triage=contract-mismatch: 48
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 83
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [security/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:160-201 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - ... and 73 more
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-08-27 23:07 AWST - xerahs-review producer run (Nadia)
+
+- Agent: nadia-valeva-kf (git-nadia wrapper; push remote: nadia)
+- Fork sync: nadia/develop at HEAD (9562fedd3); origin ahead 1 (consumer commit, not mine to push)
+- Upstream sync: clean (no new commits)
+- Submodule sync: ShareX.ImageEditor clean (no upstream/origin updates)
+- Clawpatch: minimax/MiniMax-Text-01, --limit 3 features; 4 findings (Linux Services#2=1, Linux Capture/Kde=3, UI Auditing=0)
+- v2.2.4 ingest: +1 candidate (KdeDbusScreenCapture.cs:134-135); submodule drops=68, gate drops=198, release-history drops=83, recently_pivoted=54, duplicate=0
+- next_candidates: 0 -> 1
+- Status: ok (1 new candidate ingested)
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
