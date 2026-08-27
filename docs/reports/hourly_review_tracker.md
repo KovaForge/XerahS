@@ -5987,3 +5987,14 @@ Added candidates (8):
 - Commit: none (leave last_runs.commit null; SHA in Step 9 summary only)
 - Follow-up: do not re-queue unless source regresses; producer last ingest 0 at 23:04 AWST
 - Skill: xerahs-bugfix/SKILL.md v1.1.26 — no patch this tick
+
+### 2026-08-27 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json
+- Findings: Step 5a categoriser found 0 candidates; producer last ingest 0 at 23:04 AWST; recently_pivoted=31; deferred last_runs files none; fork FF bb38aa320; submodule d4f4029b clean
+- Status: no-op (empty queue)
+- Build/test: n/a
+- Commit: none (leave last_runs.commit null; SHA in Step 9 summary only)
+- Follow-up: await producer ingest of fresh next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.26 — no patch this tick
