@@ -6052,3 +6052,14 @@ Added candidates (8):
 - next_candidates: 0 -> 1
 - Status: ok (1 new candidate ingested)
 - Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
+
+### 2026-08-28 00:10 AWST - Pivot / already-fixed
+
+- Area: src/platform/XerahS.Platform.Linux/Capture/Kde/KdeDbusScreenCapture.cs:134-135 (return bitmap;)
+- Files: (none — pivot, no code change)
+- Findings: false positive — KDE ScreenShot2 success path: return bitmap is the decoded capture; KdeDbusCaptureProvider.TryCaptureAsync already maps null to LinuxCaptureResult.Failure so the waterfall continues. Retry/user-toast is out of scope for this helper.
+- Status: Pivot (already-fixed / false-positive)
+- Build/test: n/a (pivot-only tick; last_runs delta +0, deferred 1 row)
+- Commit: none (drain only; tracker commit SHA in Step 9)
+- Follow-up: do not re-queue unless DecodeKdeRawBitmap starts returning a bitmap without mapping Failure at KdeDbusCaptureProvider
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 patched (1 new pitfall: Linux capture success-sentinel false positive)
