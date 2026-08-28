@@ -6084,3 +6084,15 @@ Added candidates (8):
 - Build/test: n/a (no code change)
 - Commit: none (empty-queue audit; last_runs commit left null per v1.1.12)
 - Follow-up: wait for next xerahs-review ingest
+
+### 2026-08-28 23:04 AWST - xerahs-review producer run (Nadia)
+
+- Agent: nadia-valeva-kf (git-nadia wrapper; push remote: nadia)
+- Fork sync: nadia/develop == HEAD (6b8a1d936) — no local fast-forward needed; origin ahead 1 (consumer commit, not mine to push)
+- Upstream sync: clean (no new commits; upstream/develop is ancestor of HEAD)
+- Submodule sync: ShareX.ImageEditor HEAD (651b1d8) == parent gitlink (clean, no upstream/origin updates)
+- Clawpatch: minimax/MiniMax-Text-01, --limit 3 features; 2 findings (XerahS.History=0, ShareX.ImageEditor/Core/Editor=2, XerahS.Services.Abstractions=0)
+- v2.2.4 ingest: +0 candidates (next_candidates: 0 -> 0); submodule drops=69, gate drops=202, area-fixed drops=3, release-history drops=85, recently_pivoted skipped=56, duplicate skipped=0
+- Status: no-op (no fresh high-signal findings to ingest; queue remains empty)
+- Follow-up: 00:06 AWST consumer drain (Declan) will read empty queue; next producer tick 23:00 AWST tomorrow
+
