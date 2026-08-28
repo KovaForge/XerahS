@@ -6063,3 +6063,14 @@ Added candidates (8):
 - Commit: none (drain only; tracker commit SHA in Step 9)
 - Follow-up: do not re-queue unless DecodeKdeRawBitmap starts returning a bitmap without mapping Failure at KdeDbusCaptureProvider
 - Skill: xerahs-bugfix/SKILL.md v1.1.27 patched (1 new pitfall: Linux capture success-sentinel false positive)
+
+### 2026-08-28 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser saw zero candidates; queue remains empty. Fork sync fast-forwarded local develop to a9a968ac0 ([v0.28.2] Preserve image editor toolbar tooltip descriptions). Upstream develop already at merge-base. ShareX.ImageEditor worktree fast-forwarded d4f4029 -> 651b1d8 to match recorded gitlink (no parent pointer bump). Deleted stale deferred-last-runs-20260828-001014.json (v1.1.16 consecutive no-op cleanup).
+- Status: no-op
+- Build/test: n/a (no code changes this tick)
+- Commit: none in last_runs (commit: null per v1.1.12; tracker SHA in Step 9 summary)
+- Follow-up: next Declan 8h tick; producer may ingest new clawpatch candidates
+- Skill: none (no efficiency blockers this run)
