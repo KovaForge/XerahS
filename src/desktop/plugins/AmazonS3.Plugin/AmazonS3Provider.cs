@@ -603,9 +603,9 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
             return (string.Empty, string.Empty, null);
         }
 
-        string ak = Secrets.GetSecret(ProviderId, config.SecretKey, "accessKeyId") ?? string.Empty;
-        string sk = Secrets.GetSecret(ProviderId, config.SecretKey, "secretAccessKey") ?? string.Empty;
-        return (ak, sk, null);
+        return S3CredentialSecrets.TryGetAccessKeyCredentials(Secrets, config, out string ak, out string sk)
+            ? (ak, sk, null)
+            : (string.Empty, string.Empty, null);
     }
 
     private AwsSsoStoredRoleCredentials? EnsureSsoRoleCredentials(S3ConfigModel config, bool refreshIfExpired)
@@ -616,9 +616,15 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         }
 
         AwsSsoStoredRoleCredentials? creds = AwsSsoSecretStore.LoadRoleCredentials(Secrets, config.SecretKey);
-        if (creds != null && !creds.IsExpired())
+        if (creds != null && creds.IsUsableFor(config.SsoAccountId, config.SsoRoleName))
         {
             return creds;
+        }
+
+        if (creds != null)
+        {
+            AwsSsoSecretStore.DeleteRoleCredentials(Secrets, config.SecretKey);
+            creds = null;
         }
 
         if (!refreshIfExpired)
@@ -844,8 +850,13 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         }
 
         AwsSsoStoredRoleCredentials? creds = AwsSsoSecretStore.LoadRoleCredentials(Secrets, config.SecretKey);
-        if (creds == null || creds.IsExpired())
+        if (creds == null || !creds.IsUsableFor(config.SsoAccountId, config.SsoRoleName))
         {
+            if (creds != null)
+            {
+                AwsSsoSecretStore.DeleteRoleCredentials(Secrets, config.SecretKey);
+            }
+
             var ssoClient = new AwsSsoClient(config.SsoRegion);
             creds = ssoClient.GetRoleCredentials(token.AccessToken, config.SsoAccountId, config.SsoRoleName);
             AwsSsoSecretStore.SaveRoleCredentials(Secrets, config.SecretKey, creds);

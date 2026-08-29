@@ -189,7 +189,7 @@ public sealed class S3MultipartUploader : IMultipartUploader
             for (int attempt = 0; ; attempt++)
             {
                 token.ThrowIfCancellationRequested();
-                WriteLog($"Uploading part {range.PartNumber}/{partRanges.Count} (offset={range.Offset}, length={range.Length}, attempt={attempt + 1}).");
+                WriteLog($"Uploading part {range.PartNumber}/{partRanges.Count} (length={range.Length}, attempt={attempt + 1}).");
 
                 try
                 {
@@ -207,7 +207,7 @@ public sealed class S3MultipartUploader : IMultipartUploader
                 {
                     ResetPartProgress(range.PartNumber);
                     TimeSpan delay = s3Options.RetryPolicy.GetDelay(attempt + 1);
-                    WriteLog($"Part {range.PartNumber}/{partRanges.Count} failed ({ex.Message}). Retrying in {delay.TotalSeconds:F1}s.");
+                    WriteLog($"Part {range.PartNumber}/{partRanges.Count} failed ({ex.GetType().Name}). Retrying in {delay.TotalSeconds:F1}s.");
                     await Task.Delay(delay, token);
                 }
                 catch
@@ -225,7 +225,7 @@ public sealed class S3MultipartUploader : IMultipartUploader
                 WriteLog($"Adjusted part size from {s3Options.PartSizeBytes} bytes to {effectivePartSizeBytes} bytes to stay within the {MaximumPartCount:N0}-part S3 limit.");
             }
 
-            WriteLog($"Starting multipart upload for '{Path.GetFileName(filePath)}' ({fileInfo.Length} bytes, {partRanges.Count} parts, concurrency={s3Options.MaxConcurrency}).");
+            WriteLog($"Starting multipart upload ({fileInfo.Length} bytes, {partRanges.Count} parts, concurrency={s3Options.MaxConcurrency}).");
 
             InitiateMultipartUploadRequest initiateRequest = BuildInitiateRequest(s3Options);
             InitiateMultipartUploadResponse initiateResponse = await _s3Client.InitiateMultipartUploadAsync(initiateRequest, cancellationToken);
@@ -306,7 +306,7 @@ public sealed class S3MultipartUploader : IMultipartUploader
 
             uploadCompleted = true;
             ReportProgressSnapshot();
-            WriteLog($"Multipart upload completed for '{s3Options.ObjectKey}'.");
+            WriteLog("Multipart upload completed.");
 
             return new MultipartUploadResult
             {
@@ -320,7 +320,7 @@ public sealed class S3MultipartUploader : IMultipartUploader
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            WriteLog($"Multipart upload cancelled for '{s3Options.ObjectKey}'.");
+            WriteLog("Multipart upload cancelled.");
             throw;
         }
         catch (MultipartUploadException)
@@ -345,7 +345,7 @@ public sealed class S3MultipartUploader : IMultipartUploader
             {
                 try
                 {
-                    WriteLog($"Aborting multipart upload '{uploadId}' for '{s3Options.ObjectKey}'.");
+                    WriteLog("Aborting incomplete multipart upload.");
                     await _s3Client.AbortMultipartUploadAsync(new AbortMultipartUploadRequest
                     {
                         BucketName = s3Options.BucketName,
@@ -355,7 +355,7 @@ public sealed class S3MultipartUploader : IMultipartUploader
                 }
                 catch (Exception abortEx)
                 {
-                    WriteLog($"Abort failed for upload '{uploadId}': {abortEx.Message}");
+                    WriteLog($"Abort failed ({abortEx.GetType().Name}).");
                 }
             }
         }
@@ -491,7 +491,7 @@ public sealed class S3MultipartUploader : IMultipartUploader
             catch (Exception ex) when (attempt + 1 < completionMaxAttempts && IsRetryable(ex, cancellationToken))
             {
                 TimeSpan delay = retryPolicy.GetDelay(attempt + 1);
-                DebugHelper.WriteLine($"[S3Multipart] CompleteMultipartUpload failed ({ex.Message}). Retrying in {delay.TotalSeconds:F1}s.");
+                DebugHelper.WriteLine($"[S3Multipart] CompleteMultipartUpload failed ({ex.GetType().Name}). Retrying in {delay.TotalSeconds:F1}s.");
                 await Task.Delay(delay, cancellationToken);
             }
         }
