@@ -219,7 +219,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
 
         string host = pathStyle ? endpoint : $"{config.BucketName}.{endpoint}";
 
-        string prefix = (query.FolderPath ?? "").TrimStart('/');
+        string prefix = S3ExplorerListHelper.ResolveListPrefix(config.ObjectPrefix, query.FolderPath);
 
         // Build query parameters sorted alphabetically for canonical form
         var qp = new SortedDictionary<string, string>
@@ -236,8 +236,16 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         string canonicalQs = BuildCanonicalQueryString(qp);
         string canonicalUri = pathStyle ? $"/{config.BucketName}/" : "/";
 
-        string xml = await SendSignedGetAsync(host, canonicalUri, canonicalQs, region, ak, sk, st, cancellation);
-        return ParseListObjectsXml(xml, config);
+        try
+        {
+            string xml = await SendSignedGetAsync(host, canonicalUri, canonicalQs, region, ak, sk, st, cancellation);
+            return ParseListObjectsXml(xml, config);
+        }
+        catch (InvalidOperationException ex) when (S3ExplorerListHelper.IsListBucketDenied(ex.Message))
+        {
+            throw new InvalidOperationException(
+                S3ExplorerListHelper.BuildListBucketDeniedMessage(config.BucketName, ex.Message), ex);
+        }
     }
 
     /// <inheritdoc/>
@@ -290,7 +298,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         if (string.IsNullOrWhiteSpace(ak) || string.IsNullOrWhiteSpace(sk)) return false;
 
         string host = pathStyle ? endpoint : $"{bucket}.{endpoint}";
-        string objectKey = item.Path.TrimStart('/');
+        string objectKey = ResolveObjectKey(item);
         string canonicalUri = pathStyle
             ? $"/{Uri.EscapeDataString(bucket)}/{EscapeS3Key(objectKey)}"
             : $"/{EscapeS3Key(objectKey)}";
@@ -331,7 +339,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         if (string.IsNullOrWhiteSpace(ak) || string.IsNullOrWhiteSpace(sk)) return null;
 
         string host = pathStyle ? endpoint : $"{bucket}.{endpoint}";
-        string objectKey = item.Path.TrimStart('/');
+        string objectKey = ResolveObjectKey(item);
         string canonicalUri = pathStyle
             ? $"/{Uri.EscapeDataString(bucket)}/{EscapeS3Key(objectKey)}"
             : $"/{EscapeS3Key(objectKey)}";
@@ -433,9 +441,9 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
                 {
                     Id = pfx,
                     Name = name,
-                    Path = pfx,
+                    Path = S3ExplorerListHelper.GetExplorerPath(pfx, config.ObjectPrefix),
                     IsFolder = true,
-                    Metadata = new Dictionary<string, string>(metadataTemplate)
+                    Metadata = BuildItemMetadata(metadataTemplate, pfx)
                 });
             }
 
@@ -460,12 +468,12 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
                 {
                     Id = key,
                     Name = name,
-                    Path = key,
+                    Path = S3ExplorerListHelper.GetExplorerPath(key, config.ObjectPrefix),
                     SizeBytes = size,
                     ModifiedAt = modified,
                     MimeType = mime,
                     Url = url,
-                    Metadata = new Dictionary<string, string>(metadataTemplate)
+                    Metadata = BuildItemMetadata(metadataTemplate, key)
                 });
             }
 
@@ -476,10 +484,32 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
                 ContinuationToken = string.IsNullOrEmpty(nextToken) ? null : nextToken
             };
         }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
         catch
         {
             return new ExplorerPage();
         }
+    }
+
+    private static Dictionary<string, string> BuildItemMetadata(
+        Dictionary<string, string> metadataTemplate,
+        string objectKey)
+    {
+        var metadata = new Dictionary<string, string>(metadataTemplate)
+        {
+            ["objectKey"] = objectKey
+        };
+        return metadata;
+    }
+
+    private static string ResolveObjectKey(MediaItem item)
+    {
+        return item.Metadata.TryGetValue("objectKey", out string? objectKey)
+            ? objectKey.TrimStart('/')
+            : item.Path.TrimStart('/');
     }
 
     private Dictionary<string, string> BuildMetadata(S3ConfigModel config)

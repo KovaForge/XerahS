@@ -217,6 +217,8 @@ This forces the build system to include the correct Windows SDK reference assemb
 
     **Why**: Plugin build targets that copy outputs to the host's bin folder (e.g., `$(TargetFramework)\Plugins\`) will use the plugin's TFM in the path. If the plugin targets `net10.0` but the host outputs to `net10.0-windows10.0.19041.0`, plugins end up in the wrong folder and fail to load at runtime. This causes provider settings UI to not appear.
 
+- Never turn the characters before a filename token into an S3 explorer folder by blindly appending `/`; always scope ListObjectsV2 to the last complete directory before the token, expose paths relative to that logical root, and retain the full object key in item metadata because embedded tokens otherwise produce nonexistent prefixes and absolute paths duplicate the generic explorer's Root breadcrumb.
+
 ---
 
 ## Android / Avalonia
