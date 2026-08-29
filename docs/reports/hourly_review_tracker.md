@@ -6142,3 +6142,14 @@ Added candidates (8):
 - Ingested: src/desktop/core/XerahS.Indexer/IndexerXml.cs:68 (IndexFolder) — security/high/confirmed-bug (sensitive folder/file names exposed in XML output)
 - Status: ok (1 new candidate ingested)
 - Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
+
+### 2026-08-30 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/desktop/core/XerahS.Indexer/IndexerXml.cs:68 (IndexFolder)
+- Files: (none — pivot, no code change)
+- Findings: intentional indexer output — IndexerXml writes folder/file names by design (same as IndexerJson/Html/Text); clawpatch security/high/confirmed-bug is a redaction feature request, not a broken contract
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only; last_runs delta +0 per v1.1.13; deferred to deferred-last-runs-20260830-000617.json)
+- Follow-up: do not re-queue unless IndexerXml contract regresses; recently_pivoted seeded
+- Skill: none (no efficiency blockers this run; v1.1.11 already covers confirmed-bug vs live contract)
