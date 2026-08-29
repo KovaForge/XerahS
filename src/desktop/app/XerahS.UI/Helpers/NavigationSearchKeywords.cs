@@ -48,6 +48,7 @@ internal static class NavigationSearchKeywords
         ["Tools_VideoThumbnailer"] = "video thumbnail thumbs",
         ["Tools_AnalyzeImage"] = "analyze analyse metadata exif",
         ["Tools_MonitorTest"] = "monitor display test pattern",
+        ["Tools_NetworkMonitor"] = "network monitor internet disconnect connect ping latency uptime",
         ["Upload_FileUpload"] = "upload file",
         ["Upload_ClipboardUploadWithContentViewer"] = "upload clipboard content paste",
         ["Recording"] = "record screen video capture",

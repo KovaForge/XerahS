@@ -113,6 +113,7 @@
                     <Separator/>
                     <MenuItem Header="Clipboard _Viewer" Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ClipboardViewer"/>
                     <MenuItem Header="_Monitor Test" Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_MonitorTest"/>
+                    <MenuItem Header="_Network Monitor..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_NetworkMonitor"/>
                 </MenuItem>
                 
                 <!-- Settings Menu -->

@@ -537,6 +537,7 @@ namespace XerahS.UI.Views
             toolsNode.AddChild(CreateNode("Video Thumbnailer...", "Tools_VideoThumbnailer", null, NavigationNodeKind.Action));
             toolsNode.AddChild(CreateNode("Analyze Image...", "Tools_AnalyzeImage", null, NavigationNodeKind.Action));
             toolsNode.AddChild(CreateNode("Monitor Test", "Tools_MonitorTest", null, NavigationNodeKind.Action));
+            toolsNode.AddChild(CreateNode("Network Monitor...", "Tools_NetworkMonitor", null, NavigationNodeKind.Action));
 
             return toolsNode;
         }

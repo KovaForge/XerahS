@@ -30,6 +30,7 @@ Total items: `184`
 - [ ] VP-UI-IndexFolderView IndexFolderView
 - [ ] VP-UI-MainWindow MainWindow
 - [ ] VP-UI-MonitorTestWindow MonitorTestWindow
+- [ ] VP-UI-NetworkMonitorWindow NetworkMonitorWindow
 - [ ] VP-UI-OcrWindow OcrWindow
 - [ ] VP-UI-OpenImageChoiceDialog OpenImageChoiceDialog
 - [ ] VP-UI-PinnedImageWindow PinnedImageWindow

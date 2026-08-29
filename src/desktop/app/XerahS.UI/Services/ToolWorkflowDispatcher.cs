@@ -88,6 +88,10 @@ internal static class ToolWorkflowDispatcher
                 dispatchTask = MonitorTestToolService.HandleWorkflowAsync(workflowType, owner);
                 return true;
 
+            case WorkflowType.NetworkMonitor:
+                dispatchTask = NetworkMonitorToolService.HandleWorkflowAsync(workflowType, owner);
+                return true;
+
             case WorkflowType.Ruler:
                 dispatchTask = RulerToolService.HandleWorkflowAsync(workflowType, owner);
                 return true;

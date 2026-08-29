@@ -1,0 +1,162 @@
+<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:XerahS.UI.Views"
+        xmlns:controls="using:XerahS.UI.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:XerahS.UI.ViewModels"
+        mc:Ignorable="d"
+        d:DesignWidth="980" d:DesignHeight="720"
+        x:Class="XerahS.UI.Views.NetworkMonitorWindow"
+        x:DataType="vm:NetworkMonitorViewModel"
+        Title="Network Monitor"
+        Width="980" Height="720"
+        MinWidth="760" MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+
+  <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+          Padding="16">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto"
+          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+
+      <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,12">
+        <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+          <TextBlock Text="{Binding StatusText}"
+                     FontWeight="Bold"
+                     FontSize="18"
+                     Foreground="{Binding StatusBrush}"
+                     VerticalAlignment="Center"
+                     AutomationProperties.Name="Connection status" />
+          <TextBlock Text="{Binding DisconnectCountText}"
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+          <TextBlock Text="{Binding UptimeText}"
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+          <TextBlock Text="{Binding LatencyText}"
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+          <TextBlock Text="{Binding LongestOutageText}"
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+        <TextBlock Grid.Column="1"
+                   Text="{Binding LastTargetText}"
+                   VerticalAlignment="Center"
+                   Margin="12,0"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <Button Content="Start"
+                  Command="{Binding StartCommand}"
+                  IsEnabled="{Binding !IsMonitoring}"
+                  MinWidth="80"
+                  AutomationProperties.Name="Start monitoring" />
+          <Button Content="Stop"
+                  Command="{Binding StopCommand}"
+                  IsEnabled="{Binding IsMonitoring}"
+                  MinWidth="80"
+                  AutomationProperties.Name="Stop monitoring" />
+        </StackPanel>
+      </Grid>
+
+      <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,*" Margin="0,0,0,12">
+        <TextBlock Text="Time range"
+                   VerticalAlignment="Center"
+                   Margin="0,0,8,0" />
+        <ComboBox Grid.Column="1"
+                  ItemsSource="{Binding TimeRangeOptions}"
+                  SelectedItem="{Binding SelectedTimeRange}"
+                  MinWidth="160"
+                  AutomationProperties.Name="Chart time range">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:NetworkMonitorTimeRangeOption">
+              <TextBlock Text="{Binding DisplayName}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <TextBlock Grid.Column="2"
+                   Text="Events"
+                   VerticalAlignment="Center"
+                   Margin="16,0,8,0" />
+        <ComboBox Grid.Column="3"
+                  ItemsSource="{Binding FilterOptions}"
+                  SelectedItem="{Binding SelectedFilter}"
+                  MinWidth="140"
+                  AutomationProperties.Name="Event filter">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:NetworkEventFilterOption">
+              <TextBlock Text="{Binding DisplayName}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </Grid>
+
+      <Border Grid.Row="2"
+              Height="180"
+              Margin="0,0,0,12"
+              BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+              BorderThickness="1"
+              CornerRadius="4"
+              Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+              ClipToBounds="True">
+        <controls:ConnectivityChartControl Points="{Binding ChartPoints}"
+                                           AutomationProperties.Name="Connectivity chart" />
+      </Border>
+
+      <DataGrid Grid.Row="3"
+                ItemsSource="{Binding Events}"
+                IsReadOnly="True"
+                CanUserResizeColumns="True"
+                CanUserReorderColumns="False"
+                CanUserSortColumns="True"
+                GridLinesVisibility="Horizontal"
+                AutoGenerateColumns="False"
+                Margin="0,0,0,12"
+                AutomationProperties.Name="Connection events">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Date / Time"
+                              Binding="{Binding TimestampText}"
+                              Width="180" />
+          <DataGridTemplateColumn Header="Status" Width="140">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate x:DataType="vm:NetworkStatusEventItem">
+                <TextBlock Text="{Binding StatusText}"
+                           Foreground="{Binding StatusBrush}"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           Margin="8,0" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTextColumn Header="Duration"
+                              Binding="{Binding DurationText}"
+                              Width="120" />
+          <DataGridTextColumn Header="Latency"
+                              Binding="{Binding LatencyText}"
+                              Width="100" />
+        </DataGrid.Columns>
+      </DataGrid>
+
+      <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button Content="Copy all"
+                Command="{Binding CopyAllCommand}"
+                IsEnabled="{Binding CanCopy}"
+                MinWidth="90"
+                AutomationProperties.Name="Copy all events" />
+        <Button Content="Export..."
+                Command="{Binding ExportCommand}"
+                MinWidth="90"
+                AutomationProperties.Name="Export events" />
+        <Button Content="Clear"
+                Command="{Binding ClearCommand}"
+                MinWidth="80"
+                AutomationProperties.Name="Clear events" />
+        <Button Content="Close"
+                Click="OnCloseClick"
+                MinWidth="80"
+                AutomationProperties.Name="Close" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</ui:SurfaceWindow>

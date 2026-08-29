@@ -10,6 +10,13 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.29.0
+
+### Features
+- **Tools**: Add Network Monitor with connect/disconnect history, latency chart, and selectable time ranges
+
+---
+
 ## v0.28.2
 
 ### Features

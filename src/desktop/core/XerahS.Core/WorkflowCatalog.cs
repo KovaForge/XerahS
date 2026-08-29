@@ -60,6 +60,7 @@ public static class WorkflowCatalog
         WorkflowType.ClipboardViewer,
         WorkflowType.ClipboardUploadWithContentViewer,
         WorkflowType.MonitorTest,
+        WorkflowType.NetworkMonitor,
         WorkflowType.Ruler
     ];
 

@@ -309,6 +309,9 @@ public enum WorkflowType // Localized
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Monitor test")]
     MonitorTest,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Network monitor")]
+    NetworkMonitor,
     // Other
     [Category(EnumExtensions.WorkflowType_Category_Other)]
     [Description("Disable/Enable hotkeys")]
