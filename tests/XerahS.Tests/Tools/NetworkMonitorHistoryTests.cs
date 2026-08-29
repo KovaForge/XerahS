@@ -75,6 +75,54 @@ public class NetworkMonitorHistoryTests
         Assert.That(disconnects[0].Timestamp, Is.EqualTo(now.AddMinutes(-10)));
     }
 
+    [TestCase(NetworkMonitorTimeRange.Last5Minutes, -5)]
+    [TestCase(NetworkMonitorTimeRange.Last15Minutes, -15)]
+    public void GetStart_SupportsShortInteractiveRanges(NetworkMonitorTimeRange range, int expectedMinutes)
+    {
+        DateTime now = new(2026, 8, 29, 18, 0, 0);
+
+        DateTime start = NetworkMonitorTimeRanges.GetStart(range, now);
+
+        Assert.That(start, Is.EqualTo(now.AddMinutes(expectedMinutes)));
+    }
+
+    [Test]
+    public void BuildChartPoints_SeparatesConnectivityTransitionsFromLatencySamples()
+    {
+        NetworkMonitorHistory history = new();
+        DateTime start = new(2026, 8, 29, 18, 0, 0);
+        history.AddEvent(new NetworkStatusEvent { Timestamp = start.AddMinutes(1), IsConnected = false });
+        history.AddSample(new NetworkLatencySample
+        {
+            Timestamp = start.AddMinutes(2),
+            Success = false
+        });
+        history.AddEvent(new NetworkStatusEvent
+        {
+            Timestamp = start.AddMinutes(3),
+            IsConnected = true,
+            RoundtripMs = 12
+        });
+        history.AddSample(new NetworkLatencySample
+        {
+            Timestamp = start.AddMinutes(3),
+            Success = true,
+            RoundtripMs = 12
+        });
+
+        IReadOnlyList<NetworkChartPoint> points = history.BuildChartPoints(
+            start,
+            start.AddMinutes(4),
+            isCurrentlyConnected: true,
+            now: start.AddMinutes(4));
+
+        Assert.That(points.Where(point => !point.IsSample && point.Timestamp == start.AddMinutes(3)),
+            Has.All.Matches<NetworkChartPoint>(point => point.LatencyMs == null));
+        Assert.That(points.Count(point => point.IsSample), Is.EqualTo(2));
+        Assert.That(points.Single(point => point.IsSample && point.Timestamp == start.AddMinutes(3)).LatencyMs,
+            Is.EqualTo(12));
+    }
+
     [Test]
     public void Store_RoundTripsEvents()
     {

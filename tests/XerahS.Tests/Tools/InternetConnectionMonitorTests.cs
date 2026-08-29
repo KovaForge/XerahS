@@ -51,8 +51,11 @@ public class InternetConnectionMonitorTests
         List<NetworkStatusEvent> events = [];
         monitor.StatusChanged += events.Add;
 
+        Assert.That(monitor.HasConnectionState, Is.False);
+
         await monitor.CheckOnceAsync();
         Assert.That(monitor.IsConnected, Is.True);
+        Assert.That(monitor.HasConnectionState, Is.True);
         Assert.That(events, Is.Empty);
 
         now = now.AddSeconds(1);

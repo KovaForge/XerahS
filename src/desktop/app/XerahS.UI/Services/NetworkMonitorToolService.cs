@@ -108,7 +108,13 @@ public static class NetworkMonitorToolService
             }
         };
 
-        _window.Closed += (_, _) => _window = null;
+        _window.Closed += (sender, _) =>
+        {
+            if (ReferenceEquals(_window, sender))
+            {
+                _window = null;
+            }
+        };
 
         if (owner != null)
         {

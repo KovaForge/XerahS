@@ -62,6 +62,16 @@ public sealed class NetworkEventFilterOption
     public override string ToString() => DisplayName;
 }
 
+public sealed record NetworkMonitorTargetOption(string DisplayName, IReadOnlyList<string> Addresses)
+{
+    public override string ToString() => DisplayName;
+}
+
+public sealed record NetworkMonitorIntervalOption(string DisplayName, TimeSpan Interval)
+{
+    public override string ToString() => DisplayName;
+}
+
 public sealed class NetworkStatusEventItem
 {
     public NetworkStatusEventItem(NetworkStatusEvent statusEvent, DateTime now)
@@ -121,6 +131,11 @@ public sealed class NetworkStatusEventItem
 
 public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
 {
+    private static readonly IBrush ConnectedBrush = new SolidColorBrush(Color.FromRgb(34, 197, 94));
+    private static readonly IBrush DisconnectedBrush = new SolidColorBrush(Color.FromRgb(239, 68, 68));
+    private static readonly IBrush CheckingBrush = new SolidColorBrush(Color.FromRgb(245, 158, 11));
+    private static readonly IBrush PausedBrush = new SolidColorBrush(Color.FromRgb(120, 120, 128));
+
     private readonly NetworkMonitorHost _host;
     private readonly DispatcherTimer _refreshTimer;
     private bool _disposed;
@@ -130,6 +145,8 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
         _host = host ?? NetworkMonitorHost.Shared;
         TimeRangeOptions =
         [
+            new NetworkMonitorTimeRangeOption(NetworkMonitorTimeRange.Last5Minutes),
+            new NetworkMonitorTimeRangeOption(NetworkMonitorTimeRange.Last15Minutes),
             new NetworkMonitorTimeRangeOption(NetworkMonitorTimeRange.LastHour),
             new NetworkMonitorTimeRangeOption(NetworkMonitorTimeRange.Last6Hours),
             new NetworkMonitorTimeRangeOption(NetworkMonitorTimeRange.Last24Hours),
@@ -143,14 +160,31 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
             new NetworkEventFilterOption(NetworkEventFilter.Disconnects, "Disconnects"),
             new NetworkEventFilterOption(NetworkEventFilter.Connects, "Connects")
         ];
-        _selectedTimeRange = TimeRangeOptions[2];
+        TargetOptions =
+        [
+            new NetworkMonitorTargetOption("Automatic (recommended)", ["1.1.1.1", "8.8.8.8", "9.9.9.9"]),
+            new NetworkMonitorTargetOption("Cloudflare (1.1.1.1)", ["1.1.1.1"]),
+            new NetworkMonitorTargetOption("Google DNS (8.8.8.8)", ["8.8.8.8"]),
+            new NetworkMonitorTargetOption("Quad9 (9.9.9.9)", ["9.9.9.9"])
+        ];
+        IntervalOptions =
+        [
+            new NetworkMonitorIntervalOption("2 s", TimeSpan.FromSeconds(2)),
+            new NetworkMonitorIntervalOption("5 s", TimeSpan.FromSeconds(5)),
+            new NetworkMonitorIntervalOption("10 s", TimeSpan.FromSeconds(10)),
+            new NetworkMonitorIntervalOption("30 s", TimeSpan.FromSeconds(30))
+        ];
+        _selectedTimeRange = TimeRangeOptions[0];
         _selectedFilter = FilterOptions[0];
+        _selectedTarget = TargetOptions[0];
+        _selectedInterval = IntervalOptions[1];
+        ApplyMonitorOptions();
         _host.Monitor.StatusChanged += OnMonitorEvent;
         _host.Monitor.SampleReceived += OnMonitorSample;
         _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _refreshTimer.Tick += OnRefreshTick;
-        Refresh();
         _host.EnsureStarted();
+        Refresh();
         _refreshTimer.Start();
         RefreshCommands();
     }
@@ -158,6 +192,8 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
     public ObservableCollection<NetworkStatusEventItem> Events { get; } = [];
     public IReadOnlyList<NetworkMonitorTimeRangeOption> TimeRangeOptions { get; }
     public IReadOnlyList<NetworkEventFilterOption> FilterOptions { get; }
+    public IReadOnlyList<NetworkMonitorTargetOption> TargetOptions { get; }
+    public IReadOnlyList<NetworkMonitorIntervalOption> IntervalOptions { get; }
 
     public Func<string, Task>? CopyToClipboardRequested { get; set; }
     public Func<string, string, Task<string?>>? SaveFileRequested { get; set; }
@@ -169,38 +205,64 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
     private NetworkEventFilterOption _selectedFilter = null!;
 
     [ObservableProperty]
+    private NetworkMonitorTargetOption _selectedTarget = null!;
+
+    [ObservableProperty]
+    private NetworkMonitorIntervalOption _selectedInterval = null!;
+
+    [ObservableProperty]
     private IReadOnlyList<NetworkChartPoint> _chartPoints = [];
 
     [ObservableProperty]
     private string _statusText = "Starting...";
 
     [ObservableProperty]
+    private string _statusDetails = "Waiting for the first connection check.";
+
+    [ObservableProperty]
     private IBrush _statusBrush = Brushes.Gray;
 
     [ObservableProperty]
-    private string _disconnectCountText = "Disconnects: 0";
+    private string _disconnectCountText = "0";
 
     [ObservableProperty]
-    private string _uptimeText = "Uptime: -";
+    private string _availabilityText = "-";
 
     [ObservableProperty]
-    private string _latencyText = "Latency: -";
+    private string _currentLatencyText = "-";
 
     [ObservableProperty]
-    private string _longestOutageText = "Longest outage: -";
+    private string _averageLatencyText = "-";
 
     [ObservableProperty]
-    private string _lastTargetText = "Target: -";
+    private string _longestOutageText = "No outages in this range";
 
     [ObservableProperty]
     private bool _isMonitoring;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasEvents))]
     private bool _canCopy;
+
+    [ObservableProperty]
+    private bool _canClear;
+
+    public bool HasEvents => CanCopy;
 
     partial void OnSelectedTimeRangeChanged(NetworkMonitorTimeRangeOption value) => Refresh();
 
     partial void OnSelectedFilterChanged(NetworkEventFilterOption value) => Refresh();
+
+    partial void OnSelectedTargetChanged(NetworkMonitorTargetOption value)
+    {
+        ApplyMonitorOptions();
+        RefreshStatusOnly();
+    }
+
+    partial void OnSelectedIntervalChanged(NetworkMonitorIntervalOption value)
+    {
+        ApplyMonitorOptions();
+    }
 
     [RelayCommand]
     private void Start()
@@ -293,18 +355,39 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
     private void RefreshStatusOnly()
     {
         InternetConnectionMonitor monitor = _host.Monitor;
-        StatusText = monitor.IsConnected ? "Connected" : "Disconnected";
-        StatusBrush = monitor.IsConnected
-            ? new SolidColorBrush(Color.FromRgb(34, 197, 94))
-            : new SolidColorBrush(Color.FromRgb(239, 68, 68));
-        LastTargetText = string.IsNullOrEmpty(monitor.LastAddress)
-            ? "Target: -"
-            : $"Target: {monitor.LastAddress}";
         NetworkLatencySample? sample = monitor.LastSample;
-        LatencyText = sample?.RoundtripMs != null
-            ? $"Latency: {sample.RoundtripMs.Value} ms"
-            : "Latency: timeout";
         IsMonitoring = monitor.IsMonitoring;
+
+        if (!monitor.IsMonitoring)
+        {
+            StatusText = "Paused";
+            StatusDetails = "Monitoring is paused. Connection history is preserved.";
+            StatusBrush = PausedBrush;
+        }
+        else if (!monitor.HasConnectionState || sample == null)
+        {
+            StatusText = "Checking";
+            StatusDetails = $"Waiting for a reply from {SelectedTarget.DisplayName}.";
+            StatusBrush = CheckingBrush;
+        }
+        else if (monitor.IsConnected)
+        {
+            StatusText = "Connected";
+            StatusDetails = sample.Success
+                ? $"Reply from {sample.Address}."
+                : $"No reply from {sample.Address}; confirming the connection.";
+            StatusBrush = sample.Success ? ConnectedBrush : CheckingBrush;
+        }
+        else
+        {
+            StatusText = "Disconnected";
+            StatusDetails = $"No reply from {sample.Address}. XerahS will keep checking.";
+            StatusBrush = DisconnectedBrush;
+        }
+
+        CurrentLatencyText = sample?.RoundtripMs != null
+            ? $"{sample.RoundtripMs.Value} ms"
+            : "-";
     }
 
     private void Refresh()
@@ -312,29 +395,67 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
         DateTime now = DateTime.Now;
         DateTime from = NetworkMonitorTimeRanges.GetStart(SelectedTimeRange.Range, now);
         IReadOnlyList<NetworkStatusEvent> events = _host.History.GetEvents(from, now, SelectedFilter.Filter);
-        Events.Clear();
-        foreach (NetworkStatusEvent statusEvent in events)
+        IReadOnlyList<NetworkStatusEvent> allEvents = SelectedFilter.Filter == NetworkEventFilter.All
+            ? events
+            : _host.History.GetEvents(from, now);
+        List<NetworkStatusEventItem> refreshedEvents = [.. events.Select(statusEvent => new NetworkStatusEventItem(statusEvent, now))];
+        bool eventsChanged = Events.Count != refreshedEvents.Count;
+        if (!eventsChanged)
         {
-            Events.Add(new NetworkStatusEventItem(statusEvent, now));
+            for (int index = 0; index < Events.Count; index++)
+            {
+                NetworkStatusEventItem current = Events[index];
+                NetworkStatusEventItem refreshed = refreshedEvents[index];
+                if (current.Timestamp != refreshed.Timestamp ||
+                    current.IsConnected != refreshed.IsConnected ||
+                    current.DurationText != refreshed.DurationText ||
+                    current.LatencyText != refreshed.LatencyText)
+                {
+                    eventsChanged = true;
+                    break;
+                }
+            }
+        }
+
+        if (eventsChanged)
+        {
+            Events.Clear();
+            foreach (NetworkStatusEventItem statusEvent in refreshedEvents)
+            {
+                Events.Add(statusEvent);
+            }
         }
 
         CanCopy = Events.Count > 0;
-        ChartPoints = _host.History.BuildChartPoints(from, now, _host.Monitor.IsConnected, now);
+        bool hasSamples = _host.History.Samples.Any(sample => sample.Timestamp >= from && sample.Timestamp <= now);
+        CanClear = hasSamples || allEvents.Count > 0;
+        ChartPoints = hasSamples || allEvents.Count > 0
+            ? _host.History.BuildChartPoints(from, now, _host.Monitor.IsConnected, now)
+            : [];
         NetworkMonitorStats stats = _host.History.GetStats(from, now, _host.Monitor.IsConnected, now);
-        DisconnectCountText = $"Disconnects: {stats.DisconnectCount}";
-        UptimeText = $"Uptime: {stats.UptimePercent:0.0}%";
+        DisconnectCountText = stats.DisconnectCount.ToString(CultureInfo.CurrentCulture);
+        AvailabilityText = hasSamples || allEvents.Count > 0
+            ? $"{stats.UptimePercent:0.0}%"
+            : "-";
+        AverageLatencyText = stats.AverageLatencyMs.HasValue
+            ? $"{stats.AverageLatencyMs.Value:0} ms"
+            : "-";
         LongestOutageText = stats.LongestOutage > TimeSpan.Zero
             ? $"Longest outage: {FormatTimeSpan(stats.LongestOutage)}"
-            : "Longest outage: none";
-        if (stats.AverageLatencyMs.HasValue)
-        {
-            LatencyText = $"Latency: {stats.LastLatencyMs ?? 0} ms  avg {stats.AverageLatencyMs.Value:0} ms";
-        }
+            : "No outages in this range";
 
         RefreshStatusOnly();
         CopyAllCommand.NotifyCanExecuteChanged();
         ExportCommand.NotifyCanExecuteChanged();
         ClearCommand.NotifyCanExecuteChanged();
+    }
+
+    private void ApplyMonitorOptions()
+    {
+        NetworkMonitorOptions options = _host.Monitor.Options;
+        options.PingAddresses = [.. SelectedTarget.Addresses];
+        options.PingIntervalMs = (int)SelectedInterval.Interval.TotalMilliseconds;
+        _host.Monitor.Options = options;
     }
 
     private string BuildLogText()

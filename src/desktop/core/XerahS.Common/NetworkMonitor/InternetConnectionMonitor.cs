@@ -58,6 +58,17 @@ public sealed class InternetConnectionMonitor : IDisposable
 
     public bool IsMonitoring { get; private set; }
     public bool IsConnected { get; private set; }
+    public bool HasConnectionState
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return !_isFirstEvent;
+            }
+        }
+    }
+
     public int DisconnectCount { get; private set; }
     public string LastAddress { get; private set; } = string.Empty;
     public NetworkLatencySample? LastSample { get; private set; }

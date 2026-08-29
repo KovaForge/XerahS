@@ -29,6 +29,8 @@ public readonly record struct NetworkProbeResult(bool Success, long? RoundtripMs
 
 public enum NetworkMonitorTimeRange
 {
+    Last5Minutes,
+    Last15Minutes,
     LastHour,
     Last6Hours,
     Last24Hours,
@@ -73,6 +75,7 @@ public sealed class NetworkChartPoint
     public DateTime Timestamp { get; init; }
     public bool IsConnected { get; init; }
     public double? LatencyMs { get; init; }
+    public bool IsSample { get; init; }
 }
 
 public sealed class NetworkMonitorStats
@@ -91,6 +94,8 @@ public static class NetworkMonitorTimeRanges
     {
         return range switch
         {
+            NetworkMonitorTimeRange.Last5Minutes => now.AddMinutes(-5),
+            NetworkMonitorTimeRange.Last15Minutes => now.AddMinutes(-15),
             NetworkMonitorTimeRange.LastHour => now.AddHours(-1),
             NetworkMonitorTimeRange.Last6Hours => now.AddHours(-6),
             NetworkMonitorTimeRange.Last24Hours => now.AddHours(-24),
@@ -105,6 +110,8 @@ public static class NetworkMonitorTimeRanges
     {
         return range switch
         {
+            NetworkMonitorTimeRange.Last5Minutes => "Last 5 minutes",
+            NetworkMonitorTimeRange.Last15Minutes => "Last 15 minutes",
             NetworkMonitorTimeRange.LastHour => "Last 1 hour",
             NetworkMonitorTimeRange.Last6Hours => "Last 6 hours",
             NetworkMonitorTimeRange.Last24Hours => "Last 24 hours",

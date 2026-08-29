@@ -1,162 +1,288 @@
 <ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="using:XerahS.UI.Views"
-        xmlns:controls="using:XerahS.UI.Controls"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="using:XerahS.UI.ViewModels"
-        mc:Ignorable="d"
-        d:DesignWidth="980" d:DesignHeight="720"
-        x:Class="XerahS.UI.Views.NetworkMonitorWindow"
-        x:DataType="vm:NetworkMonitorViewModel"
-        Title="Network Monitor"
-        Width="980" Height="720"
-        MinWidth="760" MinHeight="560"
-        WindowStartupLocation="CenterOwner"
-        CanResize="True">
+                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                  xmlns:ui="using:XerahS.UI.Views"
+                  xmlns:controls="using:XerahS.UI.Controls"
+                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                  xmlns:vm="using:XerahS.UI.ViewModels"
+                  mc:Ignorable="d"
+                  d:DesignWidth="1080"
+                  d:DesignHeight="760"
+                  x:Class="XerahS.UI.Views.NetworkMonitorWindow"
+                  x:DataType="vm:NetworkMonitorViewModel"
+                  Title="Network Monitor"
+                  Width="1080"
+                  Height="760"
+                  MinWidth="840"
+                  MinHeight="620"
+                  WindowStartupLocation="CenterOwner"
+                  CanResize="True">
 
-  <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
-          Padding="16">
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto"
-          Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+  <ui:SurfaceWindow.Styles>
+    <Style Selector="Border.monitor-panel">
+      <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="12" />
+    </Style>
+    <Style Selector="Border.metric-card">
+      <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="14,11" />
+    </Style>
+    <Style Selector="TextBlock.metric-label">
+      <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    </Style>
+    <Style Selector="TextBlock.metric-value">
+      <Setter Property="FontSize" Value="21" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.section-heading">
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </ui:SurfaceWindow.Styles>
 
-      <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,12">
-        <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-          <TextBlock Text="{Binding StatusText}"
-                     FontWeight="Bold"
-                     FontSize="18"
-                     Foreground="{Binding StatusBrush}"
-                     VerticalAlignment="Center"
-                     AutomationProperties.Name="Connection status" />
-          <TextBlock Text="{Binding DisconnectCountText}"
-                     VerticalAlignment="Center"
-                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-          <TextBlock Text="{Binding UptimeText}"
-                     VerticalAlignment="Center"
-                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-          <TextBlock Text="{Binding LatencyText}"
-                     VerticalAlignment="Center"
-                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-          <TextBlock Text="{Binding LongestOutageText}"
-                     VerticalAlignment="Center"
-                     Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-        </StackPanel>
-        <TextBlock Grid.Column="1"
-                   Text="{Binding LastTargetText}"
-                   VerticalAlignment="Center"
-                   Margin="12,0"
-                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
-          <Button Content="Start"
+  <Grid Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
+    <Grid Margin="16"
+          RowDefinitions="Auto,Auto,1.05*,1.2*"
+          RowSpacing="12">
+
+      <Border Grid.Row="0" Classes="monitor-panel">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
+          <Grid Grid.Column="0"
+                ColumnDefinitions="Auto,*"
+                ColumnSpacing="14"
+                VerticalAlignment="Center">
+            <Border Grid.Column="0"
+                    Width="11"
+                    Height="11"
+                    Margin="8,0,6,0"
+                    CornerRadius="6"
+                    Background="{Binding StatusBrush}"
+                    AutomationProperties.Name="Connection status indicator" />
+            <StackPanel Grid.Column="1" Spacing="1">
+              <TextBlock Text="{Binding StatusText}"
+                         FontSize="18"
+                         FontWeight="SemiBold"
+                         AutomationProperties.Name="Connection status" />
+              <TextBlock Text="{Binding StatusDetails}"
+                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                         TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </Grid>
+
+          <StackPanel Grid.Column="1" Spacing="3">
+            <TextBlock Classes="metric-label" Text="Target" />
+            <ComboBox Width="235"
+                      ItemsSource="{Binding TargetOptions}"
+                      SelectedItem="{Binding SelectedTarget}"
+                      AutomationProperties.Name="Monitoring target">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:NetworkMonitorTargetOption">
+                  <TextBlock Text="{Binding DisplayName}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+
+          <StackPanel Grid.Column="2" Spacing="3">
+            <TextBlock Classes="metric-label" Text="Check every" />
+            <ComboBox Width="82"
+                      ItemsSource="{Binding IntervalOptions}"
+                      SelectedItem="{Binding SelectedInterval}"
+                      AutomationProperties.Name="Monitoring interval">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:NetworkMonitorIntervalOption">
+                  <TextBlock Text="{Binding DisplayName}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+
+          <Button Grid.Column="3"
+                  Content="Start"
                   Command="{Binding StartCommand}"
-                  IsEnabled="{Binding !IsMonitoring}"
-                  MinWidth="80"
+                  IsVisible="{Binding !IsMonitoring}"
+                  MinWidth="88"
+                  VerticalAlignment="Bottom"
                   AutomationProperties.Name="Start monitoring" />
-          <Button Content="Stop"
+          <Button Grid.Column="3"
+                  Content="Pause"
                   Command="{Binding StopCommand}"
-                  IsEnabled="{Binding IsMonitoring}"
-                  MinWidth="80"
-                  AutomationProperties.Name="Stop monitoring" />
-        </StackPanel>
-      </Grid>
+                  IsVisible="{Binding IsMonitoring}"
+                  MinWidth="88"
+                  VerticalAlignment="Bottom"
+                  AutomationProperties.Name="Pause monitoring" />
+        </Grid>
+      </Border>
 
-      <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,*" Margin="0,0,0,12">
-        <TextBlock Text="Time range"
-                   VerticalAlignment="Center"
-                   Margin="0,0,8,0" />
-        <ComboBox Grid.Column="1"
-                  ItemsSource="{Binding TimeRangeOptions}"
-                  SelectedItem="{Binding SelectedTimeRange}"
-                  MinWidth="160"
-                  AutomationProperties.Name="Chart time range">
-          <ComboBox.ItemTemplate>
-            <DataTemplate x:DataType="vm:NetworkMonitorTimeRangeOption">
-              <TextBlock Text="{Binding DisplayName}" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
-        <TextBlock Grid.Column="2"
-                   Text="Events"
-                   VerticalAlignment="Center"
-                   Margin="16,0,8,0" />
-        <ComboBox Grid.Column="3"
-                  ItemsSource="{Binding FilterOptions}"
-                  SelectedItem="{Binding SelectedFilter}"
-                  MinWidth="140"
-                  AutomationProperties.Name="Event filter">
-          <ComboBox.ItemTemplate>
-            <DataTemplate x:DataType="vm:NetworkEventFilterOption">
-              <TextBlock Text="{Binding DisplayName}" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
+      <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
+        <Border Grid.Column="0" Classes="metric-card">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="metric-label" Text="Current latency" />
+            <TextBlock Classes="metric-value" Text="{Binding CurrentLatencyText}" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="1" Classes="metric-card">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="metric-label" Text="Average latency" />
+            <TextBlock Classes="metric-value" Text="{Binding AverageLatencyText}" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="2" Classes="metric-card">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="metric-label" Text="Availability" />
+            <TextBlock Classes="metric-value" Text="{Binding AvailabilityText}" />
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="3" Classes="metric-card">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="metric-label" Text="Disconnects" />
+            <TextBlock Classes="metric-value" Text="{Binding DisconnectCountText}" />
+          </StackPanel>
+        </Border>
       </Grid>
 
       <Border Grid.Row="2"
-              Height="180"
-              Margin="0,0,0,12"
-              BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-              BorderThickness="1"
-              CornerRadius="4"
-              Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+              Classes="monitor-panel"
+              Padding="0"
               ClipToBounds="True">
-        <controls:ConnectivityChartControl Points="{Binding ChartPoints}"
-                                           AutomationProperties.Name="Connectivity chart" />
+        <Grid RowDefinitions="Auto,*">
+          <Grid Grid.Row="0"
+                Margin="12,10"
+                ColumnDefinitions="*,Auto,Auto"
+                ColumnSpacing="8">
+            <StackPanel Grid.Column="0"
+                        Orientation="Horizontal"
+                        Spacing="12"
+                        VerticalAlignment="Center">
+              <TextBlock Classes="section-heading" Text="Latency history" />
+              <TextBlock Classes="metric-label" Text="{Binding LongestOutageText}" />
+            </StackPanel>
+            <TextBlock Grid.Column="1"
+                       Classes="metric-label"
+                       Text="Range"
+                       VerticalAlignment="Center" />
+            <ComboBox Grid.Column="2"
+                      Width="160"
+                      ItemsSource="{Binding TimeRangeOptions}"
+                      SelectedItem="{Binding SelectedTimeRange}"
+                      AutomationProperties.Name="Chart time range">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:NetworkMonitorTimeRangeOption">
+                  <TextBlock Text="{Binding DisplayName}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </Grid>
+          <controls:ConnectivityChartControl Grid.Row="1"
+                                             Margin="10,0,10,10"
+                                             Points="{Binding ChartPoints}"
+                                             EmptyText="No samples yet. Latency and outages will appear while monitoring."
+                                             AutomationProperties.Name="Connectivity and latency chart" />
+        </Grid>
       </Border>
 
-      <DataGrid Grid.Row="3"
-                ItemsSource="{Binding Events}"
-                IsReadOnly="True"
-                CanUserResizeColumns="True"
-                CanUserReorderColumns="False"
-                CanUserSortColumns="True"
-                GridLinesVisibility="Horizontal"
-                AutoGenerateColumns="False"
-                Margin="0,0,0,12"
-                AutomationProperties.Name="Connection events">
-        <DataGrid.Columns>
-          <DataGridTextColumn Header="Date / Time"
-                              Binding="{Binding TimestampText}"
-                              Width="180" />
-          <DataGridTemplateColumn Header="Status" Width="140">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate x:DataType="vm:NetworkStatusEventItem">
-                <TextBlock Text="{Binding StatusText}"
-                           Foreground="{Binding StatusBrush}"
-                           FontWeight="SemiBold"
-                           VerticalAlignment="Center"
-                           Margin="8,0" />
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
-          <DataGridTextColumn Header="Duration"
-                              Binding="{Binding DurationText}"
-                              Width="120" />
-          <DataGridTextColumn Header="Latency"
-                              Binding="{Binding LatencyText}"
-                              Width="100" />
-        </DataGrid.Columns>
-      </DataGrid>
+      <Border Grid.Row="3"
+              Classes="monitor-panel"
+              Padding="0"
+              ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*">
+          <Grid Grid.Row="0"
+                Margin="12,10"
+                ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto"
+                ColumnSpacing="8">
+            <TextBlock Grid.Column="0"
+                       Classes="section-heading"
+                       Text="Connection events"
+                       VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1"
+                       Classes="metric-label"
+                       Text="Show"
+                       VerticalAlignment="Center" />
+            <ComboBox Grid.Column="2"
+                      Width="140"
+                      ItemsSource="{Binding FilterOptions}"
+                      SelectedItem="{Binding SelectedFilter}"
+                      AutomationProperties.Name="Event filter">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:NetworkEventFilterOption">
+                  <TextBlock Text="{Binding DisplayName}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Column="3"
+                    Content="Copy all"
+                    Command="{Binding CopyAllCommand}"
+                    IsEnabled="{Binding HasEvents}"
+                    AutomationProperties.Name="Copy all events" />
+            <Button Grid.Column="4"
+                    Content="Export..."
+                    Command="{Binding ExportCommand}"
+                    IsEnabled="{Binding HasEvents}"
+                    AutomationProperties.Name="Export events" />
+            <Button Grid.Column="5"
+                    Content="Clear"
+                    Command="{Binding ClearCommand}"
+                    IsEnabled="{Binding CanClear}"
+                    AutomationProperties.Name="Clear events" />
+          </Grid>
 
-      <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-        <Button Content="Copy all"
-                Command="{Binding CopyAllCommand}"
-                IsEnabled="{Binding CanCopy}"
-                MinWidth="90"
-                AutomationProperties.Name="Copy all events" />
-        <Button Content="Export..."
-                Command="{Binding ExportCommand}"
-                MinWidth="90"
-                AutomationProperties.Name="Export events" />
-        <Button Content="Clear"
-                Command="{Binding ClearCommand}"
-                MinWidth="80"
-                AutomationProperties.Name="Clear events" />
-        <Button Content="Close"
-                Click="OnCloseClick"
-                MinWidth="80"
-                AutomationProperties.Name="Close" />
-      </StackPanel>
+          <Grid Grid.Row="1">
+            <DataGrid ItemsSource="{Binding Events}"
+                      IsVisible="{Binding HasEvents}"
+                      IsReadOnly="True"
+                      CanUserResizeColumns="True"
+                      CanUserReorderColumns="False"
+                      CanUserSortColumns="True"
+                      GridLinesVisibility="Horizontal"
+                      AutoGenerateColumns="False"
+                      BorderThickness="0,1,0,0"
+                      AutomationProperties.Name="Connection events">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Date / Time"
+                                    Binding="{Binding TimestampText}"
+                                    Width="180" />
+                <DataGridTemplateColumn Header="Status" Width="140">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate x:DataType="vm:NetworkStatusEventItem">
+                      <TextBlock Text="{Binding StatusText}"
+                                 Foreground="{Binding StatusBrush}"
+                                 FontWeight="SemiBold"
+                                 VerticalAlignment="Center"
+                                 Margin="8,0" />
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Duration"
+                                    Binding="{Binding DurationText}"
+                                    Width="120" />
+                <DataGridTextColumn Header="Latency"
+                                    Binding="{Binding LatencyText}"
+                                    Width="100" />
+              </DataGrid.Columns>
+            </DataGrid>
+
+            <StackPanel IsVisible="{Binding !HasEvents}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="6"
+                        IsHitTestVisible="False">
+              <TextBlock Text="No connection changes in this range"
+                         FontSize="15"
+                         FontWeight="SemiBold"
+                         HorizontalAlignment="Center" />
+              <TextBlock Text="Disconnects and reconnects will appear here."
+                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                         HorizontalAlignment="Center" />
+            </StackPanel>
+          </Grid>
+        </Grid>
+      </Border>
     </Grid>
-  </Border>
+  </Grid>
 </ui:SurfaceWindow>

@@ -44,10 +44,14 @@ public sealed class ConnectivityChartControl : Control
     private static readonly IBrush ConnectedFill = new SolidColorBrush(Color.FromArgb(48, 34, 197, 94));
     private static readonly IBrush DisconnectedFill = new SolidColorBrush(Color.FromArgb(72, 239, 68, 68));
     private static readonly IBrush AxisBrush = new SolidColorBrush(Color.FromRgb(120, 120, 128));
-    private static readonly IBrush LatencyBrush = new SolidColorBrush(Color.FromRgb(59, 130, 246));
+    private static readonly IBrush GridBrush = new SolidColorBrush(Color.FromArgb(55, 142, 148, 158));
+    private static readonly IBrush LatencyBrush = new SolidColorBrush(Color.FromRgb(34, 197, 94));
+    private static readonly IBrush FailureBrush = new SolidColorBrush(Color.FromRgb(239, 68, 68));
     private static readonly IBrush LabelBrush = new SolidColorBrush(Color.FromRgb(160, 160, 168));
     private static readonly Pen AxisPen = new(AxisBrush, 1);
-    private static readonly Pen LatencyPen = new(LatencyBrush, 1.5);
+    private static readonly Pen GridPen = new(GridBrush, 1);
+    private static readonly Pen LatencyPen = new(LatencyBrush, 2);
+    private static readonly Pen FailurePen = new(FailureBrush, 2);
 
     static ConnectivityChartControl()
     {
@@ -97,14 +101,16 @@ public sealed class ConnectivityChartControl : Control
         DateTime maxTime = points.Max(point => point.Timestamp);
         double duration = Math.Max(1, (maxTime - minTime).TotalSeconds);
 
-        List<NetworkChartPoint> connectivity = [.. points.Where(point => !point.LatencyMs.HasValue || point.LatencyMs == null)];
+        List<NetworkChartPoint> connectivity = [.. points.Where(point => !point.IsSample)];
         if (connectivity.Count < 2)
         {
             connectivity = [.. points];
         }
 
         DrawConnectivityBands(context, plot, connectivity, minTime, duration);
-        DrawLatencyLine(context, plot, points, minTime, duration);
+        double maximumLatency = GetMaximumLatency(points);
+        DrawGridLines(context, plot, maximumLatency);
+        DrawLatencyLine(context, plot, points, minTime, duration, maximumLatency);
         context.DrawRectangle(null, AxisPen, plot);
         DrawAxisLabels(context, plot, minTime, maxTime);
     }
@@ -138,29 +144,57 @@ public sealed class ConnectivityChartControl : Control
         Rect plot,
         IReadOnlyList<NetworkChartPoint> points,
         DateTime minTime,
-        double durationSeconds)
+        double durationSeconds,
+        double maximumLatency)
     {
-        List<NetworkChartPoint> latencyPoints = [.. points.Where(point => point.LatencyMs.HasValue)];
-        if (latencyPoints.Count < 2)
+        List<NetworkChartPoint> samples = [.. points.Where(point => point.IsSample).OrderBy(point => point.Timestamp)];
+        if (samples.Count < 2)
         {
             return;
         }
 
-        double maxLatency = Math.Max(20, latencyPoints.Max(point => point.LatencyMs ?? 0));
-        List<Point> linePoints = [];
-        foreach (NetworkChartPoint point in latencyPoints.OrderBy(item => item.Timestamp))
+        Point? previousPoint = null;
+        bool previousSucceeded = false;
+        foreach (NetworkChartPoint sample in samples)
         {
-            double x = MapX(point.Timestamp, minTime, durationSeconds, plot);
-            double y = plot.Y + plot.Height - (point.LatencyMs!.Value / maxLatency * plot.Height);
+            bool succeeded = sample.IsConnected && sample.LatencyMs.HasValue;
+            double x = MapX(sample.Timestamp, minTime, durationSeconds, plot);
+            double y = succeeded
+                ? plot.Bottom - (sample.LatencyMs!.Value / maximumLatency * plot.Height)
+                : plot.Bottom;
             y = Math.Clamp(y, plot.Y, plot.Y + plot.Height);
-            linePoints.Add(new Point(x, y));
+            Point point = new(x, y);
+            if (previousPoint.HasValue)
+            {
+                context.DrawLine(previousSucceeded && succeeded ? LatencyPen : FailurePen, previousPoint.Value, point);
+            }
+
+            previousPoint = point;
+            previousSucceeded = succeeded;
         }
+    }
 
-        var geometry = new PolylineGeometry(linePoints, false);
-        context.DrawGeometry(null, LatencyPen, geometry);
+    private static double GetMaximumLatency(IReadOnlyList<NetworkChartPoint> points)
+    {
+        double observedMaximum = points
+            .Where(point => point.IsSample && point.LatencyMs.HasValue)
+            .Select(point => point.LatencyMs!.Value)
+            .DefaultIfEmpty(0)
+            .Max();
+        return Math.Max(50, Math.Ceiling(observedMaximum / 25) * 25);
+    }
 
-        FormattedText latencyLabel = CreateLabel($"0-{maxLatency:0} ms");
-        context.DrawText(latencyLabel, new Point(4, plot.Y));
+    private static void DrawGridLines(DrawingContext context, Rect plot, double maximumLatency)
+    {
+        const int horizontalGridLines = 4;
+        for (int index = 0; index <= horizontalGridLines; index++)
+        {
+            double ratio = index / (double)horizontalGridLines;
+            double y = plot.Bottom - (plot.Height * ratio);
+            context.DrawLine(GridPen, new Point(plot.Left, y), new Point(plot.Right, y));
+            FormattedText label = CreateLabel($"{maximumLatency * ratio:0} ms");
+            context.DrawText(label, new Point(Math.Max(2, plot.Left - label.Width - 6), y - (label.Height / 2)));
+        }
     }
 
     private static void DrawAxisLabels(DrawingContext context, Rect plot, DateTime minTime, DateTime maxTime)

@@ -289,7 +289,7 @@ public sealed class NetworkMonitorHistory
             {
                 Timestamp = statusEvent.Timestamp,
                 IsConnected = connected,
-                LatencyMs = statusEvent.RoundtripMs
+                LatencyMs = null
             });
         }
 
@@ -306,13 +306,14 @@ public sealed class NetworkMonitorHistory
             {
                 Timestamp = sample.Timestamp,
                 IsConnected = sample.Success,
-                LatencyMs = sample.RoundtripMs
+                LatencyMs = sample.RoundtripMs,
+                IsSample = true
             });
         }
 
         return points
             .OrderBy(point => point.Timestamp)
-            .ThenBy(point => point.LatencyMs.HasValue ? 1 : 0)
+            .ThenBy(point => point.IsSample ? 1 : 0)
             .ToList();
     }
 
