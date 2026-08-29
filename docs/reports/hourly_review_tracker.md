@@ -6130,3 +6130,15 @@ Added candidates (8):
 - Commit: none (empty-queue audit; last_runs commit left null per v1.1.12)
 - Follow-up: wait for next xerahs-review ingest
 - Skill: none (no efficiency blockers this run)
+
+### 2026-08-29 23:02 AWST - xerahs-review producer run (Nadia)
+
+- Agent: nadia-valeva-kf (git-nadia wrapper; push remote: nadia)
+- Fork sync: nadia/develop fast-forwarded local develop (f171ff5d1..af53f2ea5, 1 commit: v0.29.0 Network Monitor experience improvements); HEAD == nadia/develop (af53f2ea5); origin/develop at 7e243e16d (not mine)
+- Upstream sync: clean (upstream/develop is ancestor of HEAD — d807a49ac merge-base)
+- Submodule sync: ShareX.ImageEditor HEAD (651b1d8) == upstream/develop == parent gitlink (clean)
+- Clawpatch: minimax/MiniMax-Text-01, --limit 3 features; reviewed=3, findings=1 (XerahS.Indexer=1)
+- v2.2.4 ingest: +1 candidate (next_candidates: 0 -> 1); submodule drops=69, gate drops=205 (triage=risk:134, contract-mismatch:50, test-gap:9, docs-gap:12), area-fixed drops=3, release-history drops=87, recently_pivoted skipped=57, duplicate skipped=0
+- Ingested: src/desktop/core/XerahS.Indexer/IndexerXml.cs:68 (IndexFolder) — security/high/confirmed-bug (sensitive folder/file names exposed in XML output)
+- Status: ok (1 new candidate ingested)
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
