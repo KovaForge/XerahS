@@ -2559,7 +2559,7 @@
         "docs/reports/hourly_review_tracker.md"
       ],
       "version_bump": null,
-      "commit": null,
+      "commit": "4f666415b6f0177597496f2b52c9c49216c7d7b6",
       "outcome": "reviewed",
       "build_test": "clawpatch review: 1 finding (XerahS.Indexer=1, 0 CLI, 0 ShareX.ImageEditor); ingest: 1 added to next_candidates (IndexerXml.cs:68 IndexFolder security/high/confirmed-bug)",
       "logs": [
