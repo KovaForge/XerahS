@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-30 16:06 AWST",
+  "last_updated": "2026-08-30 23:04 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,7 +10,9 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "src/desktop/app/XerahS.UI/CaptureCommandPalette/CaptureCommandPaletteCoordinator.cs:81-101 (RegisterHotkey)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -2580,9 +2582,26 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a found zero candidates after fork/upstream/submodule sync. HEAD already equalled declan/develop (38fdccad9). Upstream 107 commits behind (KovaForge ahead). ShareX.ImageEditor clean at 651b1d8de. Deleted no deferred-last-runs files (none present). Left untracked clawpatch report 20260828T150513-0975b0.md unstaged."
+    },
+    {
+      "timestamp": "2026-08-30 23:04 AWST",
+      "agent": "xerahs-review producer tick (nadia-daily)",
+      "area": "xerahs-review producer tick (nadia-daily)",
+      "files": [
+        ".clawpatch/reports/20260830T150518-d55523.md",
+        "docs/reports/hourly_review_state.json",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "version_bump": null,
+      "commit": "4e93dad781fffd6abf916719355dd8753340a9f5",
+      "outcome": "reviewed",
+      "build_test": "clawpatch review: 6 findings (XerahS.RegionCapture=0, XerahS.Common/Helpers=3, XerahS.UI/CaptureCommandPalette=3); ingest: 1 added to next_candidates (CaptureCommandPaletteCoordinator.cs:81-101 RegisterHotkey concurrency/high/confirmed-bug)",
+      "logs": [
+        "/tmp/xerahs-review/clawpatch-20260830-230517.log"
+      ]
     }
   ],
-  "last_run_outcome": "no-op",
+  "last_run_outcome": "reviewed (1 ingested)",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",

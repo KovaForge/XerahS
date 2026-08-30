@@ -6175,3 +6175,46 @@ Added candidates (8):
 - Commit: none (empty-queue audit; last_runs commit left null per v1.1.12)
 - Follow-up: wait for next xerahs-review ingest
 - Skill: none (no efficiency blockers this run)
+
+### 2026-08-30 23:07 AWST - clawpatch-ingest gate drops (skill v2.2.4)
+
+- Reports parsed: 3
+- Findings dropped as submodule-prefixed: 69
+- Findings dropped at severity gate: 212
+  - triage=risk: 138
+  - triage=contract-mismatch: 53
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings skipped as recently-pivoted: 56
+- Findings dropped as recently fixed in release history: 90
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [security/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:160-201 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - ... and 80 more
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-08-30 23:04 AWST - xerahs-review producer run (Nadia)
+
+- Agent: nadia-valeva-kf (git-nadia wrapper; push remote: nadia)
+- Fork sync: nadia/develop == HEAD (846d8d3da, already up-to-date — no fetch delta, no merge needed)
+- Upstream sync: merge upstream/develop into local (HEAD 846d8d3da..c884afa88..53a4f2535, fast-forward then merge of [v0.28.0] [Docs] Authorize full parity native implementation); KovaForge 96 commits behind upstream before sync, 1 commit behind after
+- Submodule sync: ShareX.ImageEditor HEAD (651b1d8de) == origin/develop == upstream/develop (clean)
+- Clawpatch: minimax/MiniMax-Text-01, --limit 3 features; reviewed=3, findings=6 (XerahS.RegionCapture=0, XerahS.Common/Helpers=3, XerahS.UI/CaptureCommandPalette=3)
+- v2.2.4 ingest: +1 candidate (next_candidates: 0 -> 1); submodule drops=69, gate drops=212 (triage=risk:138, contract-mismatch:53, test-gap:9, docs-gap:12), area-fixed drops=3, release-history drops=90, recently_pivoted skipped=56, duplicate skipped=0
+- Ingested: src/desktop/app/XerahS.UI/CaptureCommandPalette/CaptureCommandPaletteCoordinator.cs:81-101 (RegisterHotkey) — concurrency/high/confirmed-bug (RegisterHotkey WaitForExit race during shutdown; hotkey registration to WindowsFormsSynchronizationContext can race with application exit → swallowed ObjectDisposedException or hung install)
+- Files: .clawpatch/reports/20260830T150518-d55523.md (untracked producer artifact — commit-bound per skill tradition), docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Status: ok (1 new candidate ingested)
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
+- Skill: none (no efficiency blockers this run)
