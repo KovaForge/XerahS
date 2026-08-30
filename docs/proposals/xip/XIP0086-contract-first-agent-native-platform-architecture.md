@@ -9,7 +9,7 @@
 **Implementation repository**: [BriarForge/XerahS](https://github.com/BriarForge/XerahS)
 **Decision requested**: Approve a greenfield, contract-first XerahS implementation in which a versioned, plain-English Product Contract becomes the source of product behavior; independent native applications implement that contract on Windows, macOS, and Linux; and the architecture decisions in section 14 bind the pilot unless a later XIP supersedes them.
 
-**Canonical split:** the working copy of this proposal is BXIP001 in the greenfield tree, starting at `docs/proposals/BXIP001-contract-first-agent-native-platform-architecture/README.md` under BriarForge/XerahS. Prefer that directory for review and edits. This file is the ShareX-side snapshot.
+**Canonical split:** the working copy of this proposal is [BXIP001](https://github.com/BriarForge/XerahS/blob/main/docs/proposals/BXIP001-contract-first-agent-native-platform-architecture/README.md) in the independent greenfield repository [BriarForge/XerahS](https://github.com/BriarForge/XerahS) (not a fork of this tree). Prefer that directory for review and edits. This file is the ShareX-side snapshot.
 
 ---
 
