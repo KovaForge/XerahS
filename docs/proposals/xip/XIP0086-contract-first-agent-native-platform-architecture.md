@@ -123,6 +123,25 @@ Each implementation:
 
 For example, a settings view may use different native controls and layout on each platform while preserving the same setting meanings, defaults, validation, persistence, and downstream effects.
 
+### 3.5 Integrate ImageEditor into each native platform solution
+
+ImageEditor is a defining XerahS product capability and SHALL be implemented as an internal, first-class feature module in each native platform solution. The greenfield applications SHALL NOT take a production dependency on the existing Avalonia `ShareX.ImageEditor` repository as a Git submodule, linked library, embedded UI, or required runtime process.
+
+The shared ImageEditor asset will be its Product Contract and conformance corpus, not a common UI binary:
+
+```text
+ImageEditor Product Contract
+        |
+        +-- Windows native ImageEditor feature
+        +-- macOS native ImageEditor feature
+        +-- Linux native ImageEditor feature
+        `-- Cross-platform conformance corpus
+```
+
+Each native ImageEditor SHALL live in the same repository as its native XerahS application so a behavior change can update the contract, all affected implementations, fixtures, and traceability evidence atomically.
+
+The existing [KovaForge/ShareX.ImageEditor](https://github.com/KovaForge/ShareX.ImageEditor) repository will continue to serve ShareX and the existing Avalonia XerahS. For the greenfield project it is a legacy reference implementation and source of compatibility evidence, not a component of the target runtime architecture.
+
 ## 4. Product Contract Design
 
 ### 4.1 Proposed repository structure
@@ -150,6 +169,18 @@ product-contract/
           windows.md
           macos.md
           linux.md
+    image-editor/
+      AGENTS.md
+      EDITOR-SESSION-001/
+      ANNOTATION-DOCUMENT-001/
+      ANNOTATION-TOOLS-001/
+      IMAGE-EFFECTS-001/
+      schemas/
+      scenarios/
+      fixtures/
+      test-vectors/
+      compatibility/
+        xann-v1.md
   schemas/
   decisions/
   waivers/
@@ -158,10 +189,16 @@ platforms/
   AGENTS.md
   windows/
     AGENTS.md
+    image-editor/
+      AGENTS.md
   macos/
     AGENTS.md
+    image-editor/
+      AGENTS.md
   linux/
     AGENTS.md
+    image-editor/
+      AGENTS.md
 
 conformance/
   AGENTS.md
@@ -170,6 +207,10 @@ conformance/
     windows/
     macos/
     linux/
+  image-editor/
+    AGENTS.md
+    golden-images/
+    compatibility-fixtures/
   reports/
 
 tools/
@@ -356,7 +397,9 @@ The hierarchy SHALL preserve separation of duties:
 - `product-contract/AGENTS.md` governs normative language, requirement identifiers, schemas, compatibility, and product approval. It MUST prohibit changing a contract solely to satisfy an implementation.
 - `platforms/AGENTS.md` governs requirements shared by all native implementations, including traceability manifests and platform parity.
 - Each platform child governs native framework use, OS baselines, packaging, signing, permissions, accessibility, and platform tests.
+- Each platform's `image-editor/AGENTS.md` governs native editor UI, input, rendering, persistence adapters, and verification without granting authority to redefine the editor contract.
 - `conformance/AGENTS.md` governs independent verification. It MUST prohibit deriving expected results solely from one platform implementation.
+- `conformance/image-editor/AGENTS.md` governs editor fixtures, tolerance policies, `.xann` compatibility, and golden-image comparison independently of all three renderers.
 - `tools/contract-linter/AGENTS.md` governs tooling that validates the governance system itself.
 
 This separation allows an agent to be highly constrained in its own scope without granting it authority over the specification or another platform.
@@ -533,6 +576,68 @@ Where in-process .NET plugins cannot be used by a non-.NET native application, a
 
 During greenfield development, the Avalonia application and the original ShareX implementation are valuable behavioral references and test oracles. They SHALL NOT override an approved Product Contract or dictate the new repository structure. If code and contract disagree, the discrepancy must be resolved explicitly rather than silently copying the code.
 
+### 8.4 ImageEditor module boundary
+
+Each native solution SHALL expose ImageEditor to its host application through a small, platform-idiomatic internal interface with equivalent contract semantics.
+
+Conceptually, the editor input is:
+
+| Input | Purpose |
+|---|---|
+| Source image | Image to annotate or transform |
+| Editing mode | Standalone editing, capture annotation, or workflow task mode |
+| Initial annotation document | Optional re-editable project state |
+| Editor preferences | Contract-defined defaults and native presentation preferences |
+| Host capabilities | Explicitly provided save, clipboard, upload-request, pin, and diagnostic capabilities |
+
+The editor result is:
+
+| Output | Purpose |
+|---|---|
+| Disposition | Confirmed, cancelled, or failed |
+| Rendered image | Final image when confirmed |
+| Annotation document | Re-editable, language-neutral project state |
+| Requested continuation | Save, copy, upload, pin, or return-to-workflow intent where applicable |
+| Diagnostics | Structured errors, warnings, and renderer information |
+
+The ImageEditor feature owns:
+
+- Native editor UI, input, selection, zoom, and accessibility.
+- Annotation state, layer ordering, history, undo, and redo.
+- Annotation rendering and image-effect execution.
+- Editor-local preferences and project-document persistence.
+- Import and export of the contract-defined annotation format.
+
+The host XerahS application owns:
+
+- Capture orchestration and source-image acquisition.
+- File destinations and naming policy.
+- Clipboard, upload, pin, history, automation, and post-capture workflows.
+- Permission prompts and platform capabilities outside the editor.
+- Interpretation and execution of requested continuation actions.
+
+This boundary prevents ImageEditor from becoming a second application framework inside XerahS while keeping it independently testable within each native solution.
+
+### 8.5 Existing ShareX.ImageEditor compatibility
+
+The current editor's `.xann` version 1 format, annotation inventory, effect behavior, history semantics, and host callbacks SHALL be investigated as migration inputs. The Product Contract SHALL define which behaviors are retained, corrected, or intentionally discontinued.
+
+The greenfield repository SHOULD import approved schemas, fixtures, and golden images as versioned test assets with appropriate license and provenance records. It SHOULD NOT require a live checkout of the legacy repository for normal builds, tests, or releases. If the legacy implementation is temporarily used as an oracle, it MUST run only in isolated development or compatibility tooling and MUST NOT be packaged with a native application.
+
+### 8.6 Shared rendering-kernel exception
+
+The initial architecture SHALL implement editor state, UI, and rendering within each native solution. A shared rendering submodule or common DLL SHALL NOT be introduced by default.
+
+Image processing is nevertheless an exactness-sensitive domain. If pilot evidence shows that independently implementing complex effects causes unacceptable pixel drift, security risk, or maintenance cost, a follow-up XIP MAY propose a small headless rendering kernel with a stable language-neutral ABI.
+
+Any approved kernel:
+
+- MUST contain no UI, windows, dialogs, platform services, workflow orchestration, or product policy.
+- MUST remain subordinate to the ImageEditor Product Contract.
+- MUST be replaceable by a conforming native implementation.
+- MUST use the same conformance vectors as all native renderers.
+- MUST justify its repository and dependency model independently; approval is not implicit permission to restore the existing Avalonia submodule.
+
 ## 9. Greenfield Implementation Strategy
 
 ### Phase 0: Approve principles and boundaries
@@ -545,11 +650,12 @@ During greenfield development, the Avalonia application and the original ShareX 
 
 ### Phase 1: Build a contract pilot
 
-Select three representative vertical slices:
+Select at least three representative vertical slices plus a mandatory ImageEditor slice:
 
 1. A deterministic shared behavior, such as filename generation.
 2. A workflow behavior, such as ordered post-capture actions and failure continuation.
 3. A deeply native behavior, such as global hotkeys or region capture.
+4. An ImageEditor slice covering source-image load, rectangle annotation, selection, undo/redo, deterministic export, and annotation-document round-trip.
 
 For each slice:
 
@@ -624,12 +730,14 @@ This is the proposed strategic direction. It maximizes platform independence and
 | Native ecosystem churn | Three SDK and packaging stacks create operational load | Explicit platform ownership, supported OS baselines, automated builds, and dependency policies |
 | Instruction sprawl | Agents miss rules or encounter conflicts | Root constitution, scoped deltas, stable rule IDs, hierarchy linting, and effective-instructions reports |
 | Stale local guidance | Child rules preserve obsolete framework or command assumptions | Assigned scope owners, link checks, periodic validation, and removal of duplicated rules |
+| ImageEditor submodule version skew | Editor behavior and host integration move on different revisions | Keep native editor modules in the monorepo and land contract, implementation, and evidence atomically |
+| Renderer drift | Effects produce materially different images across platforms | Deterministic vectors, golden images, explicit tolerances, and a separately approved headless-kernel option if evidence requires it |
 
 ## 12. Success Criteria for the Pilot
 
 The pilot succeeds when:
 
-1. Three representative capabilities have approved, versioned contract packages.
+1. At least four representative capabilities, including the mandatory ImageEditor slice, have approved, versioned contract packages.
 2. Every normative pilot requirement maps to evidence on Windows, macOS, and Linux, or to an approved platform disposition.
 3. The conformance runner detects intentionally introduced behavioral differences.
 4. Independent platform agents can implement a contract change without treating another platform's source code as the specification.
@@ -653,6 +761,7 @@ This XIP does not:
 - Promise pixel-identical UI across platforms.
 - Make AI-generated changes exempt from code review, security review, testing, signing, or release governance.
 - Create `AGENTS.md` files in directories that have no distinct governance boundary.
+- Modify or retire the existing `KovaForge/ShareX.ImageEditor` repository, which remains independently owned by its existing consumers.
 
 ## 14. Open Decisions
 
@@ -669,13 +778,17 @@ The pilot must produce recommendations for:
 9. Release policy when one platform cannot implement a capability.
 10. Required human review boundaries for agent-generated contracts and native implementations.
 11. Ownership, rule-ID namespace, maximum scope depth, and CI enforcement for the `AGENTS.md` hierarchy.
+12. Golden-image tolerances for fonts, color management, resampling, and GPU differences.
+13. The evidence threshold that would justify proposing a shared headless rendering kernel.
 
 ## 15. Definition of Done for This XIP
 
 - The architectural principles are accepted or rejected explicitly.
 - A Product Contract pilot location and format are approved.
 - The greenfield [BriarForge/XerahS](https://github.com/BriarForge/XerahS) repository has a root constitution and scoped first-level `AGENTS.md` files.
-- Three pilot capabilities are selected.
+- At least three general pilot capabilities and the mandatory ImageEditor slice are selected.
+- ImageEditor is accepted as an internal feature of each native solution rather than a production submodule.
+- The ImageEditor host boundary, annotation-document compatibility policy, and conformance ownership are approved.
 - Contract, platform, conformance, and product-owner responsibilities are assigned.
 - CI requirements for traceability and parity are agreed.
 - No Avalonia deprecation or native rewrite begins without the pilot evidence and a follow-up XIP.
@@ -696,3 +809,4 @@ The pilot must produce recommendations for:
 |---|---|---|
 | 2026-08-30 | Initial proposal | Capture the contract-first, agent-native architecture and define a governed pilot before any existing framework retirement |
 | 2026-08-30 | Defined greenfield repository and hierarchical agent governance | Establish BriarForge/XerahS as the implementation target and make root-to-leaf scoped instructions part of the architecture |
+| 2026-08-30 | Defined native ImageEditor ownership | Integrate ImageEditor into each native solution, retain the existing repository as a legacy reference, and prohibit it as a production submodule |
