@@ -40,13 +40,13 @@ public class WindowsModernCaptureServiceTests
     {
         var options = new CaptureOptions { UseModernCapture = configuredValue };
 
-        Assert.That(WindowsModernCaptureService.ShouldUseModernCapture(options), Is.EqualTo(expected));
+        Assert.That(ModernCapturePolicy.ShouldUseModernCapture(options), Is.EqualTo(expected));
     }
 
     [Test]
     public void ShouldUseModernCapture_WithoutOptions_PrefersDxgi()
     {
-        Assert.That(WindowsModernCaptureService.ShouldUseModernCapture(null), Is.True);
+        Assert.That(ModernCapturePolicy.ShouldUseModernCapture(null), Is.True);
     }
 
     [Test]

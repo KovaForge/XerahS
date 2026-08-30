@@ -232,24 +232,29 @@ public class VideoEditorExportAutomationTests
             });
             Assert.That(File.Exists(cropResult.OutputPath), Is.True);
 
-            string convertPath = Path.Combine(workDir, "convert.webp");
+            FfmpegCapabilitySnapshot capabilities = FfmpegCapabilityProbe.Probe(ffmpegPath);
+            string convertFormat = PickAdvertisedConversionFormat(capabilities);
+            string convertPath = Path.Combine(workDir, "convert" + GetExtension(convertFormat));
             VideoEditorExportResult convertResult = await service.ExportAsync(new VideoEditorExportRequest
             {
                 InputPath = inputPath,
                 OutputPath = convertPath,
-                OutputFormat = "WebP"
+                OutputFormat = convertFormat
             });
             Assert.That(File.Exists(convertResult.OutputPath), Is.True);
 
-            string watermarkPath = Path.Combine(workDir, "watermark.mp4");
-            VideoEditorExportResult watermarkResult = await service.ExportAsync(new VideoEditorExportRequest
+            if (FfmpegFilterIsAvailable(ffmpegPath, "drawtext"))
             {
-                InputPath = inputPath,
-                OutputPath = watermarkPath,
-                WatermarkEnabled = true,
-                WatermarkText = "XerahS"
-            });
-            Assert.That(File.Exists(watermarkResult.OutputPath), Is.True);
+                string watermarkPath = Path.Combine(workDir, "watermark.mp4");
+                VideoEditorExportResult watermarkResult = await service.ExportAsync(new VideoEditorExportRequest
+                {
+                    InputPath = inputPath,
+                    OutputPath = watermarkPath,
+                    WatermarkEnabled = true,
+                    WatermarkText = "XerahS"
+                });
+                Assert.That(File.Exists(watermarkResult.OutputPath), Is.True);
+            }
         }
         finally
         {
@@ -288,6 +293,50 @@ public class VideoEditorExportAutomationTests
         }
 
         return null;
+    }
+
+    private static string PickAdvertisedConversionFormat(FfmpegCapabilitySnapshot capabilities)
+    {
+        foreach (string format in new[] { "WebP", "WebM", "GIF", "MP4" })
+        {
+            if (capabilities.Supports(format))
+            {
+                return format;
+            }
+        }
+
+        Assert.Ignore("FFmpeg is available but does not advertise a supported export format.");
+        return "MP4";
+    }
+
+    private static string GetExtension(string outputFormat) => outputFormat.ToUpperInvariant() switch
+    {
+        "WEBP" => ".webp",
+        "WEBM" => ".webm",
+        "GIF" => ".gif",
+        _ => ".mp4"
+    };
+
+    private static bool FfmpegFilterIsAvailable(string ffmpegPath, string filterName)
+    {
+        var startInfo = new ProcessStartInfo(ffmpegPath, "-hide_banner -filters")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using Process process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Failed to start FFmpeg to inspect filters.");
+
+        string output = process.StandardOutput.ReadToEnd();
+        string error = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        return process.ExitCode == 0 &&
+            (output.Contains(filterName, StringComparison.OrdinalIgnoreCase) ||
+             error.Contains(filterName, StringComparison.OrdinalIgnoreCase));
     }
 
     private static async Task CreateTestVideoAsync(string ffmpegPath, string outputPath)

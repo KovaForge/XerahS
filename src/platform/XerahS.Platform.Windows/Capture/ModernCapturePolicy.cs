@@ -23,25 +23,15 @@
 
 #endregion License Information (GPL v3)
 
-using System.Runtime.InteropServices;
-using NUnit.Framework;
-using XerahS.Platform.Windows.Capture;
+using XerahS.Platform.Abstractions;
 
-namespace XerahS.Tests.Platform.Windows;
+namespace XerahS.Platform.Windows.Capture;
 
-public class DxgiOutputDuplicationPolicyTests
+internal static class ModernCapturePolicy
 {
-    [Test]
-    public void ShouldUseDuplicateOutput1_FalseOnArm64()
-    {
-        Assert.That(DxgiOutputDuplicationPolicy.ShouldUseDuplicateOutput1(Architecture.Arm64), Is.False);
-        Assert.That(DxgiOutputDuplicationPolicy.ShouldUseDuplicateOutput1(Architecture.Arm), Is.False);
-    }
-
-    [Test]
-    public void ShouldUseDuplicateOutput1_TrueOnIntel()
-    {
-        Assert.That(DxgiOutputDuplicationPolicy.ShouldUseDuplicateOutput1(Architecture.X64), Is.True);
-        Assert.That(DxgiOutputDuplicationPolicy.ShouldUseDuplicateOutput1(Architecture.X86), Is.True);
-    }
+    /// <summary>
+    /// Resolves the capture backend policy supplied by the application layer.
+    /// </summary>
+    internal static bool ShouldUseModernCapture(CaptureOptions? options) =>
+        options?.UseModernCapture ?? true;
 }

@@ -12,7 +12,6 @@
 
 #endregion License Information (GPL v3)
 
-using System.Runtime.InteropServices;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
 using XerahS.Common;
@@ -28,17 +27,9 @@ internal static class DxgiOutputDuplicationHelper
         Format.B8G8R8A8_UNorm
     ];
 
-    /// <summary>
-    /// Vortice's DuplicateOutput1 marshaller can access-violate (0xC0000005) on Windows
-    /// ARM64 GPU drivers instead of returning DXGI_ERROR. That cannot be caught in .NET,
-    /// so region capture must never call it there.
-    /// </summary>
-    internal static bool ShouldUseDuplicateOutput1(Architecture architecture) =>
-        architecture is Architecture.X64 or Architecture.X86;
-
     public static IDXGIOutputDuplication Create(IDXGIOutput output, ID3D11Device device)
     {
-        if (ShouldUseDuplicateOutput1(RuntimeInformation.ProcessArchitecture))
+        if (DxgiOutputDuplicationPolicy.ShouldUseDuplicateOutput1(RuntimeInformation.ProcessArchitecture))
         {
             try
             {

@@ -44,12 +44,19 @@ public sealed class NextcloudUploader : FileUploader, IUploadHandler
 
     public override UploadResult Upload(Stream stream, string fileName)
     {
-        return UploadAsync(new UploadRequest
+        UploadOutcome outcome = UploadAsync(new UploadRequest
         {
             Content = stream,
             FileName = fileName,
             Category = UploaderCategory.File
-        }, CancellationToken.None).GetAwaiter().GetResult().ToUploadResult();
+        }, CancellationToken.None).GetAwaiter().GetResult();
+
+        if (!outcome.Succeeded && !string.IsNullOrWhiteSpace(outcome.Error))
+        {
+            Errors.Add(outcome.Error);
+        }
+
+        return outcome.ToUploadResult();
     }
 
     public async Task<UploadOutcome> UploadAsync(UploadRequest request, CancellationToken cancellationToken = default)

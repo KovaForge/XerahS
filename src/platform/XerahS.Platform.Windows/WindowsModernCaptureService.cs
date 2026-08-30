@@ -102,7 +102,7 @@ namespace XerahS.Platform.Windows
         }
         public async Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
         {
-            bool useModern = ShouldUseModernCapture(options);
+            bool useModern = ModernCapturePolicy.ShouldUseModernCapture(options);
 
             if (!IsSupported || !useModern)
             {
@@ -149,7 +149,7 @@ namespace XerahS.Platform.Windows
 
         public async Task<SKBitmap?> CaptureFullScreenAsync(CaptureOptions? options = null)
         {
-            bool useModern = ShouldUseModernCapture(options);
+            bool useModern = ModernCapturePolicy.ShouldUseModernCapture(options);
 
             if (!IsSupported || !useModern)
             {
@@ -175,12 +175,6 @@ namespace XerahS.Platform.Windows
             }
             return fullResult;
         }
-
-        /// <summary>
-        /// Resolves the capture backend policy supplied by the application layer.
-        /// </summary>
-        internal static bool ShouldUseModernCapture(CaptureOptions? options) =>
-            options?.UseModernCapture ?? true;
 
         public async Task<SKBitmap?> CaptureActiveWindowAsync(IWindowService windowService, CaptureOptions? options = null)
         {
