@@ -9,6 +9,8 @@
 **Implementation repository**: [BriarForge/XerahS](https://github.com/BriarForge/XerahS)
 **Decision requested**: Approve a greenfield, contract-first XerahS implementation in which a versioned, plain-English Product Contract becomes the source of product behavior; independent native applications implement that contract on Windows, macOS, and Linux; and the architecture decisions in section 14 bind the pilot unless a later XIP supersedes them.
 
+**Canonical split:** the working copy of this proposal is BXIP001 in the greenfield tree, starting at `docs/proposals/BXIP001-contract-first-agent-native-platform-architecture/README.md` under BriarForge/XerahS. Prefer that directory for review and edits. This file is the ShareX-side snapshot.
+
 ---
 
 ## 1. Executive Summary
@@ -845,7 +847,7 @@ Agents MAY author contracts, implementations, and tests. Agents MUST NOT be the 
 
 CI SHALL use path filters so a Windows-only change does not require a macOS or Linux full build, and vice versa. Sparse checkout is allowed. Splitting into per-platform repositories is forbidden until a later XIP shows that monorepo operational cost exceeds the coordination cost of multi-repo contract changes.
 
-This XIP continues to live in the current ShareX Team XerahS documentation tree as the approved proposal. Execution happens in BriarForge/XerahS.
+The canonical proposal is BXIP001 in BriarForge/XerahS (`docs/proposals/BXIP001-contract-first-agent-native-platform-architecture/`). This XIP is the ShareX-side snapshot. Execution happens in BriarForge/XerahS.
 
 ### D-SHARE-001 Shared binaries
 
@@ -1019,3 +1021,4 @@ Residual risks that remain acceptable for a proposed XIP:
 | 2026-08-30 | Defined greenfield repository and hierarchical agent governance | Establish BriarForge/XerahS as the implementation target and make root-to-leaf scoped instructions part of the architecture |
 | 2026-08-30 | Defined native ImageEditor ownership | Integrate ImageEditor into each native solution, retain the existing repository as a legacy reference, and prohibit it as a production submodule |
 | 2026-08-30 | Closed open decisions as pilot-binding architecture choices | Record ownership, contract format, platform baselines, monorepo, sharing, plugins, release, review, AGENTS.md, goldens, and kernel threshold so the pilot can start without a second architecture XIP |
+| 2026-08-30 | Split into BXIP001 | The single-file XIP exceeded a useful review size; the canonical document set lives in BriarForge/XerahS under docs/proposals/BXIP001-contract-first-agent-native-platform-architecture/ |
