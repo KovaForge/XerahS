@@ -6218,3 +6218,15 @@ Added candidates (8):
 - Status: ok (1 new candidate ingested)
 - Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
 - Skill: none (no efficiency blockers this run)
+
+### 2026-08-31 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/app/XerahS.UI/CaptureCommandPalette/CaptureCommandPaletteCoordinator.cs:81-101 (RegisterHotkey)
+- Files: (none — pivot, no code change)
+- Findings: false positive — cited RegisterHotkey already try/catches PlatformServices.Hotkey.RegisterHotkey, sets HotkeyStatus.Failed, and logs; no WaitForExit and no WindowsFormsSynchronizationContext in the method or tree. Producer ingest framed a shutdown WaitForExit/WinForms race; live body is Avalonia Dispatcher.UIThread.Post(TogglePalette) plus the same try/catch pattern as AssistantOverlayCoordinator.RegisterHotkey. WindowsHotkeyService.RegisterHotkey uses ManualResetEventSlim.Wait(2s), not WaitForExit.
+- Status: Pivot (already-fixed / false-positive)
+- Build/test: n/a
+- Commit: none (drain only; last_runs delta +0 per v1.1.13; deferred to deferred-last-runs-20260831-000600.json)
+- Follow-up: do not re-queue unless RegisterHotkey drops its Failed-status/log path; recently_pivoted seeded
+- Skill: none (no efficiency blockers this run; v1.1.27 already covers cited-symbol vs method-body false positives)
+
