@@ -6251,3 +6251,46 @@ Added candidates (8):
 - Commit: none (audit commit SHA recorded in Step 9 summary; last_runs.commit left null per v1.1.12)
 - Follow-up: wait for xerahs-review producer ingest; do not invent work
 - Skill: xerahs-bugfix/SKILL.md v1.1.27 no patch this tick (no efficiency blockers)
+
+### 2026-08-31 23:06 AWST - clawpatch-ingest gate drops (skill v2.2.4)
+
+- Reports parsed: 3
+- Findings dropped as submodule-prefix: 70
+- Findings dropped at severity gate: 223
+  - triage=risk: 147
+  - triage=contract-mismatch: 55
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently-fixed (release-history v2.1.2): 87
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [security/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:160-201 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - ... and 77 more
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-08-31 23:06 AWST - xerahs-review producer run (Nadia)
+
+- Agent: nadia-valeva-kf (nadia remote)
+- Source: cron xerahs-review-daily-producer (23:00 AWST fire, feeds 00:06 AWST bugfix drain)
+- Status: ok (no new candidates — all findings gated at ingest)
+- Commit: PENDING
+- Fork sync: nadia/develop b4e9da578..ea8b3ef8a fast-forward (ShareX.VideoEditor pointer updated)
+- Upstream sync: already up to date
+- Submodule (ShareX.ImageEditor): clean
+- Clawpatch: ran (7 findings across 3 features: .NET project XerahS.Platform.Linux x3, .NET project XerahS x2, .NET project ShareX.Dropbox.Plugin x2)
+- next_candidates: 0 → 0 (+0 new; 0 added, 0 dropped at producer)
+- Gate drops: severity-gate 223 (risk:147, contract-mismatch:55, docs-gap:12, test-gap:9), submodule-prefix 70, already-fixed-area 3, recently-pivoted 62, recently-fixed-release-history 87, duplicate 0
+- Follow-up: 00:06 AWST bugfix drain (Declan) will check the queue; queue remains empty, no work to drain this cycle
+
