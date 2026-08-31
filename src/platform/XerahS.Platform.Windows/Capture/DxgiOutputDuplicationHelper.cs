@@ -12,6 +12,7 @@
 
 #endregion License Information (GPL v3)
 
+using System.Runtime.InteropServices;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
 using XerahS.Common;
