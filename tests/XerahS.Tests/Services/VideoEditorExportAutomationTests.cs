@@ -47,8 +47,8 @@ public class VideoEditorExportAutomationTests
             OutputFps = 0
         });
 
-        Assert.That(args, Does.Contain("-ss 00:00:01.00"));
-        Assert.That(args, Does.Contain("-t 00:00:02.00"));
+        Assert.That(args, Does.Contain("-ss 1"));
+        Assert.That(args, Does.Contain("-t 2"));
         Assert.That(args, Does.Not.Contain("fps="));
     }
 
