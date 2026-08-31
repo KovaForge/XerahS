@@ -2626,7 +2626,7 @@
         "docs/reports/hourly_review_tracker.md"
       ],
       "version_bump": null,
-      "commit": "PENDING",
+      "commit": "ed6697b25f2d5dc683e4a1af315694b0e37c35e8",
       "outcome": "reviewed",
       "build_test": "clawpatch review: 7 findings across 3 features (.NET project XerahS.Platform.Linux x3, .NET project XerahS x2, .NET project ShareX.Dropbox.Plugin x2); ingest: 0 added to next_candidates (all gated)",
       "notes": "Producer-only tick (nadia-daily). nadia remote HEAD synced (b4e9da578..ea8b3ef8a fast-forward, ShareX.VideoEditor submodule pointer updated). origin/develop and upstream/develop already up to date. ShareX.ImageEditor submodule clean. clawpatch reports parsed: 3 (latest 20260831T150451-09d05e). Findings dropped at severity gate: 223 (triage=risk: 147, contract-mismatch: 55, docs-gap: 12, test-gap: 9). Submodule-prefix drops: 70 (ShareX.ImageEditor/ShareX.VideoEditor). Dropped as already-fixed (area-level): 3. Dropped as recently-pivoted: 62. Dropped as recently-fixed (release-history v2.1.2): 87. Skipped as duplicate: 0. Ingested: 0. next_candidates delta: 0 -> 0 (+0). Reports dir now contains 65 .md files.",
