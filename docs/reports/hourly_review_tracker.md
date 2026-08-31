@@ -6230,3 +6230,13 @@ Added candidates (8):
 - Follow-up: do not re-queue unless RegisterHotkey drops its Failed-status/log path; recently_pivoted seeded
 - Skill: none (no efficiency blockers this run; v1.1.27 already covers cited-symbol vs method-body false positives)
 
+### 2026-08-31 08:08 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync (HEAD==declan/develop==origin/develop at 3f8da6b47; upstream 0 behind; ShareX.ImageEditor clean at 651b1d8de). Deleted stale deferred-last-runs-20260831-000600.json (v1.1.16). Left untracked clawpatch report 20260828T150513-0975b0.md unstaged.
+- Status: no-op
+- Build/test: n/a
+- Commit: none (no-op audit; last_runs commit=null per v1.1.12)
+- Follow-up: wait for next xerahs-review producer ingest; latest producer tick 2026-08-30 23:04 AWST ingested RegisterHotkey which proved a false positive (drained 00:06)
+- Skill: none (no efficiency blockers this run)
