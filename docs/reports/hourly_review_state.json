@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-08-31 08:08 AWST",
+  "last_updated": "2026-08-31 16:07 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2605,6 +2605,15 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a found zero candidates. Deleted stale deferred-last-runs-20260831-000600.json (v1.1.16; no fix commit to fold under XIP0077 +0/+1). Tracker markdown remains the durable ledger for the 00:06 RegisterHotkey pivot. HEAD==declan/develop==origin/develop at 3f8da6b47; upstream 0 behind; ShareX.ImageEditor clean at 651b1d8de.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-08-31 16:07 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates. No deferred-last-runs files to delete. HEAD==declan/develop==origin/develop at 6ae17bc57; upstream 0 behind; ShareX.ImageEditor clean at 651b1d8de.",
       "status": "no-op"
     }
   ],
