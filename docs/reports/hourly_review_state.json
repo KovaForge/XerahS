@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-09-01 00:06 AWST",
+  "last_updated": "2026-09-01 08:09 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2661,6 +2661,14 @@
       "commit": null,
       "summary": "Step 5a found zero candidates. No deferred-last-runs files to delete. HEAD==declan/develop at d8f119c23; upstream 0 behind; ShareX.ImageEditor clean at 651b1d8de. last_runs 210->211 (no cap; XIP0077 +1).",
       "status": "no-op"
+    },
+    {
+      "ts": "2026-09-01 08:09 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; producer ingest gated all findings; no pivots to drain"
     }
   ],
   "last_run_outcome": "no-op",
