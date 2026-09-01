@@ -1,0 +1,82 @@
+#region License Information (GPL v3)
+
+/*
+    XerahS - The Avalonia UI implementation of ShareX
+    Copyright (c) 2007-2026 ShareX Team
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+    Optionally you can also view the license at <http://www.gnu.org/licenses/>.
+*/
+
+#endregion License Information (GPL v3)
+
+using SkiaSharp;
+using XerahS.Core;
+using XerahS.Platform.Abstractions;
+
+namespace XerahS.OmaXerahs.Services;
+
+/// <summary>
+/// VideoEditor-free headless UI stub. Never writes to stdout.
+/// </summary>
+internal sealed class HeadlessUIService : IUIService
+{
+    public Task HideMainWindowAsync() => Task.CompletedTask;
+
+    public Task RestoreMainWindowAsync() => Task.CompletedTask;
+
+    public Task<SKBitmap?> ShowEditorAsync(SKBitmap image, string? sourceFilePath = null, bool taskMode = false)
+    {
+        if (!JsonStdout.Enabled)
+        {
+            Console.Error.WriteLine("[WARNING] Image editor is not available in omaxerahs.");
+        }
+
+        return Task.FromResult<SKBitmap?>(null);
+    }
+
+    public Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
+    {
+        return Task.FromResult<string?>(null);
+    }
+
+    public Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel, AfterCaptureQuickAction QuickAction)> ShowAfterCaptureWindowAsync(
+        SKBitmap image,
+        AfterCaptureTasks afterCapture,
+        AfterUploadTasks afterUpload)
+    {
+        return Task.FromResult((afterCapture, afterUpload, false, AfterCaptureQuickAction.None));
+    }
+
+    public Task ShowAfterUploadWindowAsync(AfterUploadWindowInfo info) => Task.CompletedTask;
+
+    public Task ShowOcrWindowAsync(SKBitmap image) => Task.CompletedTask;
+
+    public Task ShowAnalyzerWindowAsync(SKBitmap image) => Task.CompletedTask;
+
+    public Task<SendToPromptResult> ShowSendToPromptAsync(SendToSelection selection)
+    {
+        return Task.FromResult(new SendToPromptResult
+        {
+            Action = SendToAction.UploadNow,
+            IsFallback = true,
+            Reason = "omaxerahs cannot display the Send-to prompt."
+        });
+    }
+
+    public Task ExecuteSendToActionAsync(SendToAction action, SendToSelection selection, SendToPromptResult? decision = null)
+        => Task.CompletedTask;
+}
