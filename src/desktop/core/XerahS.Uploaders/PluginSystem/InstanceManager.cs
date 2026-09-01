@@ -41,14 +41,15 @@ public class InstanceManager
 
     private readonly object _lock = new();
     private InstanceConfiguration _configuration;
-    private readonly string _configFilePath;
+
+    internal const string ConfigFileName = "uploader-instances.json";
+    internal const string ConfigLockFileName = "uploader-instances.lock";
+    internal static readonly TimeSpan ConfigLockTimeout = TimeSpan.FromSeconds(5);
+    private const int ConfigLockRetryDelayMs = 50;
 
     private InstanceManager()
     {
-        var configDir = PathsManager.SettingsFolder;
-        Directory.CreateDirectory(configDir);
-        _configFilePath = Path.Combine(configDir, "uploader-instances.json");
-
+        Directory.CreateDirectory(PathsManager.SettingsFolder);
         _configuration = LoadConfiguration();
     }
 
@@ -541,13 +542,83 @@ public class InstanceManager
 
     #endregion
 
+    internal static string ConfigFilePath =>
+        Path.Combine(PathsManager.SettingsFolder, ConfigFileName);
+
+    internal static string ConfigLockFilePath =>
+        Path.Combine(PathsManager.SettingsFolder, ConfigLockFileName);
+
+    /// <summary>
+    /// Runs <paramref name="action"/> while holding the cross-process exclusive lock
+    /// on <see cref="ConfigLockFilePath"/>. Intended for tests and for load/save.
+    /// </summary>
+    internal static void WithConfigLock(Action action, TimeSpan? timeout = null)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        using (AcquireConfigLock(timeout))
+        {
+            action();
+        }
+    }
+
+    /// <summary>
+    /// Runs <paramref name="action"/> while holding the cross-process exclusive lock
+    /// on <see cref="ConfigLockFilePath"/>.
+    /// </summary>
+    internal static T WithConfigLock<T>(Func<T> action, TimeSpan? timeout = null)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        using (AcquireConfigLock(timeout))
+        {
+            return action();
+        }
+    }
+
+    /// <summary>
+    /// Acquires an exclusive FileShare.None lock on the sidecar lock file.
+    /// Waits up to <paramref name="timeout"/> (default 5s) then throws IOException.
+    /// The lock is the open handle; leftover .lock files after a crash are harmless.
+    /// </summary>
+    internal static FileStream AcquireConfigLock(TimeSpan? timeout = null)
+    {
+        var lockPath = ConfigLockFilePath;
+        var waitFor = timeout ?? ConfigLockTimeout;
+        var deadline = DateTime.UtcNow + waitFor;
+
+        Directory.CreateDirectory(PathsManager.SettingsFolder);
+
+        while (true)
+        {
+            try
+            {
+                return new FileStream(
+                    lockPath,
+                    FileMode.OpenOrCreate,
+                    FileAccess.ReadWrite,
+                    FileShare.None);
+            }
+            catch (IOException ex)
+            {
+                if (DateTime.UtcNow >= deadline)
+                {
+                    throw new IOException(
+                        $"Timed out waiting for exclusive lock on uploader instance configuration '{lockPath}'. Retry timeout: {waitFor.TotalSeconds:0}s.",
+                        ex);
+                }
+
+                Thread.Sleep(ConfigLockRetryDelayMs);
+            }
+        }
+    }
+
     private InstanceConfiguration LoadConfiguration()
     {
+        using var configLock = AcquireConfigLock();
         try
         {
-            if (File.Exists(_configFilePath))
+            if (File.Exists(ConfigFilePath))
             {
-                var json = File.ReadAllText(_configFilePath);
+                var json = File.ReadAllText(ConfigFilePath);
                 var configuration = JsonConvert.DeserializeObject<InstanceConfiguration>(json) ?? new InstanceConfiguration();
                 NormalizeConfiguration(configuration);
                 return configuration;
@@ -640,10 +711,11 @@ public class InstanceManager
 
     private void SaveConfiguration()
     {
+        using var configLock = AcquireConfigLock();
         try
         {
             var json = JsonConvert.SerializeObject(_configuration, Formatting.Indented);
-            File.WriteAllText(_configFilePath, json);
+            File.WriteAllText(ConfigFilePath, json);
         }
         catch
         {

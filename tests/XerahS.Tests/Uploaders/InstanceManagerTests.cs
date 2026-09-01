@@ -1,3 +1,28 @@
+#region License Information (GPL v3)
+
+/*
+    XerahS - The Avalonia UI implementation of ShareX
+    Copyright (c) 2007-2026 ShareX Team
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+    Optionally you can also view the license at <http://www.gnu.org/licenses/>.
+*/
+
+#endregion License Information (GPL v3)
+
 using NUnit.Framework;
 using XerahS.Common;
 using XerahS.Core;
@@ -636,6 +661,142 @@ public class InstanceManagerTests
         // It should NOT have cleaned the mapping (unlike GetDefaultInstance)
         Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.Image), Is.Null,
             "GetDefaultInstance still cleans stale mappings (expected)");
+    }
+
+    [Test]
+    public void AddInstance_CreatesLockFileBesideJson()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Lock File Writer",
+            SettingsJson = "{}"
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+
+        var jsonPath = InstanceManager.ConfigFilePath;
+        var lockPath = InstanceManager.ConfigLockFilePath;
+
+        Assert.That(File.Exists(jsonPath), Is.True);
+        Assert.That(File.Exists(lockPath), Is.True);
+        Assert.That(Path.GetDirectoryName(lockPath), Is.EqualTo(Path.GetDirectoryName(jsonPath)));
+    }
+
+    [Test]
+    public void WithConfigLock_PreventsSecondExclusiveOpen()
+    {
+        IOException? openError = null;
+
+        InstanceManager.WithConfigLock(() =>
+        {
+            Assert.That(File.Exists(InstanceManager.ConfigLockFilePath), Is.True);
+
+            try
+            {
+                using var second = new FileStream(
+                    InstanceManager.ConfigLockFilePath,
+                    FileMode.OpenOrCreate,
+                    FileAccess.ReadWrite,
+                    FileShare.None);
+            }
+            catch (IOException ex)
+            {
+                openError = ex;
+            }
+        });
+
+        Assert.That(openError, Is.Not.Null);
+    }
+
+    [Test]
+    public void AcquireConfigLock_TimesOutWhenLockIsHeld()
+    {
+        using var held = InstanceManager.AcquireConfigLock();
+
+        var ex = Assert.Throws<IOException>(() => InstanceManager.AcquireConfigLock(TimeSpan.FromMilliseconds(200)));
+
+        Assert.That(ex, Is.Not.Null);
+        Assert.That(ex!.Message, Does.Contain("Timed out"));
+        Assert.That(ex.Message, Does.Contain(InstanceManager.ConfigLockFilePath));
+    }
+
+    [Test]
+    public void AddInstance_WaitsForReleasedLockThenSucceeds()
+    {
+        using var entered = new ManualResetEventSlim(false);
+        using var release = new ManualResetEventSlim(false);
+
+        var holder = Task.Run(() =>
+        {
+            InstanceManager.WithConfigLock(() =>
+            {
+                entered.Set();
+                release.Wait();
+            });
+        });
+
+        Assert.That(entered.Wait(TimeSpan.FromSeconds(2)), Is.True);
+
+        var addTask = Task.Run(() =>
+        {
+            InstanceManager.Instance.AddInstance(new UploaderInstance
+            {
+                ProviderId = "test-provider",
+                Category = UploaderCategory.Image,
+                DisplayName = "Waiter",
+                SettingsJson = "{}"
+            });
+        });
+
+        Assert.That(addTask.Wait(TimeSpan.FromMilliseconds(300)), Is.False);
+
+        release.Set();
+
+        Assert.That(addTask.Wait(TimeSpan.FromSeconds(5)), Is.True);
+        Assert.That(holder.Wait(TimeSpan.FromSeconds(2)), Is.True);
+        Assert.That(addTask.IsCompletedSuccessfully, Is.True);
+        Assert.That(InstanceManager.Instance.GetInstances().Any(i => i.DisplayName == "Waiter"), Is.True);
+    }
+
+    [Test]
+    public void ConcurrentAddInstance_PersistsAllInstances()
+    {
+        Parallel.For(0, 8, i =>
+        {
+            InstanceManager.Instance.AddInstance(new UploaderInstance
+            {
+                ProviderId = "test-provider",
+                Category = UploaderCategory.Image,
+                DisplayName = $"Concurrent-{i}",
+                SettingsJson = "{}"
+            });
+        });
+
+        Assert.That(InstanceManager.Instance.GetInstances().Count, Is.EqualTo(8));
+        Assert.That(
+            File.ReadAllText(InstanceManager.ConfigFilePath),
+            Does.Contain("Concurrent-0").And.Contain("Concurrent-7"));
+    }
+
+    [Test]
+    public void UpdateInstance_UsesConfigLock()
+    {
+        var instance = new UploaderInstance
+        {
+            ProviderId = "test-provider",
+            Category = UploaderCategory.Image,
+            DisplayName = "Original",
+            SettingsJson = "{}"
+        };
+
+        InstanceManager.Instance.AddInstance(instance);
+        instance.DisplayName = "Updated Under Lock";
+        InstanceManager.Instance.UpdateInstance(instance);
+
+        Assert.That(InstanceManager.Instance.GetInstance(instance.InstanceId)?.DisplayName, Is.EqualTo("Updated Under Lock"));
+        Assert.That(File.Exists(InstanceManager.ConfigLockFilePath), Is.True);
     }
 
     private static void ClearInstances()
