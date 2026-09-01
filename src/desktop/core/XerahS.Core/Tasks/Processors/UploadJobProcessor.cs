@@ -135,6 +135,7 @@ namespace XerahS.Core.Tasks.Processors
             EnsurePluginsLoaded();
 
             var instanceManager = InstanceManager.Instance;
+            var allowCrossCategoryFallback = AllowsCrossCategoryFallback(info);
             var targetInstanceId = info.TaskSettings.GetDestinationInstanceIdForDataType(info.DataType);
             DebugHelper.WriteLine(
                 $"[UploadContentDebug] UploadWithPluginSystem: category={category}, dataType={info.DataType}, " +
@@ -158,7 +159,7 @@ namespace XerahS.Core.Tasks.Processors
 
             if (!string.IsNullOrEmpty(targetInstanceId))
             {
-                targetInstance = ResolveRequestedInstance(instanceManager, targetInstanceId, category);
+                targetInstance = ResolveRequestedInstance(instanceManager, targetInstanceId, category, allowCrossCategoryFallback);
             }
 
             // Check if Auto destination is selected
@@ -185,7 +186,7 @@ namespace XerahS.Core.Tasks.Processors
                 // No instance found for the requested category.
                 // For Image uploads, fall back to File-category instances (multi-category providers
                 // like Amazon S3 support both Image and File even when configured as a File uploader).
-                if (category == UploaderCategory.Image)
+                if (allowCrossCategoryFallback && category == UploaderCategory.Image)
                 {
                     DebugHelper.WriteLine("No Image uploader configured; falling back to File-category instances.");
                     return TryUploadWithFallback(instanceManager, category, info, null);
@@ -223,7 +224,11 @@ namespace XerahS.Core.Tasks.Processors
             return IsSuccessfulUploadResult(fallbackResult) ? fallbackResult : fallbackResult ?? primaryResult;
         }
 
-        internal static UploaderInstance? ResolveRequestedInstance(InstanceManager instanceManager, string targetInstanceId, UploaderCategory category)
+        internal static UploaderInstance? ResolveRequestedInstance(
+            InstanceManager instanceManager,
+            string targetInstanceId,
+            UploaderCategory category,
+            bool allowCrossCategoryFallback = true)
         {
             var targetInstance = instanceManager.GetInstance(targetInstanceId);
             if (targetInstance == null)
@@ -234,6 +239,12 @@ namespace XerahS.Core.Tasks.Processors
 
             if (!InstanceManager.IsAutoProvider(targetInstance.ProviderId) && targetInstance.Category != category)
             {
+                if (!allowCrossCategoryFallback)
+                {
+                    DebugHelper.WriteLine($"Configured destination category mismatch. Expected {category}, got {targetInstance.Category}. Rejecting instance.");
+                    return null;
+                }
+
                 DebugHelper.WriteLine($"Configured destination category mismatch. Expected {category}, got {targetInstance.Category}. Continuing with configured instance.");
             }
 
@@ -244,6 +255,11 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             return targetInstance;
+        }
+
+        private static bool AllowsCrossCategoryFallback(TaskInfo info)
+        {
+            return info.TaskSettings?.AllowCrossCategoryFallback ?? true;
         }
 
         internal static UploaderInstance? ResolveDefaultInstance(InstanceManager instanceManager, UploaderCategory category)
@@ -384,8 +400,10 @@ namespace XerahS.Core.Tasks.Processors
                 DebugHelper.WriteLine($"All uploaders in category {category} failed: {allErrors}");
             }
 
+            var allowCrossCategoryFallback = AllowsCrossCategoryFallback(info);
+
             // If primary category failed (or had no uploaders), try cross-category fallback
-            if (category != UploaderCategory.File)
+            if (allowCrossCategoryFallback && category != UploaderCategory.File)
             {
                 DebugHelper.WriteLine($"Trying File category uploaders as fallback...");
                 var fileFallbackResult = TryUploadWithFallback(instanceManager, UploaderCategory.File, info, excludeInstanceId, attemptedInstanceIds);
@@ -396,7 +414,7 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             // If File category failed and the file is an image, try Image-category uploaders
-            if (category == UploaderCategory.File && !string.IsNullOrEmpty(info.FileName) && FileHelpers.IsImageFile(info.FileName))
+            if (allowCrossCategoryFallback && category == UploaderCategory.File && !string.IsNullOrEmpty(info.FileName) && FileHelpers.IsImageFile(info.FileName))
             {
                 DebugHelper.WriteLine("File is an image; trying Image category uploaders as fallback...");
                 var imageFallbackResult = TryUploadWithFallback(instanceManager, UploaderCategory.Image, info, excludeInstanceId, attemptedInstanceIds);
@@ -407,7 +425,7 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             // If File category failed and the file is text-based, try Text-category uploaders
-            if (category == UploaderCategory.File && !string.IsNullOrEmpty(info.FileName) && FileHelpers.IsTextFile(info.FileName))
+            if (allowCrossCategoryFallback && category == UploaderCategory.File && !string.IsNullOrEmpty(info.FileName) && FileHelpers.IsTextFile(info.FileName))
             {
                 DebugHelper.WriteLine("File is text-based; trying Text category uploaders as fallback...");
                 var textFallbackResult = TryUploadWithFallback(instanceManager, UploaderCategory.Text, info, excludeInstanceId, attemptedInstanceIds);

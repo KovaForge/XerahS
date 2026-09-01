@@ -76,6 +76,14 @@ public class TaskSettings
     public string? DestinationInstanceId { get; set; }
     public string? UrlShortenerDestinationInstanceId { get; set; }
 
+    /// <summary>
+    /// When false, UploadJobProcessor must not fall back across uploader categories
+    /// (Image↔File↔Text). Default true preserves GUI and xerahscli behaviour.
+    /// Not persisted; set per TaskInfo.
+    /// </summary>
+    [JsonIgnore]
+    public bool AllowCrossCategoryFallback { get; set; } = true;
+
     public bool OverrideFTP = false;
     public int FTPIndex = 0;
 

@@ -1,3 +1,28 @@
+#region License Information (GPL v3)
+
+/*
+    XerahS - The Avalonia UI implementation of ShareX
+    Copyright (c) 2007-2026 ShareX Team
+
+    This program is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public License
+    as published by the Free Software Foundation; either version 2
+    of the License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+    Optionally you can also view the license at <http://www.gnu.org/licenses/>.
+*/
+
+#endregion License Information (GPL v3)
+
 using NUnit.Framework;
 using XerahS.Common;
 using XerahS.Core;
@@ -212,12 +237,193 @@ public class UploadJobProcessorTests
         }
     }
 
-    private static UploaderInstance CreateInstance(string name, bool isAvailable = true)
+    [Test]
+    public void ResolveRequestedInstance_ReturnsNullWhenCategoryMismatchesAndFallbackDisabled()
+    {
+        var fileInstance = CreateInstance("File Dest", category: UploaderCategory.File);
+        InstanceManager.Instance.AddInstance(fileInstance);
+
+        var result = UploadJobProcessor.ResolveRequestedInstance(
+            InstanceManager.Instance,
+            fileInstance.InstanceId,
+            UploaderCategory.Image,
+            allowCrossCategoryFallback: false);
+
+        Assert.That(result, Is.Null);
+    }
+
+    [Test]
+    public void ResolveRequestedInstance_ReturnsInstanceWhenCategoryMismatchesAndFallbackEnabled()
+    {
+        var fileInstance = CreateInstance("File Dest", category: UploaderCategory.File);
+        InstanceManager.Instance.AddInstance(fileInstance);
+
+        var result = UploadJobProcessor.ResolveRequestedInstance(
+            InstanceManager.Instance,
+            fileInstance.InstanceId,
+            UploaderCategory.Image,
+            allowCrossCategoryFallback: true);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!.InstanceId, Is.EqualTo(fileInstance.InstanceId));
+        Assert.That(result.Category, Is.EqualTo(UploaderCategory.File));
+    }
+
+    [Test]
+    public async Task ProcessAsync_ImageUpload_DoesNotFallBackToFileWhenFallbackDisabledAndImageMissing()
+    {
+        var fileInstance = CreateFileInstance("File Succeeds", "success:https://example.test/file-fallback.bin");
+        InstanceManager.Instance.AddInstance(fileInstance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.File, fileInstance.InstanceId);
+
+        var tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
+        await File.WriteAllTextAsync(tempFile, "image payload");
+
+        try
+        {
+            var info = CreateImageUploadInfo(allowCrossCategoryFallback: false, tempFile);
+
+            var processed = await new UploadJobProcessor().ProcessAsync(info, CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(processed, Is.True);
+                Assert.That(info.Result.IsSuccess, Is.False);
+                Assert.That(info.Result.URL, Is.Null.Or.Empty);
+                Assert.That(info.Metadata.UploadURL, Is.Null.Or.Empty);
+                Assert.That(info.Result.Response, Does.Contain("No uploader instance configured").And.Contain("Image"));
+            });
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Test]
+    public async Task ProcessAsync_ImageUpload_DoesNotFallBackToFileWhenFallbackDisabledAndImageFails()
+    {
+        const string fileSuccessUrl = "https://example.test/file-fallback.bin";
+        var imageInstance = CreateImageInstance("Image Fails", "fail:image provider unavailable");
+        var fileInstance = CreateFileInstance("File Succeeds", $"success:{fileSuccessUrl}");
+        InstanceManager.Instance.AddInstance(imageInstance);
+        InstanceManager.Instance.AddInstance(fileInstance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, imageInstance.InstanceId);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.File, fileInstance.InstanceId);
+
+        var tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
+        await File.WriteAllTextAsync(tempFile, "image payload");
+
+        try
+        {
+            var info = CreateImageUploadInfo(allowCrossCategoryFallback: false, tempFile);
+
+            var processed = await new UploadJobProcessor().ProcessAsync(info, CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(processed, Is.True);
+                Assert.That(info.Result.IsSuccess, Is.False);
+                Assert.That(info.Result.URL, Is.Not.EqualTo(fileSuccessUrl));
+                Assert.That(info.Result.URL, Is.Null.Or.Empty);
+                Assert.That(info.Metadata.UploadURL, Is.Null.Or.Empty);
+            });
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Test]
+    public async Task ProcessAsync_ImageUpload_FallsBackToFileWhenFallbackEnabledAndImageMissing()
+    {
+        const string fileSuccessUrl = "https://example.test/file-fallback.bin";
+        var fileInstance = CreateFileInstance("File Succeeds", $"success:{fileSuccessUrl}");
+        InstanceManager.Instance.AddInstance(fileInstance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.File, fileInstance.InstanceId);
+
+        var tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
+        await File.WriteAllTextAsync(tempFile, "image payload");
+
+        try
+        {
+            var info = CreateImageUploadInfo(allowCrossCategoryFallback: true, tempFile);
+
+            var processed = await new UploadJobProcessor().ProcessAsync(info, CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(processed, Is.True);
+                Assert.That(info.Result.URL, Is.EqualTo(fileSuccessUrl));
+                Assert.That(info.Metadata.UploadURL, Is.EqualTo(fileSuccessUrl));
+                Assert.That(info.UploaderHost, Is.EqualTo("File Succeeds"));
+            });
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Test]
+    public async Task ProcessAsync_ImageUpload_StillFallsBackWithinImageWhenCrossCategoryDisabled()
+    {
+        const string imageSuccessUrl = "https://example.test/image-fallback.png";
+        var failingImage = CreateImageInstance("Image Fails", "fail:primary unavailable");
+        var fallbackImage = CreateImageInstance("Image Succeeds", $"success:{imageSuccessUrl}");
+        var fileInstance = CreateFileInstance("File Succeeds", "success:https://example.test/file-fallback.bin");
+        InstanceManager.Instance.AddInstance(failingImage);
+        InstanceManager.Instance.AddInstance(fallbackImage);
+        InstanceManager.Instance.AddInstance(fileInstance);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.Image, failingImage.InstanceId);
+        InstanceManager.Instance.SetDefaultInstance(UploaderCategory.File, fileInstance.InstanceId);
+
+        var tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
+        await File.WriteAllTextAsync(tempFile, "image payload");
+
+        try
+        {
+            var info = CreateImageUploadInfo(allowCrossCategoryFallback: false, tempFile);
+
+            var processed = await new UploadJobProcessor().ProcessAsync(info, CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(processed, Is.True);
+                Assert.That(info.Result.URL, Is.EqualTo(imageSuccessUrl));
+                Assert.That(info.Metadata.UploadURL, Is.EqualTo(imageSuccessUrl));
+                Assert.That(info.UploaderHost, Is.EqualTo("Image Succeeds"));
+            });
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    private static TaskInfo CreateImageUploadInfo(bool allowCrossCategoryFallback, string filePath)
+    {
+        var info = new TaskInfo(new TaskSettings
+        {
+            Job = WorkflowType.PrintScreen,
+            AfterUploadJob = AfterUploadTasks.None,
+            AllowCrossCategoryFallback = allowCrossCategoryFallback
+        })
+        {
+            Job = TaskJob.FileUpload,
+            DataType = EDataType.Image
+        };
+        info.FilePath = filePath;
+        return info;
+    }
+
+    private static UploaderInstance CreateInstance(string name, bool isAvailable = true, UploaderCategory category = UploaderCategory.Image)
     {
         return new UploaderInstance
         {
             ProviderId = "test-provider",
-            Category = UploaderCategory.Image,
+            Category = category,
             DisplayName = name,
             IsAvailable = isAvailable
         };
@@ -229,6 +435,18 @@ public class UploadJobProcessorTests
         {
             ProviderId = FallbackProviderId,
             Category = UploaderCategory.File,
+            DisplayName = name,
+            SettingsJson = settingsJson,
+            IsAvailable = true
+        };
+    }
+
+    private static UploaderInstance CreateImageInstance(string name, string settingsJson)
+    {
+        return new UploaderInstance
+        {
+            ProviderId = FallbackProviderId,
+            Category = UploaderCategory.Image,
             DisplayName = name,
             SettingsJson = settingsJson,
             IsAvailable = true
@@ -257,12 +475,13 @@ public class UploadJobProcessorTests
         public override string Name => "Fallback Test Provider";
         public override string Description => "Test-only provider for upload fallback behavior.";
         public override Version Version { get; } = new(1, 0, 0);
-        public override UploaderCategory[] SupportedCategories { get; } = [UploaderCategory.File];
+        public override UploaderCategory[] SupportedCategories { get; } = [UploaderCategory.File, UploaderCategory.Image];
         public override Type ConfigModelType => typeof(object);
 
         public override Dictionary<UploaderCategory, string[]> GetSupportedFileTypes() => new()
         {
-            [UploaderCategory.File] = ["*"]
+            [UploaderCategory.File] = ["*"],
+            [UploaderCategory.Image] = ["*"]
         };
 
         public override Uploader CreateInstance(string settingsJson) => new FallbackTestUploader(settingsJson);
