@@ -36,9 +36,13 @@ override_dh_auto_install:
 	tar -xzf "$(TARBALL)" -C debian/xerahs/usr/lib/xerahs
 	mkdir -p debian/xerahs/usr/bin
 	ln -sf ../lib/xerahs/XerahS debian/xerahs/usr/bin/xerahs
+	ln -sf ../lib/xerahs/omaxerahs debian/xerahs/usr/bin/omaxerahs
 	chmod 755 debian/xerahs/usr/lib/xerahs/XerahS || true
 	if [ -f debian/xerahs/usr/lib/xerahs/xerahs-watchfolder-daemon ]; then \
 	  chmod 755 debian/xerahs/usr/lib/xerahs/xerahs-watchfolder-daemon; \
+	fi
+	if [ -f debian/xerahs/usr/lib/xerahs/omaxerahs ]; then \
+	  chmod 755 debian/xerahs/usr/lib/xerahs/omaxerahs; \
 	fi
 	mkdir -p debian/xerahs/usr/share/applications
 	install -m 644 debian/xerahs.desktop debian/xerahs/usr/share/applications/xerahs.desktop

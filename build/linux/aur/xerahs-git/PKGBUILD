@@ -74,8 +74,13 @@ package() {
         chmod 755 "$pkgdir/usr/lib/xerahs/xerahs-watchfolder-daemon"
     fi
 
+    if [[ -f "$pkgdir/usr/lib/xerahs/omaxerahs" ]]; then
+        chmod 755 "$pkgdir/usr/lib/xerahs/omaxerahs"
+    fi
+
     install -d "$pkgdir/usr/bin"
     ln -s ../lib/xerahs/XerahS "$pkgdir/usr/bin/xerahs"
+    ln -s ../lib/xerahs/omaxerahs "$pkgdir/usr/bin/omaxerahs"
 
     install -Dm644 LICENSE.txt "$pkgdir/usr/share/licenses/$pkgname/LICENSE.txt"
 

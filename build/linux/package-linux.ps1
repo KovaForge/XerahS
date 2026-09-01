@@ -37,11 +37,15 @@ function Validate-PublishOutput {
     $appExecutable = Join-Path $PublishDir "XerahS"
     $daemonExecutable = Join-Path $PublishDir "xerahs-watchfolder-daemon"
     $daemonRuntimeConfig = Join-Path $PublishDir "xerahs-watchfolder-daemon.runtimeconfig.json"
+    $omaxerahsExecutable = Join-Path $PublishDir "omaxerahs"
+    $omaxerahsRuntimeConfig = Join-Path $PublishDir "omaxerahs.runtimeconfig.json"
 
     Assert-PathExists -Path $PublishDir -Message "Publish directory does not exist: $PublishDir"
     Assert-PathExists -Path $appExecutable -Message "Missing app executable in publish output: $appExecutable"
     Assert-PathExists -Path $daemonExecutable -Message "Missing daemon executable in publish output: $daemonExecutable"
     Assert-PathExists -Path $daemonRuntimeConfig -Message "Missing daemon runtimeconfig in publish output: $daemonRuntimeConfig"
+    Assert-PathExists -Path $omaxerahsExecutable -Message "Missing omaxerahs executable in publish output: $omaxerahsExecutable"
+    Assert-PathExists -Path $omaxerahsRuntimeConfig -Message "Missing omaxerahs runtimeconfig in publish output: $omaxerahsRuntimeConfig"
 }
 
 $root = Resolve-Path "$PSScriptRoot\..\.."
