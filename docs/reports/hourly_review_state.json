@@ -314,6 +314,39 @@
   ],
   "last_runs": [
     {
+      "timestamp": "2026-09-01 23:08 AWST",
+      "agent": "nadia",
+      "area": "xerahs-review producer tick (nadia-daily)",
+      "files": [
+        ".clawpatch/reports/20260901T150514-928d19.md"
+      ],
+      "version_bump": null,
+      "commit": "PENDING",
+      "outcome": "reviewed",
+      "build_test": "clawpatch review: 389 findings across 3 features; ingest: 0 added to next_candidates",
+      "notes": "Producer-only tick. nadia remote HEAD in sync. Submodule ShareX.ImageEditor clean. clawpatch reports parsed: 3 (latest 20260901T150514-928d19.md). Gate drops: severity-gate 235 ({'triage=risk': 156, 'triage=contract-mismatch': 58, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix 71, already-fixed-area 3, recently-pivoted 63, recently-fixed-release-history 88, duplicate 0. next_candidates delta: 0 -> 0 (+0).",
+      "clawpatch_status": "ok",
+      "submodule_status": "clean",
+      "next_candidates_size": 0,
+      "claude_auth_failure": null,
+      "metadata": {
+        "queue_size_before": 0,
+        "queue_size_after": 0,
+        "queue_added": [],
+        "gate_breakdown": {
+          "triage=risk": 156,
+          "triage=contract-mismatch": 58,
+          "triage=test-gap": 9,
+          "triage=docs-gap": 12
+        },
+        "clawpatch_reports_parsed": [
+          "20260901T150514-928d19.md",
+          "20260831T150451-09d05e.md",
+          "20260830T150518-d55523.md"
+        ]
+      }
+    },
+    {
       "timestamp": "2026-08-02 23:02 AWST",
       "agent": "nadia",
       "area": "xerahs-review producer tick (nadia-daily)",
