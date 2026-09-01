@@ -321,7 +321,7 @@
         ".clawpatch/reports/20260901T150514-928d19.md"
       ],
       "version_bump": null,
-      "commit": "PENDING",
+      "commit": "74300e5ffe55e0fde13a333a6523a1162f7c9663",
       "outcome": "reviewed",
       "build_test": "clawpatch review: 389 findings across 3 features; ingest: 0 added to next_candidates",
       "notes": "Producer-only tick. nadia remote HEAD in sync. Submodule ShareX.ImageEditor clean. clawpatch reports parsed: 3 (latest 20260901T150514-928d19.md). Gate drops: severity-gate 235 ({'triage=risk': 156, 'triage=contract-mismatch': 58, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix 71, already-fixed-area 3, recently-pivoted 63, recently-fixed-release-history 88, duplicate 0. next_candidates delta: 0 -> 0 (+0).",
