@@ -137,11 +137,11 @@ The setting is stored at `ReClipConfig.json` under the normal XerahS settings fo
 ## Portable settings backup and restore
 
 ```bash
-xerahscli backup-settings --output ./XerahS-Settings.xerahsbackup
-xerahscli restore-settings --input ./XerahS-Settings.xerahsbackup --force
+xerahscli backup-settings --output ./xerahs-0.29.0-backup.xsbak
+xerahscli restore-settings --input ./xerahs-0.29.0-backup.xsbak --force
 ```
 
-The portable file includes application settings, workflows, destination instances, custom uploader definitions, and destination credentials. It is intentionally unencrypted, so passwords, S3 access keys, and OAuth tokens are plaintext inside the archive. Protect it like a password vault. Restored credentials are written through the destination computer's secret store and encrypted locally. Restart XerahS after restore.
+When `--output` is omitted, the backup is named `xerahs-<version>-backup.xsbak` in the current directory. The portable file includes application settings, workflows, destination instances, custom uploader definitions, and destination credentials. It is intentionally unencrypted, so passwords, S3 access keys, and OAuth tokens are plaintext inside the archive. Protect it like a password vault. Restored credentials are written through the destination computer's secret store and encrypted locally. Restart XerahS after restore.
 
 ## XerahS Cloud OAuth
 

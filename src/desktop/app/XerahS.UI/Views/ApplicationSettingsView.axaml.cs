@@ -83,7 +83,7 @@ namespace XerahS.UI.Views
             vm.BrowseScreenshotsFolderRequester = BrowseScreenshotsFolderAsync;
             vm.BackupSettingsFileRequester = () => uiFactory.ViewDialogService.ShowSaveFilePickerAsync(
                 "Create Portable Settings Backup",
-                $"XerahS-Settings-{DateTime.Now:yyyyMMdd-HHmmss}.{PortableSettingsBackupService.FileExtension}",
+                PortableSettingsBackupService.DefaultFileName,
                 PortableSettingsBackupService.FileExtension,
                 new[] { $"*.{PortableSettingsBackupService.FileExtension}" });
             vm.RestoreSettingsFileRequester = () => uiFactory.ViewDialogService.ShowFilePickerAsync(

@@ -37,7 +37,7 @@ public class BackupSettingsCommandTests
     {
         string? capturedPath = null;
         int exitCode = BackupSettingsCommand.Execute(
-            "portable.xerahsbackup",
+            "portable.xsbak",
             initializeProviders: () => { },
             createBackup: path =>
             {
@@ -48,7 +48,27 @@ public class BackupSettingsCommandTests
         Assert.Multiple(() =>
         {
             Assert.That(exitCode, Is.EqualTo(0));
-            Assert.That(capturedPath, Is.EqualTo(Path.GetFullPath("portable.xerahsbackup")));
+            Assert.That(capturedPath, Is.EqualTo(Path.GetFullPath("portable.xsbak")));
+        });
+    }
+
+    [Test]
+    public void Execute_WithoutOutputPath_UsesVersionedDefaultFileName()
+    {
+        string? capturedPath = null;
+        int exitCode = BackupSettingsCommand.Execute(
+            initializeProviders: () => { },
+            createBackup: path =>
+            {
+                capturedPath = path;
+                return new PortableSettingsBackupResult(path, 0, 5, Array.Empty<string>());
+            });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(capturedPath, Is.EqualTo(Path.Combine(Environment.CurrentDirectory, PortableSettingsBackupService.DefaultFileName)));
+            Assert.That(Path.GetFileName(capturedPath), Does.Match(@"^xerahs-\d+\.\d+\.\d+-backup\.xsbak$"));
         });
     }
 
@@ -56,7 +76,7 @@ public class BackupSettingsCommandTests
     public void Execute_WhenProviderInitializationFails_ReturnsNonZero()
     {
         int exitCode = BackupSettingsCommand.Execute(
-            "portable.xerahsbackup",
+            "portable.xsbak",
             initializeProviders: () => throw new InvalidOperationException("plugins unavailable"),
             createBackup: _ => AssertAndReturnUnexpected());
 
@@ -67,7 +87,7 @@ public class BackupSettingsCommandTests
     public void Execute_WhenBackupFails_ReturnsNonZero()
     {
         int exitCode = BackupSettingsCommand.Execute(
-            "portable.xerahsbackup",
+            "portable.xsbak",
             initializeProviders: () => { },
             createBackup: _ => throw new IOException("disk unavailable"));
 

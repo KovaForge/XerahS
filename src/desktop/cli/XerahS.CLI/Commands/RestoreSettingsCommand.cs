@@ -35,7 +35,7 @@ public sealed class RestoreSettingsCommand : Command
     {
         var inputOption = new Option<string?>("--input")
         {
-            Description = "Input .xerahsbackup file."
+            Description = $"Input .{PortableSettingsBackupService.FileExtension} file."
         };
         var forceOption = new Option<bool>("--force")
         {

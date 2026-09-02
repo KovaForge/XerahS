@@ -43,7 +43,7 @@ public class RestoreSettingsCommandTests
     {
         bool called = false;
         int exitCode = RestoreSettingsCommand.Execute(
-            "portable.xerahsbackup",
+            "portable.xsbak",
             force: false,
             restoreBackup: path =>
             {
@@ -63,7 +63,7 @@ public class RestoreSettingsCommandTests
     {
         string? capturedPath = null;
         int exitCode = RestoreSettingsCommand.Execute(
-            "portable.xerahsbackup",
+            "portable.xsbak",
             force: true,
             restoreBackup: path =>
             {
@@ -74,7 +74,7 @@ public class RestoreSettingsCommandTests
         Assert.Multiple(() =>
         {
             Assert.That(exitCode, Is.EqualTo(0));
-            Assert.That(capturedPath, Is.EqualTo(Path.GetFullPath("portable.xerahsbackup")));
+            Assert.That(capturedPath, Is.EqualTo(Path.GetFullPath("portable.xsbak")));
         });
     }
 
@@ -82,7 +82,7 @@ public class RestoreSettingsCommandTests
     public void Execute_WhenRestoreFails_ReturnsNonZero()
     {
         int exitCode = RestoreSettingsCommand.Execute(
-            "portable.xerahsbackup",
+            "portable.xsbak",
             force: true,
             restoreBackup: _ => throw new InvalidDataException("corrupt backup"));
 

@@ -45,7 +45,8 @@ namespace XerahS.Core.Managers;
 /// </summary>
 public static class PortableSettingsBackupService
 {
-    public const string FileExtension = "xerahsbackup";
+    public const string FileExtension = "xsbak";
+    public static string DefaultFileName => $"xerahs-{SystemInfo.GetApplicationVersion()}-backup.{FileExtension}";
 
     private const string FormatName = "XerahS.SettingsBackup";
     private const int FormatVersion = 1;

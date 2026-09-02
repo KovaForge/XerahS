@@ -41,7 +41,7 @@ public class BackupSettingsCommand : Command
     {
         var outputOption = new Option<string?>("--output")
         {
-            Description = "Output .xerahsbackup file. Defaults to the current directory."
+            Description = $"Output .{PortableSettingsBackupService.FileExtension} file. Defaults to {PortableSettingsBackupService.DefaultFileName} in the current directory."
         };
         Add(outputOption);
         this.SetAction(parseResult =>
@@ -60,7 +60,7 @@ public class BackupSettingsCommand : Command
         initializeProviders ??= InitializeProviders;
         createBackup ??= PortableSettingsBackupService.Create;
         outputFilePath = string.IsNullOrWhiteSpace(outputFilePath)
-            ? Path.Combine(Environment.CurrentDirectory, $"XerahS-Settings-{DateTime.Now:yyyyMMdd-HHmmss}.{PortableSettingsBackupService.FileExtension}")
+            ? Path.Combine(Environment.CurrentDirectory, PortableSettingsBackupService.DefaultFileName)
             : Path.GetFullPath(outputFilePath);
 
         try

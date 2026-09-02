@@ -75,7 +75,7 @@ public class PortableSettingsBackupServiceTests
         const string secretKey = "s3-portable-reference";
         string sourceRoot = Path.Combine(_testRoot, "source");
         string targetRoot = Path.Combine(_testRoot, "target");
-        string archivePath = Path.Combine(_testRoot, "settings.xerahsbackup");
+        string archivePath = Path.Combine(_testRoot, "settings.xsbak");
 
         InitializeRoot(sourceRoot);
         SettingsManager.Settings.ShowTray = false;
@@ -148,7 +148,7 @@ public class PortableSettingsBackupServiceTests
     {
         string sourceRoot = Path.Combine(_testRoot, "source-corrupt");
         string targetRoot = Path.Combine(_testRoot, "target-corrupt");
-        string archivePath = Path.Combine(_testRoot, "corrupt.xerahsbackup");
+        string archivePath = Path.Combine(_testRoot, "corrupt.xsbak");
 
         InitializeRoot(sourceRoot);
         SettingsManager.Settings.ShowTray = false;
