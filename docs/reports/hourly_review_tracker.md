@@ -6400,3 +6400,15 @@ Added candidates (8):
 - Commit: PENDING (SHA filled in after push)
 - Follow-up: consumer xerahs-bugfix drains at 00:06 AWST
 - Skill: xerahs-review/SKILL.md v2.2.4 — no patch this tick (no efficiency blockers)
+
+### 2026-09-03 00:13 AWST - Pivot / already-fixed
+
+- Area: src/desktop/app/XerahS.Assistant/Services/AssistantPrivacyGuard.cs:126-136 (AssistantPrivacyGuard.Evaluate)
+- Files: (none — pivot, no code change)
+- Findings: clawpatch fnd_sig-feat-library-9ddc7adf19-1760_91416d2ba3 claimed clipboard confirmation copy dumps unbounded text. Live source already routes those prompts through Preview() at AssistantPrivacyGuard.cs:157-166, which collapses newlines and caps at 80 characters (77 + ellipsis). Existing LongClipboardWrite_RequiresConfirmation covers the confirm gate. Sibling unknown-tool citation already in recently_pivoted. No code change.
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless Preview() clamp regresses
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
