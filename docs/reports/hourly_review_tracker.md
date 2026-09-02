@@ -6387,3 +6387,16 @@ Added candidates (8):
 - Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
 - Follow-up: wait for xerahs-review to ingest new next_candidates; do not invent work
 - Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
+### 2026-09-02 23:05 AWST - xerahs-review producer tick (nadia-daily)
+
+- Area: xerahs-review producer tick (nadia-daily)
+- Files: .clawpatch/reports/20260902T150310-4eb52a.md, docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: clawpatch 3 findings across 3 features; ingest 1 added to next_candidates
+  - + src/desktop/app/XerahS.Assistant/Services/AssistantPrivacyGuard.cs:126-136 (AssistantPrivacyGuard.Evaluate)
+- Gate drops: severity-gate 243 ({'triage=risk': 163, 'triage=contract-mismatch': 59, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix 72, already-fixed-area 3, recently-pivoted 63, recently-fixed-release-history 90, duplicate 0
+- Status: reviewed
+- Build/test: n/a (no code change this run)
+- Commit: PENDING (SHA filled in after push)
+- Follow-up: consumer xerahs-bugfix drains at 00:06 AWST
+- Skill: xerahs-review/SKILL.md v2.2.4 — no patch this tick (no efficiency blockers)

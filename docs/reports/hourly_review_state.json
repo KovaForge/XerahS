@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-09-02 16:11 AWST",
+  "last_updated": "2026-09-02 23:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,7 +10,9 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "src/desktop/app/XerahS.Assistant/Services/AssistantPrivacyGuard.cs:126-136 (AssistantPrivacyGuard.Evaluate)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -313,6 +315,41 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-09-02 23:05 AWST",
+      "agent": "nadia",
+      "area": "xerahs-review producer tick (nadia-daily)",
+      "files": [
+        ".clawpatch/reports/20260902T150310-4eb52a.md"
+      ],
+      "version_bump": null,
+      "commit": "PENDING",
+      "outcome": "reviewed",
+      "build_test": "clawpatch review: 3 findings across 3 features; ingest: 1 added to next_candidates",
+      "notes": "Producer-only tick. nadia remote merged (ad8d947a1, v0.29.0 portable settings backup). upstream/develop already up to date (e2946993a). Submodule ShareX.ImageEditor clean. clawpatch reports parsed: 3 (latest 20260902T150310-4eb52a.md). Gate drops: severity-gate 243 ({'triage=risk': 163, 'triage=contract-mismatch': 59, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix 72, already-fixed-area 3, recently-pivoted 63, recently-fixed-release-history 90, duplicate 0. next_candidates delta: 0 -> 1 (+1).",
+      "clawpatch_status": "ok",
+      "submodule_status": "clean",
+      "next_candidates_size": 1,
+      "claude_auth_failure": null,
+      "metadata": {
+        "queue_size_before": 0,
+        "queue_size_after": 1,
+        "queue_added": [
+          "src/desktop/app/XerahS.Assistant/Services/AssistantPrivacyGuard.cs:126-136 (AssistantPrivacyGuard.Evaluate)"
+        ],
+        "gate_breakdown": {
+          "triage=risk": 163,
+          "triage=contract-mismatch": 59,
+          "triage=test-gap": 9,
+          "triage=docs-gap": 12
+        },
+        "clawpatch_reports_parsed": [
+          "20260902T150310-4eb52a.md",
+          "20260901T150514-928d19.md",
+          "20260831T150451-09d05e.md"
+        ]
+      }
+    },
     {
       "timestamp": "2026-09-01 23:08 AWST",
       "agent": "nadia",
@@ -2736,7 +2773,7 @@
       "summary": "Step 5a found zero candidates; producer ingest gated all findings; no pivots to drain; no deferred last_runs files; HEAD eb4365e26 already synced with declan/develop"
     }
   ],
-  "last_run_outcome": "no-op",
+  "last_run_outcome": "reviewed",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
