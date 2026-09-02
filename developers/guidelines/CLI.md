@@ -224,6 +224,17 @@ xerahscli config show
 xerahscli config path
 ```
 
+#### Portable backup and restore
+
+Create one portable file containing application settings, workflows, destination instances, custom uploader definitions, and destination credentials:
+
+```bash
+xerahscli backup-settings --output ./XerahS-Settings.xerahsbackup
+xerahscli restore-settings --input ./XerahS-Settings.xerahsbackup --force
+```
+
+The `.xerahsbackup` file is intentionally **not encrypted**. Credentials such as S3 access keys, passwords, and OAuth tokens are plaintext inside the archive. Protect it like a password vault. Restore validates the versioned manifest and file hashes before replacing settings, then writes credentials through the destination computer's secret store so DPAPI, Keychain, or libsecret encrypts them locally. Restart XerahS after restoring.
+
 **Example Output:**
 ```
 Configuration File Paths:

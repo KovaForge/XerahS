@@ -139,6 +139,7 @@ namespace XerahS.CLI
             rootCommand.Add(ListCommand.Create());
             rootCommand.Add(ConfigCommand.Create());
             rootCommand.Add(BackupSettingsCommand.Create());
+            rootCommand.Add(RestoreSettingsCommand.Create());
             rootCommand.Add(VerifyRegionCaptureCommand.Create());
             rootCommand.Add(VerifyMacOSNativeCrosshairCommand.Create(taskManager));
             rootCommand.Add(CompareCaptureCommand.Create());

@@ -36,6 +36,8 @@ namespace XerahS.Core.Security;
 public sealed class SecretStore : ISecretStore, ISecretStoreInfo
 {
     private readonly ISecretStore _backend;
+    private readonly string _indexFilePath;
+    private readonly object _indexLock = new();
     private readonly string _backendName;
     private readonly string _backendDetails;
     private readonly bool _isFallback;
@@ -44,6 +46,7 @@ public sealed class SecretStore : ISecretStore, ISecretStoreInfo
     {
         var backend = CreateBackend(filePath);
         _backend = backend.Backend;
+        _indexFilePath = filePath + ".index.json";
         _backendName = backend.Name;
         _backendDetails = backend.Details;
         _isFallback = backend.IsFallback;
@@ -56,16 +59,133 @@ public sealed class SecretStore : ISecretStore, ISecretStoreInfo
     public bool IsFallback => _isFallback;
 
     public string? GetSecret(string providerId, string secretKey, string name)
-        => _backend.GetSecret(providerId, secretKey, name);
+    {
+        string? value = _backend.GetSecret(providerId, secretKey, name);
+        if (value != null)
+        {
+            RememberReference(new PortableSecretReference(providerId, secretKey, name));
+        }
+
+        return value;
+    }
 
     public void SetSecret(string providerId, string secretKey, string name, string value)
-        => _backend.SetSecret(providerId, secretKey, name, value);
+    {
+        _backend.SetSecret(providerId, secretKey, name, value);
+        RememberReference(new PortableSecretReference(providerId, secretKey, name));
+    }
 
     public void DeleteSecret(string providerId, string secretKey, string name)
-        => _backend.DeleteSecret(providerId, secretKey, name);
+    {
+        _backend.DeleteSecret(providerId, secretKey, name);
+        ForgetReference(new PortableSecretReference(providerId, secretKey, name));
+    }
 
     public bool HasSecret(string providerId, string secretKey, string name)
         => _backend.HasSecret(providerId, secretKey, name);
+
+    /// <summary>
+    /// Exports plaintext values for secrets that have been used through this store.
+    /// The caller is responsible for protecting the returned values.
+    /// </summary>
+    public IReadOnlyList<PortableSecret> ExportIndexedSecrets()
+    {
+        var result = new List<PortableSecret>();
+        foreach (PortableSecretReference reference in LoadReferences())
+        {
+            string? value = _backend.GetSecret(reference.ProviderId, reference.SecretKey, reference.Name);
+            if (value != null)
+            {
+                result.Add(new PortableSecret(reference.ProviderId, reference.SecretKey, reference.Name, value));
+            }
+        }
+
+        return result;
+    }
+
+    private void RememberReference(PortableSecretReference reference)
+    {
+        if (!reference.IsValid)
+        {
+            return;
+        }
+
+        lock (_indexLock)
+        {
+            List<PortableSecretReference> references = LoadReferencesCore();
+            if (references.Contains(reference))
+            {
+                return;
+            }
+
+            references.Add(reference);
+            SaveReferencesCore(references);
+        }
+    }
+
+    private void ForgetReference(PortableSecretReference reference)
+    {
+        lock (_indexLock)
+        {
+            List<PortableSecretReference> references = LoadReferencesCore();
+            if (references.Remove(reference))
+            {
+                SaveReferencesCore(references);
+            }
+        }
+    }
+
+    private IReadOnlyList<PortableSecretReference> LoadReferences()
+    {
+        lock (_indexLock)
+        {
+            return LoadReferencesCore();
+        }
+    }
+
+    private List<PortableSecretReference> LoadReferencesCore()
+    {
+        try
+        {
+            if (!File.Exists(_indexFilePath))
+            {
+                return new List<PortableSecretReference>();
+            }
+
+            string json = File.ReadAllText(_indexFilePath);
+            return JsonConvert.DeserializeObject<List<PortableSecretReference>>(json)?
+                .Where(reference => reference.IsValid)
+                .Distinct()
+                .ToList()
+                ?? new List<PortableSecretReference>();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "SecretStore failed to load its portable backup index.");
+            return new List<PortableSecretReference>();
+        }
+    }
+
+    private void SaveReferencesCore(List<PortableSecretReference> references)
+    {
+        try
+        {
+            string? directory = Path.GetDirectoryName(_indexFilePath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            string tempFilePath = _indexFilePath + ".temp";
+            string json = JsonConvert.SerializeObject(references, Formatting.Indented);
+            File.WriteAllText(tempFilePath, json);
+            File.Move(tempFilePath, _indexFilePath, overwrite: true);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "SecretStore failed to save its portable backup index.");
+        }
+    }
 
     private static BackendSelection CreateBackend(string filePath)
     {

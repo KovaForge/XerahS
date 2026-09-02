@@ -39,7 +39,7 @@ namespace ShareX.Imgur.Plugin;
 /// Also implements <see cref="IUploaderExplorer"/> — albums are treated as folders,
 /// images within albums as files.
 /// </summary>
-public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretMigrator
+public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretMigrator, IInstanceSecretBackupProvider
 {
     public override string ProviderId => "imgur";
     public override string Name => "Imgur";
@@ -47,6 +47,35 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
     public override Version Version => new Version(1, 0, 0);
     public override UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };
     public override Type ConfigModelType => typeof(ImgurConfigModel);
+
+    public IReadOnlyList<InstanceSecretReference> GetSecretReferences(string settingsJson)
+    {
+        if (string.IsNullOrWhiteSpace(settingsJson))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        string? secretKey;
+        try
+        {
+            secretKey = JObject.Parse(settingsJson).Value<string>(nameof(ImgurConfigModel.SecretKey));
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        return
+        [
+            new(ProviderId, secretKey, "clientSecret"),
+            new(ProviderId, secretKey, "oauthToken")
+        ];
+    }
 
     public ImgurProvider()
     {

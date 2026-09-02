@@ -28,6 +28,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Managers;
 using XerahS.UI.Helpers;
 using XerahS.UI.Services;
 using XerahS.UI.Controls;
@@ -80,6 +81,18 @@ namespace XerahS.UI.Views
             };
 
             vm.BrowseScreenshotsFolderRequester = BrowseScreenshotsFolderAsync;
+            vm.BackupSettingsFileRequester = () => uiFactory.ViewDialogService.ShowSaveFilePickerAsync(
+                "Create Portable Settings Backup",
+                $"XerahS-Settings-{DateTime.Now:yyyyMMdd-HHmmss}.{PortableSettingsBackupService.FileExtension}",
+                PortableSettingsBackupService.FileExtension,
+                new[] { $"*.{PortableSettingsBackupService.FileExtension}" });
+            vm.RestoreSettingsFileRequester = () => uiFactory.ViewDialogService.ShowFilePickerAsync(
+                "Restore Portable Settings Backup",
+                new[] { $"*.{PortableSettingsBackupService.FileExtension}" });
+            var settingsBackupDialogs = new AvaloniaDialogServiceAdapter();
+            vm.SettingsBackupConfirmationRequester = settingsBackupDialogs.ShowConfirmationAsync;
+            vm.SettingsBackupMessageRequester = settingsBackupDialogs.ShowMessageAsync;
+            vm.SettingsBackupErrorRequester = settingsBackupDialogs.ShowErrorAsync;
             // Find debug TextBox and connect it to the HotkeySelectionControl's static debug log
             Loaded += (s, e) =>
             {

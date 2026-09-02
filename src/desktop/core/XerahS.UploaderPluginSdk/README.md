@@ -23,7 +23,8 @@ Lightweight **contracts only** (interfaces and DTOs) for building XerahS uploade
 | `PluginManifest` | Deserialized from `plugin.json` (PluginId, EntryPoint, SupportedCategories, ApiVersion, etc.). |
 | `ExplorerQuery` / `ExplorerPage` / `MediaItem` | Used by `IUploaderExplorer.ListAsync`. |
 | `ISecretStore` / `IProviderContext` / `IProviderContextAware` | Optional: host-provided secrets and context. |
-| `IInstanceSecretMigrator` / `ISecretStoreInfo` | Optional: migrate legacy plaintext settings into the host secret store; describe secret keys. |
+| `IInstanceSecretMigrator` / `IInstanceSecretBackupProvider` | Optional: migrate legacy plaintext settings and enumerate the secret-store references required by an instance. |
+| `InstanceSecretReference` / `ISecretStoreInfo` | A provider/key/name secret reference; diagnostics for the host's secret-store backend. |
 
 ## IUploaderProvider.CreateInstance
 
@@ -31,7 +32,7 @@ Lightweight **contracts only** (interfaces and DTOs) for building XerahS uploade
 
 ## Secrets (optional)
 
-Implement **IInstanceSecretMigrator** so the host can migrate legacy plaintext credentials from settings JSON into the secret store. Implement **ISecretStoreInfo** to describe which secret keys your provider uses (for UI or tooling).
+Implement **IInstanceSecretMigrator** so the host can migrate legacy plaintext credentials from settings JSON into the secret store. Implement **IInstanceSecretBackupProvider** to enumerate each `InstanceSecretReference` needed to move an instance between secret-store backends. `GetSecretReferences` identifies values only; it must not read or return secret values.
 
 ## plugin.json
 

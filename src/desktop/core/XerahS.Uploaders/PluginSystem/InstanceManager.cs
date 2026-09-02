@@ -124,6 +124,46 @@ public class InstanceManager
     }
 
     /// <summary>
+    /// Serializes the complete destination instance configuration for portable backup.
+    /// </summary>
+    public string ExportConfigurationJson()
+    {
+        lock (_lock)
+        {
+            return JsonConvert.SerializeObject(_configuration, Formatting.Indented);
+        }
+    }
+
+    /// <summary>
+    /// Replaces the destination instance configuration and persists it atomically.
+    /// </summary>
+    public void ImportConfigurationJson(string json)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(json);
+
+        InstanceConfiguration configuration = JsonConvert.DeserializeObject<InstanceConfiguration>(json)
+            ?? throw new InvalidDataException("Destination instance configuration is empty.");
+        NormalizeConfiguration(configuration);
+
+        lock (_lock)
+        {
+            _configuration = configuration;
+            SaveConfiguration(throwOnError: true);
+        }
+    }
+
+    /// <summary>
+    /// Reloads destination instances after settings files have been restored.
+    /// </summary>
+    public void ReloadConfiguration()
+    {
+        lock (_lock)
+        {
+            _configuration = LoadConfiguration();
+        }
+    }
+
+    /// <summary>
     /// Get instances for a specific category
     /// </summary>
     public List<UploaderInstance> GetInstancesByCategory(UploaderCategory category)
@@ -709,16 +749,25 @@ public class InstanceManager
         DebugHelper.WriteLine($"[Uploaders] Removed stale default {category} uploader '{instanceId}': {reason}.");
     }
 
-    private void SaveConfiguration()
+    private void SaveConfiguration(bool throwOnError = false)
     {
         using var configLock = AcquireConfigLock();
         try
         {
             var json = JsonConvert.SerializeObject(_configuration, Formatting.Indented);
-            File.WriteAllText(ConfigFilePath, json);
+            string configFilePath = ConfigFilePath;
+            Directory.CreateDirectory(Path.GetDirectoryName(configFilePath) ?? PathsManager.SettingsFolder);
+            string tempFilePath = configFilePath + ".temp";
+            File.WriteAllText(tempFilePath, json);
+            File.Move(tempFilePath, configFilePath, overwrite: true);
         }
-        catch
+        catch (Exception ex)
         {
+            if (throwOnError)
+            {
+                throw new IOException("Failed to save destination instance configuration.", ex);
+            }
+
             // TODO: Add proper logging
         }
     }

@@ -33,7 +33,7 @@ namespace ShareX.GitHubGist.Plugin;
 /// <summary>
 /// GitHub Gist text uploader provider (supports Text category only)
 /// </summary>
-public class GitHubGistProvider : UploaderProviderBase, IInstanceSecretMigrator
+public class GitHubGistProvider : UploaderProviderBase, IInstanceSecretMigrator, IInstanceSecretBackupProvider
 {
     public override string ProviderId => "gist";
     public override string Name => "GitHub Gist";
@@ -41,6 +41,41 @@ public class GitHubGistProvider : UploaderProviderBase, IInstanceSecretMigrator
     public override Version Version => new Version(1, 0, 0);
     public override UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Text };
     public override Type ConfigModelType => typeof(GitHubGistConfigModel);
+
+    public IReadOnlyList<InstanceSecretReference> GetSecretReferences(string settingsJson)
+    {
+        if (string.IsNullOrWhiteSpace(settingsJson))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        string? secretKey;
+        try
+        {
+            secretKey = JObject.Parse(settingsJson).Value<string>(nameof(GitHubGistConfigModel.SecretKey));
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        // "gist" is the current provider ID. Older builds used the "github" alias,
+        // so enumerate both stores and let the backup layer keep the values that exist.
+        return
+        [
+            new(ProviderId, secretKey, "clientId"),
+            new(ProviderId, secretKey, "clientSecret"),
+            new(ProviderId, secretKey, "oauthToken"),
+            new("github", secretKey, "clientId"),
+            new("github", secretKey, "clientSecret"),
+            new("github", secretKey, "oauthToken")
+        ];
+    }
 
     public bool TryMigrateSecrets(string settingsJson, ISecretStore secrets,
         out string updatedSettingsJson, out int migratedSecretCount)

@@ -31,7 +31,7 @@ using XerahS.Uploaders.PluginSystem;
 
 namespace ShareX.Nextcloud.Plugin;
 
-public sealed class NextcloudProvider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretMigrator
+public sealed class NextcloudProvider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretMigrator, IInstanceSecretBackupProvider
 {
     private readonly object _latestSettingsLock = new();
     private string? _latestSettingsJson;
@@ -42,6 +42,35 @@ public sealed class NextcloudProvider : UploaderProviderBase, IUploaderExplorer,
     public override Version Version => new(1, 0, 0);
     public override UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image, UploaderCategory.Text, UploaderCategory.File };
     public override Type ConfigModelType => typeof(NextcloudConfigModel);
+
+    public IReadOnlyList<InstanceSecretReference> GetSecretReferences(string settingsJson)
+    {
+        if (string.IsNullOrWhiteSpace(settingsJson))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        string? secretKey;
+        try
+        {
+            secretKey = JObject.Parse(settingsJson).Value<string>(nameof(NextcloudConfigModel.SecretKey));
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        return
+        [
+            new(ProviderId, secretKey, "appPassword"),
+            new(ProviderId, secretKey, "sharePassword")
+        ];
+    }
     public override UploaderCapabilities Capabilities =>
         UploaderCapabilities.Cancellation | UploaderCapabilities.Progress | UploaderCapabilities.Explorer;
 

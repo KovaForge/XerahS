@@ -30,7 +30,7 @@ using XerahS.Uploaders.PluginSystem;
 
 namespace ShareX.Immich.Plugin;
 
-public sealed class ImmichProvider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretMigrator
+public sealed class ImmichProvider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretMigrator, IInstanceSecretBackupProvider
 {
     private readonly object _latestSettingsLock = new();
     private string? _latestSettingsJson;
@@ -41,6 +41,36 @@ public sealed class ImmichProvider : UploaderProviderBase, IUploaderExplorer, II
     public override Version Version => new(1, 0, 0);
     public override UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image, UploaderCategory.File };
     public override Type ConfigModelType => typeof(ImmichConfigModel);
+
+    public IReadOnlyList<InstanceSecretReference> GetSecretReferences(string settingsJson)
+    {
+        if (string.IsNullOrWhiteSpace(settingsJson))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        string? secretKey;
+        try
+        {
+            secretKey = JObject.Parse(settingsJson).Value<string>(nameof(ImmichConfigModel.SecretKey));
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        return
+        [
+            new(ProviderId, secretKey, "apiKey"),
+            new(ProviderId, secretKey, "apiToken"),
+            new(ProviderId, secretKey, "sharePassword")
+        ];
+    }
     public override UploaderCapabilities Capabilities =>
         UploaderCapabilities.Cancellation | UploaderCapabilities.Progress | UploaderCapabilities.Explorer;
 

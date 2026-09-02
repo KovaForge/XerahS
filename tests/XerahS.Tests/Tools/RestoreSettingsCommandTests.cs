@@ -30,19 +30,45 @@ using XerahS.Core.Managers;
 namespace XerahS.Tests.Tools;
 
 [TestFixture]
-public class BackupSettingsCommandTests
+public class RestoreSettingsCommandTests
 {
     [Test]
-    public void Execute_WhenBackupSucceeds_ForwardsOutputPathAndReturnsZero()
+    public void Execute_WithoutInput_ReturnsUsageError()
+    {
+        Assert.That(RestoreSettingsCommand.Execute(null, force: true), Is.EqualTo(2));
+    }
+
+    [Test]
+    public void Execute_WithoutForce_DoesNotRestore()
+    {
+        bool called = false;
+        int exitCode = RestoreSettingsCommand.Execute(
+            "portable.xerahsbackup",
+            force: false,
+            restoreBackup: path =>
+            {
+                called = true;
+                return new PortableSettingsRestoreResult(path, 0, 0, Array.Empty<string>());
+            });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(2));
+            Assert.That(called, Is.False);
+        });
+    }
+
+    [Test]
+    public void Execute_WithForce_ForwardsInputAndReturnsZero()
     {
         string? capturedPath = null;
-        int exitCode = BackupSettingsCommand.Execute(
+        int exitCode = RestoreSettingsCommand.Execute(
             "portable.xerahsbackup",
-            initializeProviders: () => { },
-            createBackup: path =>
+            force: true,
+            restoreBackup: path =>
             {
                 capturedPath = path;
-                return new PortableSettingsBackupResult(path, 2, 5, Array.Empty<string>());
+                return new PortableSettingsRestoreResult(path, 2, 6, Array.Empty<string>());
             });
 
         Assert.Multiple(() =>
@@ -53,30 +79,13 @@ public class BackupSettingsCommandTests
     }
 
     [Test]
-    public void Execute_WhenProviderInitializationFails_ReturnsNonZero()
+    public void Execute_WhenRestoreFails_ReturnsNonZero()
     {
-        int exitCode = BackupSettingsCommand.Execute(
+        int exitCode = RestoreSettingsCommand.Execute(
             "portable.xerahsbackup",
-            initializeProviders: () => throw new InvalidOperationException("plugins unavailable"),
-            createBackup: _ => AssertAndReturnUnexpected());
+            force: true,
+            restoreBackup: _ => throw new InvalidDataException("corrupt backup"));
 
         Assert.That(exitCode, Is.EqualTo(1));
-    }
-
-    [Test]
-    public void Execute_WhenBackupFails_ReturnsNonZero()
-    {
-        int exitCode = BackupSettingsCommand.Execute(
-            "portable.xerahsbackup",
-            initializeProviders: () => { },
-            createBackup: _ => throw new IOException("disk unavailable"));
-
-        Assert.That(exitCode, Is.EqualTo(1));
-    }
-
-    private static PortableSettingsBackupResult AssertAndReturnUnexpected()
-    {
-        Assert.Fail("Backup should not run after provider initialization failure.");
-        return null!;
     }
 }

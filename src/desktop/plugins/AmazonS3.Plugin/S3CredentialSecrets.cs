@@ -108,7 +108,7 @@ internal static class S3CredentialSecrets
         secrets.DeleteSecret("amazons3", secretKey, SecretAccessKeyName);
     }
 
-    private static string? BuildDestinationSecretKey(S3ConfigModel config)
+    internal static string? BuildDestinationSecretKey(S3ConfigModel config)
     {
         string bucket = Normalize(config.BucketName);
         string customDomain = NormalizeDomain(config.CustomDomain);

@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using XerahS.Common;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
@@ -39,7 +40,7 @@ namespace ShareX.Dropbox.Plugin;
 /// <summary>
 /// Dropbox file uploader provider with media explorer support.
 /// </summary>
-public class DropboxProvider : UploaderProviderBase, IUploaderExplorer
+public class DropboxProvider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretBackupProvider
 {
     private const string ApiVersion = "2";
     private const string UrlApiBase = "https://api.dropboxapi.com";
@@ -64,6 +65,36 @@ public class DropboxProvider : UploaderProviderBase, IUploaderExplorer
     public override Version Version => new(1, 0, 0);
     public override UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image, UploaderCategory.Text, UploaderCategory.File };
     public override Type ConfigModelType => typeof(DropboxConfigModel);
+
+    public IReadOnlyList<InstanceSecretReference> GetSecretReferences(string settingsJson)
+    {
+        if (string.IsNullOrWhiteSpace(settingsJson))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        string? secretKey;
+        try
+        {
+            secretKey = JObject.Parse(settingsJson).Value<string>(nameof(DropboxConfigModel.SecretKey));
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        return
+        [
+            new(ProviderId, secretKey, "clientId"),
+            new(ProviderId, secretKey, "clientSecret"),
+            new(ProviderId, secretKey, "oauthToken")
+        ];
+    }
 
     public override Uploader CreateInstance(string settingsJson)
     {

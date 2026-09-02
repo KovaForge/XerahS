@@ -257,6 +257,8 @@ namespace XerahS.UI.ViewModels
             nameof(LinuxRegionSelectorLastDecisionText),
             nameof(IsManualUpdateInProgress),
             nameof(ManualUpdateStatusText),
+            nameof(IsSettingsBackupBusy),
+            nameof(SettingsBackupStatusText),
             nameof(CloudStatusText),
             nameof(CloudProfileUrl),
             nameof(IsCloudBusy),

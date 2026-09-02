@@ -22,53 +22,73 @@
 */
 
 #endregion License Information (GPL v3)
+
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using XerahS.CLI;
-using XerahS.Core;
+using XerahS.Common;
+using XerahS.Core.Managers;
+using XerahS.Core.Uploaders;
+using XerahS.Uploaders.PluginSystem;
 
-namespace XerahS.CLI.Commands
+namespace XerahS.CLI.Commands;
+
+public class BackupSettingsCommand : Command
 {
-    public class BackupSettingsCommand : Command
+    private const string SecurityWarning =
+        "The backup is UNENCRYPTED and may contain plaintext passwords, S3 keys, and OAuth tokens. Protect it like a password vault.";
+
+    public BackupSettingsCommand() : base("backup-settings", "Create a portable settings backup file")
     {
-        public BackupSettingsCommand() : base("backup-settings", "Force a backup of application settings")
+        var outputOption = new Option<string?>("--output")
         {
-            this.SetAction((parseResult) =>
+            Description = "Output .xerahsbackup file. Defaults to the current directory."
+        };
+        Add(outputOption);
+        this.SetAction(parseResult =>
+        {
+            Environment.ExitCode = Execute(parseResult.GetValue(outputOption));
+        });
+    }
+
+    public static Command Create() => new BackupSettingsCommand();
+
+    internal static int Execute(
+        string? outputFilePath = null,
+        Action? initializeProviders = null,
+        Func<string, PortableSettingsBackupResult>? createBackup = null)
+    {
+        initializeProviders ??= InitializeProviders;
+        createBackup ??= PortableSettingsBackupService.Create;
+        outputFilePath = string.IsNullOrWhiteSpace(outputFilePath)
+            ? Path.Combine(Environment.CurrentDirectory, $"XerahS-Settings-{DateTime.Now:yyyyMMdd-HHmmss}.{PortableSettingsBackupService.FileExtension}")
+            : Path.GetFullPath(outputFilePath);
+
+        try
+        {
+            initializeProviders();
+            Console.Error.WriteLine($"[WARNING] {SecurityWarning}");
+            PortableSettingsBackupResult result = createBackup(outputFilePath);
+            Console.WriteLine($"[SUCCESS] Portable settings backup created: {result.FilePath}");
+            Console.WriteLine($"Included {result.FileCount} file(s) and {result.SecretCount} plaintext secret value(s).");
+            foreach (string warning in result.Warnings)
             {
-                Environment.ExitCode = Execute();
-            });
-        }
-
-        public static Command Create()
-        {
-            return new BackupSettingsCommand();
-        }
-
-        internal static int Execute(
-            Action? loadInitialSettings = null,
-            Action? saveAllSettings = null,
-            Func<string>? getBackupFolder = null)
-        {
-            loadInitialSettings ??= SettingsManager.LoadInitialSettings;
-            saveAllSettings ??= SettingsManager.SaveAllSettings;
-            getBackupFolder ??= () => SettingsManager.BackupFolder;
-
-            try
-            {
-                Console.WriteLine("Loading settings...");
-                loadInitialSettings();
-
-                Console.WriteLine("Backing up settings...");
-                saveAllSettings();
-
-                Console.WriteLine($"[SUCCESS] Settings backed up to: {getBackupFolder()}");
-                return 0;
+                Console.Error.WriteLine($"[WARNING] {warning}");
             }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"[ERROR] Failed to backup settings: {ex.Message}");
-                return 1;
-            }
+
+            return 0;
         }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[ERROR] Failed to create settings backup: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static void InitializeProviders()
+    {
+        ProviderContextManager.EnsureProviderContext();
+        ProviderCatalog.InitializeBuiltInProviders();
+        ProviderCatalog.LoadPlugins(PathsManager.GetPluginDirectories());
+        InstanceManager.Instance.MigrateSecretsIfNeeded();
     }
 }

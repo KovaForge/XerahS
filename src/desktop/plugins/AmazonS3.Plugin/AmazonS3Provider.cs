@@ -40,7 +40,7 @@ namespace ShareX.AmazonS3.Plugin;
 /// Amazon S3 file uploader provider (supports Image, Text, and File categories).
 /// Also implements <see cref="IUploaderExplorer"/> for the Media Explorer.
 /// </summary>
-public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretMigrator
+public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretMigrator, IInstanceSecretBackupProvider
 {
     public override string ProviderId => "amazons3";
     public override string Name => "Amazon S3";
@@ -54,6 +54,60 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         // For plugins, we don't self-register as they are loaded via PluginLoader
         // But for internal ones we might still want it. 
         // In the external plugin assembly, this ctor will still run if activated.
+    }
+
+    public IReadOnlyList<InstanceSecretReference> GetSecretReferences(string settingsJson)
+    {
+        if (string.IsNullOrWhiteSpace(settingsJson))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        S3ConfigModel? config;
+        string? secretKey;
+        try
+        {
+            JObject json = JObject.Parse(settingsJson);
+            secretKey = json.Value<string>(nameof(S3ConfigModel.SecretKey));
+            config = json.ToObject<S3ConfigModel>();
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        if (config == null || string.IsNullOrWhiteSpace(secretKey))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        config.SecretKey = secretKey;
+
+        if (config.AuthMode == S3AuthMode.AwsSso)
+        {
+            return
+            [
+                new(ProviderId, config.SecretKey, "ssoClient"),
+                new(ProviderId, config.SecretKey, "ssoToken"),
+                new(ProviderId, config.SecretKey, "ssoRoleCredentials")
+            ];
+        }
+
+        var references = new List<InstanceSecretReference>
+        {
+            new(ProviderId, config.SecretKey, "accessKeyId"),
+            new(ProviderId, config.SecretKey, "secretAccessKey")
+        };
+
+        string? destinationSecretKey = S3CredentialSecrets.BuildDestinationSecretKey(config);
+        if (!string.IsNullOrWhiteSpace(destinationSecretKey) &&
+            !string.Equals(destinationSecretKey, config.SecretKey, StringComparison.Ordinal))
+        {
+            references.Add(new(ProviderId, destinationSecretKey, "accessKeyId"));
+            references.Add(new(ProviderId, destinationSecretKey, "secretAccessKey"));
+        }
+
+        return references;
     }
 
     public bool TryMigrateSecrets(string settingsJson, ISecretStore secrets,

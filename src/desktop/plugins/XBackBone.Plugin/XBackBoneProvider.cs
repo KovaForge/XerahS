@@ -30,7 +30,7 @@ using XerahS.Uploaders.PluginSystem;
 
 namespace ShareX.XBackBone.Plugin;
 
-public sealed class XBackBoneProvider : UploaderProviderBase, IInstanceSecretMigrator
+public sealed class XBackBoneProvider : UploaderProviderBase, IInstanceSecretMigrator, IInstanceSecretBackupProvider
 {
     public override string ProviderId => "xbackbone";
     public override string Name => "XBackBone";
@@ -41,6 +41,31 @@ public sealed class XBackBoneProvider : UploaderProviderBase, IInstanceSecretMig
     public override Type ConfigModelType => typeof(XBackBoneConfigModel);
     public override UploaderCapabilities Capabilities =>
         UploaderCapabilities.Cancellation | UploaderCapabilities.Progress;
+
+    public IReadOnlyList<InstanceSecretReference> GetSecretReferences(string settingsJson)
+    {
+        if (string.IsNullOrWhiteSpace(settingsJson))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        string? secretKey;
+        try
+        {
+            secretKey = JObject.Parse(settingsJson).Value<string>(nameof(XBackBoneConfigModel.SecretKey));
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        return [new(ProviderId, secretKey, "apiToken")];
+    }
 
     public override Uploader CreateInstance(string settingsJson)
     {
