@@ -8,6 +8,7 @@ This directory documents the Linux desktop behavior needed for native packages, 
 - XerahS does not create `~/XerahS`, `~/.XerahS`, `~/ShareX`, or `~/Screenshots` as implicit Linux app roots.
 - Flatpak builds use XDG Desktop Portals for sandboxed screenshots, screencasts, file access, notifications, OpenURI, background startup, and global shortcuts where the user's portal backend supports them.
 - Native Linux installs keep native X11 and CLI fallbacks outside sandboxed environments.
+- Native packages install `/usr/bin/omaxerahs` beside `/usr/bin/xerahs` for Omarchy screenshot upload. Flatpak does not ship `omaxerahs`.
 
 ## Documents
 

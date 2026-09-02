@@ -48,6 +48,7 @@
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj" />
     <ProjectReference Include="..\..\src\desktop\cli\XerahS.CLI\XerahS.CLI.csproj"
                       AdditionalProperties="AssembleProduct=false;EnableAppDrivenPluginBuild=false;SkipBundlePlugins=true" />
+    <ProjectReference Include="..\..\src\desktop\cli\XerahS.OmaXerahs\XerahS.OmaXerahs.csproj" />
     <ProjectReference Include="..\..\src\desktop\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj" />
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Indexer\XerahS.Indexer.csproj" />

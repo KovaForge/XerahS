@@ -73,8 +73,14 @@ def ensure_tar_has_daemon(path: Path, os_name: str) -> None:
     if os_name == "linux":
         expected_binary = "xerahs-watchfolder-daemon"
         expected_runtimeconfig = "xerahs-watchfolder-daemon.runtimeconfig.json"
+        expected_omaxerahs = "omaxerahs"
+        expected_omaxerahs_runtimeconfig = "omaxerahs.runtimeconfig.json"
         has_binary = any(name.endswith(expected_binary) for name in names)
         has_runtimeconfig = any(name.endswith(expected_runtimeconfig) for name in names)
+        has_omaxerahs = any(name.endswith(expected_omaxerahs) for name in names)
+        has_omaxerahs_runtimeconfig = any(
+            name.endswith(expected_omaxerahs_runtimeconfig) for name in names
+        )
         if not has_binary:
             raise RuntimeError(
                 f"Missing daemon executable '{expected_binary}' in Linux archive: {path}"
@@ -83,6 +89,15 @@ def ensure_tar_has_daemon(path: Path, os_name: str) -> None:
         if not has_runtimeconfig:
             raise RuntimeError(
                 f"Missing daemon runtimeconfig '{expected_runtimeconfig}' in Linux archive: {path}"
+            )
+        if not has_omaxerahs:
+            raise RuntimeError(
+                f"Missing omaxerahs executable '{expected_omaxerahs}' in Linux archive: {path}"
+            )
+
+        if not has_omaxerahs_runtimeconfig:
+            raise RuntimeError(
+                f"Missing omaxerahs runtimeconfig '{expected_omaxerahs_runtimeconfig}' in Linux archive: {path}"
             )
         return
 

@@ -48,12 +48,19 @@ cp -a * %{buildroot}/usr/lib/xerahs/
 mkdir -p %{buildroot}%{_bindir}
 rm -f %{buildroot}%{_bindir}/xerahs
 ln -s ../lib/xerahs/XerahS %{buildroot}%{_bindir}/xerahs
+ln -s ../lib/xerahs/omaxerahs %{buildroot}%{_bindir}/omaxerahs
 chmod 755 %{buildroot}/usr/lib/xerahs/XerahS
 if [ -f %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon ]; then
   chmod 755 %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon
 fi
 if [ -f %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon.exe ]; then
   chmod 755 %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon.exe
+fi
+if [ -f %{buildroot}/usr/lib/xerahs/omaxerahs ]; then
+  chmod 755 %{buildroot}/usr/lib/xerahs/omaxerahs
+fi
+if [ -f %{buildroot}/usr/lib/xerahs/omaxerahs.exe ]; then
+  chmod 755 %{buildroot}/usr/lib/xerahs/omaxerahs.exe
 fi
 
 mkdir -p %{buildroot}%{_datadir}/applications
@@ -102,6 +109,7 @@ fi
 
 %files
 %{_bindir}/xerahs
+%{_bindir}/omaxerahs
 /usr/lib/xerahs
 /usr/lib/udev/rules.d/99-xerahs-input.rules
 %{_datadir}/applications/xerahs.desktop

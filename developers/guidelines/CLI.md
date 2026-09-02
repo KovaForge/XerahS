@@ -423,6 +423,32 @@ var options = new BootstrapOptions
 await ShareXBootstrap.InitializeAsync(options);
 ```
 
+## OmaXerahs (Omarchy image upload host)
+
+`omaxerahs` is a separate native binary from `xerahscli`. It is the Omarchy screenshot-upload contract: Image-category only, one JSON object on stdout, no clipboard, no toast, original filename. Linux packages install it next to the desktop app:
+
+```text
+/usr/lib/xerahs/omaxerahs
+/usr/bin/omaxerahs  → ../lib/xerahs/omaxerahs
+```
+
+It reads the same `~/.config/xerahs` settings, `uploader-instances.json`, libsecret (or AES fallback), and history as the GUI. It does **not** capture, notify, or copy to the clipboard — Omarchy owns those.
+
+```bash
+omaxerahs capabilities --json
+omaxerahs doctor --json
+omaxerahs upload --json -- /absolute/path/screenshot.png
+```
+
+- `doctor` is read-only Image readiness. It never runs `--fix` and never creates Paste2/img.fish instances. Exit `0` only when a usable **Image-category** instance exists.
+- `upload` sets `EDataType.Image` and `AllowCrossCategoryFallback = false`. A missing or failing Image destination must not fall back to File.
+- `--json` is the default when stdout is not a TTY. Stdout is exactly one JSON object. Exit `0` only on `ok: true` plus a case-sensitive `http://` or `https://` URL.
+- Flatpak XerahS is out of scope; the plugin reports `cli_flatpak` and asks for the native package.
+
+Project: `src/desktop/cli/XerahS.OmaXerahs/`. Design: `docs/proposals/xip/XIP0087-omaxerahs-design.md`. Plugin: `https://github.com/ShareX/omaxerahs`.
+
+Do **not** point Omarchy integrations at `xerahscli`.
+
 ## Validation
 
 XerahS CLI meets the following validation criteria:

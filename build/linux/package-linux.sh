@@ -237,6 +237,22 @@ validate_daemon_bundle() {
     fi
 }
 
+validate_omaxerahs_bundle() {
+    local publish_dir="$1"
+    local omaxerahs_path="$publish_dir/omaxerahs"
+    local runtimeconfig_path="$publish_dir/omaxerahs.runtimeconfig.json"
+
+    if [ ! -f "$omaxerahs_path" ]; then
+        echo "Error: Missing omaxerahs executable in publish output: $omaxerahs_path"
+        exit 1
+    fi
+
+    if [ ! -f "$runtimeconfig_path" ]; then
+        echo "Error: Missing omaxerahs runtimeconfig in publish output: $runtimeconfig_path"
+        exit 1
+    fi
+}
+
 # Define Architectures to Build
 # Override with XERAHS_ARCHITECTURES, e.g. "linux-x64" or "linux-arm64".
 if [ -n "${XERAHS_ARCHITECTURES:-}" ]; then
@@ -289,6 +305,7 @@ for ARCH in "${ARCHITECTURES[@]}"; do
         -p:SkipBundlePlugins=true
 
     validate_daemon_bundle "$PUBLISH_DIR"
+    validate_omaxerahs_bundle "$PUBLISH_DIR"
 
     # 1.5 Publish Plugins
     echo "Publishing Plugins ($ARCH)..."

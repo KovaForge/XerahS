@@ -158,8 +158,9 @@ sudo apt install wl-clipboard gnome-shell-extension-appindicator
 
 | Path | Contents |
 |---|---|
-| `/usr/lib/xerahs/` | Application binary, plugins, assets |
+| `/usr/lib/xerahs/` | Application binary, `omaxerahs`, plugins, assets |
 | `/usr/bin/xerahs` | Symlink → `/usr/lib/xerahs/XerahS` |
+| `/usr/bin/omaxerahs` | Symlink → `/usr/lib/xerahs/omaxerahs` (Omarchy image upload host) |
 | `/usr/share/applications/xerahs.desktop` | Desktop entry |
 | `/usr/share/pixmaps/xerahs.png` | Application icon |
 

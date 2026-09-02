@@ -113,6 +113,7 @@ public static class AppImagePackager
         Directory.CreateDirectory(binDir);
         string launcher = Path.Combine(binDir, "xerahs");
         CreateRelativeSymlinkOrCopy(launcher, Path.Combine("..", "lib", "xerahs", "XerahS"));
+        CreateRelativeSymlinkOrCopy(Path.Combine(binDir, "omaxerahs"), Path.Combine("..", "lib", "xerahs", "omaxerahs"));
 
         string desktop = BuildDesktopEntry();
         File.WriteAllText(Path.Combine(appDir, DesktopFileName), desktop);
@@ -134,6 +135,12 @@ public static class AppImagePackager
         if (File.Exists(daemonBinary))
         {
             MarkExecutable(daemonBinary);
+        }
+
+        string omaxerahsBinary = Path.Combine(payloadDir, "omaxerahs");
+        if (File.Exists(omaxerahsBinary))
+        {
+            MarkExecutable(omaxerahsBinary);
         }
 
         StageIcon(appDir, iconSource);

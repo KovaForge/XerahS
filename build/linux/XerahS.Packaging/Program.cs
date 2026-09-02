@@ -278,6 +278,7 @@ class Program
             // Relative symlink: resolves to /usr/lib/xerahs/XerahS from /usr/bin/. A relative
 // target is used so rpmbuild can correctly traverse the symlink inside BUILDROOT.
 File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
+            File.CreateSymbolicLink(Path.Combine(binPath, "omaxerahs"), "../lib/xerahs/omaxerahs");
 
             // Create desktop entry for application menu
             string applicationsPath = Path.Combine(dataRoot, "usr", "share", "applications");
@@ -459,6 +460,7 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
             // Relative symlink: resolves to /usr/lib/xerahs/XerahS from /usr/bin/. A relative
 // target is used so rpmbuild can correctly traverse the symlink inside BUILDROOT.
 File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
+            File.CreateSymbolicLink(Path.Combine(binPath, "omaxerahs"), "../lib/xerahs/omaxerahs");
 
             // Desktop entry
             string applicationsPath = Path.Combine(stagePackageRoot, "usr", "share", "applications");
@@ -625,9 +627,12 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
         sb.AppendLine("cp -a usr %{buildroot}/usr");
         sb.AppendLine("rm -f %{buildroot}/usr/bin/xerahs");
         sb.AppendLine("ln -s ../lib/xerahs/XerahS %{buildroot}/usr/bin/xerahs");
+        sb.AppendLine("ln -s ../lib/xerahs/omaxerahs %{buildroot}/usr/bin/omaxerahs");
         sb.AppendLine("chmod 755 %{buildroot}/usr/lib/xerahs/XerahS");
         sb.AppendLine("if [ -f %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon ]; then chmod 755 %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon; fi");
         sb.AppendLine("if [ -f %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon.exe ]; then chmod 755 %{buildroot}/usr/lib/xerahs/xerahs-watchfolder-daemon.exe; fi");
+        sb.AppendLine("if [ -f %{buildroot}/usr/lib/xerahs/omaxerahs ]; then chmod 755 %{buildroot}/usr/lib/xerahs/omaxerahs; fi");
+        sb.AppendLine("if [ -f %{buildroot}/usr/lib/xerahs/omaxerahs.exe ]; then chmod 755 %{buildroot}/usr/lib/xerahs/omaxerahs.exe; fi");
         sb.AppendLine("desktop-file-validate %{buildroot}/usr/share/applications/xerahs.desktop");
         sb.AppendLine();
         sb.AppendLine("%post");
@@ -646,6 +651,7 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
         sb.AppendLine();
         sb.AppendLine("%files");
         sb.AppendLine("%{_bindir}/xerahs");
+        sb.AppendLine("%{_bindir}/omaxerahs");
         sb.AppendLine("/usr/lib/xerahs/**");
         sb.AppendLine("/usr/lib/udev/rules.d/99-xerahs-input.rules");
         sb.AppendLine("%{_datadir}/applications/xerahs.desktop");
@@ -878,7 +884,9 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
         return normalized.EndsWith("/xerahs", StringComparison.OrdinalIgnoreCase) ||
                normalized.EndsWith("/XerahS", StringComparison.OrdinalIgnoreCase) ||
                normalized.EndsWith("/xerahs-watchfolder-daemon", StringComparison.OrdinalIgnoreCase) ||
-               normalized.EndsWith("/xerahs-watchfolder-daemon.exe", StringComparison.OrdinalIgnoreCase);
+               normalized.EndsWith("/xerahs-watchfolder-daemon.exe", StringComparison.OrdinalIgnoreCase) ||
+               normalized.EndsWith("/omaxerahs", StringComparison.OrdinalIgnoreCase) ||
+               normalized.EndsWith("/omaxerahs.exe", StringComparison.OrdinalIgnoreCase);
     }
 
     static void WriteArEntry(Stream stream, string name, byte[] content)
