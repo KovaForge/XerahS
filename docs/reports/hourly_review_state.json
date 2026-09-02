@@ -323,7 +323,7 @@
         ".clawpatch/reports/20260902T150310-4eb52a.md"
       ],
       "version_bump": null,
-      "commit": "PENDING",
+      "commit": "add3b20ced72ebfa9da9df9f785f1999bc25991a",
       "outcome": "reviewed",
       "build_test": "clawpatch review: 3 findings across 3 features; ingest: 1 added to next_candidates",
       "notes": "Producer-only tick. nadia remote merged (ad8d947a1, v0.29.0 portable settings backup). upstream/develop already up to date (e2946993a). Submodule ShareX.ImageEditor clean. clawpatch reports parsed: 3 (latest 20260902T150310-4eb52a.md). Gate drops: severity-gate 243 ({'triage=risk': 163, 'triage=contract-mismatch': 59, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix 72, already-fixed-area 3, recently-pivoted 63, recently-fixed-release-history 90, duplicate 0. next_candidates delta: 0 -> 1 (+1).",
