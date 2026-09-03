@@ -91,12 +91,15 @@ namespace XerahS.Media
         public string GetFFmpegArgs()
         {
             StringBuilder args = new StringBuilder();
+            ConverterVideoCodecs codec = Enum.IsDefined<ConverterVideoCodecs>(VideoCodec)
+                ? VideoCodec
+                : ConverterVideoCodecs.x264;
 
             // Input file path
             args.Append($"-i \"{InputFilePath}\" ");
 
             // Video encoder
-            switch (VideoCodec)
+            switch (codec)
             {
                 case ConverterVideoCodecs.x264: // https://trac.ffmpeg.org/wiki/Encode/H.264
                     args.Append("-c:v libx264 ");
@@ -221,9 +224,24 @@ namespace XerahS.Media
                     args.Append("-f apng ");
                     args.Append("-plays 0 ");
                     break;
+                default:
+                    // Undefined or newly added enum values must still emit an encoder.
+                    args.Append("-c:v libx264 ");
+                    args.Append("-preset medium ");
+                    if (VideoQualityUseBitrate)
+                    {
+                        args.Append($"-b:v {VideoQualityBitrate}k ");
+                    }
+                    else
+                    {
+                        args.Append($"-crf {VideoQuality.Clamp(FFmpegCLIManager.x264_min, FFmpegCLIManager.x264_max)} ");
+                    }
+                    args.Append("-pix_fmt yuv420p ");
+                    args.Append("-movflags +faststart ");
+                    break;
             }
 
-            switch (VideoCodec)
+            switch (codec)
             {
                 case ConverterVideoCodecs.x265:
                 case ConverterVideoCodecs.hevc_nvenc:
@@ -236,7 +254,7 @@ namespace XerahS.Media
             if (!IsInputFileAnimationOnly)
             {
                 // Audio encoder
-                switch (VideoCodec)
+                switch (codec)
                 {
                     case ConverterVideoCodecs.x264: // https://trac.ffmpeg.org/wiki/Encode/AAC
                     case ConverterVideoCodecs.x265:
@@ -261,6 +279,10 @@ namespace XerahS.Media
                     case ConverterVideoCodecs.xvid: // https://trac.ffmpeg.org/wiki/Encode/MP3
                         args.Append("-c:a libmp3lame ");
                         args.Append("-q:a 4 ");
+                        break;
+                    default:
+                        args.Append("-c:a aac ");
+                        args.Append("-b:a 128k ");
                         break;
                 }
             }
