@@ -6476,3 +6476,14 @@ Added candidates (8):
 - Ingested: 1 finding (VideoConverterOptions.GetFFmpegArgs)
 - next_candidates delta: 1 -> 1 (+1) — was empty before ingest; size carried over from existing queue
 - Follow-up: 00:06 AWST consumer drain (Declan) will read the 1-item queue
+
+### 2026-09-04 00:06 AWST - VideoConverterOptions.GetFFmpegArgs / Guard undefined codecs
+
+- Area: src/desktop/core/XerahS.Media
+- Files: src/desktop/core/XerahS.Media/VideoConverterOptions.cs, tests/XerahS.Tests/Media/VideoConverterOptionsTests.cs, Directory.Build.props
+- Findings: GetFFmpegArgs switches over VideoCodec had no default arm; undefined ConverterVideoCodecs values skipped every case and emitted FFmpeg args with no -c:v. Normalized codec via Enum.IsDefined, added default arms falling back to libx264/AAC, and added regression coverage.
+- Status: Fixed
+- Build/test: Release scoped build of XerahS.Media + XerahS.Tests clean (0 warnings, 0 errors); filter FullyQualifiedName~VideoConverterOptionsTests Passed: 3, Failed: 0. Logs: /tmp/xerahs-bugfix/build-20260904-000621.log, /tmp/xerahs-bugfix/test-20260904-000621.log
+- Commit: db7cef8b6
+- Follow-up: producer re-ingest of this citation should classify as already-fixed; do not re-queue unless GetFFmpegArgs loses the default arm
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 unchanged this tick
