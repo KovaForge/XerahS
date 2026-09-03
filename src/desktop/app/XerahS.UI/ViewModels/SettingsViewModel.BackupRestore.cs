@@ -73,7 +73,9 @@ public partial class SettingsViewModel
         SettingsBackupStatusText = "Creating portable settings backup...";
         try
         {
-            PortableSettingsBackupResult result = await Task.Run(() => SettingsBackupWriter(filePath));
+            // SettingsManager contains values owned by Avalonia's UI thread. Keep snapshotting
+            // and serialization on that thread to avoid cross-thread access exceptions.
+            PortableSettingsBackupResult result = SettingsBackupWriter(filePath);
             SettingsBackupStatusText = $"Backup created with {result.SecretCount} secret value(s).";
             string message = $"Portable settings backup created:{Environment.NewLine}{result.FilePath}{Environment.NewLine}{Environment.NewLine}{PlaintextBackupWarning}";
             if (result.Warnings.Count > 0)
@@ -127,7 +129,8 @@ public partial class SettingsViewModel
         SettingsBackupStatusText = "Validating and restoring settings...";
         try
         {
-            PortableSettingsRestoreResult result = await Task.Run(() => SettingsBackupReader(filePath));
+            // Restoring replaces live settings bound to the UI, so it must run on their owner thread.
+            PortableSettingsRestoreResult result = SettingsBackupReader(filePath);
             SettingsBackupStatusText = $"Settings restored with {result.SecretCount} secret value(s). Restart XerahS.";
             string message = "Settings were restored successfully. Restart XerahS before using the restored workflows or destinations.";
             if (result.Warnings.Count > 0)

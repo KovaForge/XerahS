@@ -46,7 +46,7 @@ namespace XerahS.Core.Managers;
 public static class PortableSettingsBackupService
 {
     public const string FileExtension = "xsbak";
-    public static string DefaultFileName => $"xerahs-{SystemInfo.GetApplicationVersion()}-backup.{FileExtension}";
+    public static string DefaultFileName => GetDefaultFileName(SystemInfo.GetApplicationVersion(), Environment.MachineName);
 
     private const string FormatName = "XerahS.SettingsBackup";
     private const int FormatVersion = 1;
@@ -66,6 +66,7 @@ public static class PortableSettingsBackupService
     public static PortableSettingsBackupResult Create(string outputFilePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputFilePath);
+        outputFilePath = NormalizeBackupFilePath(outputFilePath);
 
         SettingsManager.SaveAllSettings();
         SettingsManager.UploadersConfig.SyncPolymorphicSettingsFromLegacy();
@@ -110,6 +111,24 @@ public static class PortableSettingsBackupService
         WriteArchiveAtomically(outputFilePath, content, manifestBytes);
 
         return new PortableSettingsBackupResult(outputFilePath, secrets.Count, content.Count, warnings);
+    }
+
+    public static string GetDefaultFileName(string applicationVersion, string computerName)
+    {
+        string safeVersion = SanitizeFileNameSegment(applicationVersion, "unknown");
+        string safeComputerName = SanitizeFileNameSegment(computerName, "unknown-computer");
+        return $"xerahs-{safeVersion}-{safeComputerName}-backup.{FileExtension}";
+    }
+
+    public static string NormalizeBackupFilePath(string outputFilePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputFilePath);
+
+        string fullPath = Path.GetFullPath(outputFilePath);
+        string expectedExtension = $".{FileExtension}";
+        return string.Equals(Path.GetExtension(fullPath), expectedExtension, StringComparison.OrdinalIgnoreCase)
+            ? fullPath
+            : Path.ChangeExtension(fullPath, FileExtension);
     }
 
     public static PortableSettingsRestoreResult Restore(string inputFilePath)
@@ -219,6 +238,34 @@ public static class PortableSettingsBackupService
             InstanceManager.Instance.ReloadConfiguration();
             throw;
         }
+    }
+
+    private static string SanitizeFileNameSegment(string? value, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return fallback;
+        }
+
+        const string invalidCharacters = "<>:\"/\\|?*";
+        var builder = new StringBuilder(value.Length);
+        bool previousWasSeparator = false;
+
+        foreach (char character in value.Trim())
+        {
+            bool replace = char.IsControl(character) || invalidCharacters.Contains(character);
+            char safeCharacter = replace ? '-' : character;
+            if (safeCharacter == '-' && previousWasSeparator)
+            {
+                continue;
+            }
+
+            builder.Append(safeCharacter);
+            previousWasSeparator = safeCharacter == '-';
+        }
+
+        string sanitized = builder.ToString().Trim(' ', '.', '-');
+        return string.IsNullOrWhiteSpace(sanitized) ? fallback : sanitized;
     }
 
     private static List<PortableSecret> CollectSecrets(ISecretStore secretStore, List<string> warnings)

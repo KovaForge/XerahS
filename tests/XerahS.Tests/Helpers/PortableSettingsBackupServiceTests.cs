@@ -68,6 +68,26 @@ public class PortableSettingsBackupServiceTests
     }
 
     [Test]
+    public void FileNaming_IncludesSanitizedComputerNameAndGuaranteesXsbakExtension()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                PortableSettingsBackupService.GetDefaultFileName("0.29.0", "SHAREX-NB1"),
+                Is.EqualTo("xerahs-0.29.0-SHAREX-NB1-backup.xsbak"));
+            Assert.That(
+                PortableSettingsBackupService.GetDefaultFileName("0.29.0", "SHAREX/NB1:*"),
+                Is.EqualTo("xerahs-0.29.0-SHAREX-NB1-backup.xsbak"));
+            Assert.That(
+                PortableSettingsBackupService.NormalizeBackupFilePath(Path.Combine(_testRoot, "portable.zip")),
+                Is.EqualTo(Path.Combine(_testRoot, "portable.xsbak")));
+            Assert.That(
+                PortableSettingsBackupService.NormalizeBackupFilePath(Path.Combine(_testRoot, "portable.xsbak")),
+                Is.EqualTo(Path.Combine(_testRoot, "portable.xsbak")));
+        });
+    }
+
+    [Test]
     public void CreateAndRestore_RoundTripsSettingsDestinationAndPlaintextS3SecretsAcrossRoots()
     {
         const string accessKey = "AKIA_PORTABLE_TEST_123";

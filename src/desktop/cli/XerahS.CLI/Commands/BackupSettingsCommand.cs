@@ -61,7 +61,8 @@ public class BackupSettingsCommand : Command
         createBackup ??= PortableSettingsBackupService.Create;
         outputFilePath = string.IsNullOrWhiteSpace(outputFilePath)
             ? Path.Combine(Environment.CurrentDirectory, PortableSettingsBackupService.DefaultFileName)
-            : Path.GetFullPath(outputFilePath);
+            : outputFilePath;
+        outputFilePath = PortableSettingsBackupService.NormalizeBackupFilePath(outputFilePath);
 
         try
         {

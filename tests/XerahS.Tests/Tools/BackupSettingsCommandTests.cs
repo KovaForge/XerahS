@@ -53,7 +53,7 @@ public class BackupSettingsCommandTests
     }
 
     [Test]
-    public void Execute_WithoutOutputPath_UsesVersionedDefaultFileName()
+    public void Execute_WithoutOutputPath_UsesVersionedComputerSpecificDefaultFileName()
     {
         string? capturedPath = null;
         int exitCode = BackupSettingsCommand.Execute(
@@ -68,7 +68,27 @@ public class BackupSettingsCommandTests
         {
             Assert.That(exitCode, Is.EqualTo(0));
             Assert.That(capturedPath, Is.EqualTo(Path.Combine(Environment.CurrentDirectory, PortableSettingsBackupService.DefaultFileName)));
-            Assert.That(Path.GetFileName(capturedPath), Does.Match(@"^xerahs-\d+\.\d+\.\d+-backup\.xsbak$"));
+            Assert.That(Path.GetFileName(capturedPath), Does.Match(@"^xerahs-\d+\.\d+\.\d+-.+-backup\.xsbak$"));
+        });
+    }
+
+    [Test]
+    public void Execute_WhenOutputHasAnotherExtension_ReplacesItWithXsbak()
+    {
+        string? capturedPath = null;
+        int exitCode = BackupSettingsCommand.Execute(
+            "portable.zip",
+            initializeProviders: () => { },
+            createBackup: path =>
+            {
+                capturedPath = path;
+                return new PortableSettingsBackupResult(path, 0, 5, Array.Empty<string>());
+            });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(capturedPath, Is.EqualTo(Path.GetFullPath("portable.xsbak")));
         });
     }
 
