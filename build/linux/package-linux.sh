@@ -183,6 +183,7 @@ publish_single_plugin() {
             -o "$plugin_output" \
             --no-self-contained \
             -p:PublishSingleFile=false \
+            -p:CopyOutputSymbolsToPublishDirectory=false \
             -p:EnableWindowsTargeting=true > /dev/null
 
         # Ensure plugin.json exists for runtime discovery.
@@ -301,6 +302,8 @@ for ARCH in "${ARCHITECTURES[@]}"; do
         -p:DefineConstants=LINUX \
         -p:PublishSingleFile=true \
         --self-contained true \
+        -p:IncludeNativeLibrariesForSelfExtract=true \
+        -p:CopyOutputSymbolsToPublishDirectory=false \
         -p:EnableWindowsTargeting=true \
         -p:SkipBundlePlugins=true
 
@@ -347,6 +350,7 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     fi
 
     echo "Published $PLUGIN_COUNT plugins to startup Plugins folder: $PLUGINS_DIR"
+    find "$PUBLISH_DIR" \( -name '*.pdb' -o -name 'DirectML*.dll' -o -name 'DirectML*.pdb' -o -name 'onnxruntime.dll' -o -name 'onnxruntime_providers_shared.dll' -o -name 'libe_sqlite3.a' \) -delete
     dotnet build-server shutdown >/dev/null 2>&1 || true
 
     # 2. Package
