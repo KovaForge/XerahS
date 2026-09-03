@@ -6434,3 +6434,45 @@ Added candidates (8):
 - Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
 - Follow-up: wait for xerahs-review to ingest new next_candidates; do not invent work
 - Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
+### 2026-09-03 23:05 AWST - clawpatch-ingest gate drops (skill v2.2.4)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 245
+  - triage=risk: 164
+  - triage=contract-mismatch: 60
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Submodule-prefix drops: 75
+- Already-fixed-area drops: 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Recently-fixed-release-history drops: 98
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [security/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:160-201 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - ... and 88 more
+- Recently-pivoted skips: 59
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-09-03 23:05 AWST - xerahs-review producer run (Nadia)
+
+- Agent: nadia-valeva-kf
+- Status: ok (1 new candidate ingested)
+- Upstream: already up to date (9b0367f59)
+- nadia remote: in sync (a3a764dd5)
+- Submodule ShareX.ImageEditor: clean (HEAD = nadia/develop = upstream/develop = 651b1d8de)
+- Clawpatch: 4 findings across 3 features (XIP reports .NET project ShareX.VideoEditor, XIP reports C# source Views/:mainwindow, XIP reports C# source Media#1)
+- Gate drops: severity-gate 245 ({triage=risk: 164, contract-mismatch: 60, test-gap: 9, docs-gap: 12}), submodule-prefix 75, already-fixed-area 3, recently-fixed-release-history 98, recently-pivoted 59, duplicate 0
+- Ingested: 1 finding (VideoConverterOptions.GetFFmpegArgs)
+- next_candidates delta: 1 -> 1 (+1) — was empty before ingest; size carried over from existing queue
+- Follow-up: 00:06 AWST consumer drain (Declan) will read the 1-item queue
