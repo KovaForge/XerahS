@@ -6548,3 +6548,14 @@ Added candidates (8):
 - Findings parsed: 411; dropped at severity gate: 247; already-fixed-area: 3; recently-pivoted: 66; recently-fixed-release-history: 95
 - next_candidates delta: 0 -> 0 (+0)
 - Follow-up: 00:06 AWST consumer drain (Declan) will find empty queue; next producer tick at 23:00 AWST tomorrow
+
+### 2026-09-05 00:08 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates. Producer at 2026-09-04 23:08 AWST gated all clawpatch findings at ingest (next_candidates 0). No items to fix or pivot. No deferred last_runs files.
+- Status: No-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; last_runs commit left null)
+- Follow-up: wait for next xerahs-review ingest; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 unchanged (no efficiency blockers this run)
