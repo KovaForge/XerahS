@@ -6498,3 +6498,14 @@ Added candidates (8):
 - Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
 - Follow-up: wait for xerahs-review to ingest new next_candidates; do not invent work
 - Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
+### 2026-09-04 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates; queue 0 -> 0; no fixes, no pivots.
+- Status: No-op
+- Build/test: n/a (no code touched)
+- Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
+- Follow-up: producer (xerahs-review) next ingest; consumer resumes drain on next 8h tick
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 (no Step 10 patch this tick)
