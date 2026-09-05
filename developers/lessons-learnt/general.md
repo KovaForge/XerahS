@@ -10,6 +10,8 @@ When a task produces a durable correction or preventive rule, capture it here or
 
 Promote only repository-wide policy changes to `AGENTS.md`.
 
+- When slimming agent instructions, preserve explicit identity mappings and operational requirements; verify that moved rules exist at their destination because shorter wording can silently weaken mandatory Git wrappers or lose verification exceptions.
+
 ## table of Contents
 
 1.  [UI & Theming](#ui--theming)
@@ -343,3 +345,9 @@ This forces the build system to include the correct Windows SDK reference assemb
 **Context**: XIP0085 was first provisioned at the temporary `staging.xerahs.com` hostname before `cloud.xerahs.com` was confirmed as the stable application origin.
 
 **Lesson**: Never infer a stable public hostname from an environment label. Confirm and record the canonical application origin before provisioning DNS, TLS, authentication callbacks, OAuth clients, billing webhooks, schedulers, and desktop defaults because exact-origin integrations make a later migration coordinated and compatibility-sensitive. Preserve a narrowly scoped legacy callback window for already-shipped native clients instead of either silently breaking them or accepting wildcard redirects.
+
+### Portable Release Contracts
+
+- Never assume a ZIP makes XerahS portable; include `portable.txt` beside `XerahS.exe` and verify that the marker routes default settings to the adjacent `XerahS` folder, because classic ShareX's extensionless `Portable` marker is a different contract.
+- Never add the portable marker to the shared installer publish directory; add it only while writing the ZIP, because EXE/MSI packaging consumes the same payload.
+- Never let the updater's generic `portable.zip` fallback select a different architecture's archive; prefer the exact `-win-<arch>-portable.zip` suffix and keep CI upload lists, archive validation, and post-release asset checks synchronized.
