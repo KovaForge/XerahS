@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-09-05 23:06 AWST",
+  "last_updated": "2026-09-05 23:07 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -323,7 +323,7 @@
         "docs/reports/hourly_review_tracker.md"
       ],
       "version_bump": null,
-      "commit": "PENDING",
+      "commit": "e06848e7a1d66f3b844ae26ab84298d341ae87a9",
       "outcome": "reviewed",
       "build_test": "clawpatch review: 2 findings across 3 features; ingest: 0 added to next_candidates",
       "notes": "Producer-only tick. nadia remote HEAD in sync (563ece7bc). upstream/develop already ancestor of HEAD (9b0367f59). Submodule ShareX.ImageEditor clean (651b1d8de, upstream == origin). clawpatch reports parsed: 3 (latest 20260905T150434-ddd8fc.md). Gate drops: severity-gate 249 ({'triage=risk': 167, 'triage=contract-mismatch': 61, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix 83, already-fixed-area 3, recently-pivoted 66, recently-fixed-release-history 97, duplicate 0. next_candidates delta: 0 -> 0 (+0).",
