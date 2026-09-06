@@ -103,39 +103,65 @@
     <Exec Command="/bin/sh -c 'if /usr/libexec/PlistBuddy -c &quot;Print :CFBundleIconName&quot; &quot;$(_MacPlist)&quot; &gt;/dev/null 2&gt;&amp;1; then /usr/libexec/PlistBuddy -c &quot;Set :CFBundleIconName Logo&quot; &quot;$(_MacPlist)&quot;; else /usr/libexec/PlistBuddy -c &quot;Add :CFBundleIconName string Logo&quot; &quot;$(_MacPlist)&quot;; fi'" Condition="Exists('$(_MacPlist)')" />
   </Target>
 
-  <Target Name="PublishWatchFolderDaemon" AfterTargets="Publish">
+  <!--
+    Publish the watch-folder daemon to an intermediate directory, then copy
+    into the app's PublishDir. Uses a recursive glob to handle whatever
+    RID subdirectory structure dotnet publish creates (dotnet may or may not
+    create an RID subdirectory inside PublishDir depending on SDK behavior).
+    The glob captures all files matching the daemon basename, then the Copy
+    flattens them to $(PublishDir) using %(Filename)%(Extension) to preserve
+    the actual output extension (e.g. .dll on some RIDs, no extension on native).
+  -->
+  <Target Name="PublishWatchFolderDaemon" AfterTargets="CreateMacOSAppBundle">
     <Message Text="Publishing watch folder daemon..." Importance="High" />
     <PropertyGroup>
-      <_WatchFolderDaemonPublishDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)watchfolder-daemon-publish/'))</_WatchFolderDaemonPublishDir>
-      <_WatchFolderDaemonPublishDir Condition="'$(RuntimeIdentifier)' != ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)watchfolder-daemon-publish/$(RuntimeIdentifier)/'))</_WatchFolderDaemonPublishDir>
+      <_WatchFolderDaemonPublishDir>$(MSBuildProjectDirectory)/$(IntermediateOutputPath)watchfolder-daemon-publish/</_WatchFolderDaemonPublishDir>
     </PropertyGroup>
 
     <RemoveDir Directories="$(_WatchFolderDaemonPublishDir)" />
     <MakeDir Directories="$(_WatchFolderDaemonPublishDir)" />
 
-    <MSBuild Projects="..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj"
-             Targets="Restore;Publish"
-             BuildInParallel="false"
-             Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);RuntimeIdentifiers=$(RuntimeIdentifier);OS=$(OS);CrossCompile=$(CrossCompile);SelfContained=$(SelfContained);PublishSingleFile=true;IncludeNativeLibrariesForSelfExtract=true;CopyOutputSymbolsToPublishDirectory=false;PublishDir=$(_WatchFolderDaemonPublishDir);EnableWindowsTargeting=$(EnableWindowsTargeting);UseSharedCompilation=false;BuildInParallel=false;nodeReuse=false" />
+    <!-- Use Exec so we control the exact dotnet publish invocation without outer properties leaking in. -->
+    <PropertyGroup>
+      <_WatchFolderDaemonArgs>publish "$(MSBuildThisFileDirectory)..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj" -c "$(Configuration)" -r "$(RuntimeIdentifier)" -o "$(_WatchFolderDaemonPublishDir)"</_WatchFolderDaemonArgs>
+    </PropertyGroup>
+    <Message Text="Publishing watch folder daemon: dotnet $(_WatchFolderDaemonArgs)" Importance="High" />
+    <Exec Command="dotnet $(_WatchFolderDaemonArgs)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          EnvironmentVariables="DOTNET_CLI_FORCE_UTF8_ENCODING=1" />
 
+    <!--
+      Glob recursively to handle any RID subdirectory structure dotnet publish
+      creates. %(Filename)%(Extension) preserves the actual extension (.dll or no-ext).
+    -->
     <ItemGroup>
       <_WatchFolderDaemonPublishedFiles Include="$(_WatchFolderDaemonPublishDir)**/xerahs-watchfolder-daemon*"
                                         Exclude="$(_WatchFolderDaemonPublishDir)**/*.pdb;$(_WatchFolderDaemonPublishDir)**/*.xml" />
     </ItemGroup>
 
+    <Message Text="DAEMON PUBLISH DIR: $(_WatchFolderDaemonPublishDir)" Importance="High" />
+    <Message Text="DAEMON FILES FOUND: @(_WatchFolderDaemonPublishedFiles)" Importance="High" />
     <Error Condition="'@(_WatchFolderDaemonPublishedFiles)' == ''"
            Text="Watch folder daemon publish output is empty: $(_WatchFolderDaemonPublishDir)" />
 
+    <!--
+      On macOS, the daemon must end up inside the .app bundle's Contents/MacOS/
+      subdirectory. On other platforms it goes to $(PublishDir) root.
+    -->
+    <MakeDir Directories="$(PublishDir)$(AssemblyName).app/Contents/MacOS" Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx'))" />
+    <MakeDir Directories="$(PublishDir)$(AssemblyName).app/Contents/Resources" Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx'))" />
+    <Copy SourceFiles="@(_WatchFolderDaemonPublishedFiles)"
+          DestinationFiles="@(_WatchFolderDaemonPublishedFiles->'$(PublishDir)$(AssemblyName).app/Contents/MacOS/%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx'))" />
     <Copy SourceFiles="@(_WatchFolderDaemonPublishedFiles)"
           DestinationFiles="@(_WatchFolderDaemonPublishedFiles->'$(PublishDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
+          SkipUnchangedFiles="true"
+          Condition="!$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx'))" />
 
     <!-- .NET 10+ single-file publish embeds runtimeconfig and no longer writes the sidecar. -->
     <PropertyGroup>
-      <_WatchFolderDaemonRuntimeConfig>$(_WatchFolderDaemonPublishDir)xerahs-watchfolder-daemon.runtimeconfig.json</_WatchFolderDaemonRuntimeConfig>
-      <_WatchFolderDaemonRuntimeConfig Condition="!Exists('$(_WatchFolderDaemonRuntimeConfig)')">$(_WatchFolderDaemonPublishDir)$(RuntimeIdentifier)\xerahs-watchfolder-daemon.runtimeconfig.json</_WatchFolderDaemonRuntimeConfig>
-      <_WatchFolderDaemonRuntimeConfig Condition="!Exists('$(_WatchFolderDaemonRuntimeConfig)')">$(MSBuildThisFileDirectory)..\..\tools\XerahS.WatchFolder.Daemon\bin\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)\xerahs-watchfolder-daemon.runtimeconfig.json</_WatchFolderDaemonRuntimeConfig>
-      <_WatchFolderDaemonRuntimeConfig Condition="!Exists('$(_WatchFolderDaemonRuntimeConfig)')">$(MSBuildThisFileDirectory)..\..\tools\XerahS.WatchFolder.Daemon\bin\$(Configuration)\net10.0\$(RuntimeIdentifier)\xerahs-watchfolder-daemon.runtimeconfig.json</_WatchFolderDaemonRuntimeConfig>
+      <_WatchFolderDaemonRuntimeConfig>$(MSBuildThisFileDirectory)..\..\tools\XerahS.WatchFolder.Daemon\bin\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)\xerahs-watchfolder-daemon.runtimeconfig.json</_WatchFolderDaemonRuntimeConfig>
     </PropertyGroup>
     <Copy SourceFiles="$(_WatchFolderDaemonRuntimeConfig)"
           DestinationFolder="$(PublishDir)"
@@ -153,26 +179,43 @@
       <_WatchFolderDaemonRequireRuntimeConfig Condition="'$(RuntimeIdentifier)' == '' and '$(OS)' == 'Windows_NT'">false</_WatchFolderDaemonRequireRuntimeConfig>
     </PropertyGroup>
 
-    <Error Condition="!Exists('$(PublishDir)$(_WatchFolderDaemonExecutableName)')"
-           Text="Missing watch folder daemon executable in publish output: $(PublishDir)$(_WatchFolderDaemonExecutableName)" />
-    <Error Condition="'$(_WatchFolderDaemonRequireRuntimeConfig)' == 'true' and !Exists('$(PublishDir)xerahs-watchfolder-daemon.runtimeconfig.json')"
-           Text="Missing watch folder daemon runtimeconfig in publish output: $(PublishDir)xerahs-watchfolder-daemon.runtimeconfig.json" />
+    <!--
+      Validate the daemon ended up at the FINAL destination. On macOS the Copy
+      uses $(PublishDir)$(AssemblyName).app/Contents/MacOS/ explicitly. On other
+      platforms the daemon goes to $(PublishDir) root.
+    -->
+    <Error Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx')) and !Exists('$(PublishDir)$(AssemblyName).app/Contents/MacOS/$(_WatchFolderDaemonExecutableName)')"
+           Text="Missing watch folder daemon executable at final destination: $(PublishDir)$(AssemblyName).app/Contents/MacOS/$(_WatchFolderDaemonExecutableName)" />
+    <Error Condition="!$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx')) and !Exists('$(PublishDir)$(_WatchFolderDaemonExecutableName)')"
+           Text="Missing watch folder daemon executable at final destination: $(PublishDir)$(_WatchFolderDaemonExecutableName)" />
+    <Error Condition="'$(_WatchFolderDaemonRequireRuntimeConfig)' == 'true' and $([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx')) and !Exists('$(PublishDir)$(AssemblyName).app/Contents/MacOS/xerahs-watchfolder-daemon.runtimeconfig.json')"
+           Text="Missing watch folder daemon runtimeconfig at final destination" />
+    <Error Condition="'$(_WatchFolderDaemonRequireRuntimeConfig)' == 'true' and !$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx')) and !Exists('$(PublishDir)xerahs-watchfolder-daemon.runtimeconfig.json')"
+           Text="Missing watch folder daemon runtimeconfig at final destination" />
   </Target>
 
-  <Target Name="PublishOmaXerahs" AfterTargets="Publish">
+  <!--
+    Publish omaxerahs to an intermediate directory, then copy into the app's
+    PublishDir. Same approach as PublishWatchFolderDaemon: uses a recursive glob
+    to handle whatever RID subdirectory structure dotnet publish creates.
+  -->
+  <Target Name="PublishOmaXerahs" AfterTargets="CreateMacOSAppBundle">
     <Message Text="Publishing omaxerahs..." Importance="High" />
     <PropertyGroup>
-      <_OmaXerahsPublishDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)omaxerahs-publish/'))</_OmaXerahsPublishDir>
-      <_OmaXerahsPublishDir Condition="'$(RuntimeIdentifier)' != ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)omaxerahs-publish/$(RuntimeIdentifier)/'))</_OmaXerahsPublishDir>
+      <_OmaXerahsPublishDir>$(MSBuildProjectDirectory)/$(IntermediateOutputPath)omaxerahs-publish/</_OmaXerahsPublishDir>
     </PropertyGroup>
 
     <RemoveDir Directories="$(_OmaXerahsPublishDir)" />
     <MakeDir Directories="$(_OmaXerahsPublishDir)" />
 
-    <MSBuild Projects="..\..\cli\XerahS.OmaXerahs\XerahS.OmaXerahs.csproj"
-             Targets="Restore;Publish"
-             BuildInParallel="false"
-             Properties="Configuration=$(Configuration);Platform=$(Platform);RuntimeIdentifier=$(RuntimeIdentifier);RuntimeIdentifiers=$(RuntimeIdentifier);OS=$(OS);CrossCompile=$(CrossCompile);SelfContained=$(SelfContained);PublishSingleFile=true;IncludeNativeLibrariesForSelfExtract=true;CopyOutputSymbolsToPublishDirectory=false;PublishDir=$(_OmaXerahsPublishDir);EnableWindowsTargeting=$(EnableWindowsTargeting);UseSharedCompilation=false;BuildInParallel=false;nodeReuse=false" />
+    <!-- Use Exec so we control the exact dotnet publish invocation without outer properties leaking in. -->
+    <PropertyGroup>
+      <_OmaXerahsArgs>publish "$(MSBuildThisFileDirectory)..\..\cli\XerahS.OmaXerahs\XerahS.OmaXerahs.csproj" -c "$(Configuration)" -r "$(RuntimeIdentifier)" -o "$(_OmaXerahsPublishDir)"</_OmaXerahsArgs>
+    </PropertyGroup>
+    <Message Text="Publishing omaxerahs: dotnet $(_OmaXerahsArgs)" Importance="High" />
+    <Exec Command="dotnet $(_OmaXerahsArgs)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          EnvironmentVariables="DOTNET_CLI_FORCE_UTF8_ENCODING=1" />
 
     <ItemGroup>
       <_OmaXerahsPublishedFiles Include="$(_OmaXerahsPublishDir)**/omaxerahs*"
@@ -182,16 +225,20 @@
     <Error Condition="'@(_OmaXerahsPublishedFiles)' == ''"
            Text="omaxerahs publish output is empty: $(_OmaXerahsPublishDir)" />
 
+    <MakeDir Directories="$(PublishDir)$(AssemblyName).app/Contents/MacOS" Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx'))" />
+    <MakeDir Directories="$(PublishDir)$(AssemblyName).app/Contents/Resources" Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx'))" />
+    <Copy SourceFiles="@(_OmaXerahsPublishedFiles)"
+          DestinationFiles="@(_OmaXerahsPublishedFiles->'$(PublishDir)$(AssemblyName).app/Contents/MacOS/%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx'))" />
     <Copy SourceFiles="@(_OmaXerahsPublishedFiles)"
           DestinationFiles="@(_OmaXerahsPublishedFiles->'$(PublishDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
+          SkipUnchangedFiles="true"
+          Condition="!$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx'))" />
 
     <!-- .NET 10+ single-file publish embeds runtimeconfig and no longer writes the sidecar. -->
     <PropertyGroup>
-      <_OmaXerahsRuntimeConfig>$(_OmaXerahsPublishDir)omaxerahs.runtimeconfig.json</_OmaXerahsRuntimeConfig>
-      <_OmaXerahsRuntimeConfig Condition="!Exists('$(_OmaXerahsRuntimeConfig)')">$(_OmaXerahsPublishDir)$(RuntimeIdentifier)\omaxerahs.runtimeconfig.json</_OmaXerahsRuntimeConfig>
-      <_OmaXerahsRuntimeConfig Condition="!Exists('$(_OmaXerahsRuntimeConfig)')">$(MSBuildThisFileDirectory)..\..\cli\XerahS.OmaXerahs\bin\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)\omaxerahs.runtimeconfig.json</_OmaXerahsRuntimeConfig>
-      <_OmaXerahsRuntimeConfig Condition="!Exists('$(_OmaXerahsRuntimeConfig)')">$(MSBuildThisFileDirectory)..\..\cli\XerahS.OmaXerahs\bin\$(Configuration)\net10.0\$(RuntimeIdentifier)\omaxerahs.runtimeconfig.json</_OmaXerahsRuntimeConfig>
+      <_OmaXerahsRuntimeConfig>$(MSBuildThisFileDirectory)..\..\cli\XerahS.OmaXerahs\bin\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)\omaxerahs.runtimeconfig.json</_OmaXerahsRuntimeConfig>
     </PropertyGroup>
     <Copy SourceFiles="$(_OmaXerahsRuntimeConfig)"
           DestinationFolder="$(PublishDir)"
@@ -209,10 +256,15 @@
       <_OmaXerahsRequireRuntimeConfig Condition="'$(RuntimeIdentifier)' == '' and '$(OS)' == 'Windows_NT'">false</_OmaXerahsRequireRuntimeConfig>
     </PropertyGroup>
 
-    <Error Condition="!Exists('$(PublishDir)$(_OmaXerahsExecutableName)')"
-           Text="Missing omaxerahs executable in publish output: $(PublishDir)$(_OmaXerahsExecutableName)" />
-    <Error Condition="'$(_OmaXerahsRequireRuntimeConfig)' == 'true' and !Exists('$(PublishDir)omaxerahs.runtimeconfig.json')"
-           Text="Missing omaxerahs runtimeconfig in publish output: $(PublishDir)omaxerahs.runtimeconfig.json" />
+    <!-- Validate at the final destination. On macOS: app bundle Contents/MacOS/. Otherwise: PublishDir root. -->
+    <Error Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx')) and !Exists('$(PublishDir)$(AssemblyName).app/Contents/MacOS/$(_OmaXerahsExecutableName)')"
+           Text="Missing omaxerahs executable at final destination: $(PublishDir)$(AssemblyName).app/Contents/MacOS/$(_OmaXerahsExecutableName)" />
+    <Error Condition="!$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx')) and !Exists('$(PublishDir)$(_OmaXerahsExecutableName)')"
+           Text="Missing omaxerahs executable at final destination: $(PublishDir)$(_OmaXerahsExecutableName)" />
+    <Error Condition="'$(_OmaXerahsRequireRuntimeConfig)' == 'true' and $([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx')) and !Exists('$(PublishDir)$(AssemblyName).app/Contents/MacOS/omaxerahs.runtimeconfig.json')"
+           Text="Missing omaxerahs runtimeconfig at final destination" />
+    <Error Condition="'$(_OmaXerahsRequireRuntimeConfig)' == 'true' and !$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx')) and !Exists('$(PublishDir)omaxerahs.runtimeconfig.json')"
+           Text="Missing omaxerahs runtimeconfig at final destination" />
   </Target>
 
   <!-- DirectML/ONNX Windows native assets ride along from ImageEditor even on linux-* RIDs. -->
