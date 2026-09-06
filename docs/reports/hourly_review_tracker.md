@@ -6645,3 +6645,30 @@ Added candidates (8):
 - Commit: none (empty-queue audit; last_runs commit left null)
 - Follow-up: wait for next xerahs-review ingest; do not invent work
 - Skill: xerahs-bugfix/SKILL.md v1.1.28 unchanged (no efficiency blockers this run)
+
+### 2026-09-06 23:05 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 253
+  - triage=risk: 169
+  - triage=contract-mismatch: 63
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in last 60 commits: 98
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - ... and 88 more
+- Ingested: 3
+- next_candidates delta: +3 (total 3)
