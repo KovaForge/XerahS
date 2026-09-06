@@ -10,6 +10,130 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.29.1
+
+### Features
+- **Annotations**: implement effect shapes, freehand tools, and serialization infrastructure; Implement Phase 2 Annotation Models
+- **Automation**: implement Path A quick automation workflow\n\n- Created WorkflowTask for minimal automation (capture → upload → clipboard)\n- Added UploaderExtensions.UploadAsync() async wrapper\n- Integrated with ProviderCatalog + InstanceManager APIs\n- Workflow: CreateImageUploadTask → ExecuteAsync → UploadAsync → CopyURLToClipboard\n- Saved AUTOMATION_WORKFLOW_PLAN.md to docs/ for Path B reference\n\nPath A delivered:\n- Basic WorkflowTask structure\n- Upload provider wiring  \n- Simple URL to clipboard automation\n- Hotkey → Capture → Upload → URL flow ready\n\nPath B (deferred - documented in AGENTS.md):\n- Full task queue with concurrency\n- AfterCaptureTasks/AfterUploadTasks pipelines\n- Progress tracking UI\n- Upload history\n- Retry logic\n\nBuild: 0 errors, 578 warnings (platform compatibility - pre-existing)
+- **Core**: Achieve 100% Platform Abstraction in Core; add about view and update links; and related changes
+- **Editor**: Add ShareX.Editor DLL with core shapes and services; complete annotation phase 2 - add keyboard shortcuts for all tools\n\n- Implemented keyboard shortcuts: V(Select), R(Rectangle), E(Ellipse), A(Arrow), L(Line), P(Pen), H(Highlighter), T(Text), B(SpeechBalloon), N(Number), C(Crop), M(Magnify), S(Spotlight), F(FX Panel)\n- Enhanced keyboard event handling with proper e.Handled and early returns\n- Completes Batch 5: Polish & Data Factory\n- All Annotation Phase 2 work is now complete (100%); Integrate ShareX.Editor with ShareX.Avalonia.UI
+- **Export**: implement copy and save-as enhancements\n\n- Copy: Convert Avalonia Bitmap to PNG, save to temp file, copy file to clipboard\n- SaveAs: Implement file picker dialog with PNG/JPEG/BMP format selection\n- Added CopyRequested and SaveAsRequested events for View delegation\n- Both commands now support flattened images with annotations\n- Build: 0 errors (3 obsolete API warnings are non-blocking)
+- **Hotkeys**: implement persistence using HotkeysConfig and deduplicate HotkeySettings model
+- **Implement SIP0016 Stage 3**: macOS Capture via CLI Wrapper
+- **IOS Core**: domain models, Paths, Settings/Queue/History repos, S3 and custom uploaders, UploadQueueWorker
+- **IOS Full UI**: Loading, Upload, History, Settings hub, S3 and Custom uploader config, navigation
+- **Linux**: implement native Wayland global shortcuts portal (Fix 4)
+- **Macos**: implement native build integration and single-file app bundle packaging
+- **Overlay**: Enable AnnotationToolbar in Region Capture Overlay (XIP-0023); Prepare OverlayWindow layout for AnnotationToolbar (XIP-0023)
+- **Packaging**: enable self-contained windows build and sync plugin logic; finalize packaging scripts and configuration
+- **Region Capture**: add CaptureTransparent option for frozen screenshot background
+- **Ui**: add error dialog for clipboard failures\n\n- Added ShowErrorDialog event to MainViewModel\n- Implemented modal dialog in EditorView\n- Clipboard errors now show in a dialog instead of just status bar\n- Build: 0 errors, 9 warnings
+
+### Fixes
+- **Abstractions**: add default impl for IHotkeyService.ShowInteractiveConfigurationAsync
+- **Arch**: switch to direct project references for plugins to resolve assembly loading conflicts
+- **Build**: Fix compilation and standardize Windows TFM
+- **Bump ImageEditor Submodule**: Highlight Skia rendering overhaul
+- **Clipboard**: add retry logic and proper error handling\n\n- Windows clipboard can fail if another app is using it\n- Implement 5 retry attempts with 100ms delays\n- Throw exceptions instead of swallowing them silently\n- Better error messages for debugging\n- Should fix copy button not working on Windows; implement direct Windows API via P/Invoke\n\n- Replace System.Windows.Forms.Clipboard with direct User32.dll calls\n- Fixes 'Windows.Win32.Foundation.AgileComPointer' method not found error\n- Uses OpenClipboard, SetClipboardData, CloseClipboard APIs\n- Converts Image to DIB (Device Independent Bitmap) format\n- Allocates global memory with GlobalAlloc/GlobalLock\n- Includes retry logic for clipboard contention\n- Memory management: clipboard takes ownership on success\n- Build: 0 errors, 578 warnings (platform compatibility - pre-existing)
+- **Core**: Accent scrollbar thumbs app wide; Accept desktop Bearer tokens on Cloud account API; and related changes
+- **Editor**: Update AXAML namespace references to ShareX.Editor
+- **Hotkeys**: prevent duplication of Job property in JSON serialization
+- **ImageEditor**: Highlight annotation fill and move bugs
+- **Linux**: add PhysicalVirtualScreenBoundsForCrop and PhysicalRectForCrop to CaptureOptions; add region capture diagnostics; and related changes
+- **Linux — Hotkeys (XIP0044)**: fix(linux/hotkeys): retry portal bind after window opens (XIP0044 Fix 5)
+- **Linux — Platform (XIP0044)**: fix(linux): don't dispose debounce CTS synchronously in ScheduleRebind; add XIP0044
+- **Linux/packaging**: symlink /usr/bin/xerahs, fix StartupWMClass; add BindShortcuts diagnostics
+- **Linux/x11**: use physical pixel origin for overlay Window.Position on X11
+- **Recording**: Correct MediaFoundation VTable indexes [2026-01-10 08:42]; Correct SetCurrentLength VTable index [2026-01-10 09:05]; and related changes
+- **Release**: redirect find_tag_run_id status to stderr; resolve tag name collision in bump script
+- **Ui**: correctly save task settings (file naming pattern) to configuration; Minimize Tools menu by default in MainWindow; and related changes
+- **Update Changelog Script**: ensure entries array has Count for single-category
+- **Windows**: Marshal hotkey registration to message loop thread to resolve Win32 errors 1408/1419
+
+### Refactor
+- **Clipboard**: use MemoryStream instead of temp files\n\n- Replace temp file approach with direct PNG byte array in clipboard\n- Use 'image/png' MIME type via DataObject.Set()\n- No temp files created, cleaner implementation\n- 10 warnings (2 obsolete API warnings for DataObject/SetDataObjectAsync)\n- Build: 0 errors; use native OS clipboard via PlatformServices\n\n- Convert Avalonia Bitmap to System.Drawing.Image for OS compatibility\n- Use PlatformServices.Clipboard.SetImage() for native clipboard format\n- Ensures proper paste functionality in native apps (Paint, Word, etc.)\n- Removed custom MIME type approach that may not work cross-platform\n- Build: 0 errors, 1230 warnings (platform compatibility - pre-existing)
+- **Core**: Add modular Linux capture contracts and providers; Add polymorphic uploader config pilot; and related changes
+- **Editor**: Remove redundant Annotations and ImageEffects projects; Restructure ShareX.Editor per SIP0014 with MVVM layout
+- **Indexer**: collapse async adapters; externalize html styles; and related changes
+- **Ui**: Add accessibility properties to RecordingBorderWindow; Redesign AfterCaptureWindow with Grid layout and consistent styling; and related changes
+
+### Build
+- **Core**: Add bounded verification and isolated build tests; Add build system documentation and update ISS paths; and related changes
+- **Pre Commit**: validate license headers in Swift files; update githooks docs
+- **Recording**: Add logging to MediaFoundationEncoder and move SetCurrentLength [2026-01-10 09:12]
+- **Tool**: Update audit tool to detect Flyout wiring
+
+### Documentation
+- **Agents**: add full automation workflow TODO (Path B)\n\n- Documented complete automation architecture in AGENTS.md\n- Added AfterCaptureTasks and AfterUploadTasks specifications\n- Noted Path A (minimal) vs Path B (full) implementation strategy\n- Estimated effort: 1,200 LOC, 8-12 hours for Path B\n- Updated task.md to track automation phases
+- **Core**: Add .sxadp file association implementation plan; Add blog scheduling (Cursor Automations, cron, run-daily-draft); and related changes
+- **IOS README**: features, share-extension note
+- **Linux — Documentation (XIP0051)**: Add XIP0051 Linux selector preferences
+- **Sip0014**: Update with implementation status and WinForms guide
+- **SIP0017**: Add lessons learnt regarding Windows TFM and CsWinRT; Add milestone for Stage 1 zero build errors
+- **Xip Sync**: update backup path from tasks/ to docs/proposals/xip/
+
+### Testing
+- **Core**: Guardrail and test-coverage improvements (Headless.NUnit, McpServer.Tests, FFmpeg regression tests)
+
+### Performance
+- **Core**: faster overlay and smoother crosshair on Linux (region capture); Optimize Modern Capture (~5x faster) & Move debug logs. - Implemented batched initialization for DXGI capture to reduce latency on multi-monitor setups. - Changed region capture debug log location to 'Debug/RegionCapture' subfolder.; and related changes
+
+### Changed
+- **Add Drawing Effects**: background, border, and helpers
+- **Add XerahS.DestinationsPluginSdk**: lightweight plugin contracts (interfaces + DTOs)
+- **Bump VideoEditor Submodule**: fix button theme isolation; fix ReactiveUI main thread scheduler
+- **Close To Tray**: ensure tray visible when hiding; clarify comments
+- **Core**: .gitignore update; [Build] Add Android mobile build infrastructure; and related changes
+- **CP03**: Add After Capture Tasks UI to Task Settings
+- **Editor Baseline**: reapply main window chrome updates; restore editor and annotations to 3babd33b
+- **Finalize Annotation Editor**: Keyboard Shortcuts, Cursor Polish, Focus Handling
+- **Fix Annotation Resizing**: Enable OverlayCanvas hit testing and restore e.Source logic
+- **Fix Arrow Geometry**: update ImageEditor submodule and fix AnnotationVisualFactoryTests
+- **Fix Build**: Add CommunityToolkit.Mvvm and fix project references
+- **Fix CS0414 And SYSLIB0013**: Remove unused field and replace obsolete Uri API
+- **Fix CS8625/CS8600**: Make UploadResult and Tags properties nullable - reduced errors from 186 to 165
+- **Fix Linux Audio Recording**: correct FFmpeg args, add wf-recorder audio, PulseAudio monitor detection
+- **Fix ScreenRecorder**: Toast, Hotkey Toggle, Dest Persistence
+- **Implement Crop Tool**: Drag to select, Enter to crop
+- **Implement Export Logic**: Copy to Clipboard and Quick Save
+- **Improve Pre Commit Hooks**: Use dynamic year detection
+- **Linux — Hotkeys (XIP0044)**: Update XIP0044-linux-global-hotkeys-not-firing-when-app-backgrounded.md
+- **Linux — Hotkeys (XIP0046)**: Create XIP0046-linux-portal-and-hotkey-issues.md
+- **Linux — Mixed-DPI (XIP0047)**: XIP0047: Linux region capture DPI and performance — summary and attempts
+- **Linux — Platform (XIP0029)**: Renumber XIP files: Wayland fix as XIP0029, Mobile as XIP0030
+- **Linux — Platform (XIP0035)**: [XIP0035] Refactor Extract CLI capture executor; thin LinuxScreenCaptureService coordinator
+- **Linux — Platform (XIP0036)**: [XIP0036] Move XerahS.Platform.Linux to src/platform
+- **Linux — Platform (XIP0046)**: [Fix] Add KDE Spectacle and GNOME region capture fallbacks on Wayland (XIP0046-C)
+- **macOS — Platform (XIP0036)**: [XIP0036] Move XerahS.Platform.MacOS to src/platform
+- **Mobile.Kt**: accept video share (video/*) for MP4 and other video files; S3 settings match Ava (custom domain, signed payload, public ACL); no auto-capitalise for bucket and custom domain; and related changes
+- **Mobile.Swift**: S3 custom domain/signed/public ACL, copy-to-clipboard feedback, video share
+- **Phase 1**: XerahS.Mobile.Kt - native Kotlin Android shell under src/
+- **Phase 10**: Polish - clipboard + Toast for Copy URL/Error
+- **Phase 2**: Data layer - HistoryRepository, QueueRepository, Paths init
+- **Phase 3**: Refactor ViewModels to abstract dialogs and ensure MVVM separation; Upload pipeline - S3, custom .sxcu, queue worker
+- **Phase 4**: Upload screen - ViewModel, UI, share wiring
+- **Phase 5**: History screen - ViewModel + UI
+- **Phase 6**: Settings hub - list destinations, S3/Custom nav
+- **Phase 7**: S3 config screen - form, validation, persistence
+- **Phase 8**: Custom uploader config screen - CRUD .sxcu
+- **Phase 9**: Share intent - MainActivity filters, URI to cache, navigate
+- **Port Helper Classes**: MathHelpers, URLHelpers, Vector2, GraphicsExtensions, and update Helpers; URLHelpers, Helpers, RandomCrypto, FileHelpers methods. Resolve namespace conflicts.
+- **Refactor Settings UI**: App, Task, Hotkey layout; Feature: Hotkey list UI
+- **Region Capture**: Linux portal crop, milestones, overlay focus, known issues
+- **Rewrite XIP0030**: mobile support via Avalonia Mobile
+- **SIP0017**: Complete Stage 1 MVP with FFmpeg fallback implementation; Complete Stage 2 Window & Region Parity implementation; and related changes
+- **Update AGENTS.md Gap Report**: mark 16 existing utility classes as completed (~28% progress)
+- **Update Docs**: Correct SDK to .NET 9.0, update task progress
+- **Update FAQ.md**: Reorder questions and add XerahS vs ShareX comparison table
+- **Update ShareX.ImageEditor**: ShareX.ImageEditor submodule updates
+- **Xerahs Bugfix**: drain AssistantPrivacyGuard clipboard copy pivot (queue 1->0); drain CaptureDebugHelper dead-code pivot (queue 1->0); and related changes
+- **Xerahs Review**: 0-candidate ingest (all 375 findings gated); 1 candidate ingested (CaptureCommandPalette RegisterHotkey race); and related changes
+- **XerahS.Mobile.Kt**: build fixes, Gradle wrapper, .gitignore for Kotlin/Android
+- **XIP0036**: staged implementation and namespaces out of scope
+- **XIP0052**: Complete agentic refactoring — DI, MVVM, monolith decomposition; Migrate to Microsoft.Extensions.DependencyInjection
+
+---
+
 ## v0.29.0
 
 ### Features
