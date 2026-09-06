@@ -10,7 +10,11 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs:77-85 (UnknownTool_IsBlocked)",
+    "src/platform/XerahS.Platform.Windows/WindowsClipboardService.cs:191-192 (SetText)",
+    "src/desktop/app/XerahS.UI/Services/UpdateService.cs:78-81 (IsRuntimeManagedByFlatpak)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
