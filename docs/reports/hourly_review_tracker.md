@@ -6623,3 +6623,14 @@ Added candidates (8):
 - Commit: none (empty-queue audit; last_runs commit left null)
 - Follow-up: wait for next xerahs-review ingest; consider merging upstream cbfd2df6a on a dedicated sync; do not invent work
 - Skill: xerahs-bugfix/SKILL.md v1.1.27 unchanged (no efficiency blockers this run)
+
+### 2026-09-06 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. Merged upstream/develop 9f1d4d6aa (v0.28.4 + v0.28.5 CI release tags) as 3edeaff7e; kept KovaForge root Version 0.29.1 and plugin Version 0.29.0 over upstream 0.28.5. ShareX.ImageEditor submodule clean on develop. No items to fix or pivot. No deferred last_runs files. Dirty docs/CHANGELOG.md left unstaged (teammate WIP).
+- Status: No-op
+- Build/test: n/a (no code change beyond upstream packaging metadata)
+- Commit: none (empty-queue audit; last_runs commit left null)
+- Follow-up: wait for next xerahs-review ingest; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.28 unchanged (no efficiency blockers this run)
