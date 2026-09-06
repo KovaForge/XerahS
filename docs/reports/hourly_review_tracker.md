@@ -6672,3 +6672,34 @@ Added candidates (8):
   - ... and 88 more
 - Ingested: 3
 - next_candidates delta: +3 (total 3)
+
+### 2026-09-07 00:07 AWST - Pivot / already-fixed
+
+- Area: tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs:77-85 (UnknownTool_IsBlocked)
+- Files: (none — pivot, no code change)
+- Findings: false positive — Evaluate already returns Block("Unknown assistant tool.") with no tool-name leak; test asserts Allowed=false; extra logging/alerting is a feature request not a bug. recently_pivoted already held the citation without the (Method) suffix.
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-09-07 00:07 AWST - Pivot / already-fixed
+
+- Area: src/platform/XerahS.Platform.Windows/WindowsClipboardService.cs:191-192 (SetText)
+- Files: (none — pivot, no code change)
+- Findings: false positive — SetText already GlobalFree(hMem) when OpenClipboardWithRetry fails (L193); STA serializes clipboard writes. Remaining SetClipboardData-fail leak is untestable on Darwin (SkipNonWindowsBuild). Concurrent clipboard stress is a feature request.
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-09-07 00:07 AWST - Pivot / already-fixed
+
+- Area: src/desktop/app/XerahS.UI/Services/UpdateService.cs:78-81 (IsRuntimeManagedByFlatpak)
+- Files: (none — pivot, no code change)
+- Findings: false positive — FLATPAK_ID + /.flatpak-info matches Program.cs/DebugHelper/LinuxRuntimeEnvironment; Initialize already skips GitHub updater. Extra sandbox types are a feature request.
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+- Skill: xerahs-bugfix/SKILL.md v1.1.29 patched (recently_pivoted citation suffix mismatch)
