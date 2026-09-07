@@ -6703,3 +6703,13 @@ Added candidates (8):
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
 - Skill: xerahs-bugfix/SKILL.md v1.1.29 patched (recently_pivoted citation suffix mismatch)
+
+### 2026-09-07 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit, no code change)
+- Findings: Step 5a categoriser-drain found zero candidates in `next_candidates`. `next_candidates` size 0 -> 0. Fork (`declan/develop`) / upstream (`upstream/develop`) / submodule (`ShareX.ImageEditor` `002de7707`) already an ancestor of HEAD; no merge required. Categoriser-drain produced zero pivots. Stale `/tmp/xerahs-bugfix/deferred-last-runs-*.json` files deleted (v1.1.16).
+- Status: no-op
+- Build/test: n/a
+- Commit: PENDING (final tracker commit will follow)
+- Follow-up: await fresh clawpatch ingest from `xerahs-review`; next tick may pick the first new candidate.

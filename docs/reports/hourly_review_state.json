@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-09-07 00:07 AWST",
+  "last_updated": "2026-09-07 08:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2972,9 +2972,23 @@
       "commit": "PENDING",
       "outcome": "ok",
       "notes": "Daily producer tick: clawpatch review (5 raw findings, 3 ingested). next_candidates 0 -> 3."
+    },
+    {
+      "timestamp": "2026-09-07 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "files": [],
+      "version_bump": null,
+      "build_test": "no-op audit: next_candidates size 0, no fix or pivot drain this tick",
+      "notes": "Empty-queue audit tick (v1.1.9 contract). Step 5a found zero candidates. fork/upstream/submodule already an ancestor of HEAD (no merge needed). Categoriser-drain produced zero pivots. Stale deferred-last-runs files deleted (v1.1.16).",
+      "clawpatch_status": "ok",
+      "submodule_status": "clean",
+      "next_candidates_size": 0
     }
   ],
-  "last_run_outcome": "pivot",
+  "last_run_outcome": "no-op",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",
