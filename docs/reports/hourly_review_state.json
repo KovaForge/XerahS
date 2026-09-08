@@ -324,7 +324,7 @@
         "docs/reports/hourly_review_tracker.md"
       ],
       "version_bump": null,
-      "commit": "PENDING",
+      "commit": "4ec31851cff955335c9c14738fc75ca8480652db",
       "outcome": "reviewed",
       "build_test": "clawpatch review: 1 finding across 3 features (run 20260908T150324-0517ba); ingest: 0 added to next_candidates",
       "notes": "Producer-only tick. nadia remote HEAD in sync (10153a5a8 == nadia/develop == origin/develop). upstream/develop already ancestor of HEAD (f16a446d9). Submodule ShareX.ImageEditor clean (002de7707). clawpatch reports parsed: 3 (latest 20260908T150324-0517ba.md). Gate drops: severity-gate 259 ({'triage=risk': 171, 'triage=contract-mismatch': 67, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix 84, already-fixed-area 3, recently-pivoted 75, recently-fixed-release-history 99, duplicate 0. next_candidates delta: 0 -> 0 (+0).",
