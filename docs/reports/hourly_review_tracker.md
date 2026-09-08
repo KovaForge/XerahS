@@ -6768,3 +6768,13 @@ Added candidates (8):
 - Skipped as duplicate of existing: 0
 - Ingested: 0
 - next_candidates delta: +0 (total 0)
+
+### 2026-09-09 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero candidates in next_candidates; producer last_runs shows nadia tick at 2026-09-08 23:06 AWST with 0 added and 75 dropped via recently-pivoted gate. Fork sync HEAD == declan/develop (49c7b8853). upstream/develop (f16a446d9) already ancestor of HEAD. Submodule ShareX.ImageEditor clean (002de7707). No fix work to perform this tick.
+- Status: Queue check (no-op)
+- Build/test: n/a (no source changes)
+- Commit: (recorded after push in next last_runs row)
+- Follow-up: continue next 8h cron; await producer ingest before resuming fix attempts.
