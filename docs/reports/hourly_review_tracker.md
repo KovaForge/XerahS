@@ -6733,3 +6733,12 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: PENDING (final tracker commit will follow)
 - Follow-up: await fresh clawpatch ingest from `xerahs-review`; next tick may pick the first new candidate.
+### 2026-09-08 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit, no code change)
+- Findings: Step 5a categoriser-drain found zero candidates in `next_candidates`. `next_candidates` size 0 -> 0. Fork (`declan/develop` at `a2f2221f8` == HEAD == `origin/develop`) / upstream (`upstream/develop` already an ancestor of HEAD, no merge) / submodule (`ShareX.ImageEditor` `002de7707`, origin/develop == upstream/develop == HEAD) all in sync; no merge required. Categoriser-drain produced zero pivots. No `/tmp/xerahs-bugfix/deferred-last-runs-*.json` files to clean (none present). Working tree clean except for one untracked new clawpatch report `.clawpatch/reports/20260907T150326-017f8d.md` from the 2026-09-07 23:04 AWST producer sweep — not yet ingested by `xerahs-review`; this audit commits the empty consumer state without disturbing the pending ingest.
+- Status: no-op
+- Build/test: n/a
+- Commit: PENDING (final tracker commit will follow)
+- Follow-up: await fresh clawpatch ingest from `xerahs-review`; next tick may pick the first new candidate.
