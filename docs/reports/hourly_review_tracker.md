@@ -6752,3 +6752,19 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: PENDING (final tracker commit will follow)
 - Follow-up: await fresh clawpatch ingest from `xerahs-review`; next tick may pick the first new candidate.
+
+### 2026-09-08 23:05 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 259
+  - triage=risk: 171
+  - triage=contract-mismatch: 67
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as submodule-prefix: 84
+- Findings dropped as already-fixed (area-level dedupe): 3
+- Findings dropped as recently-pivoted: 75
+- Findings dropped as recently fixed in release-history: 99
+- Skipped as duplicate of existing: 0
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
