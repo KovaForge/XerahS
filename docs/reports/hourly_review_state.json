@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-09-09 21:01 AWST",
+  "last_updated": "2026-09-09 23:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,7 +10,9 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "src/platform/XerahS.Platform.Linux/Capture/X11GetImageStrategy.cs:72-144 (X11GetImageStrategy.GetMonitors)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -313,6 +315,44 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-09-09 23:05 AWST",
+      "agent": "nadia",
+      "area": "xerahs-review producer tick (nadia-daily)",
+      "files": [
+        ".clawpatch/reports/20260909T150337-54b52c.md",
+        "docs/reports/hourly_review_state.json",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "version_bump": null,
+      "commit": "pending",
+      "outcome": "reviewed",
+      "build_test": "clawpatch review: 3 findings across 3 features; ingest: 1 added to next_candidates",
+      "notes": "Producer-only tick. nadia remote HEAD in sync (b65ec97a3). upstream/develop already ancestor of HEAD (f16a446d9). Submodule ShareX.ImageEditor clean (002de7707). clawpatch reports parsed: 3 (latest 20260909T150337-54b52c.md). Gate drops: severity-gate 262 ({'triage=risk': 172, 'triage=contract-mismatch': 69, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix 84, already-fixed-area 3, recently-pivoted 75, recently-fixed-release-history 99, duplicate 0. next_candidates delta: 0 -> 1 (+1).",
+      "clawpatch_status": "ok",
+      "submodule_status": "clean",
+      "next_candidates_size": 1,
+      "claude_auth_failure": null,
+      "metadata": {
+        "queue_size_before": 0,
+        "queue_size_after": 1,
+        "queue_added": [
+          "src/platform/XerahS.Platform.Linux/Capture/X11GetImageStrategy.cs:72-144 (X11GetImageStrategy.GetMonitors)"
+        ],
+        "gate_breakdown": {
+          "triage=risk": 172,
+          "triage=contract-mismatch": 69,
+          "triage=test-gap": 9,
+          "triage=docs-gap": 12
+        },
+        "submodule_drops": 84,
+        "clawpatch_reports_parsed": [
+          "20260909T150337-54b52c.md",
+          "20260908T150324-0517ba.md",
+          "20260907T150326-017f8d.md"
+        ]
+      }
+    },
     {
       "timestamp": "2026-09-08 23:06 AWST",
       "agent": "nadia",
