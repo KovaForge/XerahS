@@ -6778,3 +6778,14 @@ Added candidates (8):
 - Build/test: n/a (no source changes)
 - Commit: (recorded after push in next last_runs row)
 - Follow-up: continue next 8h cron; await producer ingest before resuming fix attempts.
+
+### 2026-09-09 21:01 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero next_candidates (queue empty after producer ingest). No real-bug items to pick; no pivots to drain. Fork even with declan/develop; upstream/develop already an ancestor; ShareX.ImageEditor clean.
+- Status: no-op
+- Build/test: n/a (empty-queue audit, no code change)
+- Commit: none (leave last_runs commit null; SHA in Step 9 summary only)
+- Follow-up: wait for xerahs-review producer ingest; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.29 unchanged (no efficiency blockers this run)
