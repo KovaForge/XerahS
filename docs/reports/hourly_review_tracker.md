@@ -6826,3 +6826,14 @@ Added candidates (8):
 - Build/test: n/a (producer-side only, no source changes)
 - Commit: pending (recorded after push in next last_runs row)
 - Follow-up: 00:06 AWST consumer drain (Declan) will read the 1-item queue and likely pick X11GetImageStrategy.GetMonitors; this is the first non-empty producer tick since 2026-09-02 23:05 AWST
+
+### 2026-09-10 00:06 AWST - Pivot / already-fixed
+
+- Area: src/platform/XerahS.Platform.Linux/Capture/X11GetImageStrategy.cs:72-144 (X11GetImageStrategy.GetMonitors)
+- Files: (none — pivot, no code change)
+- Findings: false positive — XRRGetScreenResourcesCurrent IntPtr.Zero already returns Array.Empty at L72-74; LinuxRegionCaptureBackend.SelectBestStrategy falls through to LinuxCliCaptureStrategy; CLI GetMonitors has Default Display fallback. Empty array is the waterfall sentinel, not missing error handling.
+- Status: Pivot (already-fixed / false-positive)
+- Build/test: n/a (pivot-only; X11 P/Invoke cannot be mocked on Darwin host)
+- Commit: none (drain only; last_runs deferred under XIP0077 +0/+1)
+- Follow-up: do not re-queue unless source regresses; producer should skip via recently_pivoted
+- Skill: xerahs-bugfix/SKILL.md v1.1.30 patched (1 new pitfall: X11 GetMonitors empty-array sentinel)
