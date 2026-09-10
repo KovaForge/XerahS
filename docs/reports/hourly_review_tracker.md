@@ -6858,3 +6858,40 @@ Added candidates (8):
 - Commit: none (leave last_runs.commit null; SHA recorded in Step 9 summary)
 - Follow-up: producer xerahs-review next ingest; consumer next 8h tick
 - Skill: none this tick (no efficiency blockers)
+
+### 2026-09-10 23:04 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 267
+  - triage=risk: 175
+  - triage=contract-mismatch: 71
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 100
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - ... and 90 more
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-09-10 23:05 AWST - xerahs-review producer run (Nadia)
+
+- Area: xerahs-review producer tick (nadia-daily)
+- Files: .clawpatch/reports/20260910T150321-7c9d62.md, docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: clawpatch review invoked against 3 features; 5 findings emitted (security / data-loss / build-release / bug). After v2.2.4 ingest gate: 1 added to next_candidates (AssistantPrivacyGuardTests.cs:114-126); 267 dropped at severity gate, 85 submodule-prefixed, 3 already-fixed area-level, 77 recently-pivoted, 100 recently-fixed in release history, 0 duplicate.
+- Status: ok (1 new candidate ingested; producer queue non-empty for 00:06 AWST drain)
+- Build/test: n/a (producer-side only, no source changes)
+- Commit: pending (recorded after push in next last_runs row)
+- Follow-up: 00:06 AWST consumer drain (Declan) will read the 1-item queue; first non-empty producer tick since 2026-09-09 23:05 AWST
