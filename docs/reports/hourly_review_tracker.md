@@ -6895,3 +6895,14 @@ Added candidates (8):
 - Build/test: n/a (producer-side only, no source changes)
 - Commit: pending (recorded after push in next last_runs row)
 - Follow-up: 00:06 AWST consumer drain (Declan) will read the 1-item queue; first non-empty producer tick since 2026-09-09 23:05 AWST
+
+### 2026-09-11 00:08 AWST - Pivot / already-fixed
+
+- Area: tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs:114-126
+- Files: (none — pivot, no code change)
+- Findings: false positive — cited test already asserts SafeFileName confirmation copy is filename-only; production AssistantPrivacyGuard.SafeFileName L168-191 implements that contract. Clawpatch fnd_sig-feat-library-afb882617e-4af4_36f4a02b2e mis-cites the regression test as IndexerAsync path leakage. FileReveal Confirm copy already uses SafeFileName (L81-82).
+- Status: Pivot (already-fixed / false-positive)
+- Build/test: n/a (pivot-only; no source change)
+- Commit: none (drain only; last_runs deferred under XIP0077 +0/+1)
+- Follow-up: do not re-queue unless SafeFileName regresses; producer should skip via recently_pivoted
+- Skill: xerahs-bugfix/SKILL.md v1.1.31 patched (test-file citation false-positive pitfall)
