@@ -6837,3 +6837,13 @@ Added candidates (8):
 - Commit: none (drain only; last_runs deferred under XIP0077 +0/+1)
 - Follow-up: do not re-queue unless source regresses; producer should skip via recently_pivoted
 - Skill: xerahs-bugfix/SKILL.md v1.1.30 patched (1 new pitfall: X11 GetMonitors empty-array sentinel)
+
+### 2026-09-10 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates. Fork sync HEAD == declan/develop (237dc1c24). upstream/develop (f16a446d9) already ancestor of HEAD. ShareX.ImageEditor clean (002de7707 == origin/develop). recently_pivoted 41/200. Deleted stale /tmp/xerahs-bugfix/deferred-last-runs-20260910-000636.json (v1.1.16; no fix commit to fold under XIP0077 +0/+1).
+- Status: no-op
+- Build/test: n/a (empty-queue audit; no source changes)
+- Commit: none (leave last_runs.commit null; SHA recorded in Step 9 summary)
+- Follow-up: producer xerahs-review next ingest; consumer 16:07 AWST tick
