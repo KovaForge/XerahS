@@ -6906,3 +6906,13 @@ Added candidates (8):
 - Commit: none (drain only; last_runs deferred under XIP0077 +0/+1)
 - Follow-up: do not re-queue unless SafeFileName regresses; producer should skip via recently_pivoted
 - Skill: xerahs-bugfix/SKILL.md v1.1.31 patched (test-file citation false-positive pitfall)
+
+### 2026-09-11 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. Deleted stale deferred last_runs files. No code fix this tick.
+- Status: no-op
+- Build/test: n/a (empty-queue audit)
+- Commit: none (leave last_runs commit null; SHA in Step 9 only)
+- Follow-up: await fresh clawpatch ingest from `xerahs-review`; next tick may pick the first new candidate.
