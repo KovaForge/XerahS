@@ -6963,3 +6963,13 @@ Added candidates (8):
 - Build/test: n/a (producer-side only, no source changes)
 - Commit: pending (recorded after push in next last_runs row)
 - Follow-up: 00:06 AWST consumer drain (Declan) will see an empty queue again; clawpatch continues to emit findings but the v2.1.x gate filters all of them as either non-bug triage (risk/contract-mismatch/test-gap/docs-gap), submodule-prefixed (ShareX.ImageEditor/*), already-fixed in release history, or recently-pivoted. The next non-empty producer tick requires either (a) a fresh clawpatch finding whose evidence is a new file path outside the release-history set, or (b) a re-categorisation of one of the ~150 currently-routed risk/maintainability findings.
+
+### 2026-09-12 00:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates. Fork HEAD equals declan/develop and origin/develop. Upstream develop is already an ancestor. ShareX.ImageEditor pointer clean vs origin/upstream. Deleted any stale deferred-last-runs files (none present).
+- Status: no-op
+- Build/test: n/a (no source change)
+- Commit: none (audit row commit is the tracker commit; last_runs.commit left null)
+- Follow-up: await producer ingest into next_candidates; never defer upstream merge
