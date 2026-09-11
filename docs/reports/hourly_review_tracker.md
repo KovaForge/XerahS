@@ -6926,3 +6926,40 @@ Added candidates (8):
 - Build/test: n/a (empty-queue audit)
 - Commit: none (leave last_runs commit null; SHA in Step 9 only)
 - Follow-up: await fresh clawpatch ingest from xerahs-review; next tick may pick the first new candidate.
+
+### 2026-09-11 23:05 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 271
+  - triage=risk: 178
+  - triage=contract-mismatch: 72
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in last release history: 101
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - ... and 91 more
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-09-11 23:05 AWST - xerahs-review producer run (Nadia)
+
+- Area: xerahs-review producer tick (nadia-daily)
+- Files: .clawpatch/reports/20260911T150354-87440c.md, docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: clawpatch review invoked against 3 features; 182 findings emitted (182 across 7 clusters). After v2.2.4 ingest gate: 0 added to next_candidates; 271 dropped at severity gate, 86 submodule-prefixed, 3 already-fixed area-level, 80 recently-pivoted, 101 recently-fixed in release history, 0 duplicate.
+- Status: ok (no new candidates ingested; producer queue remains empty for 00:06 AWST drain)
+- Build/test: n/a (producer-side only, no source changes)
+- Commit: pending (recorded after push in next last_runs row)
+- Follow-up: 00:06 AWST consumer drain (Declan) will see an empty queue again; clawpatch continues to emit findings but the v2.1.x gate filters all of them as either non-bug triage (risk/contract-mismatch/test-gap/docs-gap), submodule-prefixed (ShareX.ImageEditor/*), already-fixed in release history, or recently-pivoted. The next non-empty producer tick requires either (a) a fresh clawpatch finding whose evidence is a new file path outside the release-history set, or (b) a re-categorisation of one of the ~150 currently-routed risk/maintainability findings.
