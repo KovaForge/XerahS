@@ -7013,3 +7013,24 @@ Added candidates (8):
 - Skipped as duplicate of existing: 0
 - Ingested: 2
 - next_candidates delta: +2 (total 2)
+
+### 2026-09-13 00:05 AWST - KDE kdotool WINDOW id allowlist
+
+- Area: Wayland / KdeKdotoolWindowPointQueryHelper.TryParseMouseLocationWindowId
+- Files: src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/KdeKdotoolWindowPointQueryHelper.cs, tests/XerahS.Tests/Platform/Linux/WaylandWindowPointQueryHelperTests.cs, Directory.Build.props
+- Findings: WINDOW= capture accepted any non-empty string and interpolated it into kdotool process arguments. Now allowlists hex handles and braced UUIDs (A-Za-z0-9{}\- , max 64) and rejects quotes/backticks/spaces.
+- Status: Fixed
+- Build/test: Linux project + XerahS.Tests Release 0/0; WaylandWindowPointQueryHelperTests 16 passed. logs: /tmp/xerahs-bugfix/build-20260913-000549.log, /tmp/xerahs-bugfix/test-20260913-000549.log
+- Commit: 4e44b72c3
+- Follow-up: none
+- Skill: xerahs-bugfix/SKILL.md v1.1.32 patched (1 new pitfall)
+
+### 2026-09-13 00:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Common/VideoEditorFfprobeResolver.cs:45-49 (VideoEditorFfprobeResolver.EnsureAvailableAsync)
+- Files: (none — pivot, no code change)
+- Findings: NormalizePath never returns null; EnsureAvailableAsync already throws ArgumentException on blank ffmpeg path and ResolvePath is only called after that guard
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
