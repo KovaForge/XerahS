@@ -6973,3 +6973,14 @@ Added candidates (8):
 - Build/test: n/a (no source change)
 - Commit: none (audit row commit is the tracker commit; last_runs.commit left null)
 - Follow-up: await producer ingest into next_candidates; never defer upstream merge
+
+### 2026-09-12 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates. No pivots. No deferred last_runs files to delete.
+- Status: no-op
+- Build/test: n/a (empty-queue audit; no code change)
+- Commit: none (leave last_runs.commit null; SHA in Step 9 summary only)
+- Follow-up: wait for xerahs-review producer ingest; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.31 (Step 10 none this tick unless identity whoami friction is patched)
