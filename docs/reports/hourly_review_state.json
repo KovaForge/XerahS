@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-09-12 16:07 AWST",
+  "last_updated": "2026-09-12 23:07 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -10,7 +10,10 @@
   ],
   "archive": "docs/reports/archive/hourly_review_tracker_2026-04-30.md",
   "current_tracker": "docs/reports/hourly_review_tracker.md",
-  "next_candidates": [],
+  "next_candidates": [
+    "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/KdeKdotoolWindowPointQueryHelper.cs:100-102 (TryParseMouseLocationWindowId)",
+    "src/desktop/core/XerahS.Common/VideoEditorFfprobeResolver.cs:45-49 (VideoEditorFfprobeResolver.EnsureAvailableAsync)"
+  ],
   "areas": [
     {
       "area": "Immich Plugin / ToJson symmetry clamp for ExpireAfterDays",
@@ -313,6 +316,44 @@
     }
   ],
   "last_runs": [
+    {
+      "timestamp": "2026-09-12 23:07 AWST",
+      "agent": "nadia",
+      "area": "xerahs-review producer tick (nadia-daily)",
+      "files": [
+        ".clawpatch/reports/20260912T150449-175c91.md",
+        "docs/reports/hourly_review_state.json",
+        "docs/reports/hourly_review_tracker.md"
+      ],
+      "version_bump": null,
+      "commit": "PENDING",
+      "outcome": "reviewed",
+      "build_test": "clawpatch review: 3 features (limit 3); 462 findings across 3 reports (parsed)",
+      "notes": "Producer-only tick. nadia remote HEAD in sync (fde7972e3 == nadia/develop). upstream/develop (f16a446d9) already ancestor of HEAD. Submodule ShareX.ImageEditor clean (002de7707). clawpatch reports parsed: 3 (latest 20260912T150449-175c91.md). Gate drops: severity-gate 274 ({'triage=risk': 181, 'triage=contract-mismatch': 72, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix (counted in 274 via prefix-match), already-fixed-area 3, recently-pivoted 81, recently-fixed-release-history 102, duplicate 0. next_candidates delta: 0 -> 2 (+2).",
+      "clawpatch_status": "ok",
+      "submodule_status": "clean",
+      "next_candidates_size": 2,
+      "claude_auth_failure": null,
+      "metadata": {
+        "queue_size_before": 0,
+        "queue_size_after": 2,
+        "queue_added": [
+          "src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/KdeKdotoolWindowPointQueryHelper.cs:100-102 (TryParseMouseLocationWindowId)",
+          "src/desktop/core/XerahS.Common/VideoEditorFfprobeResolver.cs:45-49 (VideoEditorFfprobeResolver.EnsureAvailableAsync)"
+        ],
+        "gate_breakdown": {
+          "triage=risk": 181,
+          "triage=contract-mismatch": 72,
+          "triage=test-gap": 9,
+          "triage=docs-gap": 12
+        },
+        "clawpatch_reports_parsed": [
+          "20260912T150449-175c91.md",
+          "20260911T150354-87440c.md",
+          "20260910T150321-7c9d62.md"
+        ]
+      }
+    },
     {
       "timestamp": "2026-09-11 23:05 AWST",
       "agent": "nadia",
@@ -1208,7 +1249,7 @@
       "summary": "Step 5a found zero candidates. No deferred last_runs files. Fork/upstream/submodule already synced."
     }
   ],
-  "last_run_outcome": "no-op",
+  "last_run_outcome": "reviewed",
   "recently_pivoted": [
     "src/desktop/core/XerahS.Core/Tasks/Pipeline/CaptureStage.cs:79-84",
     "scripts/check-markdown-mojibake.py:81-83",

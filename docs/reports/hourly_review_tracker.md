@@ -6984,3 +6984,32 @@ Added candidates (8):
 - Commit: none (leave last_runs.commit null; SHA in Step 9 summary only)
 - Follow-up: wait for xerahs-review producer ingest; do not invent work
 - Skill: xerahs-bugfix/SKILL.md v1.1.31 (Step 10 none this tick unless identity whoami friction is patched)
+
+### 2026-09-12 23:06 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 274
+  - triage=risk: 181
+  - triage=contract-mismatch: 72
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 102
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - ... and 92 more
+- Findings dropped as recently pivoted: 81
+- Skipped as duplicate of existing: 0
+- Ingested: 2
+- next_candidates delta: +2 (total 2)
