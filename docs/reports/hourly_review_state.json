@@ -1279,7 +1279,7 @@
         "docs/reports/hourly_review_tracker.md"
       ],
       "version_bump": null,
-      "commit": "PENDING",
+      "commit": "090cccf31ef96c1814256f38d58fec15876c2799",
       "outcome": "reviewed",
       "build_test": "clawpatch review: 3 features (limit 3, all 0 findings this run); 465 findings across 3 reports (parsed)",
       "notes": "Producer-only tick. nadia remote HEAD in sync (f07857e3e3 == nadia/develop). upstream/develop (f16a446d9) already ancestor of HEAD (2499 local ahead). Submodule ShareX.ImageEditor clean (002de7707, up to date with origin and upstream). clawpatch reports parsed: 3 (latest 20260913T150239-d2886e.md). This run's clawpatch returned 0 findings (3 features reviewed, all empty); parsed 465 findings across the 3 most recent reports for ingest. Gate drops: severity-gate 275 ({'triage=risk': 182, 'triage=contract-mismatch': 72, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix 87, already-fixed-area 3, recently-pivoted 83, recently-fixed-release-history 104, duplicate 0. next_candidates delta: 0 -> 0 (+0). follow-up SHA-pin: commit 'PENDING' will be overwritten in the next commit.",
