@@ -7034,3 +7034,13 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless source regresses
+
+### 2026-09-13 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates. No deferred last_runs files. Fork/upstream/submodule already synced.
+- Status: no-op
+- Build/test: n/a (empty queue; no code change)
+- Commit: none (audit commit SHA recorded in Step 9 summary)
+- Follow-up: await producer ingest into next_candidates; never defer upstream merge
