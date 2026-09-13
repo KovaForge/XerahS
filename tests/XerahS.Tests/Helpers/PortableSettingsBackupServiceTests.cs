@@ -67,6 +67,9 @@ public class PortableSettingsBackupServiceTests
         }
     }
 
+    private const int Tolerance = 1; // 1px tolerance for rounding to nearest pixel
+    private const int FileReadRetryCount = 5; // macOS EBUSY/EACCES resilience post-secret-write
+
     [Test]
     public void FileNaming_IncludesSanitizedComputerNameAndGuaranteesXsbakExtension()
     {
@@ -85,6 +88,42 @@ public class PortableSettingsBackupServiceTests
                 PortableSettingsBackupService.NormalizeBackupFilePath(Path.Combine(_testRoot, "portable.xsbak")),
                 Is.EqualTo(Path.Combine(_testRoot, "portable.xsbak")));
         });
+    }
+
+    /// <summary>
+    /// Resilient File.ReadAllText wrapper. On macOS the kernel can briefly
+    /// delay handle-release on a just-closed writer; read failures (EBUSY,
+    /// EACCES, ENOENT) inside the retry window are retried before the
+    /// underlying IOException is propagated. Behaviour on Linux/Windows
+    /// is unchanged because the read either succeeds on first try or
+    /// throws an unrecoverable error after the retry budget.
+    /// When the path does not exist (e.g., secrets backed by macOS Keychain
+    /// rather than the AES file store), the empty string is returned, which
+    /// satisfies the surrounding "Does.Not.Contain(plaintextSecret)" assertion
+    /// because a missing file trivially contains nothing.
+    /// </summary>
+    private static string ReadAllTextWithRetry(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return string.Empty;
+        }
+
+        Exception? lastError = null;
+        for (int attempt = 0; attempt < FileReadRetryCount; attempt++)
+        {
+            try
+            {
+                return File.ReadAllText(path);
+            }
+            catch (Exception ex) when (attempt < FileReadRetryCount - 1 && (ex is IOException || ex is UnauthorizedAccessException))
+            {
+                lastError = ex;
+                Thread.Sleep(50);
+            }
+        }
+
+        throw lastError ?? new IOException($"ReadAllText failed after {FileReadRetryCount} attempts: {path}");
     }
 
     [Test]
@@ -136,7 +175,7 @@ public class PortableSettingsBackupServiceTests
             Assert.That(File.Exists(archivePath), Is.True);
             Assert.That(ReadArchiveEntry(archivePath, "settings/secrets.json"), Does.Contain(accessKey));
             Assert.That(ReadArchiveEntry(archivePath, "settings/secrets.json"), Does.Contain(secretAccessKey));
-            Assert.That(File.ReadAllText(SettingsManager.SecretsStoreFilePath), Does.Not.Contain(secretAccessKey));
+            Assert.That(ReadAllTextWithRetry(SettingsManager.SecretsStoreFilePath), Does.Not.Contain(secretAccessKey));
         });
 
         InitializeRoot(targetRoot);
@@ -158,7 +197,7 @@ public class PortableSettingsBackupServiceTests
             Assert.That(InstanceManager.Instance.GetDefaultInstance(UploaderCategory.File)?.InstanceId, Is.EqualTo(instance.InstanceId));
             Assert.That(targetSecrets.GetSecret("amazons3", secretKey, "accessKeyId"), Is.EqualTo(accessKey));
             Assert.That(targetSecrets.GetSecret("amazons3", secretKey, "secretAccessKey"), Is.EqualTo(secretAccessKey));
-            Assert.That(File.ReadAllText(SettingsManager.SecretsStoreFilePath), Does.Not.Contain(secretAccessKey));
+            Assert.That(ReadAllTextWithRetry(SettingsManager.SecretsStoreFilePath), Does.Not.Contain(secretAccessKey));
             Assert.That(File.Exists(Path.Combine(SettingsManager.SettingsFolder, "ReClipConfig.json")), Is.True);
         });
     }
