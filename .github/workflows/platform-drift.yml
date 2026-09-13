@@ -13,18 +13,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: [xerahs-cloud-staging, xerahs-cloud-production]
+        include:
+          - environment: xerahs-cloud-staging
+            allow_missing_config: true
+          - environment: xerahs-cloud-production
+            allow_missing_config: false
     environment: ${{ matrix.environment }}
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_CONFIG_READ_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      R2_BUCKET: ${{ vars.R2_LEDGER_BUCKET }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 24.19.0
       - name: Verify Cloudflare R2 desired state
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_CONFIG_READ_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          R2_BUCKET: ${{ vars.R2_LEDGER_BUCKET }}
+        if: ${{ !matrix.allow_missing_config || (env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.R2_BUCKET != '') }}
         shell: bash
         run: node web/scripts/verify-cloudflare-r2.mjs
+      - name: Skip unconfigured Cloudflare R2 drift check
+        if: ${{ matrix.allow_missing_config && (env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == '' || env.R2_BUCKET == '') }}
+        shell: bash
+        run: echo "::notice::Skipping Cloudflare R2 drift check for ${{ matrix.environment }} until its GitHub environment configuration is connected."
