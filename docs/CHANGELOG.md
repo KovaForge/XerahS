@@ -58,7 +58,7 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Ui**: Add accessibility properties to RecordingBorderWindow; Redesign AfterCaptureWindow with Grid layout and consistent styling; and related changes
 
 ### Build
-- **Core**: Add bounded verification and isolated build tests; Add build system documentation and update ISS paths; and related changes
+- **Core**: Add build system documentation and update ISS paths; Add changelog update automation script; and related changes
 - **Pre Commit**: validate license headers in Swift files; update githooks docs
 - **Recording**: Add logging to MediaFoundationEncoder and move SetCurrentLength [2026-01-10 09:12]
 - **Tool**: Update audit tool to detect Flyout wiring
@@ -126,7 +126,8 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 - **Update Docs**: Correct SDK to .NET 9.0, update task progress
 - **Update FAQ.md**: Reorder questions and add XerahS vs ShareX comparison table
 - **Update ShareX.ImageEditor**: ShareX.ImageEditor submodule updates
-- **Xerahs Bugfix**: drain AssistantPrivacyGuard clipboard copy pivot (queue 1->0); drain CaptureDebugHelper dead-code pivot (queue 1->0); and related changes
+- **Xerahs Bugfix**: drain 1 false-positive queue item; drain 3 false-positive queue items; and related changes
+- **Xerahs Changelog**: document v0.29.1 release notes (Declan/Mikhail lineage)
 - **Xerahs Review**: 0-candidate ingest (all 375 findings gated); 1 candidate ingested (CaptureCommandPalette RegisterHotkey race); and related changes
 - **XerahS.Mobile.Kt**: build fixes, Gradle wrapper, .gitignore for Kotlin/Android
 - **XIP0036**: staged implementation and namespaces out of scope
