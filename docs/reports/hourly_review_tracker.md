@@ -7081,3 +7081,13 @@ Added candidates (8):
   - ... and 94 more
 - Ingested: 0
 - next_candidates delta: +0 (total 0)
+
+### 2026-09-13 23:04 AWST - xerahs-review producer run (Nadia)
+
+- Area: xerahs-review producer tick (nadia-daily)
+- Files: .clawpatch/reports/20260913T150239-d2886e.md, docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: clawpatch review invoked against 3 features; this run returned 0 findings (all 3 features empty); 465 findings parsed across the 3 most recent reports. After v2.2.4 ingest gate: 0 added to next_candidates; 275 dropped at severity gate (risk 182, contract-mismatch 72, test-gap 9, docs-gap 12), 87 submodule-prefixed, 3 already-fixed area-level, 83 recently-pivoted, 104 recently-fixed in release history, 0 duplicate.
+- Status: ok (no new candidates ingested; producer queue remains empty for 00:06 AWST drain)
+- Build/test: n/a (producer-side only, no source changes)
+- Commit: 090cccf31 (producer-data commit); follow-up SHA-pin commit 21377d6d0
+- Follow-up: 00:06 AWST consumer drain (Declan) will see an empty queue again; clawpatch continues to emit findings but the v2.1.x gate filters all of them as either non-bug triage (risk/contract-mismatch/test-gap/docs-gap), submodule-prefixed (ShareX.ImageEditor/*), already-fixed in release history, or recently-pivoted. This run is particularly noisy: 3 features all returned 0 findings (likely clawpatch is widening its scope to less-explored code paths with no false positives), so the queue feed is entirely on cumulative carryover of past findings. The next non-empty producer tick requires either (a) a fresh clawpatch finding whose evidence is a new file path outside the release-history set, or (b) a re-categorisation of one of the ~150 currently-routed risk/maintainability findings.
