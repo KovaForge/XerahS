@@ -7160,3 +7160,14 @@ Added candidates (8):
 - Build/test: n/a (producer-side, no code changes)
 - Commit: 26ac96acb
 - Follow-up: consumer xerahs-bugfix will drain the queue (currently 2 items)
+
+### 2026-09-15 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/desktop/tools/XerahS.WatchFolder.Daemon/XerahS.WatchFolder.Daemon.csproj:18-19
+- Files: (none — pivot, no code change)
+- Findings: clawpatch fnd_sig-feat-library-be44a5206f-5eba_c5305cce10 attributed a curl||echo shell concatenation bug to WatchFolder.Daemon.csproj:18-19; those lines are a Windows-conditional PackageReference for System.ServiceProcess.ServiceController used by Program.cs L35/L58
+- Status: Pivot (out-of-scope / tfm-noise)
+- Build/test: n/a (pivot-only; no version bump)
+- Commit: none (drain only; last_runs deferred under XIP0077 +0/+1)
+- Follow-up: do not re-queue unless the PackageReference itself regresses; producer should skip .csproj PackageReference windows
+- Skill: xerahs-bugfix/SKILL.md v1.1.33 patched (1 new pitfall: bare .csproj:lines PackageReference body-check)
