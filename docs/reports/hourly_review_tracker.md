@@ -7150,3 +7150,13 @@ Added candidates (8):
   - ... and 98 more
 - Ingested: 1
 - next_candidates delta: +1 (total 1)
+
+### 2026-09-14 23:08 AWST - xerahs-review producer tick (nadia-daily)
+
+- Area: xerahs-review producer sweep (KovaForge/XerahS)
+- Files: .clawpatch/reports/20260914T150536-130d20.md, .clawpatch/reports/20260914T150500-93cc2c.md, docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Fork (nadia/develop) in sync after push (26ac96acb). upstream/develop already ancestor of HEAD. ShareX.ImageEditor submodule clean on develop. clawpatch review ran successfully (3 features, 3 findings); MINIMAX_API_KEY sourced from openclaw-doctor/.env.local via python3 (the .env.local file has a zsh parse error at line 20 — first `set -a; . file` sourcing failed silently with EXIT=126; switched to `python3 -c` extraction to bypass). Reports parsed: 3 (latest 20260914T150536-130d20.md). Gate drops: severity-gate 277 ({'triage=risk': 184, 'triage=contract-mismatch': 72, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix 89, already-fixed-area 3, recently-pivoted 81, recently-fixed-release-history 108, duplicate 1. Ingested: 1 (src/desktop/tools/XerahS.WatchFolder.Daemon/XerahS.WatchFolder.Daemon.csproj:18-19).
+- Status: reviewed
+- Build/test: n/a (producer-side, no code changes)
+- Commit: 26ac96acb
+- Follow-up: consumer xerahs-bugfix will drain the queue (currently 2 items)
