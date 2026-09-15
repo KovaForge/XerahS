@@ -7181,3 +7181,16 @@ Added candidates (8):
 - Build/test: Release scoped builds clean (XerahS.Common 0 errors, XerahS.Tests 0 errors). Targeted tests 12/12 passed; broader Settings+SingleInstance+ImageEffectPreset filter 108/108 passed. Logs: /tmp/xerahs-bugfix/build-common-20260915-160638.log, /tmp/xerahs-bugfix/build-tests-20260915-160638.log, /tmp/xerahs-bugfix/test-targeted-20260915-160638.log, /tmp/xerahs-bugfix/test-broader-20260915-160638.log
 - Commit: c60cc3815
 - Follow-up: 4 new SingleInstanceManagerTests (AF_UNIX limit, hash stability, NamedPipeServerStream binding on Unix, suffix-stability). SettingsBaseBackupDiagnosticsTests +2 (zip-content, primary-unreadable fallback). SettingsBaseEnumLoadingTests +1 (FileShare.ReadWrite while loaded). next_candidates remains empty (producer last tick 2026-09-14 23:07 AWST drained the only remaining entry; awaiting fresh clawpatch ingest).
+
+### 2026-09-15 23:06 AWST - xerahs-review producer run (Nadia)
+
+- Status: ok (no new candidates ingested; producer queue remains empty for 00:06 AWST drain)
+- Commit: PENDING (will be filled in follow-up commit per Skill pitfall SHA-pin lag)
+- nadia remote HEAD: c1dc96b40 in sync (c1dc96b40 == nadia/develop)
+- upstream HEAD: f16a446d9 (already ancestor of HEAD)
+- Submodule ShareX.ImageEditor: clean (002de770795)
+- Clawpatch: 3 features (limit 3), 0 findings per feature (run 20260915T150433-dbf64c). 383 findings parsed across 3 reports, all gate-dropped.
+- Gate drops: severity-gate 191 (risk 101, contract-mismatch 69, test-gap 9, docs-gap 12), already-fixed-area 3, recently-pivoted 84, recently-fixed-release-history 105, duplicate 0
+- next_candidates delta: 0 -> 0 (+0)
+- Build/test: not applicable (no code changes this run)
+- Follow-up: 00:06 AWST consumer drain (Declan) will see an empty queue; clawpatch continues to emit findings but the v2.1.x gate filters all of them as either non-bug triage, submodule-prefixed, already-fixed in release history, or recently-pivoted. Fourth consecutive empty producer tick but a real v0.29.3 fix shipped today at 00:06 AWST (macOS AF_UNIX + settings backup atomicity).
