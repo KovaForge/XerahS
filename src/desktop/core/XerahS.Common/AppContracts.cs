@@ -42,7 +42,11 @@ public static class AppContracts
         /// <summary>Named mutex ensuring only one instance acquires the primary lock.</summary>
         public const string MutexName = "XerahS-82E6AC09-0FFC-4992-B793-3F79E1F71E70";
 
-        /// <summary>Named pipe used to relay command-line arguments from subsequent instances to the primary instance.</summary>
+        /// <summary>
+        /// Logical named pipe used to relay command-line arguments from subsequent instances.
+        /// On Unix, <see cref="SingleInstanceManager.GetPlatformPipeName"/> remaps this to a
+        /// short rooted /tmp socket because AF_UNIX paths cannot exceed 104 bytes.
+        /// </summary>
         public const string PipeName = "XerahS-Pipe-1F42DA49-7B2A-4E6F-8A3C-D56F09E0C481";
     }
 

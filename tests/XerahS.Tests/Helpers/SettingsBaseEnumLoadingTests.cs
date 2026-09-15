@@ -41,6 +41,17 @@ public class SettingsBaseEnumLoadingTests
         Assert.That(settings.Value, Is.EqualTo(LowercaseEnum.other));
     }
 
+    [Test]
+    public void Load_SucceedsWhileAnotherStreamHasTheFileOpenForReadWrite()
+    {
+        string path = CreateSettingsFile("""{"Value":"aac"}""");
+
+        using FileStream writer = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+        LowercaseEnumSettings settings = LowercaseEnumSettings.Load(path, fallbackSupport: false);
+
+        Assert.That(settings.Value, Is.EqualTo(LowercaseEnum.aac));
+    }
+
     private static string CreateSettingsFile(string json)
     {
         string directory = Path.Combine(TestContext.CurrentContext.WorkDirectory, Guid.NewGuid().ToString("N"));

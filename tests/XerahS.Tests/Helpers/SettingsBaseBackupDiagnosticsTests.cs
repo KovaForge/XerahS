@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using NUnit.Framework;
+using System.IO.Compression;
 using System.Runtime.Versioning;
 using XerahS.Common;
 
@@ -137,6 +138,55 @@ public class SettingsBaseBackupDiagnosticsTests
 
         Assert.That(fired, Is.False,
             "SettingsBackupFailed must not fire when the backup was created successfully.");
+    }
+
+    [Test]
+    public void Save_ValidBackupFolder_CreatesReadableZipWithSettingsJson()
+    {
+        string settingsDir = Path.Combine(_baseDir, "settings-dir");
+        Directory.CreateDirectory(settingsDir);
+        string settingsFile = Path.Combine(settingsDir, "Settings.json");
+        File.WriteAllText(settingsFile, """{"ApplicationVersion":"1.0.0"}""");
+
+        string backupFolder = Path.Combine(_baseDir, "backups");
+        var settings = new TestSettings
+        {
+            CreateBackup = true,
+            BackupFolder = backupFolder
+        };
+
+        settings.Save(settingsFile);
+
+        string monthFolder = Path.Combine(backupFolder, DateTime.Now.ToString("yyyy-MM"));
+        string[] zips = Directory.GetFiles(monthFolder, "backup-*.zip");
+        Assert.That(zips, Is.Not.Empty, "Save() must write a dated backup zip.");
+
+        using ZipArchive archive = ZipFile.OpenRead(zips[0]);
+        ZipArchiveEntry? entry = archive.GetEntry("Settings.json");
+        Assert.That(entry, Is.Not.Null, "Backup zip must contain Settings.json.");
+        Assert.That(entry!.Length, Is.GreaterThan(0));
+    }
+
+    [Test]
+    public void Load_FallsBackToReadableBackupZip_WhenPrimaryFileIsUnreadable()
+    {
+        string settingsDir = Path.Combine(_baseDir, "settings-dir");
+        Directory.CreateDirectory(settingsDir);
+        string settingsFile = Path.Combine(settingsDir, "Settings.json");
+        File.WriteAllText(settingsFile, """{"ApplicationVersion":"9.9.9"}""");
+
+        string backupFolder = Path.Combine(_baseDir, "backups");
+        var settings = new TestSettings
+        {
+            CreateBackup = true,
+            BackupFolder = backupFolder
+        };
+        settings.Save(settingsFile);
+
+        File.WriteAllText(settingsFile, "{");
+
+        TestSettings loaded = TestSettings.Load(settingsFile, backupFolder, fallbackSupport: true);
+        Assert.That(loaded.ApplicationVersion, Is.EqualTo("9.9.9"));
     }
 
     [Test]

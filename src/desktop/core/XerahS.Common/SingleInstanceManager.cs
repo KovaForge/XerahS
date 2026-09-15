@@ -24,6 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System.IO.Pipes;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace XerahS.Common
@@ -39,6 +40,12 @@ namespace XerahS.Common
 
         private const int MaxArgumentsLength = 100;
         private const int ConnectTimeout = 5000;
+
+        /// <summary>
+        /// Darwin <c>sockaddr_un.sun_path</c> is 104 bytes. Linux allows 108.
+        /// Stay at the macOS limit so one pipe name works on both.
+        /// </summary>
+        public const int UnixDomainSocketPathMaxLength = 104;
 
         private Mutex? mutex;
         private bool ownsMutex;
@@ -60,7 +67,7 @@ namespace XerahS.Common
         public SingleInstanceManager(string mutexName, string pipeName, bool isSingleInstance, string[] args)
         {
             MutexName = mutexName;
-            PipeName = pipeName;
+            PipeName = GetPlatformPipeName(pipeName);
             IsSingleInstance = isSingleInstance;
 
             IsFirstInstance = !IsSingleInstance || TryAcquirePrimaryLock();
@@ -69,6 +76,7 @@ namespace XerahS.Common
             {
                 if (IsFirstInstance)
                 {
+                    TryRemoveStaleUnixSocket();
                     cts = new CancellationTokenSource();
 
                     Task.Run(ListenForConnectionsAsync, cts.Token);
@@ -78,6 +86,66 @@ namespace XerahS.Common
                     RedirectArgumentsToFirstInstance(args);
                     ReleaseInstanceLocks();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Maps a logical pipe name to a platform-safe name.
+        /// On Unix, <see cref="NamedPipeServerStream"/> stores the socket at
+        /// <c>{TMPDIR}/CoreFxPipe_{pipeName}</c> unless <paramref name="logicalPipeName"/>
+        /// is already rooted. macOS TMPDIR is already ~50 characters, so a GUID-sized
+        /// name overflows the 104-byte AF_UNIX limit. A short rooted path under /tmp
+        /// avoids that.
+        /// </summary>
+        public static string GetPlatformPipeName(string logicalPipeName)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(logicalPipeName);
+
+            if (OperatingSystem.IsWindows())
+            {
+                return logicalPipeName;
+            }
+
+            if (Path.IsPathRooted(logicalPipeName) && IsUnixDomainSocketPathLengthValid(logicalPipeName))
+            {
+                return logicalPipeName;
+            }
+
+            string hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(logicalPipeName)))
+                .Substring(0, 8)
+                .ToLowerInvariant();
+            string path = Path.Combine("/tmp", $"xerahs-{hash}.sock");
+
+            if (!IsUnixDomainSocketPathLengthValid(path))
+            {
+                path = "/tmp/xs-" + hash + ".s";
+            }
+
+            return path;
+        }
+
+        internal static bool IsUnixDomainSocketPathLengthValid(string path)
+        {
+            return path.Length >= 1 && path.Length <= UnixDomainSocketPathMaxLength;
+        }
+
+        private void TryRemoveStaleUnixSocket()
+        {
+            if (OperatingSystem.IsWindows() || !Path.IsPathRooted(PipeName))
+            {
+                return;
+            }
+
+            try
+            {
+                if (File.Exists(PipeName))
+                {
+                    File.Delete(PipeName);
+                }
+            }
+            catch (Exception e)
+            {
+                DebugHelper.WriteLine($"SingleInstanceManager: Could not remove stale socket '{PipeName}': {e.Message}");
             }
         }
 
@@ -99,7 +167,12 @@ namespace XerahS.Common
                     // Removed Windows specific PipeSecurity for cross-platform compatibility
                     // On Windows we might want to AddAccessRule but for now we simplify.
 
-                    using (NamedPipeServerStream namedPipeServer = new NamedPipeServerStream(PipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous))
+                    using (NamedPipeServerStream namedPipeServer = new NamedPipeServerStream(
+                        PipeName,
+                        PipeDirection.InOut,
+                        1,
+                        PipeTransmissionMode.Byte,
+                        PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly))
                     {
                         namedPipeServerCreated = true;
 
@@ -254,7 +327,11 @@ namespace XerahS.Common
         {
             try
             {
-                using (NamedPipeClientStream namedPipeClient = new NamedPipeClientStream(".", PipeName, PipeDirection.Out))
+                using (NamedPipeClientStream namedPipeClient = new NamedPipeClientStream(
+                    ".",
+                    PipeName,
+                    PipeDirection.Out,
+                    PipeOptions.CurrentUserOnly))
                 {
                     namedPipeClient.Connect(ConnectTimeout);
 

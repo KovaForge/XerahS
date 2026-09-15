@@ -267,6 +267,10 @@ namespace XerahS.Common
             return isSuccess;
         }
 
+        private static readonly object BackupZipGate = new object();
+        private const int SettingsLoadMaxAttempts = 3;
+        private const int BackupArchiveMaxExamine = 8;
+
         private void CreateBackupZip(string filePath)
         {
             try
@@ -307,36 +311,53 @@ namespace XerahS.Common
                     zipFileNames.Add($"backup-{DateTime.Now.Year}-W{FileHelpers.WeekOfYear(DateTime.Now):00}-{machineName}.zip");
                 }
 
-                foreach (string zipFileName in zipFileNames.Distinct(StringComparer.OrdinalIgnoreCase))
+                lock (BackupZipGate)
                 {
-                    string zipFilePath = Path.Combine(monthFolder, zipFileName);
-
-                    // Create or update zip file containing ALL JSON files in the settings directory
-                    using (var archive = ZipFile.Open(zipFilePath, ZipArchiveMode.Update))
+                    foreach (string zipFileName in zipFileNames.Distinct(StringComparer.OrdinalIgnoreCase))
                     {
-                        // Find all JSON files in the settings directory
-                        var jsonFiles = Directory.GetFiles(settingsDirectory, "*.json");
-                        foreach (var jsonFile in jsonFiles)
+                        string zipFilePath = Path.Combine(monthFolder, zipFileName);
+                        string tempZipPath = zipFilePath + ".tmp";
+
+                        try
                         {
-                            string entryName = Path.GetFileName(jsonFile);
-
-                            // Remove existing entry if it exists (we're updating with latest)
-                            var existingEntry = archive.GetEntry(entryName);
-                            existingEntry?.Delete();
-
-                            // Add the file to the archive
-                            using (var fileStream = File.OpenRead(jsonFile))
+                            if (File.Exists(tempZipPath))
                             {
-                                var entry = archive.CreateEntry(entryName);
-                                using (var entryStream = entry.Open())
+                                File.Delete(tempZipPath);
+                            }
+
+                            using (ZipArchive archive = ZipFile.Open(tempZipPath, ZipArchiveMode.Create))
+                            {
+                                foreach (string jsonFile in Directory.GetFiles(settingsDirectory, "*.json"))
                                 {
+                                    string entryName = Path.GetFileName(jsonFile);
+                                    using FileStream fileStream = new FileStream(
+                                        jsonFile,
+                                        FileMode.Open,
+                                        FileAccess.Read,
+                                        FileShare.ReadWrite);
+                                    ZipArchiveEntry entry = archive.CreateEntry(entryName);
+                                    using Stream entryStream = entry.Open();
                                     fileStream.CopyTo(entryStream);
+                                }
+                            }
+
+                            File.Move(tempZipPath, zipFilePath, overwrite: true);
+                            System.Diagnostics.Debug.WriteLine($"Backup created: {zipFilePath} with all JSON files");
+                        }
+                        finally
+                        {
+                            if (File.Exists(tempZipPath))
+                            {
+                                try
+                                {
+                                    File.Delete(tempZipPath);
+                                }
+                                catch
+                                {
                                 }
                             }
                         }
                     }
-
-                    System.Diagnostics.Debug.WriteLine($"Backup created: {zipFilePath} with all JSON files");
                 }
             }
             catch (Exception e)
@@ -489,37 +510,54 @@ namespace XerahS.Common
                 }
                 */
 
-                try
+                Exception? lastError = null;
+
+                for (int attempt = 1; attempt <= SettingsLoadMaxAttempts; attempt++)
                 {
-                    using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    try
                     {
-                        if (fileStream.Length > 0)
+                        using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
-                            T settings;
+                            if (fileStream.Length > 0)
+                            {
+                                using MemoryStream buffered = new MemoryStream();
+                                fileStream.CopyTo(buffered);
+                                buffered.Position = 0;
 
-                            settings = DeserializeFromStream(fileStream, typeName);
+                                T settings = DeserializeFromStream(buffered, typeName);
 
-                            System.Diagnostics.Debug.WriteLine($"{typeName} load finished: {filePath}");
-                            // DebugHelper.WriteLine($"[SettingsBase] {typeName} load finished successfully");
+                                System.Diagnostics.Debug.WriteLine($"{typeName} load finished: {filePath}");
+                                return settings;
+                            }
 
-                            return settings;
-                        }
-                        else
-                        {
                             DebugHelper.WriteLine($"[SettingsBase] WARNING: File is empty (0 bytes): {filePath}");
+                            lastError = null;
+                            break;
                         }
                     }
-                }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine($"{typeName} load failed: {filePath}. Error: {e}");
-                    DebugHelper.WriteLine($"[SettingsBase] {typeName} load FAILED: {filePath}");
-                    DebugHelper.WriteLine($"[SettingsBase] Exception type: {e.GetType().Name}");
-                    DebugHelper.WriteLine($"[SettingsBase] Exception message: {e.Message}");
-                    DebugHelper.WriteLine($"[SettingsBase] Stack trace: {e.StackTrace}");
-                    if (e.InnerException != null)
+                    catch (IOException ioEx) when (attempt < SettingsLoadMaxAttempts)
                     {
-                        DebugHelper.WriteLine($"[SettingsBase] Inner exception: {e.InnerException.Message}");
+                        lastError = ioEx;
+                        DebugHelper.WriteLine($"[SettingsBase] {typeName} load retry {attempt} after IO error: {ioEx.Message}");
+                        Thread.Sleep(50 * attempt);
+                    }
+                    catch (Exception e)
+                    {
+                        lastError = e;
+                        break;
+                    }
+                }
+
+                if (lastError != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"{typeName} load failed: {filePath}. Error: {lastError}");
+                    DebugHelper.WriteLine($"[SettingsBase] {typeName} load FAILED: {filePath}");
+                    DebugHelper.WriteLine($"[SettingsBase] Exception type: {lastError.GetType().Name}");
+                    DebugHelper.WriteLine($"[SettingsBase] Exception message: {lastError.Message}");
+                    DebugHelper.WriteLine($"[SettingsBase] Stack trace: {lastError.StackTrace}");
+                    if (lastError.InnerException != null)
+                    {
+                        DebugHelper.WriteLine($"[SettingsBase] Inner exception: {lastError.InnerException.Message}");
                     }
                 }
             }
@@ -561,7 +599,14 @@ namespace XerahS.Common
                 serializer.ObjectCreationHandling = ObjectCreationHandling.Replace;
                 serializer.Error += (sender, args) =>
                 {
-                    DebugHelper.WriteLine($"[SettingsBase] JSON Error: {args.ErrorContext.Error.Message} at path: {args.ErrorContext.Path}");
+                    Exception error = args.ErrorContext.Error;
+                    DebugHelper.WriteLine($"[SettingsBase] JSON Error: {error.Message} at path: {args.ErrorContext.Path}");
+
+                    if (error is IOException or UnauthorizedAccessException)
+                    {
+                        return;
+                    }
+
                     args.ErrorContext.Handled = true;
                 };
 
@@ -578,10 +623,19 @@ namespace XerahS.Common
 
             string typeName = typeof(T).Name;
 
+            int examined = 0;
             foreach (string zipFilePath in Directory.EnumerateFiles(backupFolder, "*.zip", SearchOption.AllDirectories)
                 .OrderByDescending(path => File.GetLastWriteTimeUtc(path))
                 .ThenByDescending(path => path, StringComparer.OrdinalIgnoreCase))
             {
+                if (examined >= BackupArchiveMaxExamine)
+                {
+                    DebugHelper.WriteLine($"[SettingsBase] Stopping {typeName} backup archive scan after {examined} archives.");
+                    break;
+                }
+
+                examined++;
+
                 try
                 {
                     using ZipArchive archive = ZipFile.OpenRead(zipFilePath);
