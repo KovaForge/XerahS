@@ -323,7 +323,7 @@
         "docs/reports/hourly_review_tracker.md"
       ],
       "version_bump": null,
-      "commit": "PENDING",
+      "commit": "adc134c23",
       "outcome": "reviewed",
       "build_test": "clawpatch review: 3 features (limit 3); 383 findings across 3 reports (parsed); 0 added to next_candidates (claude=minimax, 0 findings per feature for all 3 features)",
       "notes": "Producer-only tick. nadia remote HEAD in sync (c1dc96b40 == nadia/develop). upstream/develop already ancestor of HEAD (f16a446d9). Submodule ShareX.ImageEditor clean (002de770795). clawpatch reports parsed: 3 (latest 20260915T150433-dbf64c.md). Gate drops: severity-gate 191 ({'triage=risk': 101, 'triage=contract-mismatch': 69, 'triage=test-gap': 9, 'triage=docs-gap': 12}), already-fixed-area 3, recently-pivoted 84, recently-fixed-release-history 105, duplicate 0. next_candidates delta: 0 -> 0 (+0). 00:06 AWST consumer drain will see an empty queue again; clawpatch continues to emit findings but the v2.1.x gate filters all of them as either non-bug triage, submodule-prefixed, already-fixed in release history, or recently-pivoted. This run is the fourth consecutive empty producer tick (2026-09-11/12/14/15) but a real fix shipped today at 00:06 AWST (v0.29.3 macOS AF_UNIX pipe path + settings backup atomicity, c60cc3815) — bugfix drain is healthy even when the producer queue is starved.",
