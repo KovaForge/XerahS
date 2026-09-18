@@ -7269,3 +7269,13 @@ Added candidates (8):
 - Commit: none (audit SHA recorded in Step 9 summary only)
 - Follow-up: producer xerahs-review will ingest next clawpatch cycle; consumer queue stays at 0 until then
 - Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick)
+### 2026-09-19 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero real-bug candidates; queue size 0. Fork sync (HEAD/declan/develop/origin/develop all 96b3c584); upstream/develop f16a446d9 already ancestor (10 KovaForge-only commits ahead, no merge); submodule ShareX.ImageEditor 002de7707 (origin/develop match, clean) and ShareX.VideoEditor 700fdd086 (origin/main match, clean) all current. No deferred-last-runs files. recently_pivoted 48/200. last_runs 69 rows before this append.
+- Status: no-op (queue empty after categoriser-drain)
+- Build/test: n/a (no code change)
+- Commit: (audit SHA recorded in Step 9 summary)
+- Follow-up: producer xerahs-review will ingest next clawpatch cycle (latest report 20260915T150433-dbf64c.md is 4 days stale); consumer queue stays at 0 until then. Orphaned WIP stash f41f81cd (WaylandPortalHotkeyService app_id passthrough via LinuxRuntimeEnvironment.NormalizeAppId, half-done from prior interrupted run; touches LinuxPlatform.cs:135/172, WaylandPortalHotkeyService.cs:67-100/520-525/612, LinuxHotkeyServiceTests.cs:156/178/195) preserved at /tmp/xerahs-bugfix/wip-stash-20260918T160757Z.patch — not in next_candidates, surfaced for human review; not auto-applied this run per skill rule 'Do not invent a re-fix.'
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick)
