@@ -7299,3 +7299,14 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: PENDING (filled by next step)
 - Follow-up: keep this audit cadence every 8h until a clawpatch ingest lands new fnd_sig findings. Watch the orphaned 9-file working tree + stash@{0} for human review; not in next_candidates and not auto-applied.
+
+### 2026-09-20 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json (last_runs +1, last_updated, last_run_outcome), docs/reports/hourly_review_tracker.md (this entry)
+- Findings: Step 5a categoriser ran on next_candidates (size 0) — no real-bug items, no tfm-noise, no already-fixed citations, no dead-code pivots. Queue remained empty for this consumer tick. Fork sync HEAD == declan/develop == origin/develop at 48396e1ae7 (post audit commit db7d62c79 -> 48396e1ae7 already on remote); upstream/develop f16a446d93 already an ancestor (5 KovaForge-only commits ahead, no merge). ShareX.ImageEditor submodule pointer 002de7707 (origin/develop match, clean); ShareX.VideoEditor 567cd110 (heads/main-1-g567cd11, clean). recently_pivoted 48/200 carried from prior runs. last_runs 72 rows before this append.
+- Status: no-op (queue empty after categoriser-drain)
+- Build/test: n/a (no code change)
+- Commit: PENDING (filled by next step)
+- Follow-up: keep this audit cadence every 8h until a clawpatch ingest lands new fnd_sig findings. Orphaned working tree still dirty with 9 files (XerahS.App.csproj PublishSingleFile restore, ScreenCaptureService XerahSOverlay preference, ToastViewModel Linux fade skip + matching test, ImageEffectsBrowserDialog theme ResourceInclude, LinuxRegionSelectorDiagnosticsDetector non-KDE/GNOME auto-XerahSOverlay, LinuxPlatform IsOmarchy + QuickSetup wiring, LinuxRuntimeEnvironment IsOmarchy, LinuxShellIntegrationService Nautilus extension) + stash@{0} (WaylandPortalHotkeyService app_id passthrough, f41f81cd) preserved for human review per skill rule 'Do not invent a re-fix' and previous run precedent (48396e1a follow-up).
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick)
