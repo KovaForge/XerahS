@@ -7289,3 +7289,13 @@ Added candidates (8):
 - Commit: (audit SHA recorded in Step 9 summary)
 - Follow-up: producer xerahs-review will ingest next clawpatch cycle (latest report 20260915T150433-dbf64c.md is now 4 days stale); consumer queue stays at 0 until then. Preserved unrelated working-tree changes per AGENTS.md ('Preserve unrelated working-tree changes'): (a) AWSSDK plugin publishing helpers (rewrite_plugin_deps_json + validate_plugin_dependencies in build/linux/package-linux.sh; src/desktop/plugins/AmazonS3.Plugin/plugin.json dependencies now declares AWSSDK.Core.dll + AWSSDK.S3.dll); (b) Linux OsRelease + QuickSetup services (src/platform/XerahS.Platform.Linux/Services/LinuxOsRelease.cs; src/platform/XerahS.Platform.Linux/Services/QuickSetup/DirectPolkitHostCommandLauncher.cs + HostCommandProbe.cs + HostPrivilegeCommand.cs + IPrivilegedHostCommandLauncher.cs + LinuxInputQuickSetupService.cs + LinuxQuickSetupExecutor.cs + LinuxQuickSetupIdentity.cs + LinuxQuickSetupScriptBuilder.cs); (c) regression tests (tests/XerahS.Tests/Platform/Linux/LinuxOsReleaseTests.cs; tests/XerahS.Tests/Platform/Linux/QuickSetup/HostPrivilegeCommandTests.cs + LinuxQuickSetupExecutorTests.cs + LinuxQuickSetupScriptBuilderTests.cs); (d) standalone helper-script runner tests/build/test-plugin-publish-helpers.sh. None of this work is in next_candidates -- cron drains only that queue. Orphaned WIP stash f41f81cd (WaylandPortalHotkeyService app_id passthrough) preserved at /tmp/xerahs-bugfix/wip-stash-20260918T160757Z.patch -- also not auto-applied per skill rule 'Do not invent a re-fix.'
 - Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick)
+
+### 2026-09-19 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json (last_runs +1, last_updated, last_run_outcome), docs/reports/hourly_review_tracker.md (this entry)
+- Findings: Step 5a categoriser ran on next_candidates (size 0) — no real-bug items, no tfm-noise, no already-fixed citations, no dead-code pivots. Queue remained empty for this consumer tick. Fork sync HEAD == declan/develop == origin/develop at db7d62c79c; upstream/develop f16a446d93 already an ancestor (no merge). ShareX.ImageEditor submodule pointer 002de7707 (origin/develop match, clean); ShareX.VideoEditor 567cd110 (origin/main match, clean). recently_pivoted 48/200 carried from prior runs.
+- Status: Queue check (no-op)
+- Build/test: n/a
+- Commit: PENDING (filled by next step)
+- Follow-up: keep this audit cadence every 8h until a clawpatch ingest lands new fnd_sig findings. Watch the orphaned 9-file working tree + stash@{0} for human review; not in next_candidates and not auto-applied.
