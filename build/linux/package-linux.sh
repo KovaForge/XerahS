@@ -202,6 +202,12 @@ publish_single_plugin() {
             fi
         done
 
+        # Make deps.json runtime/native/resources paths match the published layout
+        # and fail the build if any asset is neither at its declared path nor in
+        # plugin.json dependencies. See rewrite_plugin_deps_json / validate_plugin_dependencies.
+        rewrite_plugin_deps_json "$plugin_output"
+        validate_plugin_dependencies "$plugin_output" "$plugin_id"
+
         if [ -f "$plugin_output/$assembly_name" ]; then
             break
         fi
@@ -252,6 +258,170 @@ validate_omaxerahs_bundle() {
         echo "Error: Missing omaxerahs runtimeconfig in publish output: $runtimeconfig_path"
         exit 1
     fi
+}
+
+# Rewrite every runtime/native/resources asset path inside the plugin's deps.json
+# so it points at the actual file on disk after publish. Without this, deps.json
+# keeps the NuGet restore layout (e.g. "lib/net8.0/AWSSDK.S3.dll") while the
+# publish step flattens the file to the plugin root, so .NET falls back to
+# AppContext.BaseDirectory probing. PluginFolderCleaner then sees a file that is
+# neither at the declared deps.json path nor in plugin.json dependencies, and
+# quarantines it on every startup (observed with AWSSDK on the amazon3s plugin).
+rewrite_plugin_deps_json() {
+    local plugin_output="$1"
+    local deps_path
+    local deps_paths=()
+
+    while IFS= read -r -d '' deps_path; do
+        deps_paths+=("$deps_path")
+    done < <(find "$plugin_output" -maxdepth 1 -name '*.deps.json' -print0 2>/dev/null)
+
+    if [ "${#deps_paths[@]}" -eq 0 ]; then
+        return 0
+    fi
+
+    local deps_file
+    for deps_file in "${deps_paths[@]}"; do
+        python3 - "$plugin_output" "$deps_file" <<'PY'
+import json
+import os
+import sys
+
+plugin_dir, deps_path = sys.argv[1], sys.argv[2]
+
+with open(deps_path, "r", encoding="utf-8") as handle:
+    deps = json.load(handle)
+
+targets = deps.get("targets", {})
+if not isinstance(targets, dict):
+    sys.exit(0)
+
+asset_groups = ("runtime", "native", "resources")
+rewritten = False
+
+
+def visit(node):
+    global rewritten
+    if isinstance(node, dict):
+        for key, value in list(node.items()):
+            if key in asset_groups and isinstance(value, dict):
+                if rewrite_group(value):
+                    rewritten = True
+            else:
+                visit(value)
+    elif isinstance(node, list):
+        for item in node:
+            visit(item)
+
+
+def rewrite_group(group):
+    changed = False
+    for declared_path in list(group.keys()):
+        if not declared_path or not declared_path.startswith("lib/"):
+            continue
+        on_disk = os.path.join(plugin_dir, declared_path)
+        if os.path.exists(on_disk):
+            continue
+        basename = os.path.basename(declared_path)
+        candidate = os.path.join(plugin_dir, basename)
+        if candidate != on_disk and os.path.exists(candidate):
+            group[basename] = group.pop(declared_path)
+            changed = True
+    return changed
+
+
+visit(targets)
+
+if rewritten:
+    with open(deps_path, "w", encoding="utf-8") as handle:
+        json.dump(deps, handle, indent=2)
+        handle.write("\n")
+PY
+    done
+}
+
+# Fail the build if any deps.json runtime asset is not at its declared path AND
+# its basename is not declared in plugin.json dependencies. Without this guard,
+# the bundle ships with files that PluginFolderCleaner will quarantine on first
+# startup, breaking the plugin until the user manually restores them.
+validate_plugin_dependencies() {
+    local plugin_output="$1"
+    local plugin_id="$2"
+
+    local deps_path manifest_path
+    deps_path=$(find "$plugin_output" -maxdepth 1 -name '*.deps.json' -print -quit 2>/dev/null || true)
+    manifest_path="$plugin_output/plugin.json"
+
+    if [ -z "$deps_path" ]; then
+        return 0
+    fi
+    if [ ! -f "$manifest_path" ]; then
+        return 0
+    fi
+
+    python3 - "$plugin_output" "$deps_path" "$manifest_path" "$plugin_id" <<'PY'
+import json
+import os
+import sys
+
+plugin_dir, deps_path, manifest_path, plugin_id = sys.argv[1:5]
+
+with open(deps_path, "r", encoding="utf-8") as handle:
+    deps = json.load(handle)
+with open(manifest_path, "r", encoding="utf-8") as handle:
+    manifest = json.load(handle)
+
+declared = set()
+for entry in manifest.get("dependencies") or []:
+    if isinstance(entry, str) and entry:
+        declared.add(os.path.basename(entry))
+
+targets = deps.get("targets", {})
+if not isinstance(targets, dict):
+    sys.exit(0)
+
+missing = []
+for target_name, libraries in targets.items():
+    if not isinstance(libraries, dict):
+        continue
+    for lib_name, info in libraries.items():
+        if not isinstance(info, dict):
+            continue
+        # Only runtime and resources are plugin-breakers when quarantined: the
+        # plugin's AssemblyLoadContext needs to resolve them at load time, and
+        # PluginFolderCleaner moves them out on first startup. Native assets are
+        # commonly shared between the main app and plugins (Avalonia pulls in
+        # libSkiaSharp.so / libHarfBuzzSharp.so transitively even when the main
+        # app is self-contained single-file); quarantining those is harmless.
+        for group in ("runtime", "resources"):
+            entries = info.get(group)
+            if not isinstance(entries, dict):
+                continue
+            for declared_path in entries:
+                if not declared_path or not isinstance(declared_path, str):
+                    continue
+                full = os.path.join(plugin_dir, declared_path)
+                if os.path.exists(full):
+                    continue
+                if os.path.basename(declared_path) in declared:
+                    continue
+                missing.append((target_name, lib_name, group, declared_path))
+
+if missing:
+    sys.stderr.write(
+        "Error: plugin '%s' ships runtime files that PluginFolderCleaner will quarantine.\n"
+        % plugin_id
+    )
+    sys.stderr.write("Each missing entry below must either:\n")
+    sys.stderr.write("  * exist at the declared deps.json path in the plugin folder, or\n")
+    sys.stderr.write("  * be listed under plugin.json 'dependencies' (basename match).\n")
+    for target_name, lib_name, group, declared_path in missing:
+        sys.stderr.write(
+            "  - target=%s lib=%s group=%s path=%s\n"
+            % (target_name, lib_name, group, declared_path)
+        )
+    sys.exit(1)
+PY
 }
 
 # Define Architectures to Build
@@ -339,6 +509,8 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     export PLUGINS_DIR PUBLISH_DIR ARCH
     export -f dotnet_publish_serial
     export -f publish_single_plugin
+    export -f rewrite_plugin_deps_json
+    export -f validate_plugin_dependencies
 
     printf '%s\0' "${PLUGIN_PROJECTS[@]}" | xargs -0 -n1 -P "$PLUGIN_JOBS" bash -c '
         publish_single_plugin "$1" "$PLUGINS_DIR" "$PUBLISH_DIR" "$ARCH"
