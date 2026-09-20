@@ -7310,3 +7310,13 @@ Added candidates (8):
 - Commit: PENDING (filled by next step)
 - Follow-up: keep this audit cadence every 8h until a clawpatch ingest lands new fnd_sig findings. Orphaned working tree still dirty with 9 files (XerahS.App.csproj PublishSingleFile restore, ScreenCaptureService XerahSOverlay preference, ToastViewModel Linux fade skip + matching test, ImageEffectsBrowserDialog theme ResourceInclude, LinuxRegionSelectorDiagnosticsDetector non-KDE/GNOME auto-XerahSOverlay, LinuxPlatform IsOmarchy + QuickSetup wiring, LinuxRuntimeEnvironment IsOmarchy, LinuxShellIntegrationService Nautilus extension) + stash@{0} (WaylandPortalHotkeyService app_id passthrough, f41f81cd) preserved for human review per skill rule 'Do not invent a re-fix' and previous run precedent (48396e1a follow-up).
 - Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick)
+
+### 2026-09-20 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json
+- Findings: Step 5a found 0 candidates. `next_candidates` already empty after the previous tick's categoriser drain. Upstream `develop` is already an ancestor of HEAD (0 commits behind); declan/develop already at HEAD. Submodule `ShareX.ImageEditor` clean and up-to-date at 002de770. Preserved 9 unrelated working-tree modifications (Omarchy/Hyprland/LinuxRegionSelector/Nautilus extension/Toast fade WIP from a teammate) per `AGENTS.md`; not staged.
+- Status: No-op (queue empty)
+- Build/test: n/a (empty-queue audit, no code change)
+- Commit: (this audit)
+- Follow-up: keep queue checked; producer `xerahs-review` will repopulate on next 6h tick.
