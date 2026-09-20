@@ -341,6 +341,15 @@ public class ToastWindowClickRoutingTests
 
         using var viewModel = new ToastViewModel(config);
 
+        // On Linux the fade is bypassed (compositor fade overrides per-window opacity,
+        // so we just close when duration elapses). The drag-pause behavior is therefore
+        // trivially satisfied — there is no fade timer to pause.
+        if (OperatingSystem.IsLinux())
+        {
+            Assert.That(viewModel.IsFadeTimerRunning, Is.False);
+            return;
+        }
+
         Assert.That(viewModel.IsFadeTimerRunning, Is.True);
 
         viewModel.OnFileDragStarted();

@@ -301,11 +301,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     {
         _durationTimer.Stop();
         _isDurationEnd = true;
-
-        if (!_isMouseInside)
-        {
-            CheckFade();
-        }
+        CheckFade();
     }
 
     private void CheckFade()
@@ -346,16 +342,20 @@ public partial class ToastViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (_config.FadeDuration <= 0)
+        // On Linux/Wayland the compositor's own fade animation (e.g. Hyprland's
+        // default-opacity tag) can override Avalonia's per-window Opacity, so the
+        // visual fade never happens and the toast sticks around even though the
+        // close request fires. Skip the fade on Linux and just close — the
+        // duration has already elapsed, so the user has seen the toast.
+        if (OperatingSystem.IsLinux() || _config.FadeDuration <= 0)
         {
             CloseRequested?.Invoke(this, EventArgs.Empty);
+            return;
         }
-        else
-        {
-            _opacity = 1.0;
-            OpacityChanged?.Invoke(this, _opacity);
-            _fadeTimer.Start();
-        }
+
+        _opacity = 1.0;
+        OpacityChanged?.Invoke(this, _opacity);
+        _fadeTimer.Start();
     }
 
     private void ExecuteAction(ToastClickAction action)
