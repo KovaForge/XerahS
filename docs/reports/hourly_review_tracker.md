@@ -7334,3 +7334,14 @@ Added candidates (8):
   - **Feature commit B** (5 files, IsOmarchy shared): Linux Omarchy/Hyprland platform support — `IsOmarchy` property in LinuxRuntimeEnvironment.cs feeds (a) ScreenCaptureService.cs skipping the backdrop capture when XerahSOverlay is preferred on non-KDE/GNOME Wayland, (b) LinuxRegionSelectorDiagnosticsDetector.cs preferring XerahSOverlay via the new `IsKdeOrGnomeWaylandDesktop` helper, (c) LinuxPlatform.cs Omarchy-first evdev + Quick Setup fallback in `CreateHotkeyService`, (d) LinuxShellIntegrationService.cs installing a Nautilus-Python extension for "Upload with XerahS" alongside the existing Nemo/Caja scripts. Build/test already green (1585 passed) so this is mechanical. May warrant `[v0.30.0] [Feature]` minor bump under the project rule "features increment minor and reset patch".
   - Orphaned stash@{0} (f41f81cd WaylandPortalHotkeyService app_id passthrough) still untouched and out of scope for this cron per skill rule "Do not invent a re-fix."
 - Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick; no real efficiency blockers hit)
+
+### 2026-09-21 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json
+- Findings: Step 5a categoriser-drain found 0 candidates (`next_candidates` empty after prior tick's drain). Upstream `develop` is already an ancestor of HEAD (0 commits behind); declan/develop already at HEAD. Submodule `ShareX.ImageEditor` clean at 002de770. Preserved 9 unrelated working-tree modifications (Omarchy/Hyprland/LinuxRegionSelector/Nautilus extension/Toast fade WIP from a teammate) per `AGENTS.md`; not staged. Deleted stale `/tmp/xerahs-bugfix/deferred-last-runs-20260920-160531.json` (1 row from previous tick) per the v1.1.16 deferred-file cleanup rule for consecutive no-op ticks.
+- Status: No-op (queue empty)
+- Build/test: n/a (empty-queue audit, no code change)
+- Commit: (this audit)
+- Follow-up: keep queue checked; producer `xerahs-review` will repopulate on next 6h tick. The 9-file teammate WIP from prior tick remains preserved for the next human or feature cron to land.
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick; no real efficiency blockers hit)
