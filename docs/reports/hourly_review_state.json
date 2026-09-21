@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-09-21 00:06 AWST",
+  "last_updated": "2026-09-21 08:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -1537,6 +1537,15 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a categoriser-drain found 0 candidates (queue already empty from prior tick). Preserved 9 unrelated working-tree modifications (Omarchy/Hyprland/LinuxRegionSelector/Nautilus extension/Toast fade WIP from a teammate) per AGENTS.md; not staged. Upstream develop already an ancestor of HEAD (0 commits behind); declan/develop already at HEAD. Submodule ShareX.ImageEditor clean at 002de770. No code change this tick.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-09-21 08:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates; empty-queue audit commit",
       "status": "no-op"
     }
   ],
