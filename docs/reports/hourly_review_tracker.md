@@ -7355,3 +7355,14 @@ Added candidates (8):
 - Build/test: n/a
 - Commit: none (drain only)
 - Follow-up: keep next xerahs-review sweep honest; no action this tick
+
+### 2026-09-21 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: (none — empty-queue audit, no code change)
+- Findings: Step 5a categoriser found zero `real-bug` items; queue 0 -> 0. HEAD (e372ffd516) == declan/develop (e372ffd516). Upstream/develop (f16a446d93) is already an ancestor of HEAD (merge would be no-op, Step 3 non-negotiable verified). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no upstream remote configured in submodule). Preserved 9 unrelated working-tree modifications (Avalonia UI services / Linux platform WIP from a teammate) per AGENTS.md; not staged, not amended. No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (no code change)
+- Commit: (this audit)
+- Follow-up: keep next xerahs-review sweep honest; producer `xerahs-review` will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. The 9-file teammate WIP remains preserved for the next human or feature cron to land; do not touch from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick)
