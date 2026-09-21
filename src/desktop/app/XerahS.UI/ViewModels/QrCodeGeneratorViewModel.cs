@@ -49,6 +49,12 @@ public partial class QrCodeGeneratorViewModel : ViewModelBase, IDisposable
         _dialogService = dialogService;
     }
 
+    /// <summary>
+    /// Invoked by the view when the user wants to dismiss the modal.
+    /// True = save / apply, false = cancel.
+    /// </summary>
+    public Action<bool>? CloseRequested { get; set; }
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GenerateCommand))]
     private string _inputText = string.Empty;

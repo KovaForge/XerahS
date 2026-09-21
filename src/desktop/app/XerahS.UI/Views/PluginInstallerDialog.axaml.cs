@@ -25,19 +25,16 @@
 
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using Avalonia.Threading;
-using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class PluginInstallerDialog : SurfaceWindow
+public partial class PluginInstallerDialog : UserControl
 {
     public PluginInstallerDialog()
     {
         InitializeComponent();
-        DataContextChanged += (_, _) => WireCloseRequest(DataContext as PluginInstallerViewModel);
-        Opened += (_, _) => InitializeViewModel(DataContext as PluginInstallerViewModel);
+        AttachedToVisualTree += (_, _) => InitializeViewModel(DataContext as PluginInstallerViewModel);
     }
 
     private void InitializeComponent()
@@ -45,18 +42,8 @@ public partial class PluginInstallerDialog : SurfaceWindow
         AvaloniaXamlLoader.Load(this);
     }
 
-    private void WireCloseRequest(PluginInstallerViewModel? viewModel)
-    {
-        if (viewModel == null)
-        {
-            return;
-        }
-
-        viewModel.RequestClose = result =>
-        {
-            Dispatcher.UIThread.Post(() => Close(result ?? false));
-        };
-    }
+    // RequestClose is wired by AvaloniaDialogService when the modal is opened;
+    // do not overwrite it here.
 
     private static void InitializeViewModel(PluginInstallerViewModel? viewModel)
     {

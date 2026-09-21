@@ -28,21 +28,16 @@ using Avalonia.Markup.Xaml;
 
 namespace XerahS.UI.Views;
 
-public partial class QrCodeGeneratorDialog : SurfaceWindow
+public partial class QrCodeGeneratorDialog : UserControl
 {
     public QrCodeGeneratorDialog()
     {
         InitializeComponent();
     }
 
-    protected override void OnClosed(EventArgs e)
+    protected override void OnDataContextChanged(System.EventArgs e)
     {
-        if (DataContext is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
-
-        base.OnClosed(e);
+        base.OnDataContextChanged(e);
     }
 
     private void InitializeComponent()

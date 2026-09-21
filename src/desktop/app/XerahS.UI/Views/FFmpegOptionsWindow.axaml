@@ -1,15 +1,11 @@
-<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="using:XerahS.UI.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:XerahS.UI.ViewModels"
         mc:Ignorable="d"
         x:Class="XerahS.UI.Views.FFmpegOptionsWindow"
-        x:DataType="vm:FFmpegOptionsViewModel"
-        Width="700" Height="800"
-        Title="FFmpeg Recording Options"
-        WindowStartupLocation="CenterScreen">
+        x:DataType="vm:FFmpegOptionsViewModel">
 
   <Design.DataContext>
     <vm:FFmpegOptionsViewModel />
@@ -288,4 +284,4 @@
 
     </StackPanel>
   </ScrollViewer>
-</ui:SurfaceWindow>
+</UserControl>

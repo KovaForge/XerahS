@@ -77,10 +77,31 @@
 
     <Application.DataTemplates>
         <local:ViewLocator/>
-        
+
         <!-- Manual DataTemplate registrations for modal dialogs -->
         <DataTemplate DataType="vm:ProviderCatalogViewModel" x:DataType="vm:ProviderCatalogViewModel">
             <views:ProviderCatalogView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:CustomUploaderEditorViewModel" x:DataType="vm:CustomUploaderEditorViewModel">
+            <views:CustomUploaderEditorDialog/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:PluginInstallerViewModel" x:DataType="vm:PluginInstallerViewModel">
+            <views:PluginInstallerDialog/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:WorkflowEditorViewModel" x:DataType="vm:WorkflowEditorViewModel">
+            <views:WorkflowEditorView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:ImageEffectsViewModel" x:DataType="vm:ImageEffectsViewModel">
+            <views:ImageEffectsBrowserDialog/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:FFmpegOptionsViewModel" x:DataType="vm:FFmpegOptionsViewModel">
+            <views:FFmpegOptionsWindow/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:ProviderExplorerViewModel" x:DataType="vm:ProviderExplorerViewModel">
+            <views:ProviderExplorerWindow/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:QrCodeGeneratorViewModel" x:DataType="vm:QrCodeGeneratorViewModel">
+            <views:QrCodeGeneratorDialog/>
         </DataTemplate>
     </Application.DataTemplates>
 

@@ -1,19 +1,12 @@
-<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="using:XerahS.UI.Views"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:vm="using:XerahS.UI.ViewModels"
         xmlns:views="using:XerahS.UI.Views"
         mc:Ignorable="d"
         x:Class="XerahS.UI.Views.CustomUploaderEditorDialog"
-        x:DataType="vm:CustomUploaderEditorViewModel"
-        Width="680"
-        MinWidth="580"
-        Height="720"
-        MinHeight="500"
-        WindowStartupLocation="CenterOwner"
-        Title="{Binding Title}">
+        x:DataType="vm:CustomUploaderEditorViewModel">
 
     <Design.DataContext>
         <vm:CustomUploaderEditorViewModel />
@@ -78,4 +71,4 @@
             </Grid>
         </Border>
     </Grid>
-</ui:SurfaceWindow>
+</UserControl>

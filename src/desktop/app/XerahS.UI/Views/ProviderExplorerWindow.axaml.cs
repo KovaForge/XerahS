@@ -24,21 +24,25 @@
 #endregion License Information (GPL v3)
 
 using Avalonia.Controls;
+using Avalonia.Markup.Xaml;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class ProviderExplorerWindow : SurfaceWindow
+public partial class ProviderExplorerWindow : UserControl
 {
     public ProviderExplorerWindow()
     {
         InitializeComponent();
+        DetachedFromVisualTree += (_, _) =>
+        {
+            if (DataContext is ProviderExplorerViewModel vm)
+                vm.Dispose();
+        };
     }
 
-    protected override void OnClosed(EventArgs e)
+    private void InitializeComponent()
     {
-        base.OnClosed(e);
-        if (DataContext is ProviderExplorerViewModel vm)
-            vm.Dispose();
+        AvaloniaXamlLoader.Load(this);
     }
 }

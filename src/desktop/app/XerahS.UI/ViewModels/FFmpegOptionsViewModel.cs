@@ -46,6 +46,12 @@ public partial class FFmpegOptionsViewModel : ObservableObject
         RefreshDetectedPath();
     }
 
+    /// <summary>
+    /// Invoked by the view when the user wants to dismiss the modal.
+    /// True = save / apply, false = cancel.
+    /// </summary>
+    public Action<bool>? CloseRequested { get; set; }
+
     public IReadOnlyList<FFmpegCaptureDevice> VideoCaptureDevices { get; } = new[]
     {
         FFmpegCaptureDevice.None,

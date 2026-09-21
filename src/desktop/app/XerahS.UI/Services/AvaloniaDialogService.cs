@@ -9,6 +9,7 @@ using Avalonia.Platform.Storage;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 using XerahS.UI.Views.Dialogs;
+using ShareX.ImageEditor.Presentation.ViewModels;
 
 namespace XerahS.UI.Services
 {
@@ -52,48 +53,115 @@ namespace XerahS.UI.Services
             return default;
         }
 
-        public async Task<bool> ShowPluginInstallerAsync(PluginInstallerViewModel viewModel)
+        public Task<bool> ShowPluginInstallerAsync(PluginInstallerViewModel viewModel)
         {
-            var dialog = CreateDialog<PluginInstallerDialog>(viewModel);
-            WireCloseRequest(viewModel, dialog);
-            return await ShowDialogAsync<bool>(dialog);
+            var mainVm = MainViewModel.Current;
+            if (mainVm == null) return Task.FromResult(false);
+
+            var tcs = new TaskCompletionSource<bool>();
+            viewModel.RequestClose = result =>
+            {
+                if (mainVm.ModalContent == viewModel)
+                    mainVm.CloseModalCommand.Execute(null);
+                tcs.TrySetResult(result ?? false);
+            };
+
+            ModalOpenService.Open(mainVm, viewModel, nameof(PluginInstallerViewModel));
+            return tcs.Task;
         }
 
-        public async Task<bool> ShowCustomUploaderEditorAsync(CustomUploaderEditorViewModel viewModel)
+        public Task<bool> ShowCustomUploaderEditorAsync(CustomUploaderEditorViewModel viewModel)
         {
-            var dialog = CreateDialog<CustomUploaderEditorDialog>(viewModel);
-            WireCloseRequest(viewModel, dialog);
-            return await ShowDialogAsync<bool>(dialog);
+            var mainVm = MainViewModel.Current;
+            if (mainVm == null) return Task.FromResult(false);
+
+            var tcs = new TaskCompletionSource<bool>();
+            viewModel.CloseRequested = result =>
+            {
+                if (mainVm.ModalContent == viewModel)
+                    mainVm.CloseModalCommand.Execute(null);
+                tcs.TrySetResult(result);
+            };
+
+            ModalOpenService.Open(mainVm, viewModel, nameof(CustomUploaderEditorViewModel));
+            return tcs.Task;
         }
 
-        public async Task<bool> ShowWorkflowEditorAsync(WorkflowEditorViewModel viewModel)
+        public Task<bool> ShowWorkflowEditorAsync(WorkflowEditorViewModel viewModel)
         {
-            var dialog = CreateDialog<WorkflowEditorView>(viewModel);
-            return await ShowDialogAsync<bool>(dialog);
+            var mainVm = MainViewModel.Current;
+            if (mainVm == null) return Task.FromResult(false);
+
+            var tcs = new TaskCompletionSource<bool>();
+            viewModel.CloseRequested = result =>
+            {
+                if (mainVm.ModalContent == viewModel)
+                    mainVm.CloseModalCommand.Execute(null);
+                tcs.TrySetResult(result);
+            };
+
+            ModalOpenService.Open(mainVm, viewModel, nameof(WorkflowEditorViewModel));
+            return tcs.Task;
         }
 
         public Task ShowImageEffectsBrowserAsync(ImageEffectsViewModel viewModel)
         {
-            var dialog = CreateDialog<ImageEffectsBrowserDialog>(viewModel);
-            return ShowDialogAsync(dialog);
+            var mainVm = MainViewModel.Current;
+            if (mainVm == null) return Task.CompletedTask;
+
+            viewModel.CloseRequested = _ =>
+            {
+                if (mainVm.ModalContent == viewModel)
+                    mainVm.CloseModalCommand.Execute(null);
+            };
+
+            ModalOpenService.Open(mainVm, viewModel, nameof(ImageEffectsViewModel));
+            return Task.CompletedTask;
         }
 
         public Task ShowFFmpegOptionsAsync(FFmpegOptionsViewModel viewModel)
         {
-            var dialog = CreateDialog<FFmpegOptionsWindow>(viewModel);
-            return ShowDialogAsync(dialog);
+            var mainVm = MainViewModel.Current;
+            if (mainVm == null) return Task.CompletedTask;
+
+            viewModel.CloseRequested = result =>
+            {
+                if (mainVm.ModalContent == viewModel)
+                    mainVm.CloseModalCommand.Execute(null);
+            };
+
+            ModalOpenService.Open(mainVm, viewModel, nameof(FFmpegOptionsViewModel));
+            return Task.CompletedTask;
         }
 
         public Task ShowProviderExplorerAsync(ProviderExplorerViewModel viewModel)
         {
-            var dialog = CreateDialog<ProviderExplorerWindow>(viewModel);
-            return ShowDialogAsync(dialog);
+            var mainVm = MainViewModel.Current;
+            if (mainVm == null) return Task.CompletedTask;
+
+            viewModel.CloseRequested = _ =>
+            {
+                if (mainVm.ModalContent == viewModel)
+                    mainVm.CloseModalCommand.Execute(null);
+            };
+
+            ModalOpenService.Open(mainVm, viewModel, nameof(ProviderExplorerViewModel));
+            return Task.CompletedTask;
         }
 
         public Task ShowQrCodeGeneratorAsync(QrCodeGeneratorViewModel viewModel)
         {
-            var dialog = CreateDialog<QrCodeGeneratorDialog>(viewModel);
-            return ShowDialogAsync(dialog);
+            var mainVm = MainViewModel.Current;
+            if (mainVm == null) return Task.CompletedTask;
+
+            viewModel.CloseRequested = _ =>
+            {
+                if (mainVm.ModalContent == viewModel)
+                    mainVm.CloseModalCommand.Execute(null);
+            };
+
+            ModalOpenService.Open(mainVm, viewModel, nameof(QrCodeGeneratorViewModel));
+            return Task.CompletedTask;
         }
 
         private static Window? GetDialogOwner(IClassicDesktopStyleApplicationLifetime desktop)
