@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-09-21 16:05 AWST",
+  "last_updated": "2026-09-22 00:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -1555,6 +1555,15 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a found zero candidates; empty-queue audit commit",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-09-22 00:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a categoriser found 0 candidates; queue 0 -> 0. Upstream/develop already ancestor of HEAD; declan/develop already at HEAD; submodule clean.",
       "status": "no-op"
     }
   ],
