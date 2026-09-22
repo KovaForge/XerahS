@@ -7377,3 +7377,15 @@ Added candidates (8):
 - Commit: (this audit, target HEAD = 8ed367a8 unchanged)
 - Follow-up: keep next xerahs-review sweep honest; producer will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings
 - Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick; no real efficiency blockers hit)
+
+
+### 2026-09-22 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 79 -> 80)
+- Findings: Step 5a categoriser found zero `real-bug` items; queue stays at 0. Upstream/develop (1f4249d5) advanced since prior audit (f16a446d93) with commit `feat(ui): route all 7 editor dialogs through ModalOpenService overlay` -- merged into develop as 56404db6 (non-fast-forward; required stashing the 9-file teammate WIP first because the ModalOpenService refactor touches AvaloniaDialogService.cs and ImageEffectsBrowserDialog.axaml, the same files the WIP was modifying with a throw-on-no-MainWindow pattern). Stash preserved: `stash@{1}` wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor (the 7 non-conflict files AvaloniaDialogServiceAdapter.cs + AvaloniaUIService.cs + ScreenCaptureService.cs + LinuxRegionSelectorDiagnosticsDetector.cs + LinuxPlatform.cs + LinuxRuntimeEnvironment.cs + LinuxShellIntegrationService.cs are still in the stash; the 2 conflict files AvaloniaDialogService.cs + ImageEffectsBrowserDialog.axaml are superseded by upstream's ModalOpenService refactor). Pre-existing orphan stash `stash@{0}` (xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z) is unchanged. Push verified declan/develop == 56404db6 == HEAD. Submodule ShareX.ImageEditor pointer 002de770 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit after upstream merge)
+- Build/test: n/a (no code change this tick -- the upstream merge is a remote-tracking refactor that the upstream author already built/tested on their own branch before pushing)
+- Commit: (this audit, target HEAD = 56404db6)
+- Follow-up: keep next xerahs-review sweep honest; producer will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. The 9-file teammate WIP is now in `stash@{1}` (not in working tree) because the upstream ModalOpenService refactor renders the dialog portion obsolete; the 5 Linux Omarchy/Hyprland files plus 2 Avalonia adapter/UIService files remain in the stash for the next human or feature cron to evaluate whether they still make sense on top of the new overlay routing. Orphan stash `stash@{0}` (WaylandPortalHotkeyService app_id passthrough) unchanged.
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick; the stash-before-upstream-merge dance for empty-queue ticks with conflicting WIP is a candidate for a future skill clarification)
