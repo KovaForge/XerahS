@@ -131,6 +131,12 @@ namespace XerahS.UI.ViewModels
             Effects.CollectionChanged += (s, e) => SyncToSettings();
         }
 
+        /// <summary>
+        /// Invoked by the view when the user wants to dismiss the modal.
+        /// True = save / apply, false = cancel.
+        /// </summary>
+        public Action<bool>? CloseRequested { get; set; }
+
         private void OnEffectsChanged()
         {
             isSyncSuspended = true;

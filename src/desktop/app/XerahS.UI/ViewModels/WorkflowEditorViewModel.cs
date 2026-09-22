@@ -62,6 +62,12 @@ public partial class WorkflowEditorViewModel : ViewModelBase
         }
     };
 
+    /// <summary>
+    /// Invoked by the view when the user wants to dismiss the modal.
+    /// True = save / apply, false = cancel.
+    /// </summary>
+    public Action<bool>? CloseRequested { get; set; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WorkflowId))]
     private WorkflowSettings _model;

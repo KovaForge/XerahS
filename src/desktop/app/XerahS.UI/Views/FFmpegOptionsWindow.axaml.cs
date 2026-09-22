@@ -31,7 +31,7 @@ using Avalonia.Platform.Storage;
 
 namespace XerahS.UI.Views;
 
-public partial class FFmpegOptionsWindow : SurfaceWindow
+public partial class FFmpegOptionsWindow : UserControl
 {
     public FFmpegOptionsWindow()
     {
@@ -45,7 +45,10 @@ public partial class FFmpegOptionsWindow : SurfaceWindow
 
     private void Close_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        Close();
+        if (DataContext is ViewModels.FFmpegOptionsViewModel vm)
+        {
+            vm.CloseRequested?.Invoke(false);
+        }
     }
 
     private async void BrowseFFmpeg_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

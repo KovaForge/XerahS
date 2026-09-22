@@ -1,15 +1,9 @@
-<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="using:XerahS.UI.Views"
         xmlns:vm="using:XerahS.UI.ViewModels"
         xmlns:plugins="using:XerahS.Uploaders.PluginSystem"
         x:Class="XerahS.UI.Views.PluginInstallerDialog"
-        x:DataType="vm:PluginInstallerViewModel"
-        Title="Install Plugin"
-        Icon="/Assets/Logo.ico"
-        Width="760" Height="760"
-        CanResize="False"
-        WindowStartupLocation="CenterOwner">
+        x:DataType="vm:PluginInstallerViewModel">
 
     <Grid Margin="24" RowDefinitions="Auto, *, Auto">
 
@@ -206,4 +200,4 @@
         </StackPanel>
 
     </Grid>
-</ui:SurfaceWindow>
+</UserControl>

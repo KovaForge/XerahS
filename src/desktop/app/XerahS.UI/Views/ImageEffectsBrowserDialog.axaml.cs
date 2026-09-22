@@ -30,12 +30,12 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class ImageEffectsBrowserDialog : SurfaceWindow
+public partial class ImageEffectsBrowserDialog : UserControl
 {
     public ImageEffectsBrowserDialog()
     {
         InitializeComponent();
-        WireBrowserEvents();
+        AttachedToVisualTree += (_, _) => WireBrowserEvents();
     }
 
     private void InitializeComponent()
@@ -63,12 +63,15 @@ public partial class ImageEffectsBrowserDialog : SurfaceWindow
 
         if (vm.TryAddEffectByBrowserId(e.EffectId))
         {
-            Close();
+            vm.CloseRequested?.Invoke(false);
         }
     }
 
     private void Close_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        Close();
+        if (DataContext is ImageEffectsViewModel vm)
+        {
+            vm.CloseRequested?.Invoke(false);
+        }
     }
 }

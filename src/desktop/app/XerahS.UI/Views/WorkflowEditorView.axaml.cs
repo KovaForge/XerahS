@@ -30,7 +30,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class WorkflowEditorView : SurfaceWindow
+public partial class WorkflowEditorView : UserControl
 {
     public WorkflowEditorView()
     {
@@ -38,9 +38,8 @@ public partial class WorkflowEditorView : SurfaceWindow
         InitializeComponent();
         DebugHelper.WriteLine("[WorkflowEditorView] InitializeComponent completed");
 
-        Opened += (_, _) => DebugHelper.WriteLine("[WorkflowEditorView] Opened");
-        Closing += (_, _) => DebugHelper.WriteLine("[WorkflowEditorView] Closing");
-        Closed += (_, _) => DebugHelper.WriteLine("[WorkflowEditorView] Closed");
+        AttachedToVisualTree += (_, _) => DebugHelper.WriteLine("[WorkflowEditorView] AttachedToVisualTree");
+        DetachedFromVisualTree += (_, _) => DebugHelper.WriteLine("[WorkflowEditorView] DetachedFromVisualTree");
     }
 
     private void InitializeComponent()
@@ -120,12 +119,15 @@ public partial class WorkflowEditorView : SurfaceWindow
         if (DataContext is WorkflowEditorViewModel vm)
         {
             vm.Save();
-            Close(true);
+            vm.CloseRequested?.Invoke(true);
         }
     }
 
     private void CancelButton_Click(object? sender, RoutedEventArgs e)
     {
-        Close(false);
+        if (DataContext is WorkflowEditorViewModel vm)
+        {
+            vm.CloseRequested?.Invoke(false);
+        }
     }
 }

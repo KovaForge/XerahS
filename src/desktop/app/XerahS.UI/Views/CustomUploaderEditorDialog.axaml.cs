@@ -32,7 +32,7 @@ using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
 
-public partial class CustomUploaderEditorDialog : SurfaceWindow
+public partial class CustomUploaderEditorDialog : UserControl
 {
     public CustomUploaderEditorDialog()
     {
@@ -44,7 +44,8 @@ public partial class CustomUploaderEditorDialog : SurfaceWindow
     {
         if (DataContext is CustomUploaderEditorViewModel vm)
         {
-            vm.CloseRequested = result => Close(result);
+            // CloseRequested is wired by AvaloniaDialogService when the modal is opened;
+            // do not overwrite it here.
             vm.OpenFileRequester = OpenFileAsync;
             vm.SaveFileRequester = SaveFileAsync;
         }

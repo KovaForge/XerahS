@@ -214,7 +214,7 @@
                             BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
                             BorderThickness="1"
                             CornerRadius="8"
-                            MinWidth="400" MaxWidth="800"
+                            MinWidth="400" MaxWidth="1200"
                             VerticalAlignment="Center" HorizontalAlignment="Center"
                             Margin="20"
                             BoxShadow="0 4 20 0 #40000000">

@@ -1,6 +1,5 @@
-<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="using:XerahS.UI.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:XerahS.UI.ViewModels"
@@ -8,10 +7,7 @@
         xmlns:converters="using:XerahS.UI.Converters"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
         x:Class="XerahS.UI.Views.WorkflowEditorView"
-        x:DataType="vm:WorkflowEditorViewModel"
-        Title="{Binding WindowTitle}"
-        Width="850" Height="650"
-        WindowStartupLocation="CenterOwner">
+        x:DataType="vm:WorkflowEditorViewModel">
 
     <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" Padding="16">
         <Grid RowDefinitions="*,Auto" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
@@ -144,4 +140,4 @@
         </StackPanel>
         </Grid>
     </Border>
-</ui:SurfaceWindow>
+</UserControl>
