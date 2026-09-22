@@ -7389,3 +7389,14 @@ Added candidates (8):
 - Commit: (this audit, target HEAD = 56404db6)
 - Follow-up: keep next xerahs-review sweep honest; producer will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. The 9-file teammate WIP is now in `stash@{1}` (not in working tree) because the upstream ModalOpenService refactor renders the dialog portion obsolete; the 5 Linux Omarchy/Hyprland files plus 2 Avalonia adapter/UIService files remain in the stash for the next human or feature cron to evaluate whether they still make sense on top of the new overlay routing. Orphan stash `stash@{0}` (WaylandPortalHotkeyService app_id passthrough) unchanged.
 - Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick; the stash-before-upstream-merge dance for empty-queue ticks with conflicting WIP is a candidate for a future skill clarification)
+
+### 2026-09-22 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 80 -> 81)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (54a03065d7) == declan/develop (54a03065d7) == origin/develop; push remote already current. Upstream/develop (1f4249d5bb) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since the previous tick landed 56404db6). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no `upstream` remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: (this audit)
+- Follow-up: keep next xerahs-review sweep honest; producer `xerahs-review` will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
