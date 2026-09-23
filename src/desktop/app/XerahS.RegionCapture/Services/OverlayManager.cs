@@ -22,6 +22,9 @@
 */
 
 #endregion License Information (GPL v3)
+using System.ComponentModel;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using XerahS.RegionCapture.Models;
 using XerahS.RegionCapture;
 using XerahS.RegionCapture.UI;
@@ -105,7 +108,7 @@ public sealed class OverlayManager : IDisposable
             // Show primary overlay first and focus it immediately so compositor has one clear focus target (reduces pointer-event delay on Wayland)
             if (primaryOverlay != null)
             {
-                primaryOverlay.Show();
+                ShowOverlayDetached(primaryOverlay);
                 primaryOverlay.Activate();
                 primaryOverlay.Focus();
                 var primaryHandle = primaryOverlay.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
@@ -117,7 +120,7 @@ public sealed class OverlayManager : IDisposable
             {
                 if (overlay == primaryOverlay)
                     continue;
-                overlay.Show();
+                ShowOverlayDetached(overlay);
                 overlay.Activate();
                 var handle = overlay.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
                 WindowDetectionService.ExcludeHandle(handle);
@@ -135,6 +138,47 @@ public sealed class OverlayManager : IDisposable
         finally
         {
             CloseAllOverlays();
+        }
+    }
+
+
+    /// <summary>
+    /// Shows an overlay as a free-floating top-level window (Owner cleared) so X11
+    /// does not set transient-for on a hidden/minimised MainWindow. On non-visible-owner
+    /// failure, briefly ensures MainWindow is mapped and retries Show once.
+    /// </summary>
+    private static void ShowOverlayDetached(OverlayWindow overlay)
+    {
+        overlay.ClearOwner();
+        try
+        {
+            overlay.Show();
+        }
+        catch (Exception ex) when (IsNonVisibleOwnerFailure(ex))
+        {
+            DebugHelper.WriteLine($"[OverlayManager] Show failed (non-visible owner): {ex.Message}; ensuring main window visible and retrying.");
+            EnsureMainWindowVisibleForOverlayRetry();
+            overlay.ClearOwner();
+            overlay.Show();
+        }
+    }
+
+    private static bool IsNonVisibleOwnerFailure(Exception ex)
+    {
+        if (ex is Win32Exception)
+            return true;
+
+        return ex.Message.Contains("non-visible owner", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void EnsureMainWindowVisibleForOverlayRetry()
+    {
+        if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            && desktop.MainWindow is { } mainWindow
+            && (!mainWindow.IsVisible || mainWindow.WindowState == WindowState.Minimized))
+        {
+            mainWindow.Show();
+            mainWindow.WindowState = WindowState.Normal;
         }
     }
 

@@ -167,6 +167,7 @@ public partial class OverlayWindow : Window
         _targetHeight = windowLayout.Height;
         _hasTargetWindowLayout = true;
         ApplyTargetWindowLayout("constructor");
+        ClearOwner();
 
         DebugHelper.WriteLine($"[OverlayWindow] {monitor.DeviceName}: isWindows={isWindows} isAvaloniaWayland={isAvaloniaWayland} Position=({(int)windowLayout.Position.X},{(int)windowLayout.Position.Y}) Width={windowLayout.Width:F1} Height={windowLayout.Height:F1} PhysicalBounds=({monitor.PhysicalBounds.X:F1},{monitor.PhysicalBounds.Y:F1},{monitor.PhysicalBounds.Width:F1},{monitor.PhysicalBounds.Height:F1}) OverlayBounds=({monitor.OverlayBounds.X:F1},{monitor.OverlayBounds.Y:F1},{monitor.OverlayBounds.Width:F1},{monitor.OverlayBounds.Height:F1})");
 
@@ -243,6 +244,12 @@ public partial class OverlayWindow : Window
 
         LogActualWindowGeometry("OnOpened");
     }
+
+    /// <summary>
+    /// Clears window ownership so Show() does not set X11 transient-for on a non-viewable MainWindow.
+    /// Owner's setter is protected on WindowBase; expose clearing for OverlayManager.
+    /// </summary>
+    internal void ClearOwner() => Owner = null;
 
     private void ApplyTargetWindowLayout(string source)
     {
