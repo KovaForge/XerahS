@@ -7433,3 +7433,14 @@ Added candidates (8):
 - Commit: (this audit)
 - Follow-up: keep next xerahs-review sweep honest; producer `xerahs-review` will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
 - Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-24 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 84 -> 85)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (2e5b96e078) == declan/develop (2e5b96e078). Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no `upstream` remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: (this audit)
+- Follow-up: keep next xerahs-review sweep honest; producer `xerahs-review` will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
