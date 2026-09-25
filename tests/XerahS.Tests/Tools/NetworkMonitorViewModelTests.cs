@@ -72,15 +72,30 @@ public class NetworkMonitorViewModelTests
         using NetworkMonitorHost host = new(new BlockingProbe(), persist: false);
         using NetworkMonitorViewModel viewModel = new(host);
 
-        viewModel.SelectedTarget = viewModel.TargetOptions[2];
-        viewModel.SelectedInterval = viewModel.IntervalOptions[3];
+        viewModel.SelectedTarget = viewModel.TargetOptions.Single(option => option.DisplayName.StartsWith("Google DNS", StringComparison.Ordinal));
+        viewModel.SelectedInterval = viewModel.IntervalOptions.Single(option => option.Interval == TimeSpan.FromSeconds(30));
         NetworkMonitorOptions options = host.Monitor.Options;
 
         Assert.Multiple(() =>
         {
             Assert.That(options.PingAddresses, Is.EqualTo(new[] { "8.8.8.8" }));
             Assert.That(options.PingIntervalMs, Is.EqualTo(30000));
+            Assert.That(options.FailThreshold, Is.EqualTo(2));
         });
+    }
+
+    [AvaloniaTest]
+    public void CustomHost_ParsesSeveralAddresses()
+    {
+        using NetworkMonitorHost host = new(new BlockingProbe(), persist: false);
+        using NetworkMonitorViewModel viewModel = new(host);
+
+        viewModel.SelectedTarget = viewModel.TargetOptions.Single(option => option.IsCustom);
+        viewModel.CustomHosts = "192.0.2.1, dns.example";
+        NetworkMonitorOptions options = host.Monitor.Options;
+
+        Assert.That(options.PingAddresses, Is.EqualTo(new[] { "192.0.2.1", "dns.example" }));
+        Assert.That(viewModel.StatusDetails, Is.EqualTo("Waiting for a reply from Custom host."));
     }
 
     private sealed class StableProbe(long latencyMs) : INetworkProbe

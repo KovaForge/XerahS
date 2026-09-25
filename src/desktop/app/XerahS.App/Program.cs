@@ -661,7 +661,19 @@ namespace XerahS.App
                 {
                     XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Background task started");
                     XerahS.Common.DebugHelper.WriteLine("Starting async services initialization...");
-                    
+
+                    try
+                    {
+                        XerahS.Common.NetworkMonitor.NetworkMonitorHost.Shared.EnsureStarted();
+                        XerahS.Common.DebugHelper.WriteLine(
+                            "Network monitor started. Outage log: " +
+                            XerahS.Common.NetworkMonitor.NetworkMonitorHost.Shared.LogFilePath);
+                    }
+                    catch (Exception ex)
+                    {
+                        XerahS.Common.DebugHelper.WriteException(ex, "Failed to start network monitor");
+                    }
+
                     // 1. Initialize Plugins (ProviderCatalog)
                     try
                     {

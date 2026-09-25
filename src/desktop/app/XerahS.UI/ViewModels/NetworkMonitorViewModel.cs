@@ -62,7 +62,7 @@ public sealed class NetworkEventFilterOption
     public override string ToString() => DisplayName;
 }
 
-public sealed record NetworkMonitorTargetOption(string DisplayName, IReadOnlyList<string> Addresses)
+public sealed record NetworkMonitorTargetOption(string DisplayName, IReadOnlyList<string> Addresses, bool IsCustom = false)
 {
     public override string ToString() => DisplayName;
 }
@@ -72,7 +72,7 @@ public sealed record NetworkMonitorIntervalOption(string DisplayName, TimeSpan I
     public override string ToString() => DisplayName;
 }
 
-public sealed class NetworkStatusEventItem
+public partial class NetworkStatusEventItem : ObservableObject
 {
     public NetworkStatusEventItem(NetworkStatusEvent statusEvent, DateTime now)
     {
@@ -92,7 +92,10 @@ public sealed class NetworkStatusEventItem
     public bool IsConnected { get; }
     public string StatusText { get; }
     public IBrush StatusBrush { get; }
-    public string DurationText { get; }
+
+    [ObservableProperty]
+    private string _durationText = "-";
+
     public string LatencyText { get; }
 
     public string ToLogLine() => $"{TimestampText} - {StatusText} Duration: {DurationText} Latency: {LatencyText}";
@@ -138,6 +141,8 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
 
     private readonly NetworkMonitorHost _host;
     private readonly DispatcherTimer _refreshTimer;
+    private readonly DateTime _sessionStarted = DateTime.Now;
+    private int _pingAnimationVersion;
     private bool _disposed;
 
     public NetworkMonitorViewModel(NetworkMonitorHost? host = null)
@@ -149,6 +154,7 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
             new NetworkMonitorTimeRangeOption(NetworkMonitorTimeRange.Last15Minutes),
             new NetworkMonitorTimeRangeOption(NetworkMonitorTimeRange.LastHour),
             new NetworkMonitorTimeRangeOption(NetworkMonitorTimeRange.Last6Hours),
+            new NetworkMonitorTimeRangeOption(NetworkMonitorTimeRange.Session),
             new NetworkMonitorTimeRangeOption(NetworkMonitorTimeRange.Last24Hours),
             new NetworkMonitorTimeRangeOption(NetworkMonitorTimeRange.Last7Days),
             new NetworkMonitorTimeRangeOption(NetworkMonitorTimeRange.Last30Days),
@@ -165,10 +171,12 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
             new NetworkMonitorTargetOption("Automatic (recommended)", ["1.1.1.1", "8.8.8.8", "9.9.9.9"]),
             new NetworkMonitorTargetOption("Cloudflare (1.1.1.1)", ["1.1.1.1"]),
             new NetworkMonitorTargetOption("Google DNS (8.8.8.8)", ["8.8.8.8"]),
-            new NetworkMonitorTargetOption("Quad9 (9.9.9.9)", ["9.9.9.9"])
+            new NetworkMonitorTargetOption("Quad9 (9.9.9.9)", ["9.9.9.9"]),
+            new NetworkMonitorTargetOption("Custom host", [], true)
         ];
         IntervalOptions =
         [
+            new NetworkMonitorIntervalOption("1 s", TimeSpan.FromSeconds(1)),
             new NetworkMonitorIntervalOption("2 s", TimeSpan.FromSeconds(2)),
             new NetworkMonitorIntervalOption("5 s", TimeSpan.FromSeconds(5)),
             new NetworkMonitorIntervalOption("10 s", TimeSpan.FromSeconds(10)),
@@ -177,8 +185,9 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
         _selectedTimeRange = TimeRangeOptions[0];
         _selectedFilter = FilterOptions[0];
         _selectedTarget = TargetOptions[0];
-        _selectedInterval = IntervalOptions[1];
+        _selectedInterval = IntervalOptions.First(option => option.Interval == TimeSpan.FromSeconds(2));
         ApplyMonitorOptions();
+        _host.Monitor.ProbeStarted += OnProbeStarted;
         _host.Monitor.StatusChanged += OnMonitorEvent;
         _host.Monitor.SampleReceived += OnMonitorSample;
         _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -197,6 +206,12 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
 
     public Func<string, Task>? CopyToClipboardRequested { get; set; }
     public Func<string, string, Task<string?>>? SaveFileRequested { get; set; }
+    public Func<string, Task>? OpenLogRequested { get; set; }
+
+    public bool CanOpenLog => !string.IsNullOrWhiteSpace(_host.LogFilePath);
+
+    public string LogPathText => CanOpenLog ? $"Outage log: {_host.LogFilePath}" : string.Empty;
+    public bool IsCustomTarget => SelectedTarget?.IsCustom == true;
 
     [ObservableProperty]
     private NetworkMonitorTimeRangeOption _selectedTimeRange = null!;
@@ -241,6 +256,12 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
     private bool _isMonitoring;
 
     [ObservableProperty]
+    private bool _isPinging;
+
+    [ObservableProperty]
+    private string _customHosts = string.Empty;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasEvents))]
     private bool _canCopy;
 
@@ -255,6 +276,7 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
 
     partial void OnSelectedTargetChanged(NetworkMonitorTargetOption value)
     {
+        OnPropertyChanged(nameof(IsCustomTarget));
         ApplyMonitorOptions();
         RefreshStatusOnly();
     }
@@ -262,6 +284,15 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
     partial void OnSelectedIntervalChanged(NetworkMonitorIntervalOption value)
     {
         ApplyMonitorOptions();
+    }
+
+    partial void OnCustomHostsChanged(string value)
+    {
+        if (SelectedTarget?.IsCustom == true)
+        {
+            ApplyMonitorOptions();
+            RefreshStatusOnly();
+        }
     }
 
     [RelayCommand]
@@ -316,6 +347,18 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
         Refresh();
     }
 
+    [RelayCommand]
+    private async Task OpenLogAsync()
+    {
+        if (OpenLogRequested == null || string.IsNullOrWhiteSpace(_host.LogFilePath))
+        {
+            return;
+        }
+
+        _host.EnsureLogFile();
+        await OpenLogRequested(_host.LogFilePath);
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -326,8 +369,42 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
         _disposed = true;
         _refreshTimer.Stop();
         _refreshTimer.Tick -= OnRefreshTick;
+        _host.Monitor.ProbeStarted -= OnProbeStarted;
         _host.Monitor.StatusChanged -= OnMonitorEvent;
         _host.Monitor.SampleReceived -= OnMonitorSample;
+        IsPinging = false;
+    }
+
+    private void OnProbeStarted()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            int version = ++_pingAnimationVersion;
+            IsPinging = true;
+            _ = ClearPingAnimationAsync(version);
+        });
+    }
+
+    private async Task ClearPingAnimationAsync(int version)
+    {
+        await Task.Delay(600);
+        if (_disposed || version != _pingAnimationVersion)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!_disposed && version == _pingAnimationVersion)
+            {
+                IsPinging = false;
+            }
+        });
     }
 
     private void OnMonitorEvent(NetworkStatusEvent _)
@@ -364,6 +441,12 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
             StatusDetails = "Monitoring is paused. Connection history is preserved.";
             StatusBrush = PausedBrush;
         }
+        else if (IsCustomTarget && ParseHosts(CustomHosts).Length == 0)
+        {
+            StatusText = "Checking";
+            StatusDetails = "Enter a host name or IP address to monitor.";
+            StatusBrush = CheckingBrush;
+        }
         else if (!monitor.HasConnectionState || sample == null)
         {
             StatusText = "Checking";
@@ -374,14 +457,14 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
         {
             StatusText = "Connected";
             StatusDetails = sample.Success
-                ? $"Reply from {sample.Address}."
-                : $"No reply from {sample.Address}; confirming the connection.";
+                ? DescribeReply(sample)
+                : DescribeFailure(sample, confirming: true);
             StatusBrush = sample.Success ? ConnectedBrush : CheckingBrush;
         }
         else
         {
             StatusText = "Disconnected";
-            StatusDetails = $"No reply from {sample.Address}. XerahS will keep checking.";
+            StatusDetails = DescribeFailure(sample, confirming: false);
             StatusBrush = DisconnectedBrush;
         }
 
@@ -393,7 +476,7 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
     private void Refresh()
     {
         DateTime now = DateTime.Now;
-        DateTime from = NetworkMonitorTimeRanges.GetStart(SelectedTimeRange.Range, now);
+        DateTime from = NetworkMonitorTimeRanges.GetStart(SelectedTimeRange.Range, now, _sessionStarted);
         IReadOnlyList<NetworkStatusEvent> events = _host.History.GetEvents(from, now, SelectedFilter.Filter);
         IReadOnlyList<NetworkStatusEvent> allEvents = SelectedFilter.Filter == NetworkEventFilter.All
             ? events
@@ -408,7 +491,6 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
                 NetworkStatusEventItem refreshed = refreshedEvents[index];
                 if (current.Timestamp != refreshed.Timestamp ||
                     current.IsConnected != refreshed.IsConnected ||
-                    current.DurationText != refreshed.DurationText ||
                     current.LatencyText != refreshed.LatencyText)
                 {
                     eventsChanged = true;
@@ -417,7 +499,17 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
             }
         }
 
-        if (eventsChanged)
+        if (!eventsChanged)
+        {
+            for (int index = 0; index < Events.Count; index++)
+            {
+                if (Events[index].DurationText != refreshedEvents[index].DurationText)
+                {
+                    Events[index].DurationText = refreshedEvents[index].DurationText;
+                }
+            }
+        }
+        else
         {
             Events.Clear();
             foreach (NetworkStatusEventItem statusEvent in refreshedEvents)
@@ -448,14 +540,57 @@ public partial class NetworkMonitorViewModel : ViewModelBase, IDisposable
         CopyAllCommand.NotifyCanExecuteChanged();
         ExportCommand.NotifyCanExecuteChanged();
         ClearCommand.NotifyCanExecuteChanged();
+        OpenLogCommand.NotifyCanExecuteChanged();
     }
 
     private void ApplyMonitorOptions()
     {
         NetworkMonitorOptions options = _host.Monitor.Options;
-        options.PingAddresses = [.. SelectedTarget.Addresses];
+        options.PingAddresses = SelectedTarget.IsCustom
+            ? ParseHosts(CustomHosts)
+            : [.. SelectedTarget.Addresses];
         options.PingIntervalMs = (int)SelectedInterval.Interval.TotalMilliseconds;
+        options.FailThreshold = 2;
+        options.PingTimeoutMs = 2000;
         _host.Monitor.Options = options;
+    }
+
+    private static string[] ParseHosts(string text)
+    {
+        return text.Split([',', ';', ' ', '\n', '\r', '\t'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string DescribeReply(NetworkLatencySample sample)
+    {
+        string target = DescribeAddress(sample.Address);
+        return string.IsNullOrWhiteSpace(sample.Method)
+            ? $"Reply from {target}."
+            : $"Reply from {target} via {sample.Method}.";
+    }
+
+    private static string DescribeFailure(NetworkLatencySample sample, bool confirming)
+    {
+        string detail = string.IsNullOrWhiteSpace(sample.Error)
+            ? $"No reply from {DescribeAddress(sample.Address)}."
+            : sample.Error;
+        return confirming
+            ? $"{detail} Confirming the connection."
+            : $"{detail} XerahS will keep checking.";
+    }
+
+    private static string DescribeAddress(string address)
+    {
+        return address switch
+        {
+            "1.1.1.1" => "Cloudflare (1.1.1.1)",
+            "1.0.0.1" => "Cloudflare (1.0.0.1)",
+            "8.8.8.8" => "Google DNS (8.8.8.8)",
+            "8.8.4.4" => "Google DNS (8.8.4.4)",
+            "9.9.9.9" => "Quad9 (9.9.9.9)",
+            _ => address
+        };
     }
 
     private string BuildLogText()

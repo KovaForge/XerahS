@@ -44,6 +44,27 @@
       <Setter Property="FontSize" Value="15" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
+    <Style Selector="Border.status-dot">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Border.status-dot.pinging">
+      <Style.Animations>
+        <Animation Duration="0:0:0.6">
+          <KeyFrame Cue="0%">
+            <Setter Property="Opacity" Value="1" />
+          </KeyFrame>
+          <KeyFrame Cue="35%">
+            <Setter Property="Opacity" Value="0.2" />
+          </KeyFrame>
+          <KeyFrame Cue="70%">
+            <Setter Property="Opacity" Value="1" />
+          </KeyFrame>
+          <KeyFrame Cue="100%">
+            <Setter Property="Opacity" Value="1" />
+          </KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
   </ui:SurfaceWindow.Styles>
 
   <Grid Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
@@ -58,6 +79,8 @@
                 ColumnSpacing="14"
                 VerticalAlignment="Center">
             <Border Grid.Column="0"
+                    Classes="status-dot"
+                    Classes.pinging="{Binding IsPinging}"
                     Width="11"
                     Height="11"
                     Margin="8,0,6,0"
@@ -87,6 +110,11 @@
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
+            <TextBox Width="235"
+                     IsVisible="{Binding IsCustomTarget}"
+                     Text="{Binding CustomHosts}"
+                     PlaceholderText="example.com or 1.1.1.1"
+                     AutomationProperties.Name="Custom monitoring host" />
           </StackPanel>
 
           <StackPanel Grid.Column="2" Spacing="3">
@@ -191,10 +219,10 @@
               Classes="monitor-panel"
               Padding="0"
               ClipToBounds="True">
-        <Grid RowDefinitions="Auto,*">
+        <Grid RowDefinitions="Auto,Auto,*">
           <Grid Grid.Row="0"
-                Margin="12,10"
-                ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto"
+                Margin="12,10,12,4"
+                ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto"
                 ColumnSpacing="8">
             <TextBlock Grid.Column="0"
                        Classes="section-heading"
@@ -226,13 +254,26 @@
                     IsEnabled="{Binding HasEvents}"
                     AutomationProperties.Name="Export events" />
             <Button Grid.Column="5"
-                    Content="Clear"
+                    Content="Open log"
+                    Command="{Binding OpenLogCommand}"
+                    IsEnabled="{Binding CanOpenLog}"
+                    AutomationProperties.Name="Open event log" />
+            <Button Grid.Column="6"
+                    Content="Clear list"
                     Command="{Binding ClearCommand}"
                     IsEnabled="{Binding CanClear}"
-                    AutomationProperties.Name="Clear events" />
+                    AutomationProperties.Name="Clear events"
+                    ToolTip.Tip="Clears the on-screen list. The outage log file is kept." />
           </Grid>
+          <TextBlock Grid.Row="1"
+                     Margin="12,0,12,8"
+                     Classes="metric-label"
+                     Text="{Binding LogPathText}"
+                     IsVisible="{Binding CanOpenLog}"
+                     TextWrapping="Wrap"
+                     AutomationProperties.Name="Outage log path" />
 
-          <Grid Grid.Row="1">
+          <Grid Grid.Row="2">
             <DataGrid ItemsSource="{Binding Events}"
                       IsVisible="{Binding HasEvents}"
                       IsReadOnly="True"

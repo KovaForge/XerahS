@@ -80,6 +80,20 @@ public static class NetworkMonitorToolService
             }
         };
 
+        viewModel.OpenLogRequested = path =>
+        {
+            try
+            {
+                PlatformServices.System.OpenFile(path);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to open network monitor log: {ex.Message}");
+            }
+
+            return Task.CompletedTask;
+        };
+
         viewModel.SaveFileRequested = async (fileName, _) =>
         {
             if (_window == null)
