@@ -25,7 +25,7 @@
 
 namespace XerahS.Common.NetworkMonitor;
 
-public readonly record struct NetworkProbeResult(bool Success, long? RoundtripMs);
+public readonly record struct NetworkProbeResult(bool Success, long? RoundtripMs, string Error = "", string Method = "");
 
 public enum NetworkMonitorTimeRange
 {
@@ -33,6 +33,7 @@ public enum NetworkMonitorTimeRange
     Last15Minutes,
     LastHour,
     Last6Hours,
+    Session,
     Last24Hours,
     Last7Days,
     Last30Days,
@@ -48,10 +49,15 @@ public enum NetworkEventFilter
 
 public sealed class NetworkMonitorOptions
 {
-    public int FailThreshold { get; set; } = 4;
-    public int PingIntervalMs { get; set; } = 1000;
-    public int PingTimeoutMs { get; set; } = 4000;
-    public string[] PingAddresses { get; set; } = ["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"];
+    /// <summary>
+    /// Consecutive failed rounds required before the link is treated as down.
+    /// Each round already requires every selected host to fail, so two rounds
+    /// match a probe plus a confirmation probe.
+    /// </summary>
+    public int FailThreshold { get; set; } = 2;
+    public int PingIntervalMs { get; set; } = 2000;
+    public int PingTimeoutMs { get; set; } = 2000;
+    public string[] PingAddresses { get; set; } = ["1.1.1.1", "8.8.8.8", "9.9.9.9"];
 }
 
 public sealed class NetworkStatusEvent
@@ -60,6 +66,12 @@ public sealed class NetworkStatusEvent
     public bool IsConnected { get; set; }
     public long? RoundtripMs { get; set; }
     public TimeSpan? Duration { get; set; }
+
+    /// <summary>
+    /// True when this is the first confirmed reading after monitoring started,
+    /// rather than a later up or down transition.
+    /// </summary>
+    public bool IsBaseline { get; set; }
 }
 
 public sealed class NetworkLatencySample
@@ -68,6 +80,8 @@ public sealed class NetworkLatencySample
     public bool Success { get; set; }
     public long? RoundtripMs { get; set; }
     public string Address { get; set; } = string.Empty;
+    public string Method { get; set; } = string.Empty;
+    public string Error { get; set; } = string.Empty;
 }
 
 public sealed class NetworkChartPoint
@@ -90,7 +104,7 @@ public sealed class NetworkMonitorStats
 
 public static class NetworkMonitorTimeRanges
 {
-    public static DateTime GetStart(NetworkMonitorTimeRange range, DateTime now)
+    public static DateTime GetStart(NetworkMonitorTimeRange range, DateTime now, DateTime? sessionStart = null)
     {
         return range switch
         {
@@ -98,6 +112,7 @@ public static class NetworkMonitorTimeRanges
             NetworkMonitorTimeRange.Last15Minutes => now.AddMinutes(-15),
             NetworkMonitorTimeRange.LastHour => now.AddHours(-1),
             NetworkMonitorTimeRange.Last6Hours => now.AddHours(-6),
+            NetworkMonitorTimeRange.Session => sessionStart ?? now,
             NetworkMonitorTimeRange.Last24Hours => now.AddHours(-24),
             NetworkMonitorTimeRange.Last7Days => now.AddDays(-7),
             NetworkMonitorTimeRange.Last30Days => now.AddDays(-30),
@@ -114,6 +129,7 @@ public static class NetworkMonitorTimeRanges
             NetworkMonitorTimeRange.Last15Minutes => "Last 15 minutes",
             NetworkMonitorTimeRange.LastHour => "Last 1 hour",
             NetworkMonitorTimeRange.Last6Hours => "Last 6 hours",
+            NetworkMonitorTimeRange.Session => "Session",
             NetworkMonitorTimeRange.Last24Hours => "Last 24 hours",
             NetworkMonitorTimeRange.Last7Days => "Last 7 days",
             NetworkMonitorTimeRange.Last30Days => "Last 30 days",

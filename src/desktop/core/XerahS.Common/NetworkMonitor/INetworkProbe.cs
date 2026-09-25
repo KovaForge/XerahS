@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 
+using System.Diagnostics;
 using System.Net.NetworkInformation;
 
 namespace XerahS.Common.NetworkMonitor;
@@ -36,21 +37,48 @@ public sealed class IcmpNetworkProbe : INetworkProbe
 {
     public async Task<NetworkProbeResult> ProbeAsync(string host, int timeoutMs, CancellationToken cancellationToken)
     {
+        if (!NetworkInterface.GetIsNetworkAvailable())
+        {
+            return new NetworkProbeResult(false, null, "No network interface is available.");
+        }
+
+        int timeout = Math.Max(200, timeoutMs);
         try
         {
             using Ping ping = new();
             using CancellationTokenRegistration registration = cancellationToken.Register(ping.SendAsyncCancel);
-            PingReply reply = await ping.SendPingAsync(host, timeoutMs).ConfigureAwait(false);
-            bool success = reply.Status == IPStatus.Success;
-            return new NetworkProbeResult(success, success ? reply.RoundtripTime : null);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            PingReply reply = await ping.SendPingAsync(host, timeout)
+                .WaitAsync(TimeSpan.FromMilliseconds(timeout + 250), cancellationToken)
+                .ConfigureAwait(false);
+            stopwatch.Stop();
+
+            if (reply.Status == IPStatus.Success)
+            {
+                long latency = reply.RoundtripTime > 0
+                    ? reply.RoundtripTime
+                    : (long)Math.Round(stopwatch.Elapsed.TotalMilliseconds);
+                return new NetworkProbeResult(true, latency, string.Empty, "ICMP");
+            }
+
+            if (reply.Status == IPStatus.TimedOut)
+            {
+                return new NetworkProbeResult(false, null, $"{host} timed out.");
+            }
+
+            return new NetworkProbeResult(false, null, $"{host} failed ({reply.Status}).");
         }
         catch (OperationCanceledException)
         {
             throw;
         }
-        catch
+        catch (TimeoutException)
         {
-            return new NetworkProbeResult(false, null);
+            return new NetworkProbeResult(false, null, $"{host} timed out.");
+        }
+        catch (Exception ex)
+        {
+            return new NetworkProbeResult(false, null, $"{host} failed ({ex.Message}).");
         }
     }
 }

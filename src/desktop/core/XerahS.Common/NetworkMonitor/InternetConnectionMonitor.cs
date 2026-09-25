@@ -26,23 +26,26 @@
 namespace XerahS.Common.NetworkMonitor;
 
 /// <summary>
-/// ICMP probe loop modeled on Jaex NetworkMonitor: rotate public DNS targets,
-/// require consecutive failures before treating the link as down, and stamp
-/// disconnects at the first failed probe rather than the confirmation probe.
+/// Probes every selected host at once and keeps the fastest successful reply.
+/// A down transition waits for <see cref="NetworkMonitorOptions.FailThreshold"/>
+/// failed rounds, and those confirmation rounds run a second apart. The
+/// disconnect is stamped at the first failed round, not the confirming one.
 /// </summary>
 public sealed class InternetConnectionMonitor : IDisposable
 {
+    public const int DisconnectConfirmationDelayMs = 1000;
+
     private readonly INetworkProbe _probe;
     private readonly Func<DateTime> _clock;
     private readonly object _sync = new();
     private NetworkMonitorOptions _options;
     private CancellationTokenSource? _loopCts;
     private int _failCount;
-    private int _addressIndex;
     private bool _isFirstEvent = true;
     private DateTime _firstFailDate;
     private bool _disposed;
 
+    public event Action? ProbeStarted;
     public event Action<NetworkStatusEvent>? StatusChanged;
     public event Action<NetworkLatencySample>? SampleReceived;
 
@@ -88,14 +91,15 @@ public sealed class InternetConnectionMonitor : IDisposable
             lock (_sync)
             {
                 _options = CloneOptions(value);
-                if (_options.PingAddresses.Length == 0)
-                {
-                    _options.PingAddresses = ["8.8.8.8"];
-                }
-
-                _addressIndex = 0;
+                _options.PingAddresses ??= [];
             }
         }
+    }
+
+    public static int GetDelayAfterProbe(bool suspectingDisconnect, int intervalMs)
+    {
+        int interval = Math.Max(200, intervalMs);
+        return suspectingDisconnect ? Math.Min(interval, DisconnectConfirmationDelayMs) : interval;
     }
 
     public void Start()
@@ -144,29 +148,27 @@ public sealed class InternetConnectionMonitor : IDisposable
 
     public async Task CheckOnceAsync(CancellationToken cancellationToken = default)
     {
-        string address;
+        string[] addresses;
         int timeoutMs;
         int failThreshold;
         lock (_sync)
         {
-            string[] addresses = _options.PingAddresses;
-            if (addresses.Length == 0)
-            {
-                return;
-            }
-
-            if (_addressIndex >= addresses.Length)
-            {
-                _addressIndex = 0;
-            }
-
-            address = addresses[_addressIndex];
-            _addressIndex++;
+            addresses = _options.PingAddresses ?? [];
             timeoutMs = Math.Max(200, _options.PingTimeoutMs);
             failThreshold = Math.Max(1, _options.FailThreshold);
         }
 
-        NetworkProbeResult result = await _probe.ProbeAsync(address, timeoutMs, cancellationToken).ConfigureAwait(false);
+        if (addresses.Length == 0)
+        {
+            return;
+        }
+
+        ProbeStarted?.Invoke();
+        (string Address, NetworkProbeResult Result)[] probed = await Task.WhenAll(
+            addresses.Select(address => ProbeAddressAsync(address, timeoutMs, cancellationToken))).ConfigureAwait(false);
+        (string Address, NetworkProbeResult Result) best = SelectBest(probed);
+        NetworkProbeResult result = best.Result;
+        string address = best.Address;
         DateTime now = _clock();
 
         NetworkLatencySample sample = new()
@@ -174,7 +176,9 @@ public sealed class InternetConnectionMonitor : IDisposable
             Timestamp = now,
             Success = result.Success,
             RoundtripMs = result.RoundtripMs,
-            Address = address
+            Address = address,
+            Method = result.Method,
+            Error = result.Error
         };
 
         NetworkStatusEvent? statusEvent = null;
@@ -190,19 +194,14 @@ public sealed class InternetConnectionMonitor : IDisposable
                 if (!IsConnected)
                 {
                     IsConnected = true;
-                    if (_isFirstEvent)
+                    statusEvent = new NetworkStatusEvent
                     {
-                        _isFirstEvent = false;
-                    }
-                    else
-                    {
-                        statusEvent = new NetworkStatusEvent
-                        {
-                            Timestamp = now,
-                            IsConnected = true,
-                            RoundtripMs = result.RoundtripMs
-                        };
-                    }
+                        Timestamp = now,
+                        IsConnected = true,
+                        RoundtripMs = result.RoundtripMs,
+                        IsBaseline = _isFirstEvent
+                    };
+                    _isFirstEvent = false;
                 }
                 else if (_isFirstEvent)
                 {
@@ -212,22 +211,18 @@ public sealed class InternetConnectionMonitor : IDisposable
             else
             {
                 _failCount++;
+                if (_failCount == 1)
+                {
+                    _firstFailDate = now;
+                }
+
                 if (IsConnected)
                 {
-                    if (_failCount == 1)
-                    {
-                        _firstFailDate = now;
-                    }
-
                     if (_failCount >= failThreshold)
                     {
                         IsConnected = false;
                         DisconnectCount++;
-                        if (_isFirstEvent)
-                        {
-                            _isFirstEvent = false;
-                        }
-
+                        _isFirstEvent = false;
                         statusEvent = new NetworkStatusEvent
                         {
                             Timestamp = _firstFailDate,
@@ -238,6 +233,12 @@ public sealed class InternetConnectionMonitor : IDisposable
                 else if (_isFirstEvent && _failCount >= failThreshold)
                 {
                     _isFirstEvent = false;
+                    statusEvent = new NetworkStatusEvent
+                    {
+                        Timestamp = _firstFailDate,
+                        IsConnected = false,
+                        IsBaseline = true
+                    };
                 }
             }
         }
@@ -270,7 +271,9 @@ public sealed class InternetConnectionMonitor : IDisposable
                 int delayMs;
                 lock (_sync)
                 {
-                    delayMs = Math.Max(200, _options.PingIntervalMs);
+                    bool hasConnectionState = !_isFirstEvent;
+                    bool suspecting = LastSample is { Success: false } && (IsConnected || !hasConnectionState);
+                    delayMs = GetDelayAfterProbe(suspecting, _options.PingIntervalMs);
                 }
 
                 await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
@@ -285,6 +288,59 @@ public sealed class InternetConnectionMonitor : IDisposable
         }
     }
 
+    private async Task<(string Address, NetworkProbeResult Result)> ProbeAddressAsync(
+        string address,
+        int timeoutMs,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            NetworkProbeResult result = await _probe.ProbeAsync(address, timeoutMs, cancellationToken).ConfigureAwait(false);
+            return (address, result);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return (address, new NetworkProbeResult(false, null, $"{address} failed ({ex.Message})."));
+        }
+    }
+
+    private static (string Address, NetworkProbeResult Result) SelectBest(
+        IReadOnlyList<(string Address, NetworkProbeResult Result)> results)
+    {
+        (string Address, NetworkProbeResult Result)? fastest = null;
+        foreach ((string Address, NetworkProbeResult Result) candidate in results)
+        {
+            if (!candidate.Result.Success)
+            {
+                continue;
+            }
+
+            if (fastest == null ||
+                (candidate.Result.RoundtripMs ?? long.MaxValue) < (fastest.Value.Result.RoundtripMs ?? long.MaxValue))
+            {
+                fastest = candidate;
+            }
+        }
+
+        if (fastest != null)
+        {
+            return fastest.Value;
+        }
+
+        string error = string.Join("; ", results
+            .Select(item => item.Result.Error)
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.Ordinal));
+        string address = results.Count == 1
+            ? results[0].Address
+            : string.Join(", ", results.Select(item => item.Address));
+        return (address, new NetworkProbeResult(false, null, string.IsNullOrWhiteSpace(error) ? "No response." : error));
+    }
+
     private static NetworkMonitorOptions CloneOptions(NetworkMonitorOptions source)
     {
         return new NetworkMonitorOptions
@@ -292,7 +348,7 @@ public sealed class InternetConnectionMonitor : IDisposable
             FailThreshold = source.FailThreshold,
             PingIntervalMs = source.PingIntervalMs,
             PingTimeoutMs = source.PingTimeoutMs,
-            PingAddresses = [.. source.PingAddresses]
+            PingAddresses = source.PingAddresses == null ? [] : [.. source.PingAddresses]
         };
     }
 }

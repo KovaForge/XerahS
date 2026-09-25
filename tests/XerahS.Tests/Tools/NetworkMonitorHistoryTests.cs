@@ -87,6 +87,47 @@ public class NetworkMonitorHistoryTests
     }
 
     [Test]
+    public void GetStart_SessionUsesTheSuppliedStart()
+    {
+        DateTime now = new(2026, 8, 29, 18, 0, 0);
+        DateTime sessionStart = now.AddMinutes(-12);
+
+        DateTime start = NetworkMonitorTimeRanges.GetStart(NetworkMonitorTimeRange.Session, now, sessionStart);
+
+        Assert.That(start, Is.EqualTo(sessionStart));
+    }
+
+    [Test]
+    public void AddSample_DropsSamplesOlderThanOneDay()
+    {
+        NetworkMonitorHistory history = new();
+        DateTime now = new(2026, 8, 29, 18, 0, 0);
+        history.AddSample(new NetworkLatencySample { Timestamp = now.AddHours(-25), Success = true, RoundtripMs = 10 });
+        history.AddSample(new NetworkLatencySample { Timestamp = now, Success = true, RoundtripMs = 12 });
+
+        Assert.That(history.Samples, Has.Count.EqualTo(1));
+        Assert.That(history.Samples[0].RoundtripMs, Is.EqualTo(12));
+    }
+
+    [Test]
+    public void GetStats_BaselineDownDoesNotInventEarlierUptime()
+    {
+        NetworkMonitorHistory history = new();
+        DateTime start = new(2026, 8, 29, 12, 0, 0);
+        history.AddEvent(new NetworkStatusEvent
+        {
+            Timestamp = start,
+            IsConnected = false,
+            IsBaseline = true
+        });
+
+        NetworkMonitorStats stats = history.GetStats(start, start.AddMinutes(10), isCurrentlyConnected: false, now: start.AddMinutes(10));
+
+        Assert.That(stats.UptimePercent, Is.EqualTo(0).Within(0.1));
+        Assert.That(stats.DisconnectCount, Is.EqualTo(0));
+    }
+
+    [Test]
     public void BuildChartPoints_SeparatesConnectivityTransitionsFromLatencySamples()
     {
         NetworkMonitorHistory history = new();

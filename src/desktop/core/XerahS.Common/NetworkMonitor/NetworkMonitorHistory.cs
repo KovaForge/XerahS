@@ -27,7 +27,8 @@ namespace XerahS.Common.NetworkMonitor;
 
 public sealed class NetworkMonitorHistory
 {
-    public const int MaxSamples = 20000;
+    public const int MaxSamples = 90000;
+    public static readonly TimeSpan MaxSampleAge = TimeSpan.FromHours(24);
     private readonly List<NetworkStatusEvent> _events = [];
     private readonly List<NetworkLatencySample> _samples = [];
     private readonly object _sync = new();
@@ -88,6 +89,8 @@ public sealed class NetworkMonitorHistory
         lock (_sync)
         {
             _samples.Add(sample);
+            DateTime cutoff = sample.Timestamp - MaxSampleAge;
+            _samples.RemoveAll(existing => existing.Timestamp < cutoff);
             if (_samples.Count > MaxSamples)
             {
                 _samples.RemoveRange(0, _samples.Count - MaxSamples);
@@ -331,7 +334,7 @@ public sealed class NetworkMonitorHistory
         NetworkStatusEvent? first = events.FirstOrDefault(item => item.Timestamp > rangeStart);
         if (first != null)
         {
-            return !first.IsConnected;
+            return first.IsBaseline ? first.IsConnected : !first.IsConnected;
         }
 
         return isCurrentlyConnected;
