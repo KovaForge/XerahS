@@ -7488,3 +7488,14 @@ Added candidates (8):
 - Commit: none (empty-queue audit; SHA in Step 9 summary only)
 - Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
 - Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-25 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 89 -> 90)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (2c15796937) == declan/develop (2c15796937) == origin/develop (2c15796937) at tick start. Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
