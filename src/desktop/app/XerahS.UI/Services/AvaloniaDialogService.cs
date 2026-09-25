@@ -59,12 +59,15 @@ namespace XerahS.UI.Services
             if (mainVm == null) return Task.FromResult(false);
 
             var tcs = new TaskCompletionSource<bool>();
-            viewModel.RequestClose = result =>
-            {
-                if (mainVm.ModalContent == viewModel)
-                    mainVm.CloseModalCommand.Execute(null);
-                tcs.TrySetResult(result ?? false);
-            };
+            WireModalAwaiter(
+                mainVm,
+                viewModel,
+                tcs,
+                assignCloseCallback: set =>
+                {
+                    viewModel.RequestClose = result => set(result ?? false);
+                },
+                dismissResult: false);
 
             ModalOpenService.Open(mainVm, viewModel, nameof(PluginInstallerViewModel));
             return tcs.Task;
@@ -76,12 +79,15 @@ namespace XerahS.UI.Services
             if (mainVm == null) return Task.FromResult(false);
 
             var tcs = new TaskCompletionSource<bool>();
-            viewModel.CloseRequested = result =>
-            {
-                if (mainVm.ModalContent == viewModel)
-                    mainVm.CloseModalCommand.Execute(null);
-                tcs.TrySetResult(result);
-            };
+            WireModalAwaiter(
+                mainVm,
+                viewModel,
+                tcs,
+                assignCloseCallback: set =>
+                {
+                    viewModel.CloseRequested = set;
+                },
+                dismissResult: false);
 
             ModalOpenService.Open(mainVm, viewModel, nameof(CustomUploaderEditorViewModel));
             return tcs.Task;
@@ -93,12 +99,15 @@ namespace XerahS.UI.Services
             if (mainVm == null) return Task.FromResult(false);
 
             var tcs = new TaskCompletionSource<bool>();
-            viewModel.CloseRequested = result =>
-            {
-                if (mainVm.ModalContent == viewModel)
-                    mainVm.CloseModalCommand.Execute(null);
-                tcs.TrySetResult(result);
-            };
+            WireModalAwaiter(
+                mainVm,
+                viewModel,
+                tcs,
+                assignCloseCallback: set =>
+                {
+                    viewModel.CloseRequested = set;
+                },
+                dismissResult: false);
 
             ModalOpenService.Open(mainVm, viewModel, nameof(WorkflowEditorViewModel));
             return tcs.Task;
@@ -162,6 +171,43 @@ namespace XerahS.UI.Services
 
             ModalOpenService.Open(mainVm, viewModel, nameof(QrCodeGeneratorViewModel));
             return Task.CompletedTask;
+        }
+
+
+        /// <summary>
+        /// Completes <paramref name="tcs"/> when the modal closes via Save/Cancel
+        /// (assigned close callback) OR when the overlay is dismissed (backdrop /
+        /// Escape / CloseModal) without invoking the VM close callback.
+        /// </summary>
+        private static void WireModalAwaiter<T>(
+            MainViewModel mainVm,
+            object viewModel,
+            TaskCompletionSource<T> tcs,
+            Action<Action<T>> assignCloseCallback,
+            T dismissResult)
+        {
+            void Complete(T result)
+            {
+                mainVm.PropertyChanged -= OnModalPropertyChanged;
+                if (mainVm.ModalContent == viewModel)
+                    mainVm.CloseModalCommand.Execute(null);
+                tcs.TrySetResult(result);
+            }
+
+            void OnModalPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+            {
+                if (e.PropertyName == nameof(MainViewModel.IsModalOpen) &&
+                    !mainVm.IsModalOpen &&
+                    !tcs.Task.IsCompleted)
+                {
+                    // Backdrop / Escape / CloseModal cleared the overlay without the VM callback.
+                    mainVm.PropertyChanged -= OnModalPropertyChanged;
+                    tcs.TrySetResult(dismissResult);
+                }
+            }
+
+            assignCloseCallback(Complete);
+            mainVm.PropertyChanged += OnModalPropertyChanged;
         }
 
         private static Window? GetDialogOwner(IClassicDesktopStyleApplicationLifetime desktop)
