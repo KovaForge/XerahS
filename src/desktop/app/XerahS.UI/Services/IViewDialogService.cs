@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using XerahS.UI.ViewModels;
+using XerahS.UI.Views.Dialogs;
 
 namespace XerahS.UI.Services
 {
@@ -15,6 +16,8 @@ namespace XerahS.UI.Services
         Task ShowFFmpegOptionsAsync(FFmpegOptionsViewModel viewModel);
         Task ShowProviderExplorerAsync(ProviderExplorerViewModel viewModel);
         Task ShowQrCodeGeneratorAsync(QrCodeGeneratorViewModel viewModel);
+        Task<bool> ShowWatchFolderEditorAsync(WatchFolderEditViewModel viewModel);
+        Task<OpenImageChoice> ShowOpenImageChoiceAsync();
         Task<string?> ShowFilePickerAsync(string title, IEnumerable<string>? filters = null);
         Task<string?> ShowSaveFilePickerAsync(string title, string suggestedFileName, string defaultExtension, IEnumerable<string>? filters = null);
         Task<string?> ShowSecretInputAsync(string title, string label);

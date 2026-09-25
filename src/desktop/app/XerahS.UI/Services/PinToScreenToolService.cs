@@ -115,19 +115,39 @@ public static class PinToScreenToolService
 
     private static async Task PinToScreenAsync(Window? owner)
     {
-        // Show startup dialog to let user choose source
-        var dialog = new PinToScreenStartupDialog();
-
-        dialog.SelectRegionRequested = SelectRegionWithLocationAsync;
-        dialog.BrowseFileRequested = () => BrowseImageFileAsync(dialog, owner);
-
-        if (owner != null)
+        var dialog = new PinToScreenStartupDialog
         {
-            await dialog.ShowDialog(owner);
-        }
-        else
+            BrowseFileRequested = () => BrowseImageFileAsync(null, owner)
+        };
+
+        var fromScreen = false;
+        dialog.SelectRegionRequested = () =>
         {
-            await dialog.ShowDialog<object?>(dialog);
+            fromScreen = true;
+            return Task.FromResult<(SKBitmap? Bitmap, PixelPoint? Location)>((null, null));
+        };
+
+        await ModalDialogHost.ShowUntilClosedAsync(
+            dialog,
+            set => dialog.CloseRequested = () => set(),
+            debugSource: nameof(PinToScreenStartupDialog));
+
+        if (fromScreen)
+        {
+            var (bitmap, location) = await SelectRegionWithLocationAsync();
+            if (bitmap != null)
+            {
+                try
+                {
+                    PinToScreenManager.PinImage(bitmap, location, GetOptions());
+                }
+                finally
+                {
+                    bitmap.Dispose();
+                }
+            }
+
+            return;
         }
 
         if (dialog.Result != null)

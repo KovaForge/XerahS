@@ -385,62 +385,22 @@ namespace XerahS.UI.Services
                 return;
             }
 
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                var dialog = new Views.SurfaceWindow
+                var viewModel = new SimplePromptViewModel
                 {
-                    Title = "Video Editor Unavailable",
-                    Width = 680,
-                    Height = 280,
-                    MinWidth = 560,
-                    MinHeight = 220,
-                    CanResize = true,
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                    Title = "Video editor",
+                    Message = "The video editor could not start." + Environment.NewLine + Environment.NewLine + message,
+                    ShowCancel = false,
+                    PrimaryButtonText = "Close",
+                    IsError = true
                 };
 
-                var closeButton = new Button
-                {
-                    Content = "Close",
-                    MinWidth = 100,
-                    HorizontalAlignment = HorizontalAlignment.Right
-                };
-
-                closeButton.Click += (_, _) => dialog.Close();
-
-                dialog.Content = new StackPanel
-                {
-                    Margin = new Thickness(20),
-                    Spacing = 16,
-                    Children =
-                    {
-                        new TextBlock
-                        {
-                            Text = "The video editor could not start.",
-                            FontWeight = FontWeight.SemiBold
-                        },
-                        new ScrollViewer
-                        {
-                            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                            Content = new TextBlock
-                            {
-                                Text = message,
-                                TextWrapping = TextWrapping.Wrap
-                            }
-                        },
-                        closeButton
-                    }
-                };
-
-                Window? owner = TryGetDialogOwner();
-
-                if (CanUseDialogOwner(owner))
-                {
-                    _ = dialog.ShowDialog(owner!);
-                }
-                else
-                {
-                    dialog.Show();
-                }
+                await ModalDialogHost.ShowAsync(
+                    viewModel,
+                    set => viewModel.CloseRequested = set,
+                    dismissResult: false,
+                    debugSource: "VideoEditorStartupError");
             });
         }
 
@@ -468,34 +428,11 @@ namespace XerahS.UI.Services
             return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 var viewModel = new AfterCaptureViewModel(image, afterCapture, afterUpload);
-                var window = new Views.AfterCaptureWindow
-                {
-                    DataContext = viewModel
-                };
 
-                viewModel.RequestClose += () => window.Close();
-
-                Window? owner = null;
-                if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-                {
-                    owner = desktop.MainWindow;
-                }
-
-                bool canUseOwner = owner != null && owner.IsVisible &&
-                                   owner.WindowState != Avalonia.Controls.WindowState.Minimized &&
-                                   owner.ShowInTaskbar;
-
-                if (canUseOwner)
-                {
-                    await window.ShowDialog(owner!);
-                }
-                else
-                {
-                    var closedTcs = new TaskCompletionSource<bool>();
-                    window.Closed += (_, _) => closedTcs.TrySetResult(true);
-                    window.Show();
-                    await closedTcs.Task;
-                }
+                await ModalDialogHost.ShowUntilClosedAsync(
+                    viewModel,
+                    set => viewModel.RequestClose += () => set(),
+                    debugSource: nameof(AfterCaptureViewModel));
 
                 return (viewModel.AfterCaptureTasks, viewModel.AfterUploadTasks, viewModel.Cancelled, viewModel.QuickAction);
             });
@@ -540,23 +477,11 @@ namespace XerahS.UI.Services
             return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 var viewModel = new SendToPromptViewModel(selection, SettingsManager.Settings);
-                var window = new Views.SendToPromptWindow
-                {
-                    DataContext = viewModel
-                };
 
-                Window? owner = TryGetDialogOwner();
-                if (CanUseDialogOwner(owner))
-                {
-                    await window.ShowDialog(owner!);
-                }
-                else
-                {
-                    var closedTcs = new TaskCompletionSource<bool>();
-                    window.Closed += (_, _) => closedTcs.TrySetResult(true);
-                    window.Show();
-                    await closedTcs.Task;
-                }
+                await ModalDialogHost.ShowUntilClosedAsync(
+                    viewModel,
+                    set => viewModel.RequestClose += () => set(),
+                    debugSource: nameof(SendToPromptViewModel));
 
                 return viewModel.Result;
             });

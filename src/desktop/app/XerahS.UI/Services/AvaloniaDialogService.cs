@@ -15,208 +15,98 @@ namespace XerahS.UI.Services
 {
     public class AvaloniaDialogService : IViewDialogService
     {
-        public async Task ShowDialogAsync<TWindow>(object dataContext) where TWindow : class, new()
+        public Task ShowDialogAsync<TWindow>(object dataContext) where TWindow : class, new()
         {
-            if (new TWindow() is not Window window)
-            {
-                throw new InvalidOperationException($"Type {typeof(TWindow).Name} must inherit from Avalonia.Controls.Window");
-            }
-
-            window.DataContext = dataContext;
-
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
-                GetDialogOwner(desktop) is { } owner)
-            {
-                await window.ShowDialog(owner);
-            }
-            else
-            {
-                var completionSource = new TaskCompletionSource();
-                window.Closed += (_, _) => completionSource.TrySetResult();
-                window.Show();
-                await completionSource.Task;
-            }
+            throw new NotSupportedException(
+                $"Window.ShowDialog is retired. Host '{typeof(TWindow).Name}' via ModalDialogHost / ModalContent.");
         }
 
-        public async Task<TResult?> ShowDialogAsync<TWindow, TResult>(object dataContext) where TWindow : class, new()
+        public Task<TResult?> ShowDialogAsync<TWindow, TResult>(object dataContext) where TWindow : class, new()
         {
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
-                GetDialogOwner(desktop) is { } owner)
-            {
-                var window = new TWindow() as Window;
-                if (window != null)
-                {
-                    window.DataContext = dataContext;
-                    return await window.ShowDialog<TResult>(owner);
-                }
-            }
-            return default;
+            throw new NotSupportedException(
+                $"Window.ShowDialog is retired. Host '{typeof(TWindow).Name}' via ModalDialogHost / ModalContent.");
         }
 
         public Task<bool> ShowPluginInstallerAsync(PluginInstallerViewModel viewModel)
         {
-            var mainVm = MainViewModel.Current;
-            if (mainVm == null) return Task.FromResult(false);
-
-            var tcs = new TaskCompletionSource<bool>();
-            WireModalAwaiter(
-                mainVm,
+            return ModalDialogHost.ShowAsync(
                 viewModel,
-                tcs,
-                assignCloseCallback: set =>
-                {
-                    viewModel.RequestClose = result => set(result ?? false);
-                },
-                dismissResult: false);
-
-            ModalOpenService.Open(mainVm, viewModel, nameof(PluginInstallerViewModel));
-            return tcs.Task;
+                set => viewModel.RequestClose = result => set(result ?? false),
+                dismissResult: false,
+                debugSource: nameof(PluginInstallerViewModel));
         }
 
         public Task<bool> ShowCustomUploaderEditorAsync(CustomUploaderEditorViewModel viewModel)
         {
-            var mainVm = MainViewModel.Current;
-            if (mainVm == null) return Task.FromResult(false);
-
-            var tcs = new TaskCompletionSource<bool>();
-            WireModalAwaiter(
-                mainVm,
+            return ModalDialogHost.ShowAsync(
                 viewModel,
-                tcs,
-                assignCloseCallback: set =>
-                {
-                    viewModel.CloseRequested = set;
-                },
-                dismissResult: false);
-
-            ModalOpenService.Open(mainVm, viewModel, nameof(CustomUploaderEditorViewModel));
-            return tcs.Task;
+                set => viewModel.CloseRequested = set,
+                dismissResult: false,
+                debugSource: nameof(CustomUploaderEditorViewModel));
         }
 
         public Task<bool> ShowWorkflowEditorAsync(WorkflowEditorViewModel viewModel)
         {
-            var mainVm = MainViewModel.Current;
-            if (mainVm == null) return Task.FromResult(false);
-
-            var tcs = new TaskCompletionSource<bool>();
-            WireModalAwaiter(
-                mainVm,
+            return ModalDialogHost.ShowAsync(
                 viewModel,
-                tcs,
-                assignCloseCallback: set =>
-                {
-                    viewModel.CloseRequested = set;
-                },
-                dismissResult: false);
-
-            ModalOpenService.Open(mainVm, viewModel, nameof(WorkflowEditorViewModel));
-            return tcs.Task;
+                set => viewModel.CloseRequested = set,
+                dismissResult: false,
+                debugSource: nameof(WorkflowEditorViewModel));
         }
 
         public Task ShowImageEffectsBrowserAsync(ImageEffectsViewModel viewModel)
         {
-            var mainVm = MainViewModel.Current;
-            if (mainVm == null) return Task.CompletedTask;
-
-            viewModel.CloseRequested = _ =>
-            {
-                if (mainVm.ModalContent == viewModel)
-                    mainVm.CloseModalCommand.Execute(null);
-            };
-
-            ModalOpenService.Open(mainVm, viewModel, nameof(ImageEffectsViewModel));
-            return Task.CompletedTask;
+            return ModalDialogHost.ShowAsync(
+                viewModel,
+                set => viewModel.CloseRequested = _ => set(true),
+                dismissResult: true,
+                debugSource: nameof(ImageEffectsViewModel));
         }
 
         public Task ShowFFmpegOptionsAsync(FFmpegOptionsViewModel viewModel)
         {
-            var mainVm = MainViewModel.Current;
-            if (mainVm == null) return Task.CompletedTask;
-
-            viewModel.CloseRequested = result =>
-            {
-                if (mainVm.ModalContent == viewModel)
-                    mainVm.CloseModalCommand.Execute(null);
-            };
-
-            ModalOpenService.Open(mainVm, viewModel, nameof(FFmpegOptionsViewModel));
-            return Task.CompletedTask;
+            return ModalDialogHost.ShowAsync(
+                viewModel,
+                set => viewModel.CloseRequested = _ => set(true),
+                dismissResult: true,
+                debugSource: nameof(FFmpegOptionsViewModel));
         }
 
         public Task ShowProviderExplorerAsync(ProviderExplorerViewModel viewModel)
         {
-            var mainVm = MainViewModel.Current;
-            if (mainVm == null) return Task.CompletedTask;
-
-            viewModel.CloseRequested = _ =>
-            {
-                if (mainVm.ModalContent == viewModel)
-                    mainVm.CloseModalCommand.Execute(null);
-            };
-
-            ModalOpenService.Open(mainVm, viewModel, nameof(ProviderExplorerViewModel));
-            return Task.CompletedTask;
+            return ModalDialogHost.ShowAsync(
+                viewModel,
+                set => viewModel.CloseRequested = _ => set(true),
+                dismissResult: true,
+                debugSource: nameof(ProviderExplorerViewModel));
         }
 
         public Task ShowQrCodeGeneratorAsync(QrCodeGeneratorViewModel viewModel)
         {
-            var mainVm = MainViewModel.Current;
-            if (mainVm == null) return Task.CompletedTask;
-
-            viewModel.CloseRequested = _ =>
-            {
-                if (mainVm.ModalContent == viewModel)
-                    mainVm.CloseModalCommand.Execute(null);
-            };
-
-            ModalOpenService.Open(mainVm, viewModel, nameof(QrCodeGeneratorViewModel));
-            return Task.CompletedTask;
+            return ModalDialogHost.ShowAsync(
+                viewModel,
+                set => viewModel.CloseRequested = _ => set(true),
+                dismissResult: true,
+                debugSource: nameof(QrCodeGeneratorViewModel));
         }
 
-
-        /// <summary>
-        /// Completes <paramref name="tcs"/> when the modal closes via Save/Cancel
-        /// (assigned close callback) OR when the overlay is dismissed (backdrop /
-        /// Escape / CloseModal) without invoking the VM close callback.
-        /// </summary>
-        private static void WireModalAwaiter<T>(
-            MainViewModel mainVm,
-            object viewModel,
-            TaskCompletionSource<T> tcs,
-            Action<Action<T>> assignCloseCallback,
-            T dismissResult)
+        public Task<bool> ShowWatchFolderEditorAsync(WatchFolderEditViewModel viewModel)
         {
-            void Complete(T result)
-            {
-                mainVm.PropertyChanged -= OnModalPropertyChanged;
-                if (mainVm.ModalContent == viewModel)
-                    mainVm.CloseModalCommand.Execute(null);
-                tcs.TrySetResult(result);
-            }
-
-            void OnModalPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-            {
-                if (e.PropertyName == nameof(MainViewModel.IsModalOpen) &&
-                    !mainVm.IsModalOpen &&
-                    !tcs.Task.IsCompleted)
-                {
-                    // Backdrop / Escape / CloseModal cleared the overlay without the VM callback.
-                    mainVm.PropertyChanged -= OnModalPropertyChanged;
-                    tcs.TrySetResult(dismissResult);
-                }
-            }
-
-            assignCloseCallback(Complete);
-            mainVm.PropertyChanged += OnModalPropertyChanged;
+            return ModalDialogHost.ShowAsync(
+                viewModel,
+                set => viewModel.CloseRequested = set,
+                dismissResult: false,
+                debugSource: nameof(WatchFolderEditViewModel));
         }
 
-        private static Window? GetDialogOwner(IClassicDesktopStyleApplicationLifetime desktop)
+        public Task<OpenImageChoice> ShowOpenImageChoiceAsync()
         {
-            // Prefer the currently active visible window so modal dialogs are not hidden
-            // behind another tool/settings window (most noticeable on Linux WMs).
-            return desktop.Windows.FirstOrDefault(window => window.IsVisible && window.IsActive)
-                ?? desktop.Windows.LastOrDefault(window => window.IsVisible)
-                ?? desktop.MainWindow;
+            var viewModel = new OpenImageChoiceViewModel();
+            return ModalDialogHost.ShowAsync(
+                viewModel,
+                set => viewModel.CloseRequested = set,
+                dismissResult: OpenImageChoice.Cancel,
+                debugSource: nameof(OpenImageChoiceViewModel));
         }
 
         public async Task<string?> ShowFilePickerAsync(string title, IEnumerable<string>? filters = null)
@@ -262,55 +152,23 @@ namespace XerahS.UI.Services
 
         public async Task<string?> ShowSecretInputAsync(string title, string label)
         {
-            if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop ||
-                GetDialogOwner(desktop) is not { } owner)
-            {
-                return null;
-            }
-
-            string? result = null;
-            var dialog = new SurfaceWindow
+            var viewModel = new SimplePromptViewModel
             {
                 Title = title,
-                Width = 420,
-                Height = 190,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                CanResize = false
+                Label = label,
+                ShowCancel = true,
+                ShowInput = true,
+                IsPassword = true,
+                PrimaryButtonText = "OK"
             };
-            var textBox = new TextBox
-            {
-                PasswordChar = '*',
-                PlaceholderText = label
-            };
-            var panel = new StackPanel
-            {
-                Margin = new Thickness(20),
-                Spacing = 14
-            };
-            panel.Children.Add(new TextBlock { Text = label, FontSize = 14 });
-            panel.Children.Add(textBox);
 
-            var buttonRow = new StackPanel
-            {
-                Orientation = Avalonia.Layout.Orientation.Horizontal,
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-                Spacing = 8
-            };
-            var cancelButton = new Button { Content = "Cancel", Padding = new Thickness(20, 8) };
-            var okButton = new Button { Content = "OK", Padding = new Thickness(20, 8), IsDefault = true };
-            cancelButton.Click += (_, _) => dialog.Close();
-            okButton.Click += (_, _) =>
-            {
-                result = textBox.Text;
-                dialog.Close();
-            };
-            buttonRow.Children.Add(cancelButton);
-            buttonRow.Children.Add(okButton);
-            panel.Children.Add(buttonRow);
-            dialog.Content = panel;
+            var ok = await ModalDialogHost.ShowAsync(
+                viewModel,
+                set => viewModel.CloseRequested = set,
+                dismissResult: false,
+                debugSource: "SecretInput");
 
-            await dialog.ShowDialog(owner);
-            return result;
+            return ok ? viewModel.AcceptedInput : null;
         }
 
         public async Task<string?> ShowFolderPickerAsync(string title)
@@ -341,60 +199,6 @@ namespace XerahS.UI.Services
                 return desktop.Windows;
             }
             return Enumerable.Empty<object>();
-        }
-
-        private static Window CreateDialog<TWindow>(object dataContext) where TWindow : Window, new()
-        {
-            var dialog = new TWindow
-            {
-                DataContext = dataContext
-            };
-
-            return dialog;
-        }
-
-        private static void WireCloseRequest(PluginInstallerViewModel viewModel, Window dialog)
-        {
-            viewModel.RequestClose = result =>
-            {
-                dialog.Close(result ?? false);
-            };
-        }
-
-        private static void WireCloseRequest(CustomUploaderEditorViewModel viewModel, Window dialog)
-        {
-            viewModel.CloseRequested = result =>
-            {
-                dialog.Close(result);
-            };
-        }
-
-        private static async Task<TResult?> ShowDialogAsync<TResult>(Window dialog)
-        {
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
-                GetDialogOwner(desktop) is { } owner)
-            {
-                return await dialog.ShowDialog<TResult>(owner);
-            }
-
-            var tcs = new TaskCompletionSource<TResult?>();
-            dialog.Closed += (_, _) => tcs.TrySetResult(default);
-            dialog.Show();
-            return await tcs.Task;
-        }
-
-        private static Task ShowDialogAsync(Window dialog)
-        {
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
-                GetDialogOwner(desktop) is { } owner)
-            {
-                return dialog.ShowDialog(owner);
-            }
-
-            var tcs = new TaskCompletionSource();
-            dialog.Closed += (_, _) => tcs.TrySetResult();
-            dialog.Show();
-            return tcs.Task;
         }
     }
 }

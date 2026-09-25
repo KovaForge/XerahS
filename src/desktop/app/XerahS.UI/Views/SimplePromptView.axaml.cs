@@ -10,14 +10,9 @@ using Avalonia.Markup.Xaml;
 
 namespace XerahS.UI.Views;
 
-public partial class SendToPromptWindow : UserControl
+public partial class SimplePromptView : UserControl
 {
-    public SendToPromptWindow()
-    {
-        InitializeComponent();
-    }
-
-    private void InitializeComponent()
+    public SimplePromptView()
     {
         AvaloniaXamlLoader.Load(this);
     }

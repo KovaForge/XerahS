@@ -164,7 +164,14 @@ public partial class OnboardingWizardWindow : Window
         };
 
         dialogViewModel.CloseRequested = dialog.Close;
-        await dialog.ShowDialog(this);
+        
+        {
+            var closed = new TaskCompletionSource();
+            dialog.Closed += (_, _) => closed.TrySetResult();
+            dialog.Show(this);
+            await closed.Task;
+        }
+
 
         OnboardingFileUploaderHelper.EnsureFileUploaderInstances(
             option.Id,
@@ -248,7 +255,14 @@ public partial class OnboardingWizardWindow : Window
             }
         };
 
-        await ShowDialog(owner);
+        
+        {
+            var closed = new TaskCompletionSource();
+            Closed += (_, _) => closed.TrySetResult();
+            Show(owner);
+            await closed.Task;
+        }
+
 
         if (_takeFirstScreenshotAfterClose)
         {

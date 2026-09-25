@@ -49,6 +49,7 @@ using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
 using XerahS.UI.Views.Dialogs;
+using XerahS.UI.Services;
 using XerahS.UI.Helpers;
 using XerahS.UI.Services.SettingsSearch;
 
@@ -302,8 +303,8 @@ namespace XerahS.UI.Views
         {
             try
             {
-                var dialog = new OpenImageChoiceDialog();
-                return await dialog.ShowDialog<OpenImageChoice>(this);
+                var dialogs = UiViewModelFactoryAccessor.GetRequired().ViewDialogService;
+                return await dialogs.ShowOpenImageChoiceAsync();
             }
             catch (Exception ex)
             {

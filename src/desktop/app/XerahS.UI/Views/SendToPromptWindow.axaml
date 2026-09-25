@@ -1,4 +1,4 @@
-<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                   xmlns:ui="using:XerahS.UI.Views"
                   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -7,16 +7,9 @@
                   mc:Ignorable="d"
                   x:Class="XerahS.UI.Views.SendToPromptWindow"
                   x:DataType="vm:SendToPromptViewModel"
-                  x:CompileBindings="True"
-                  Title="How should XerahS handle sent files?"
-                  Icon="/Assets/Logo.ico"
-                  Width="{DynamicResource WindowWidth}"
-                  Height="{DynamicResource WindowHeight}"
-                  MinWidth="{DynamicResource WindowMinWidth}"
-                  MinHeight="{DynamicResource WindowMinHeight}"
-                  WindowStartupLocation="CenterOwner">
+                  x:CompileBindings="True">
 
-  <Window.Resources>
+  <UserControl.Resources>
     <x:Double x:Key="WindowWidth">920</x:Double>
     <x:Double x:Key="WindowHeight">620</x:Double>
     <x:Double x:Key="WindowMinWidth">760</x:Double>
@@ -44,9 +37,9 @@
 
     <CornerRadius x:Key="CornerMd">8</CornerRadius>
     <CornerRadius x:Key="CornerLg">12</CornerRadius>
-  </Window.Resources>
+  </UserControl.Resources>
 
-  <Window.Styles>
+  <UserControl.Styles>
     <Style Selector="TextBlock">
       <Setter Property="FontSize" Value="{StaticResource FontBody}"/>
       <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
@@ -78,7 +71,7 @@
       <Setter Property="HorizontalAlignment" Value="Stretch"/>
       <Setter Property="HorizontalContentAlignment" Value="Left"/>
     </Style>
-  </Window.Styles>
+  </UserControl.Styles>
 
   <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
           Padding="{StaticResource PagePadding}">
@@ -143,7 +136,6 @@
                            AutomationProperties.Name="Folder policy label"/>
                 <ComboBox ItemsSource="{Binding FolderPolicyOptions}"
                           SelectedIndex="{Binding FolderPolicySelectedIndex}"
-                          MinHeight="{StaticResource ControlHeight}"
                           AutomationProperties.Name="Folder policy"/>
                 <TextBlock Text="{Binding FolderPolicySummaryText}"
                            Classes="caption"
@@ -161,13 +153,11 @@
                            AutomationProperties.Name="Batch policy label"/>
                 <ComboBox ItemsSource="{Binding BatchPolicyOptions}"
                           SelectedIndex="{Binding BatchPolicySelectedIndex}"
-                          MinHeight="{StaticResource ControlHeight}"
                           AutomationProperties.Name="Batch policy"/>
                 <NumericUpDown Value="{Binding BatchConfirmThreshold}"
                                Minimum="1"
                                Maximum="100"
                                Increment="1"
-                               MinHeight="{StaticResource ControlHeight}"
                                IsVisible="{Binding ShowBatchThreshold}"
                                AutomationProperties.Name="Batch confirm threshold"/>
                 <TextBlock Text="{Binding BatchPolicySummaryText}"
@@ -271,4 +261,4 @@
       </Border>
     </Grid>
   </Border>
-</ui:SurfaceWindow>
+</UserControl>

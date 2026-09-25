@@ -140,51 +140,35 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
     private async Task<XerahS.Platform.Abstractions.WindowInfo?> ShowWindowSelectorAsync()
     {
-        var tcs = new TaskCompletionSource<XerahS.Platform.Abstractions.WindowInfo?>();
-
-        Dispatcher.UIThread.Post(() =>
+        try
         {
-            try
+            return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 var viewModel = new WindowSelectorViewModel();
-                var dialog = new SurfaceWindow
-                {
-                    Title = "Select Window to Capture",
-                    Width = 400,
-                    Height = 500,
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                    Content = new WindowSelectorDialog { DataContext = viewModel }
-                };
+                XerahS.Platform.Abstractions.WindowInfo? selected = null;
 
-                viewModel.OnWindowSelected = window =>
-                {
-                    tcs.TrySetResult(window);
-                    dialog.Close();
-                };
+                await ModalDialogHost.ShowAsync(
+                    viewModel,
+                    set =>
+                    {
+                        viewModel.OnWindowSelected = window =>
+                        {
+                            selected = window;
+                            set(true);
+                        };
+                        viewModel.OnCancelled = () => set(false);
+                    },
+                    dismissResult: false,
+                    debugSource: nameof(WindowSelectorViewModel));
 
-                viewModel.OnCancelled = () =>
-                {
-                    tcs.TrySetResult(null);
-                    dialog.Close();
-                };
-
-                if (_desktop?.MainWindow != null)
-                {
-                    dialog.ShowDialog(_desktop.MainWindow);
-                }
-                else
-                {
-                    dialog.Show();
-                }
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.WriteException(ex, "Failed to show window selector");
-                tcs.TrySetResult(null);
-            }
-        });
-
-        return await tcs.Task;
+                return selected;
+            });
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "Failed to show window selector");
+            return null;
+        }
     }
 
     private async Task<string?> ShowOpenFileDialogAsync()

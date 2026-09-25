@@ -23,160 +23,80 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Layout;
-using Avalonia.Media;
+using System.Threading.Tasks;
 using XerahS.Services.Abstractions;
-using XerahS.UI.Views;
+using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Services;
 
 /// <summary>
-/// Avalonia implementation of the framework-agnostic <see cref="IDialogService"/>.
-/// ViewModels depend only on the abstraction; this class lives in the UI layer.
+/// Avalonia implementation of <see cref="IDialogService"/> using ModalContent overlay.
 /// </summary>
 public sealed class AvaloniaDialogServiceAdapter : IDialogService
 {
     public Task ShowMessageAsync(string title, string message)
     {
-        return ShowSimpleDialogAsync(title, message, showCancel: false);
+        return ShowPromptAsync(title, message, showCancel: false, isError: false, isWarning: false);
     }
 
-    public async Task<bool> ShowConfirmationAsync(string title, string message)
+    public Task<bool> ShowConfirmationAsync(string title, string message)
     {
-        return await ShowSimpleDialogAsync(title, message, showCancel: true);
+        return ShowPromptAsync(title, message, showCancel: true, isError: false, isWarning: false);
     }
 
     public Task ShowErrorAsync(string title, string error)
     {
-        return ShowSimpleDialogAsync(title, error, showCancel: false, accentBrush: Brushes.Red);
+        return ShowPromptAsync(title, error, showCancel: false, isError: true, isWarning: false);
     }
 
     public Task ShowWarningAsync(string title, string warning)
     {
-        return ShowSimpleDialogAsync(title, warning, showCancel: false, accentBrush: Brushes.Orange);
+        return ShowPromptAsync(title, warning, showCancel: false, isError: false, isWarning: true);
     }
 
     public async Task<string?> ShowInputAsync(string title, string label, string? defaultValue = null)
     {
-        string? result = null;
+        var viewModel = new SimplePromptViewModel
+        {
+            Title = title,
+            Label = label,
+            InputText = defaultValue ?? string.Empty,
+            ShowCancel = true,
+            ShowInput = true,
+            PrimaryButtonText = "OK"
+        };
 
-        var dialog = CreateDialog(title, 420, 200);
-        var textBox = new TextBox { Text = defaultValue ?? "", PlaceholderText = label };
+        var ok = await ModalDialogHost.ShowAsync(
+            viewModel,
+            set => viewModel.CloseRequested = set,
+            dismissResult: false,
+            debugSource: "SimplePrompt.Input");
 
-        var panel = new StackPanel { Margin = new Thickness(20), Spacing = 14 };
-        panel.Children.Add(new TextBlock { Text = label, FontSize = 14 });
-        panel.Children.Add(textBox);
-
-        var buttonRow = CreateButtonRow();
-        var cancelBtn = new Button { Content = "Cancel", Padding = new Thickness(20, 8), IsDefault = false };
-        var okBtn = new Button { Content = "OK", Padding = new Thickness(20, 8), IsDefault = true };
-
-        cancelBtn.Click += (_, _) => dialog.Close();
-        okBtn.Click += (_, _) => { result = textBox.Text; dialog.Close(); };
-
-        buttonRow.Children.Add(cancelBtn);
-        buttonRow.Children.Add(okBtn);
-        panel.Children.Add(buttonRow);
-        dialog.Content = panel;
-
-        await ShowDialogAsync(dialog);
-        return result;
+        return ok ? viewModel.AcceptedInput : null;
     }
 
-    public Task<T?> ShowSelectionAsync<T>(string title, string label, IEnumerable<T> items) where T : class
+    public Task<T?> ShowSelectionAsync<T>(string title, string label, System.Collections.Generic.IEnumerable<T> items) where T : class
     {
-        // Minimal implementation — can be expanded with a proper ListBox-based picker
         return Task.FromResult<T?>(default);
     }
 
-    private async Task<bool> ShowSimpleDialogAsync(string title, string message, bool showCancel, IBrush? accentBrush = null)
+    private static async Task<bool> ShowPromptAsync(string title, string message, bool showCancel, bool isError, bool isWarning)
     {
-        bool result = false;
-        var dialog = CreateDialog(title, 420, 190);
-
-        var panel = new StackPanel
-        {
-            Margin = new Thickness(20),
-            Spacing = 14,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        var messageBlock = new TextBlock
-        {
-            Text = message,
-            TextWrapping = TextWrapping.Wrap,
-            MaxWidth = 380,
-            FontSize = 14
-        };
-        if (accentBrush != null)
-        {
-            messageBlock.Foreground = accentBrush;
-        }
-        panel.Children.Add(messageBlock);
-
-        var buttonRow = CreateButtonRow();
-
-        if (showCancel)
-        {
-            var cancelBtn = new Button { Content = "Cancel", Padding = new Thickness(20, 8), IsDefault = true };
-            cancelBtn.Click += (_, _) => { result = false; dialog.Close(); };
-            buttonRow.Children.Add(cancelBtn);
-        }
-
-        var okBtn = new Button
-        {
-            Content = showCancel ? "OK" : "Close",
-            Padding = new Thickness(20, 8),
-            IsDefault = !showCancel
-        };
-        okBtn.Click += (_, _) => { result = true; dialog.Close(); };
-        buttonRow.Children.Add(okBtn);
-
-        panel.Children.Add(buttonRow);
-        dialog.Content = panel;
-
-        await ShowDialogAsync(dialog);
-        return result;
-    }
-
-    private static Window CreateDialog(string title, double width, double height)
-    {
-        return new SurfaceWindow
+        var viewModel = new SimplePromptViewModel
         {
             Title = title,
-            Width = width,
-            Height = height,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            CanResize = false
+            Message = message,
+            ShowCancel = showCancel,
+            ShowInput = false,
+            IsError = isError,
+            IsWarning = isWarning,
+            PrimaryButtonText = showCancel ? "OK" : "Close"
         };
-    }
 
-    private static StackPanel CreateButtonRow()
-    {
-        return new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 10,
-            HorizontalAlignment = HorizontalAlignment.Right
-        };
-    }
-
-    private static async Task ShowDialogAsync(Window dialog)
-    {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop &&
-            desktop.MainWindow is { } mainWindow)
-        {
-            await dialog.ShowDialog(mainWindow);
-        }
-        else
-        {
-            dialog.Show();
-            var tcs = new TaskCompletionSource<bool>();
-            dialog.Closed += (_, _) => tcs.TrySetResult(true);
-            await tcs.Task;
-        }
+        return await ModalDialogHost.ShowAsync(
+            viewModel,
+            set => viewModel.CloseRequested = set,
+            dismissResult: false,
+            debugSource: "SimplePrompt");
     }
 }

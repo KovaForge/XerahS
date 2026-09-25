@@ -3,6 +3,7 @@
              xmlns:local="using:XerahS.UI"
              xmlns:vm="using:XerahS.UI.ViewModels"
              xmlns:views="using:XerahS.UI.Views"
+             xmlns:dialogs="using:XerahS.UI.Views.Dialogs"
              xmlns:converters="clr-namespace:ShareX.ImageEditor.Presentation.Converters;assembly=ShareX.ImageEditor"
              xmlns:uiconverters="clr-namespace:XerahS.UI.Converters"
              xmlns:core="using:XerahS.Core"
@@ -108,6 +109,27 @@
         </DataTemplate>
         <DataTemplate DataType="vm:QrCodeGeneratorViewModel" x:DataType="vm:QrCodeGeneratorViewModel">
             <views:QrCodeGeneratorDialog/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:WatchFolderEditViewModel" x:DataType="vm:WatchFolderEditViewModel">
+            <views:WatchFolderDialog/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:SimplePromptViewModel" x:DataType="vm:SimplePromptViewModel">
+            <views:SimplePromptView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:OpenImageChoiceViewModel" x:DataType="vm:OpenImageChoiceViewModel">
+            <dialogs:OpenImageChoiceDialog/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:WindowSelectorViewModel" x:DataType="vm:WindowSelectorViewModel">
+            <views:WindowSelectorDialog/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:UpdateMessageBoxViewModel" x:DataType="vm:UpdateMessageBoxViewModel">
+            <views:UpdateMessageBox/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:AfterCaptureViewModel" x:DataType="vm:AfterCaptureViewModel">
+            <views:AfterCaptureWindow/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:SendToPromptViewModel" x:DataType="vm:SendToPromptViewModel">
+            <views:SendToPromptWindow/>
         </DataTemplate>
     </Application.DataTemplates>
 

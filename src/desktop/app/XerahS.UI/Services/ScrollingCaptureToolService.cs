@@ -137,48 +137,26 @@ public static class ScrollingCaptureToolService
                 return null;
             }
 
-            // Show window selector
-            var tcs = new TaskCompletionSource<WindowInfo?>();
-
-            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            // Show window selector via MainWindow ModalContent
+            var selected = await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 var selectorViewModel = new WindowSelectorViewModel();
-                var selectorDialog = new WindowSelectorDialog
-                {
-                    DataContext = selectorViewModel
-                };
-
-                var selectorWindow = new SurfaceWindow
-                {
-                    Title = "Select Window to Capture",
-                    Width = 400,
-                    Height = 500,
-                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                    Content = selectorDialog,
-                    Topmost = true
-                };
-
-                selectorViewModel.OnWindowSelected = (selectedWindow) =>
-                {
-                    tcs.TrySetResult(selectedWindow);
-                    selectorWindow.Close();
-                };
-
-                selectorViewModel.OnCancelled = () =>
-                {
-                    tcs.TrySetResult(null);
-                    selectorWindow.Close();
-                };
-
-                selectorWindow.Closed += (_, _) =>
-                {
-                    tcs.TrySetResult(null);
-                };
-
-                selectorWindow.Show();
+                WindowInfo? picked = null;
+                await ModalDialogHost.ShowAsync(
+                    selectorViewModel,
+                    set =>
+                    {
+                        selectorViewModel.OnWindowSelected = w =>
+                        {
+                            picked = w;
+                            set(true);
+                        };
+                        selectorViewModel.OnCancelled = () => set(false);
+                    },
+                    dismissResult: false,
+                    debugSource: "ScrollingCapture.WindowSelector");
+                return picked;
             });
-
-            var selected = await tcs.Task;
 
             if (selected == null || selected.Handle == IntPtr.Zero)
             {

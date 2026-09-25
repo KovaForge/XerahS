@@ -1,12 +1,7 @@
-<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="using:XerahS.UI.Views"
         x:Class="XerahS.UI.Views.PinToScreenStartupDialog"
-        Title="Pin to Screen"
-        Width="320" Height="240"
-        MinWidth="320" MinHeight="240"
-        CanResize="False"
-        WindowStartupLocation="CenterOwner"
+        MinWidth="320" MinHeight="200"
         AutomationProperties.Name="Pin to Screen source selection">
 
   <StackPanel Margin="24" Spacing="12" VerticalAlignment="Center">
@@ -42,4 +37,4 @@
             HorizontalContentAlignment="Center"
             AutomationProperties.Name="Cancel" />
   </StackPanel>
-</ui:SurfaceWindow>
+</UserControl>

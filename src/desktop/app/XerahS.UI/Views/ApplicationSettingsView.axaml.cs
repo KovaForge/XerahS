@@ -67,17 +67,7 @@ namespace XerahS.UI.Views
 
             vm.EditWatchFolderRequester = async (editVm) =>
             {
-                var dialog = new WatchFolderDialog
-                {
-                    DataContext = editVm
-                };
-
-                if (VisualRoot is Window window)
-                {
-                    return await dialog.ShowDialog<bool>(window);
-                }
-
-                return false;
+                return await uiFactory.ViewDialogService.ShowWatchFolderEditorAsync(editVm);
             };
 
             vm.BrowseScreenshotsFolderRequester = BrowseScreenshotsFolderAsync;

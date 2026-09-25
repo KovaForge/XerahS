@@ -1,4 +1,4 @@
-<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="using:XerahS.UI.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -6,20 +6,13 @@
         xmlns:vm="using:XerahS.UI.ViewModels"
         mc:Ignorable="d"
         x:Class="XerahS.UI.Views.AfterCaptureWindow"
-        x:DataType="vm:AfterCaptureViewModel"
-        Title="After Capture Tasks"
-        Icon="/Assets/Logo.ico"
-        Width="{DynamicResource WindowWidth}"
-        Height="{DynamicResource WindowHeight}"
-        MinWidth="{DynamicResource WindowMinWidth}"
-        MinHeight="{DynamicResource WindowMinHeight}"
-        WindowStartupLocation="CenterOwner">
+        x:DataType="vm:AfterCaptureViewModel">
 
   <Design.DataContext>
     <vm:AfterCaptureViewModel/>
   </Design.DataContext>
 
-  <Window.Resources>
+  <UserControl.Resources>
     <x:Double x:Key="WindowWidth">960</x:Double>
     <x:Double x:Key="WindowHeight">640</x:Double>
     <x:Double x:Key="WindowMinWidth">760</x:Double>
@@ -50,9 +43,9 @@
 
     <CornerRadius x:Key="CornerMd">8</CornerRadius>
     <CornerRadius x:Key="CornerLg">12</CornerRadius>
-  </Window.Resources>
+  </UserControl.Resources>
 
-  <Window.Styles>
+  <UserControl.Styles>
     <Style Selector="TextBlock">
       <Setter Property="FontSize" Value="{StaticResource FontBody}"/>
       <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
@@ -105,7 +98,7 @@
       <Setter Property="HorizontalContentAlignment" Value="Left"/>
       <Setter Property="VerticalContentAlignment" Value="Top"/>
     </Style>
-  </Window.Styles>
+  </UserControl.Styles>
 
   <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
           Padding="{StaticResource PagePadding}">
@@ -134,7 +127,6 @@
         <Border Grid.Row="1"
                 Classes="card"
                 Padding="{StaticResource CardPadding}"
-                MinHeight="{StaticResource PreviewMinHeight}"
                 ClipToBounds="True">
           <Image Source="{Binding PreviewImage}"
                  Stretch="Uniform"
@@ -145,7 +137,6 @@
       </Grid>
 
       <GridSplitter Grid.Column="1"
-                    Width="6"
                     ResizeDirection="Columns"
                     HorizontalAlignment="Stretch"
                     Background="{DynamicResource CardStrokeColorDefaultBrush}"/>
@@ -282,4 +273,4 @@
 
     </Grid>
   </Border>
-</ui:SurfaceWindow>
+</UserControl>
