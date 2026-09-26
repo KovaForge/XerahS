@@ -371,14 +371,101 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
     }
 
     /// <inheritdoc/>
-    public async Task<bool> CreateFolderAsync(string parentPath, string folderName, CancellationToken cancellation = default)
+    public Task<bool> CreateFolderAsync(string parentPath, string folderName, CancellationToken cancellation = default)
     {
-        // S3 "folders" are zero-byte objects whose key ends with "/"
-        // We need settings to determine the bucket. Without a query context here we cannot
-        // resolve them, so callers should pass a MediaItem from the current listing.
-        // Return false — the VM drives this via a dedicated command that has instance context.
-        await Task.CompletedTask;
-        return false;
+        // Needs instance settings to resolve the bucket; the Media Browser calls the
+        // ExplorerContext overload below.
+        return Task.FromResult(false);
+    }
+
+    /// <inheritdoc/>
+    public ExplorerCapabilities BrowserCapabilities =>
+        ExplorerCapabilities.Download | ExplorerCapabilities.Upload | ExplorerCapabilities.Rename |
+        ExplorerCapabilities.Delete | ExplorerCapabilities.Url | ExplorerCapabilities.CreateFolder |
+        ExplorerCapabilities.Thumbnails;
+
+    /// <inheritdoc/>
+    public Task<bool> CreateFolderAsync(ExplorerContext context, string parentPath, string folderName, CancellationToken cancellation = default)
+    {
+        ValidateExplorerName(folderName);
+        return RunExplorerOperationAsync(context, (operations, config) =>
+            operations.CreateFolderAsync(S3ExplorerListHelper.ResolveListPrefix(config.ObjectPrefix, parentPath) + folderName + "/", cancellation));
+    }
+
+    /// <inheritdoc/>
+    public Task<bool> UploadAsync(ExplorerContext context, string folderPath, string fileName, Stream content, CancellationToken cancellation = default)
+    {
+        ValidateExplorerName(fileName);
+        return RunExplorerOperationAsync(context, (operations, config) =>
+            operations.UploadAsync(S3ExplorerListHelper.ResolveListPrefix(config.ObjectPrefix, folderPath) + fileName, content, cancellation));
+    }
+
+    /// <inheritdoc/>
+    public Task<bool> RenameAsync(ExplorerContext context, MediaItem item, string newName, CancellationToken cancellation = default)
+    {
+        ValidateExplorerName(newName);
+        string key = ResolveObjectKey(item);
+        string parent = GetParentKey(key);
+        return RunExplorerOperationAsync(context, (operations, _) => item.IsFolder
+            ? operations.RenameFolderAsync(key, parent + newName + "/", cancellation)
+            : operations.RenameFileAsync(key, parent + newName, cancellation));
+    }
+
+    /// <inheritdoc/>
+    public Task<bool> DeleteAsync(ExplorerContext context, MediaItem item, CancellationToken cancellation = default)
+    {
+        string key = ResolveObjectKey(item);
+        return RunExplorerOperationAsync(context, (operations, _) => item.IsFolder
+            ? operations.DeleteFolderAsync(key, cancellation)
+            : operations.DeleteFileAsync(key, cancellation));
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool?> HasChildrenAsync(ExplorerContext context, MediaItem folder, CancellationToken cancellation = default)
+    {
+        bool hasChildren = false;
+        string key = ResolveObjectKey(folder);
+        await RunExplorerOperationAsync(context, async (operations, _) =>
+            hasChildren = await operations.HasChildrenAsync(key, cancellation));
+        return hasChildren;
+    }
+
+    /// <summary>
+    /// Runs a write operation with an SDK client for the instance. Failures surface as exceptions
+    /// carrying the S3 error message, so the browser can show why an operation failed.
+    /// </summary>
+    private async Task<bool> RunExplorerOperationAsync(ExplorerContext context, Func<S3ExplorerOperations, S3ConfigModel, Task> operation)
+    {
+        S3ConfigModel config = DeserializeConfig(context.SettingsJson);
+        if (string.IsNullOrWhiteSpace(config.BucketName))
+        {
+            throw new InvalidOperationException("Amazon S3 bucket is not configured.");
+        }
+
+        var (ak, sk, st) = ResolveCredentials(config, refreshIfExpired: true);
+        if (string.IsNullOrWhiteSpace(ak) || string.IsNullOrWhiteSpace(sk))
+        {
+            throw new InvalidOperationException("Amazon S3 credentials are missing, invalid, or expired.");
+        }
+
+        using Amazon.S3.IAmazonS3 client = new AmazonS3Uploader(config, ak, sk, st).CreateClient();
+        await operation(new S3ExplorerOperations(client, config), config);
+        return true;
+    }
+
+    internal static string GetParentKey(string key)
+    {
+        string trimmed = key.TrimEnd('/');
+        int separator = trimmed.LastIndexOf('/');
+        return separator >= 0 ? trimmed[..(separator + 1)] : string.Empty;
+    }
+
+    private static void ValidateExplorerName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name is "." or ".." || name.Contains('/') || name.Contains('\\'))
+        {
+            throw new ArgumentException($"'{name}' is not a valid name.", nameof(name));
+        }
     }
 
     // ─── Private helpers ─────────────────────────────────────────────────────

@@ -437,6 +437,9 @@ public class AmazonS3Uploader : FileUploader
         return _s3ClientFactory();
     }
 
+    /// <summary>A client configured like the uploader's, for Media Browser operations.</summary>
+    internal IAmazonS3 CreateClient() => CreateS3Client();
+
     private IAmazonS3 CreateConfiguredS3Client()
     {
         AWSCredentials credentials = string.IsNullOrWhiteSpace(_sessionToken)
@@ -467,7 +470,7 @@ public class AmazonS3Uploader : FileUploader
         return "https://" + endpoint;
     }
 
-    private static Amazon.S3.S3StorageClass MapStorageClass(S3StorageClass storageClass)
+    internal static Amazon.S3.S3StorageClass MapStorageClass(S3StorageClass storageClass)
     {
         return storageClass switch
         {
