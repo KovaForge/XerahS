@@ -27,7 +27,7 @@ source=("git+file://${_xerahs_repo_root}")
 sha256sums=('SKIP')
 
 pkgver() {
-    cd "$srcdir/XerahS"
+    cd "$srcdir/xerahs"
 
     local base_version
     local revision_count
@@ -41,12 +41,12 @@ pkgver() {
 }
 
 prepare() {
-    cd "$srcdir/XerahS"
+    cd "$srcdir/xerahs"
     git submodule update --init --recursive
 }
 
 build() {
-    cd "$srcdir/XerahS"
+    cd "$srcdir/xerahs"
 
     export XERAHS_ARCHITECTURES='linux-x64'
     export XERAHS_PLUGIN_JOBS="${XERAHS_PLUGIN_JOBS:-4}"
@@ -55,7 +55,7 @@ build() {
 }
 
 package() {
-    cd "$srcdir/XerahS"
+    cd "$srcdir/xerahs"
 
     local app_version
     local publish_tarball
@@ -101,6 +101,6 @@ X-GNOME-UsesNotifications=true
 X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2
 DESKTOP
 
-    install -Dm644 "$srcdir/XerahS/src/desktop/app/XerahS.UI/Assets/Logo.png" \
+    install -Dm644 "$srcdir/xerahs/src/desktop/app/XerahS.UI/Assets/Logo.png" \
         "$pkgdir/usr/share/icons/hicolor/256x256/apps/xerahs.png"
 }
