@@ -22,12 +22,17 @@
 */
 
 #endregion License Information (GPL v3)
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using Avalonia.Layout;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using XerahS.Common;
+using XerahS.Platform.Abstractions;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
 using XerahS.UI.Views.Dialogs;
@@ -84,8 +89,72 @@ public class ViewLocator : IDataTemplate
             return mapped;
         }
 
-        var name = GetConventionViewTypeName(vmType);
-        return new TextBlock { Text = "Not Found: " + name };
+        NotifyDialogOpenFailure(vmType);
+        return CreateDialogOpenFailureContent();
+    }
+
+    /// <summary>Operator-facing title when a dialog view cannot be resolved.</summary>
+    internal const string DialogOpenFailureTitle = "Couldn't open this dialog.";
+
+    /// <summary>Optional muted hint shown under <see cref="DialogOpenFailureTitle"/>.</summary>
+    internal const string DialogOpenFailureHint = "Try again, or restart XerahS if it keeps happening.";
+
+    private static void NotifyDialogOpenFailure(Type vmType)
+    {
+        var fullName = vmType.FullName ?? vmType.Name;
+        DebugHelper.WriteLine($"[ViewLocator] Could not open dialog; view not found for {fullName}");
+
+        try
+        {
+            if (!PlatformServices.IsToastServiceInitialized)
+            {
+                return;
+            }
+
+            PlatformServices.Toast.ShowToast(new ToastConfig
+            {
+                Title = DialogOpenFailureTitle,
+                Text = DialogOpenFailureHint,
+                Duration = 4f,
+                Size = new SizeI(420, 120),
+                AutoHide = true,
+                LeftClickAction = ToastClickAction.CloseNotification,
+                RightClickAction = ToastClickAction.CloseNotification,
+                MiddleClickAction = ToastClickAction.CloseNotification
+            });
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "ViewLocator dialog-open-failure toast failed");
+        }
+    }
+
+    private static Control CreateDialogOpenFailureContent()
+    {
+        // Plain-English fallback for ContentControl / ModalContent; never leak type names.
+        var title = new TextBlock
+        {
+            Text = DialogOpenFailureTitle,
+            FontWeight = FontWeight.SemiBold,
+            TextWrapping = TextWrapping.Wrap
+        };
+        var hint = new TextBlock
+        {
+            Text = DialogOpenFailureHint,
+            Opacity = 0.65,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 4, 0, 0)
+        };
+
+        return new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            Spacing = 0,
+            MinHeight = 44,
+            MinWidth = 44,
+            Margin = new Thickness(16),
+            Children = { title, hint }
+        };
     }
 
     public bool Match(object? data)
