@@ -233,6 +233,59 @@ public sealed class NextcloudProvider : UploaderProviderBase, IUploaderExplorer,
         return await CreateClient(config).CreateFolderAsync(userId, combinedPath, cancellation);
     }
 
+    public ExplorerCapabilities BrowserCapabilities =>
+        ExplorerCapabilities.Download | ExplorerCapabilities.Upload | ExplorerCapabilities.Rename |
+        ExplorerCapabilities.Delete | ExplorerCapabilities.Url | ExplorerCapabilities.CreateFolder |
+        ExplorerCapabilities.Thumbnails;
+
+    public async Task<bool> CreateFolderAsync(ExplorerContext context, string parentPath, string folderName, CancellationToken cancellation = default)
+    {
+        (NextcloudConfigModel config, string userId) = ResolveContext(context);
+        return await CreateClient(config).CreateFolderAsync(userId, NextcloudClient.CombineRelativePath(parentPath, folderName), cancellation);
+    }
+
+    public async Task<bool> UploadAsync(ExplorerContext context, string folderPath, string fileName, Stream content, CancellationToken cancellation = default)
+    {
+        (NextcloudConfigModel config, string userId) = ResolveContext(context);
+        await CreateClient(config).UploadFileAsync(content, userId, folderPath, fileName, config.UseChunkedUpload, config.ChunkSizeMiB, null, cancellation);
+        return true;
+    }
+
+    public async Task<bool> RenameAsync(ExplorerContext context, MediaItem item, string newName, CancellationToken cancellation = default)
+    {
+        (NextcloudConfigModel config, string userId) = ResolveContext(context);
+        string path = NextcloudClient.NormalizeRelativePath(item.Path);
+        int separator = path.LastIndexOf('/');
+        string parent = separator >= 0 ? path[..separator] : string.Empty;
+        await CreateClient(config).MoveAsync(userId, path, NextcloudClient.CombineRelativePath(parent, newName), cancellation);
+        return true;
+    }
+
+    public async Task<bool> DeleteAsync(ExplorerContext context, MediaItem item, CancellationToken cancellation = default)
+    {
+        // WebDAV DELETE on a collection removes it with everything inside.
+        (NextcloudConfigModel config, string userId) = ResolveContext(context);
+        return await CreateClient(config).DeleteFileAsync(userId, item.Path, cancellation);
+    }
+
+    public async Task<bool?> HasChildrenAsync(ExplorerContext context, MediaItem folder, CancellationToken cancellation = default)
+    {
+        (NextcloudConfigModel config, string userId) = ResolveContext(context);
+        IReadOnlyList<NextcloudFileEntry> entries = await CreateClient(config).ListFolderAsync(userId, folder.Path, cancellation);
+        return entries.Count > 0;
+    }
+
+    private (NextcloudConfigModel Config, string UserId) ResolveContext(ExplorerContext context)
+    {
+        if (string.IsNullOrWhiteSpace(context.SettingsJson))
+        {
+            throw new InvalidOperationException("Nextcloud account settings are missing.");
+        }
+
+        NextcloudConfigModel config = DeserializeConfig(context.SettingsJson);
+        return (config, ResolveUserId(config));
+    }
+
     public bool TryMigrateSecrets(string settingsJson, ISecretStore secrets, out string updatedSettingsJson, out int migratedSecretCount)
     {
         updatedSettingsJson = settingsJson;

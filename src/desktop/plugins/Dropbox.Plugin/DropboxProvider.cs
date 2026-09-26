@@ -51,6 +51,7 @@ public class DropboxProvider : UploaderProviderBase, IUploaderExplorer, IInstanc
     private const string UrlListFolderContinue = UrlApi + "/files/list_folder/continue";
     private const string UrlDelete = UrlApi + "/files/delete_v2";
     private const string UrlCreateFolder = UrlApi + "/files/create_folder_v2";
+    private const string UrlMove = UrlApi + "/files/move_v2";
     private const string UrlGetTemporaryLink = UrlApi + "/files/get_temporary_link";
     private const string UrlDownload = UrlContent + "/files/download";
     private const string UrlGetThumbnail = UrlContent + "/files/get_thumbnail";
@@ -313,6 +314,70 @@ public class DropboxProvider : UploaderProviderBase, IUploaderExplorer, IInstanc
 
         string path = CombineFolderPath(parentPath, folderName);
         return await CreateFolderPathAsync(uploader.AuthInfo.Token.access_token, path, cancellation);
+    }
+
+    public ExplorerCapabilities BrowserCapabilities =>
+        ExplorerCapabilities.Download | ExplorerCapabilities.Upload | ExplorerCapabilities.Rename |
+        ExplorerCapabilities.Delete | ExplorerCapabilities.Url | ExplorerCapabilities.CreateFolder |
+        ExplorerCapabilities.Thumbnails;
+
+    public async Task<bool> CreateFolderAsync(ExplorerContext context, string parentPath, string folderName, CancellationToken cancellation = default)
+    {
+        DropboxUploader uploader = ResolveAuthorizedUploader(context);
+        return await CreateFolderPathAsync(uploader.AuthInfo.Token.access_token, CombineFolderPath(parentPath, folderName), cancellation);
+    }
+
+    public async Task<bool> UploadAsync(ExplorerContext context, string folderPath, string fileName, Stream content, CancellationToken cancellation = default)
+    {
+        DropboxUploader uploader = ResolveAuthorizedUploader(context);
+        UploadResult result = await Task.Run(() => uploader.UploadFile(content, NormalizeItemPath(folderPath), fileName), cancellation);
+        if (!result.IsSuccess)
+        {
+            throw new InvalidOperationException(uploader.Errors.Count > 0 ? string.Join(Environment.NewLine, uploader.Errors) : $"Dropbox did not accept {fileName}.");
+        }
+
+        return true;
+    }
+
+    public async Task<bool> RenameAsync(ExplorerContext context, MediaItem item, string newName, CancellationToken cancellation = default)
+    {
+        DropboxUploader uploader = ResolveAuthorizedUploader(context);
+        string from = NormalizeItemPath(item.Path);
+        string parent = from.TrimEnd('/');
+        parent = parent.Contains('/') ? parent[..parent.LastIndexOf('/')] : string.Empty;
+        object payload = new { from_path = from, to_path = CombineFolderPath(parent, newName), autorename = false };
+        DropboxCreateFolderResponse? response = await PostJsonAsync<DropboxCreateFolderResponse>(UrlMove, uploader.AuthInfo.Token.access_token, payload, cancellation);
+        return response?.Metadata != null;
+    }
+
+    public async Task<bool> DeleteAsync(ExplorerContext context, MediaItem item, CancellationToken cancellation = default)
+    {
+        // delete_v2 removes folders together with their contents.
+        DropboxUploader uploader = ResolveAuthorizedUploader(context);
+        return await DeletePathAsync(uploader.AuthInfo.Token.access_token, NormalizeItemPath(item.Path), cancellation);
+    }
+
+    public async Task<bool?> HasChildrenAsync(ExplorerContext context, MediaItem folder, CancellationToken cancellation = default)
+    {
+        DropboxUploader uploader = ResolveAuthorizedUploader(context);
+        DropboxListFolderResult? result = await ListFolderAsync(uploader.AuthInfo.Token.access_token, NormalizeItemPath(folder.Path), 1, cancellation);
+        return result == null ? null : result.Entries.Count > 0;
+    }
+
+    private DropboxUploader ResolveAuthorizedUploader(ExplorerContext context)
+    {
+        if (string.IsNullOrWhiteSpace(context.SettingsJson))
+        {
+            throw new InvalidOperationException("Dropbox account settings are missing.");
+        }
+
+        DropboxUploader uploader = BuildUploader(DeserializeConfig(context.SettingsJson), requireToken: true);
+        if (!uploader.CheckAuthorization())
+        {
+            throw new InvalidOperationException("Dropbox authorization has expired. Sign in again from Destinations.");
+        }
+
+        return uploader;
     }
 
     private DropboxUploader BuildUploader(DropboxConfigModel config, bool requireToken)

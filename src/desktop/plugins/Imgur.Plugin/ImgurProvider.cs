@@ -216,6 +216,10 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
     /// <inheritdoc/>
     public bool SupportsFolders => true; // Albums are folders
 
+    /// <summary>Albums browse like folders but cannot be created, renamed or uploaded into here.</summary>
+    public ExplorerCapabilities BrowserCapabilities =>
+        ExplorerCapabilities.Download | ExplorerCapabilities.Delete | ExplorerCapabilities.Url | ExplorerCapabilities.Thumbnails;
+
     /// <inheritdoc/>
     public async Task<ExplorerPage> ListAsync(ExplorerQuery query, CancellationToken cancellation = default)
     {
