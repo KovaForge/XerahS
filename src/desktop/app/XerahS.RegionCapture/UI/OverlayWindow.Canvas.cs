@@ -350,6 +350,13 @@ public partial class OverlayWindow
             case SmartEraserAnnotation smartEraserAnnotation:
                 smartEraserAnnotation.StrokeWidth = 0;
                 smartEraserAnnotation.ShadowEnabled = false;
+                // ConfigureFill no longer samples a fallback color (ShareX@1e6db2f); sample it
+                // at draw start so solid fills match the screen instead of the toolbar color.
+                if (ResolveSmartEraserColor(smartEraserAnnotation.StartPoint) is { } sampledColor)
+                {
+                    smartEraserAnnotation.StrokeColor = sampledColor;
+                }
+
                 if (!string.IsNullOrWhiteSpace(smartEraserAnnotation.StrokeColor))
                 {
                     smartEraserAnnotation.FillColor = smartEraserAnnotation.StrokeColor;
