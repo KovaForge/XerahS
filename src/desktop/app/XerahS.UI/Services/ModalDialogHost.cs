@@ -29,10 +29,10 @@ public static class ModalDialogHost
         T dismissResult,
         string debugSource)
     {
-        var mainVm = MainViewModel.Current;
+        var mainVm = ModalOpenService.ResolveHostViewModel();
         if (mainVm == null)
         {
-            DebugHelper.WriteLine($"[{debugSource}] ModalDialogHost: MainViewModel.Current is null");
+            DebugHelper.WriteLine($"[{debugSource}] ModalDialogHost: host MainViewModel is null");
             return Task.FromResult(dismissResult);
         }
 
