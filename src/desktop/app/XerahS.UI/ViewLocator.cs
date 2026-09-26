@@ -26,14 +26,20 @@ using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using XerahS.UI.ViewModels;
 using XerahS.UI.Views;
+using XerahS.UI.Views.Dialogs;
 
 namespace XerahS.UI;
 
 public class ViewLocator : IDataTemplate
 {
+    /// <summary>
+    /// Explicit VM→View maps for names that do not follow ViewModel→View,
+    /// including ModalContent dialogs hosted via <c>ModalDialogHost</c>.
+    /// </summary>
     private static readonly IReadOnlyDictionary<Type, Func<Control>> KnownMappings =
         new Dictionary<Type, Func<Control>>
         {
@@ -47,7 +53,21 @@ public class ViewLocator : IDataTemplate
             [typeof(SettingsViewModel)] = static () => new ApplicationSettingsView(),
             [typeof(TaskSettingsViewModel)] = static () => new TaskSettingsPanel(),
             [typeof(WorkflowEditorViewModel)] = static () => new WorkflowEditorView(),
-            [typeof(WorkflowsViewModel)] = static () => new WorkflowsView()
+            [typeof(WorkflowsViewModel)] = static () => new WorkflowsView(),
+
+            // ModalDialogHost / ModalContent (non-conventional view names)
+            [typeof(CustomUploaderEditorViewModel)] = static () => new CustomUploaderEditorDialog(),
+            [typeof(PluginInstallerViewModel)] = static () => new PluginInstallerDialog(),
+            [typeof(ImageEffectsViewModel)] = static () => new ImageEffectsBrowserDialog(),
+            [typeof(FFmpegOptionsViewModel)] = static () => new FFmpegOptionsWindow(),
+            [typeof(QrCodeGeneratorViewModel)] = static () => new QrCodeGeneratorDialog(),
+            [typeof(WatchFolderEditViewModel)] = static () => new WatchFolderDialog(),
+            [typeof(OpenImageChoiceViewModel)] = static () => new OpenImageChoiceDialog(),
+            [typeof(WindowSelectorViewModel)] = static () => new WindowSelectorDialog(),
+            [typeof(UpdateMessageBoxViewModel)] = static () => new UpdateMessageBox(),
+            [typeof(AfterCaptureViewModel)] = static () => new AfterCaptureWindow(),
+            [typeof(SendToPromptViewModel)] = static () => new SendToPromptWindow(),
+            [typeof(SimplePromptViewModel)] = static () => new SimplePromptView(),
         };
 
     public Control? Build(object? data)
@@ -58,24 +78,61 @@ public class ViewLocator : IDataTemplate
         }
 
         Type vmType = data.GetType();
-        if (KnownMappings.TryGetValue(vmType, out var createKnownControl))
+        if (TryCreateControl(vmType, out Control? mapped) && mapped != null)
         {
-            Control mapped = createKnownControl();
             mapped.DataContext = data;
             return mapped;
         }
 
-        var name = vmType.FullName!.Replace("ViewModel", "View").Replace("ViewModels", "Views");
-        var type = ResolveViewType(name);
+        var name = GetConventionViewTypeName(vmType);
+        return new TextBlock { Text = "Not Found: " + name };
+    }
 
-        if (type != null)
+    public bool Match(object? data)
+    {
+        // Only claim ObservableObjects we can actually resolve. Application.DataTemplates
+        // lists ViewLocator first; a blanket Match stole typed DataTemplates in App.axaml
+        // and produced "Not Found: …View" for ModalContent dialogs with non-conventional names.
+        if (data is not ObservableObject)
         {
-            var control = (Control)Activator.CreateInstance(type)!;
-            control.DataContext = data;
-            return control;
+            return false;
         }
 
-        return new TextBlock { Text = "Not Found: " + name };
+        return CanResolve(data.GetType());
+    }
+
+    private static bool CanResolve(Type vmType)
+    {
+        if (KnownMappings.ContainsKey(vmType))
+        {
+            return true;
+        }
+
+        return ResolveViewType(GetConventionViewTypeName(vmType)) != null;
+    }
+
+    private static bool TryCreateControl(Type vmType, out Control? control)
+    {
+        if (KnownMappings.TryGetValue(vmType, out var createKnownControl))
+        {
+            control = createKnownControl();
+            return true;
+        }
+
+        var type = ResolveViewType(GetConventionViewTypeName(vmType));
+        if (type != null)
+        {
+            control = (Control)Activator.CreateInstance(type)!;
+            return true;
+        }
+
+        control = null;
+        return false;
+    }
+
+    private static string GetConventionViewTypeName(Type vmType)
+    {
+        return vmType.FullName!.Replace("ViewModel", "View").Replace("ViewModels", "Views");
     }
 
     private static Type? ResolveViewType(string fullName)
@@ -90,10 +147,5 @@ public class ViewLocator : IDataTemplate
             .GetAssemblies()
             .Select(assembly => assembly.GetType(fullName, throwOnError: false))
             .FirstOrDefault(candidate => candidate != null);
-    }
-
-    public bool Match(object? data)
-    {
-        return data is ObservableObject;
     }
 }

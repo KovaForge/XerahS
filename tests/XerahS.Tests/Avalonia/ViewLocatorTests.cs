@@ -25,10 +25,14 @@
 
 using Avalonia.Controls;
 using Avalonia.Headless.NUnit;
+using CommunityToolkit.Mvvm.ComponentModel;
 using NUnit.Framework;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
 using XerahS.UI;
+using XerahS.UI.ViewModels;
+using XerahS.UI.Views;
+using XerahS.UI.Views.Dialogs;
 
 namespace XerahS.Tests.Avalonia;
 
@@ -49,4 +53,58 @@ public class ViewLocatorTests
         Assert.That(control, Is.TypeOf<ConfirmationDialogView>());
         Assert.That(control?.DataContext, Is.SameAs(viewModel));
     }
+
+    [AvaloniaTest]
+    public void Build_Resolves_CustomUploaderEditorDialog_For_ModalContent()
+    {
+        var viewLocator = new ViewLocator();
+        var viewModel = new CustomUploaderEditorViewModel();
+
+        Assert.That(viewLocator.Match(viewModel), Is.True);
+
+        Control? control = viewLocator.Build(viewModel);
+
+        Assert.That(control, Is.TypeOf<CustomUploaderEditorDialog>());
+        Assert.That(control?.DataContext, Is.SameAs(viewModel));
+        Assert.That((control as TextBlock)?.Text, Is.Null.Or.Not.Contain("Not Found"));
+    }
+
+    [AvaloniaTest]
+    public void Build_Resolves_ModalDialogHost_Sibling_Views()
+    {
+        var viewLocator = new ViewLocator();
+
+        AssertModal(viewLocator, new WindowSelectorViewModel(), typeof(WindowSelectorDialog));
+        AssertModal(viewLocator, new SimplePromptViewModel(), typeof(SimplePromptView));
+        AssertModal(viewLocator, new OpenImageChoiceViewModel(), typeof(OpenImageChoiceDialog));
+        AssertModal(viewLocator, new UpdateMessageBoxViewModel(), typeof(UpdateMessageBox));
+        AssertModal(viewLocator, new WatchFolderEditViewModel(), typeof(WatchFolderDialog));
+        AssertModal(viewLocator, new FFmpegOptionsViewModel(), typeof(FFmpegOptionsWindow));
+        AssertModal(viewLocator, new AfterCaptureViewModel(), typeof(AfterCaptureWindow));
+    }
+
+    [AvaloniaTest]
+    public void Match_Returns_False_For_Unresolved_ObservableObject()
+    {
+        var viewLocator = new ViewLocator();
+        var orphan = new OrphanModalViewModel();
+
+        Assert.That(viewLocator.Match(orphan), Is.False);
+
+        Control? control = viewLocator.Build(orphan);
+        Assert.That(control, Is.TypeOf<TextBlock>());
+        Assert.That(((TextBlock)control!).Text, Does.Contain("Not Found"));
+    }
+
+    private static void AssertModal(ViewLocator viewLocator, ObservableObject viewModel, Type expectedViewType)
+    {
+        Assert.That(viewLocator.Match(viewModel), Is.True, $"Match failed for {viewModel.GetType().Name}");
+
+        Control? control = viewLocator.Build(viewModel);
+
+        Assert.That(control, Is.TypeOf(expectedViewType), $"Build failed for {viewModel.GetType().Name}");
+        Assert.That(control?.DataContext, Is.SameAs(viewModel));
+    }
+
+    private sealed partial class OrphanModalViewModel : ObservableObject;
 }
