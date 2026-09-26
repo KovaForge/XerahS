@@ -13,6 +13,9 @@ internal static class LinuxOsRelease
 
     public static string? DistroIdLike => _cached.DistroIdLike;
 
+    /// <summary>Human-readable name (PRETTY_NAME), e.g. "Arch Linux".</summary>
+    public static string? PrettyName => _cached.PrettyName;
+
     public static void Refresh() => _cached = Load();
 
     private static LinuxOsReleaseInfo Load()
@@ -24,6 +27,7 @@ internal static class LinuxOsRelease
     {
         string? id = null;
         string? idLike = null;
+        string? prettyName = null;
 
         try
         {
@@ -47,10 +51,9 @@ internal static class LinuxOsRelease
                 {
                     idLike = value;
                 }
-
-                if (id != null && idLike != null)
+                else if (string.Equals(key, "PRETTY_NAME", StringComparison.Ordinal))
                 {
-                    break;
+                    prettyName = value;
                 }
             }
         }
@@ -60,8 +63,8 @@ internal static class LinuxOsRelease
             // IsOmarchy returns false, which is the safe fallback.
         }
 
-        return new LinuxOsReleaseInfo(id, idLike);
+        return new LinuxOsReleaseInfo(id, idLike, prettyName);
     }
 }
 
-internal sealed record LinuxOsReleaseInfo(string? DistroId, string? DistroIdLike);
+internal sealed record LinuxOsReleaseInfo(string? DistroId, string? DistroIdLike, string? PrettyName = null);
