@@ -32,22 +32,42 @@ public sealed class NetworkMonitorEventLog
 {
     private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
     private readonly object _sync = new();
+    private readonly Func<string?> _filePathProvider;
 
     public NetworkMonitorEventLog(string? filePath)
     {
-        FilePath = filePath;
+        _filePathProvider = () => filePath;
     }
 
-    public string? FilePath { get; }
-
-    public static string GetDefaultPath()
+    private NetworkMonitorEventLog(Func<string?> filePathProvider)
     {
-        return Path.Combine(PathsManager.LogsFolderBase, "NetworkMonitor.log");
+        _filePathProvider = filePathProvider;
+    }
+
+    /// <summary>Today's log file; <see cref="CreateDaily"/> logs roll over at midnight.</summary>
+    public string? FilePath => _filePathProvider();
+
+    /// <summary>Filename prefix for the outage log (full name: NetworkMonitor-yyyyMMdd.log).</summary>
+    public const string FileNamePrefix = "NetworkMonitor";
+
+    /// <summary>Full path to the outage log for the given date: Logs/yyyy-MM/NetworkMonitor-yyyyMMdd.log.</summary>
+    public static string GetDefaultPath(DateTime? date = null)
+    {
+        DateTime day = date ?? DateTime.Now;
+        return Path.Combine(PathsManager.GetLogsFolderForMonth(day), $"{FileNamePrefix}-{day:yyyyMMdd}.log");
+    }
+
+    /// <summary>Creates a log that writes to a new date-stamped file each day, like the main and error logs.</summary>
+    public static NetworkMonitorEventLog CreateDaily(Func<DateTime>? clock = null)
+    {
+        Func<DateTime> now = clock ?? (() => DateTime.Now);
+        return new NetworkMonitorEventLog(() => GetDefaultPath(now()));
     }
 
     public void AppendRaw(string line)
     {
-        if (string.IsNullOrWhiteSpace(FilePath) || string.IsNullOrWhiteSpace(line))
+        string? filePath = FilePath;
+        if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(line))
         {
             return;
         }
@@ -56,8 +76,8 @@ public sealed class NetworkMonitorEventLog
         {
             try
             {
-                EnsureFileExistsUnlocked();
-                File.AppendAllText(FilePath, line.TrimEnd() + Environment.NewLine, Utf8NoBom);
+                EnsureFileExistsUnlocked(filePath);
+                File.AppendAllText(filePath, line.TrimEnd() + Environment.NewLine, Utf8NoBom);
             }
             catch (Exception ex)
             {
@@ -68,7 +88,8 @@ public sealed class NetworkMonitorEventLog
 
     public void Clear()
     {
-        if (string.IsNullOrWhiteSpace(FilePath))
+        string? filePath = FilePath;
+        if (string.IsNullOrWhiteSpace(filePath))
         {
             return;
         }
@@ -77,13 +98,13 @@ public sealed class NetworkMonitorEventLog
         {
             try
             {
-                string? directory = Path.GetDirectoryName(FilePath);
+                string? directory = Path.GetDirectoryName(filePath);
                 if (!string.IsNullOrWhiteSpace(directory))
                 {
                     Directory.CreateDirectory(directory);
                 }
 
-                File.WriteAllText(FilePath, string.Empty, Utf8NoBom);
+                File.WriteAllText(filePath, string.Empty, Utf8NoBom);
             }
             catch (Exception ex)
             {
@@ -96,28 +117,28 @@ public sealed class NetworkMonitorEventLog
     {
         lock (_sync)
         {
-            return EnsureFileExistsUnlocked();
+            return EnsureFileExistsUnlocked(FilePath);
         }
     }
 
-    private bool EnsureFileExistsUnlocked()
+    private static bool EnsureFileExistsUnlocked(string? filePath)
     {
-        if (string.IsNullOrWhiteSpace(FilePath))
+        if (string.IsNullOrWhiteSpace(filePath))
         {
             return false;
         }
 
         try
         {
-            string? directory = Path.GetDirectoryName(FilePath);
+            string? directory = Path.GetDirectoryName(filePath);
             if (!string.IsNullOrWhiteSpace(directory))
             {
                 Directory.CreateDirectory(directory);
             }
 
-            if (!File.Exists(FilePath) || new FileInfo(FilePath).Length == 0)
+            if (!File.Exists(filePath) || new FileInfo(filePath).Length == 0)
             {
-                File.WriteAllText(FilePath, NetworkMonitorLogLines.Header, Utf8NoBom);
+                File.WriteAllText(filePath, NetworkMonitorLogLines.Header, Utf8NoBom);
             }
 
             return true;

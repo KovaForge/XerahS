@@ -189,4 +189,26 @@ public class NetworkMonitorHistoryTests
             }
         }
     }
+
+    [Test]
+    public void EventLog_DefaultPath_IsDateStampedInMonthFolder()
+    {
+        DateTime day = new(2026, 9, 27, 23, 59, 0);
+
+        string path = NetworkMonitorEventLog.GetDefaultPath(day);
+
+        Assert.That(Path.GetFileName(path), Is.EqualTo("NetworkMonitor-20260927.log"));
+        Assert.That(Path.GetFileName(Path.GetDirectoryName(path)), Is.EqualTo("2026-09"));
+    }
+
+    [Test]
+    public void EventLog_CreateDaily_RollsOverAtMidnight()
+    {
+        DateTime now = new(2026, 9, 27, 23, 59, 0);
+        NetworkMonitorEventLog log = NetworkMonitorEventLog.CreateDaily(() => now);
+        Assert.That(log.FilePath, Does.EndWith("NetworkMonitor-20260927.log"));
+
+        now = now.AddMinutes(2);
+        Assert.That(log.FilePath, Does.EndWith("NetworkMonitor-20260928.log"));
+    }
 }

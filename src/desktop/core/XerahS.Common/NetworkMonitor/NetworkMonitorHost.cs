@@ -48,7 +48,9 @@ public sealed class NetworkMonitorHost : IDisposable
         _clock = clock ?? (() => DateTime.Now);
         Persist = persist;
         History = persist ? NetworkMonitorStore.Load(_storePath) : new NetworkMonitorHistory();
-        _eventLog = new NetworkMonitorEventLog(logFilePath ?? (persist ? NetworkMonitorEventLog.GetDefaultPath() : null));
+        _eventLog = logFilePath != null
+            ? new NetworkMonitorEventLog(logFilePath)
+            : persist ? NetworkMonitorEventLog.CreateDaily(_clock) : new NetworkMonitorEventLog(null);
         Monitor = new InternetConnectionMonitor(probe, clock: _clock);
         Monitor.StatusChanged += OnStatusChanged;
         Monitor.SampleReceived += OnSampleReceived;
