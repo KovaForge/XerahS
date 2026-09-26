@@ -26,7 +26,9 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Threading;
+using Microsoft.Win32.SafeHandles;
 using Tmds.DBus;
 using XerahS.Common;
 using XerahS.Media;
@@ -63,6 +65,10 @@ public sealed class WaylandPortalRecordingService : IRecordingService
     private IPortalSession? _sessionProxy;
     private ObjectPath? _sessionHandle;
     private uint _pipewireNodeId;
+    // Portal-scoped PipeWire connection (OpenPipeWireRemote). Window streams on
+    // xdg-desktop-portal-hyprland only negotiate through it.
+    private SafeFileHandle? _pipewireRemote;
+    private static readonly object SpawnWithRemoteLock = new();
     private int _pipewireSourceWidth;
     private int _pipewireSourceHeight;
 
@@ -124,7 +130,8 @@ public sealed class WaylandPortalRecordingService : IRecordingService
                 _pipewireNodeId,
                 _pipewireSourceWidth,
                 _pipewireSourceHeight,
-                preferCpuGStreamer);
+                preferCpuGStreamer,
+                RemoteFd);
             DebugHelper.WriteLine($"[WaylandPortalRecording] Using {(useGStreamer ? "GStreamer" : "FFmpeg")}");
             DebugHelper.WriteLine($"[WaylandPortalRecording] Command: {executable} {args}");
 
@@ -141,7 +148,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
                 {
                     // options.OutputPath was resolved (and possibly extension-adjusted) by BuildRecordingCommand above.
                     var (fallbackPipeline, _) = BuildGStreamerPipeline(options, _pipewireNodeId,
-                        options.OutputPath ?? string.Empty, _pipewireSourceWidth, _pipewireSourceHeight, useGl: false);
+                        options.OutputPath ?? string.Empty, _pipewireSourceWidth, _pipewireSourceHeight, useGl: false, remoteFd: RemoteFd);
                     fallbackGstArgs = "-e " + fallbackPipeline;
                     DebugHelper.WriteLine("[WaylandPortalRecording] CPU fallback pipeline ready (will use if GL path fails)");
                 }
@@ -234,6 +241,47 @@ public sealed class WaylandPortalRecordingService : IRecordingService
     }
 
     /// <summary>
+    /// Starts gst-launch with the portal remote fd inheritable, so "pipewiresrc fd=N" in the child
+    /// refers to the same connection. .NET opens fds close-on-exec; the flag is cleared only for
+    /// this spawn and restored right after.
+    /// </summary>
+    private Process? StartWithInheritedRemote(ProcessStartInfo startInfo)
+    {
+        int fd = RemoteFd;
+        if (fd < 0)
+        {
+            return Process.Start(startInfo);
+        }
+
+        lock (SpawnWithRemoteLock)
+        {
+            int flags = NativeFcntl.fcntl(fd, NativeFcntl.F_GETFD, 0);
+            bool cleared = flags >= 0 && NativeFcntl.fcntl(fd, NativeFcntl.F_SETFD, flags & ~NativeFcntl.FD_CLOEXEC) == 0;
+            try
+            {
+                return Process.Start(startInfo);
+            }
+            finally
+            {
+                if (cleared)
+                {
+                    NativeFcntl.fcntl(fd, NativeFcntl.F_SETFD, flags);
+                }
+            }
+        }
+    }
+
+    private static class NativeFcntl
+    {
+        public const int F_GETFD = 1;
+        public const int F_SETFD = 2;
+        public const int FD_CLOEXEC = 1;
+
+        [DllImport("libc", SetLastError = true)]
+        public static extern int fcntl(int fd, int cmd, int arg);
+    }
+
+    /// <summary>
     /// Runs a single GStreamer process and waits for it to exit.
     /// Returns true if the process failed and the caller should consider a retry.
     /// </summary>
@@ -266,7 +314,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
                 CreateNoWindow = true
             };
 
-            var process = Process.Start(startInfo);
+            var process = StartWithInheritedRemote(startInfo);
             if (process == null)
             {
                 stderrOutput = "Failed to start GStreamer process";
@@ -645,6 +693,18 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             throw new PlatformNotSupportedException("ScreenCast response did not include PipeWire stream node.");
         }
 
+        try
+        {
+            _pipewireRemote?.Dispose();
+            _pipewireRemote = await _portal.OpenPipeWireRemoteAsync(_sessionHandle.Value, new Dictionary<string, object>()).ConfigureAwait(false);
+            DebugHelper.WriteLine($"[WaylandPortalRecording] Opened portal PipeWire remote (fd {RemoteFd})");
+        }
+        catch (Exception ex) when (ex is DBusException or InvalidOperationException or NotSupportedException)
+        {
+            _pipewireRemote = null;
+            DebugHelper.WriteLine($"[WaylandPortalRecording] OpenPipeWireRemote failed; falling back to the default PipeWire connection: {ex.Message}");
+        }
+
         TryGetPipeWireSourceSize(startResults, out _pipewireSourceWidth, out _pipewireSourceHeight);
         if (_pipewireSourceWidth > 0)
             DebugHelper.WriteLine($"[WaylandPortalRecording] PipeWire source size: {_pipewireSourceWidth}x{_pipewireSourceHeight}");
@@ -667,6 +727,8 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             _sessionProxy = null;
             _sessionHandle = null;
             _portal = null;
+            _pipewireRemote?.Dispose();
+            _pipewireRemote = null;
             _connection?.Dispose();
             _connection = null;
         }
@@ -958,7 +1020,8 @@ public sealed class WaylandPortalRecordingService : IRecordingService
         uint pipeWireNodeId,
         int sourceWidth = 0,
         int sourceHeight = 0,
-        bool preferCpuGStreamer = false)
+        bool preferCpuGStreamer = false,
+        int remoteFd = -1)
     {
         var settings = options.Settings ?? new ScreenRecordingSettings();
         string outputPath = options.OutputPath ?? GetDefaultOutputPath();
@@ -981,7 +1044,8 @@ public sealed class WaylandPortalRecordingService : IRecordingService
                 outputPath,
                 sourceWidth,
                 sourceHeight,
-                useGl: !preferCpuGStreamer);
+                useGl: !preferCpuGStreamer,
+                remoteFd: remoteFd);
 
             // Update options with the actual output path (may differ if muxer changed, e.g. .mp4 -> .mkv)
             if (!string.Equals(outputPath, actualOutputPath, StringComparison.Ordinal))
@@ -1076,6 +1140,51 @@ public sealed class WaylandPortalRecordingService : IRecordingService
         return string.Join(" ", args);
     }
 
+    /// <summary>
+    /// The pipewiresrc element for a portal stream. With the portal's PipeWire remote fd the
+    /// stream negotiates like any portal client (OBS, browsers); without it, pipewiresrc reaches
+    /// the node over the default daemon connection, where Hyprland window streams fail with
+    /// "no more input formats". target-object replaces the deprecated path property.
+    /// </summary>
+    internal static string BuildPipeWireSource(uint nodeId, int remoteFd, bool? supportsTargetObject = null)
+    {
+        if (remoteFd < 0)
+        {
+            return $"pipewiresrc path={nodeId} do-timestamp=true";
+        }
+
+        bool targetObject = supportsTargetObject ?? PipeWireSrcSupportsTargetObject.Value;
+        return targetObject
+            ? $"pipewiresrc fd={remoteFd} target-object={nodeId} do-timestamp=true"
+            : $"pipewiresrc fd={remoteFd} path={nodeId} do-timestamp=true";
+    }
+
+    private static readonly Lazy<bool> PipeWireSrcSupportsTargetObject = new(() =>
+    {
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo("gst-inspect-1.0", "pipewiresrc")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+            if (process == null) return false;
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(3000);
+            return output.Contains("target-object", StringComparison.Ordinal);
+        }
+        catch
+        {
+            return false;
+        }
+    });
+
+    private int RemoteFd => _pipewireRemote is { IsInvalid: false, IsClosed: false } handle
+        ? (int)handle.DangerousGetHandle()
+        : -1;
+
     // Cached GStreamer element availability
     private static readonly ConcurrentDictionary<string, bool> _gstElementCache = new();
 
@@ -1108,14 +1217,14 @@ public sealed class WaylandPortalRecordingService : IRecordingService
         });
     }
 
-    private static (string pipeline, string actualOutputPath) BuildGStreamerPipeline(RecordingOptions options, uint pipeWireNodeId, string outputPath, int sourceWidth = 0, int sourceHeight = 0, bool useGl = true)
+    private static (string pipeline, string actualOutputPath) BuildGStreamerPipeline(RecordingOptions options, uint pipeWireNodeId, string outputPath, int sourceWidth = 0, int sourceHeight = 0, bool useGl = true, int remoteFd = -1)
     {
         var settings = options.Settings ?? new ScreenRecordingSettings();
         bool hasAudio = settings.CaptureSystemAudio || settings.CaptureMicrophone;
 
         // Build pipeline with queue for buffering large frames.
         var pipeline = new List<string>();
-        pipeline.Add($"pipewiresrc path={pipeWireNodeId} do-timestamp=true");
+        pipeline.Add(BuildPipeWireSource(pipeWireNodeId, remoteFd));
 
         if (useGl && HasGStreamerElement("gldownload") && HasGStreamerElement("glupload"))
         {
@@ -1453,4 +1562,5 @@ public interface IScreenCastPortal : IDBusObject
     Task<ObjectPath> CreateSessionAsync(IDictionary<string, object> options);
     Task<ObjectPath> SelectSourcesAsync(ObjectPath sessionHandle, IDictionary<string, object> options);
     Task<ObjectPath> StartAsync(ObjectPath sessionHandle, string parentWindow, IDictionary<string, object> options);
+    Task<SafeFileHandle> OpenPipeWireRemoteAsync(ObjectPath sessionHandle, IDictionary<string, object> options);
 }
