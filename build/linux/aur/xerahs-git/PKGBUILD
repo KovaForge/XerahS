@@ -42,7 +42,32 @@ pkgver() {
 
 prepare() {
     cd "$srcdir/xerahs"
-    git submodule update --init --recursive
+
+    # This PKGBUILD builds from a local fork via XERAHS_REPO_ROOT. Submodules
+    # may have fork-only commits that aren't pushed to the upstream submodule
+    # remote URL, so `git submodule update --init --recursive` against the
+    # recorded .gitmodules URLs would fail with "not our ref". The parent
+    # working tree already has the submodules cloned at the recorded commits,
+    # so redirect each submodule URL to that local clone. Falls back to the
+    # upstream URL when the local clone isn't present (or doesn't contain the
+    # recorded commit), keeping the PKGBUILD usable for non-local sources.
+    while IFS= read -r name; do
+        local path recorded_sha
+        path=$(git config --file .gitmodules "submodule.$name.path")
+        recorded_sha=$(git ls-tree HEAD -- "$path" | awk '{print $3}' | head -n1)
+        if [ -n "$path" ] && [ -d "$_xerahs_repo_root/$path" ] \
+                && [ -n "$recorded_sha" ] \
+                && git -C "$_xerahs_repo_root/$path" cat-file -e "$recorded_sha" >/dev/null 2>&1; then
+            git config --file .gitmodules "submodule.$name.url" "$_xerahs_repo_root/$path"
+        fi
+    done < <(git config --file .gitmodules --get-regexp 'submodule\..*\.path' \
+            | awk '{print $1}' | sed -E 's/^submodule\.(.+)\.path$/\1/')
+    git submodule sync --recursive
+
+    # git >=2.38 disables the file:// transport for submodule clones by default
+    # (CVE-2022-39253). The redirected URLs above are local file paths so we
+    # must opt back in for this build context.
+    git -c protocol.file.allow=always submodule update --init --recursive
 }
 
 build() {
@@ -51,7 +76,23 @@ build() {
     export XERAHS_ARCHITECTURES='linux-x64'
     export XERAHS_PLUGIN_JOBS="${XERAHS_PLUGIN_JOBS:-4}"
 
-    ./build/linux/package-linux.sh
+    # The packaging step exits non-zero when optional formats (AppImage, RPM)
+    # can't be produced because their host toolchain isn't installed
+    # (mksquashfs, rpmbuild). We only need the portable tarball and .deb for
+    # this PKGBUILD's package() step, so don't let those optional failures
+    # abort the build — but DO fail if the tarball itself wasn't produced.
+    local app_version
+    app_version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -n1 | tr -d ' ')
+
+    ./build/linux/package-linux.sh || {
+        local rc=$?
+        if [ -f "dist/XerahS-${app_version}-linux-x64.tar.gz" ]; then
+            echo "==> build: package-linux.sh failed (rc=$rc) but portable tarball was produced; continuing"
+            return 0
+        fi
+        echo "==> build: package-linux.sh failed and no portable tarball was produced"
+        return $rc
+    }
 }
 
 package() {
@@ -61,7 +102,7 @@ package() {
     local publish_tarball
 
     app_version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -n 1)
-    publish_tarball="$srcdir/XerahS/dist/XerahS-${app_version}-linux-x64.tar.gz"
+    publish_tarball="$srcdir/xerahs/dist/XerahS-${app_version}-linux-x64.tar.gz"
 
     install -d "$pkgdir/usr/lib/xerahs"
     bsdtar -xf "$publish_tarball" -C "$pkgdir/usr/lib/xerahs"
