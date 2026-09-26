@@ -23,32 +23,38 @@
 
 #endregion License Information (GPL v3)
 
+using ShareX.ImageEditor.Presentation.Theming;
+
 namespace XerahS.UI.Theming
 {
+    /// <summary>
+    /// Host glyphs for the Lucide icon font. Always reference <see cref="LucideIcons"/> so every
+    /// glyph exists in the bundled font; raw codepoints from other icon fonts render as blank boxes.
+    /// </summary>
     public static class HostIcons
     {
-        public const string NavigationCapture = "\uE064";
-        public const string NavigationRecording = "\uE0D0";
-        public const string NavigationEditor = "\uE1F9";
-        public const string NavigationHistory = "\uE0ED";
-        public const string NavigationWorkflows = "\uE44C";
-        public const string NavigationUpload = "\uE091";
-        public const string NavigationTools = "\uE357";
-        public const string NavigationSettings = "\uE162";
-        public const string NavigationDebug = "\uE181";
-        public const string NavigationAbout = "\uE040";
+        public const string NavigationCapture = LucideIcons.camera;
+        public const string NavigationRecording = LucideIcons.film;
+        public const string NavigationEditor = LucideIcons.pencil;
+        public const string NavigationHistory = LucideIcons.hard_drive;
+        public const string NavigationWorkflows = LucideIcons.combine;
+        public const string NavigationUpload = LucideIcons.cloud_upload;
+        public const string NavigationTools = LucideIcons.wand_sparkles;
+        public const string NavigationSettings = LucideIcons.sliders_vertical;
+        public const string NavigationDebug = LucideIcons.terminal;
+        public const string NavigationAbout = LucideIcons.aperture;
 
-        public const string SectionLinks = "\uEA24";
-        public const string SectionSocial = "\uEAFE";
-        public const string ActionOpenLink = "\uEA24";
-        public const string ActionAdd = "\uEA76";
-        public const string ActionMoveUp = "\uE491";
-        public const string ActionMoveDown = "\uE48C";
-        public const string ActionStart = "\uE13C";
-        public const string ActionStop = "\uE167";
-        public const string ActionPause = "\uEA60";
-        public const string ActionResume = "\uE13C";
-        public const string ActionAbort = "\uE1B2";
-        public const string StatusWarning = "\uE90A";
+        public const string SectionLinks = LucideIcons.link;
+        public const string SectionSocial = LucideIcons.users;
+        public const string ActionOpenLink = LucideIcons.external_link;
+        public const string ActionAdd = LucideIcons.plus;
+        public const string ActionMoveUp = LucideIcons.move_up;
+        public const string ActionMoveDown = LucideIcons.move_down;
+        public const string ActionStart = LucideIcons.play;
+        public const string ActionStop = LucideIcons.square;
+        public const string ActionPause = LucideIcons.pause;
+        public const string ActionResume = LucideIcons.play;
+        public const string ActionAbort = LucideIcons.x;
+        public const string StatusWarning = LucideIcons.triangle_alert;
     }
 }
