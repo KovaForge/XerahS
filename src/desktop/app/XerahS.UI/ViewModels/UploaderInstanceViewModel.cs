@@ -712,24 +712,9 @@ public partial class UploaderInstanceViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Opens the Media Explorer window for this provider instance.
-    /// The provider must implement <see cref="IUploaderExplorer"/>.
+    /// Opens the Media Browser on this instance's storage (other browsable destinations stay
+    /// one click away in its account switcher).
     /// </summary>
     [RelayCommand]
-    private async Task OpenExplorer()
-    {
-        var provider = ProviderCatalog.GetProvider(ProviderId);
-        if (provider is not IUploaderExplorer explorer) return;
-
-        try
-        {
-            var factory = UiViewModelFactoryAccessor.GetRequired();
-            var viewModel = factory.CreateProviderExplorerViewModel(Instance, explorer);
-            await factory.ViewDialogService.ShowProviderExplorerAsync(viewModel);
-        }
-        catch (Exception ex)
-        {
-            Common.DebugHelper.WriteException(ex, "Failed to open Media Explorer");
-        }
-    }
+    private Task OpenExplorer() => Services.MediaBrowserToolService.OpenAsync(Instance);
 }

@@ -72,13 +72,13 @@ namespace XerahS.UI.Services
                 debugSource: nameof(FFmpegOptionsViewModel));
         }
 
-        public Task ShowProviderExplorerAsync(ProviderExplorerViewModel viewModel)
+        public Task ShowMediaBrowserAsync(MediaBrowserViewModel viewModel)
         {
             return ModalDialogHost.ShowAsync(
                 viewModel,
                 set => viewModel.CloseRequested = _ => set(true),
                 dismissResult: true,
-                debugSource: nameof(ProviderExplorerViewModel));
+                debugSource: nameof(MediaBrowserViewModel));
         }
 
         public Task ShowQrCodeGeneratorAsync(QrCodeGeneratorViewModel viewModel)

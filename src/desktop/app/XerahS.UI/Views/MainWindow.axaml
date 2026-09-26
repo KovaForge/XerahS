@@ -100,6 +100,7 @@
                     <Separator/>
                     <MenuItem Header="_OCR" Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_OCR"/>
                     <MenuItem Header="_Hash Checker..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_HashCheck"/>
+                    <MenuItem Header="_Media Browser..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_MediaBrowser"/>
                     <MenuItem Header="_Index Folder..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_IndexFolder"/>
                     <Separator/>
                     <MenuItem Header="_Image Combiner..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageCombiner"/>

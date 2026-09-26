@@ -76,6 +76,10 @@ internal static class ToolWorkflowDispatcher
                 dispatchTask = HashCheckToolService.HandleWorkflowAsync(workflowType, owner);
                 return true;
 
+            case WorkflowType.MediaBrowser:
+                dispatchTask = MediaBrowserToolService.HandleWorkflowAsync(workflowType, owner);
+                return true;
+
             case WorkflowType.PinToScreen:
             case WorkflowType.PinToScreenFromScreen:
             case WorkflowType.PinToScreenFromClipboard:

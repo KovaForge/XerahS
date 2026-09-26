@@ -111,7 +111,7 @@ public class CreativeFilterDialogWiringTests
         public Task<bool> ShowWorkflowEditorAsync(WorkflowEditorViewModel viewModel) => Task.FromResult(false);
         public Task ShowImageEffectsBrowserAsync(ImageEffectsViewModel viewModel) => Task.CompletedTask;
         public Task ShowFFmpegOptionsAsync(FFmpegOptionsViewModel viewModel) => Task.CompletedTask;
-        public Task ShowProviderExplorerAsync(ProviderExplorerViewModel viewModel) => Task.CompletedTask;
+        public Task ShowMediaBrowserAsync(MediaBrowserViewModel viewModel) => Task.CompletedTask;
         public Task ShowQrCodeGeneratorAsync(QrCodeGeneratorViewModel viewModel) => Task.CompletedTask;
         public Task<bool> ShowWatchFolderEditorAsync(WatchFolderEditViewModel viewModel) => Task.FromResult(false);
         public Task<OpenImageChoice> ShowOpenImageChoiceAsync() => Task.FromResult(OpenImageChoice.Cancel);

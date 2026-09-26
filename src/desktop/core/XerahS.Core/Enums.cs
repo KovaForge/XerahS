@@ -299,6 +299,9 @@ public enum WorkflowType // Localized
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Hash checker")]
     HashCheck,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Media browser")]
+    MediaBrowser,
 
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Directory indexer")]

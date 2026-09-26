@@ -204,7 +204,7 @@ internal sealed class FakeViewDialogService : IViewDialogService
     public Task<bool> ShowWorkflowEditorAsync(WorkflowEditorViewModel viewModel) => Task.FromResult(false);
     public Task ShowImageEffectsBrowserAsync(ImageEffectsViewModel viewModel) => Task.CompletedTask;
     public Task ShowFFmpegOptionsAsync(FFmpegOptionsViewModel viewModel) => Task.CompletedTask;
-    public Task ShowProviderExplorerAsync(ProviderExplorerViewModel viewModel) => Task.CompletedTask;
+    public Task ShowMediaBrowserAsync(MediaBrowserViewModel viewModel) => Task.CompletedTask;
     public Task ShowQrCodeGeneratorAsync(QrCodeGeneratorViewModel viewModel) => Task.CompletedTask;
     public Task<bool> ShowWatchFolderEditorAsync(WatchFolderEditViewModel viewModel) => Task.FromResult(false);
     public Task<OpenImageChoice> ShowOpenImageChoiceAsync() => Task.FromResult(OpenImageChoice.Cancel);
@@ -240,8 +240,8 @@ internal sealed class FakeUiViewModelFactory : IUiViewModelFactory
     public IndexFolderViewModel CreateIndexFolderViewModel(TaskSettings? taskSettings = null, bool isWorkflowConfigMode = false) =>
         CreateUninitialized<IndexFolderViewModel>();
     public PluginInstallerViewModel CreatePluginInstallerViewModel() => new(ViewDialogService);
-    public ProviderExplorerViewModel CreateProviderExplorerViewModel(UploaderInstance instance, IUploaderExplorer explorer) =>
-        new(instance, explorer, CoreDialogService);
+    public MediaBrowserViewModel CreateMediaBrowserViewModel(IReadOnlyList<MediaBrowserSource> sources, MediaBrowserSource? initialSource = null) =>
+        new(sources, CoreDialogService, initialSource);
     public QrCodeGeneratorViewModel CreateQrCodeGeneratorViewModel() => new(ViewDialogService);
     public WorkflowsViewModel CreateWorkflowsViewModel() => new(this);
     public WorkflowEditorViewModel CreateWorkflowEditorViewModel(WorkflowSettings model, bool loadUploaderCategories = true) =>

@@ -43,6 +43,7 @@ public static class WorkflowCatalog
         WorkflowType.OCR,
         WorkflowType.ImageEditor,
         WorkflowType.HashCheck,
+        WorkflowType.MediaBrowser,
         WorkflowType.PinToScreen,
         WorkflowType.PinToScreenFromScreen,
         WorkflowType.PinToScreenFromClipboard,

@@ -64,8 +64,8 @@ public sealed class UiViewModelFactory(
     public ViewModels.PluginInstallerViewModel CreatePluginInstallerViewModel() =>
         new(viewDialogService);
 
-    public ViewModels.ProviderExplorerViewModel CreateProviderExplorerViewModel(UploaderInstance instance, IUploaderExplorer explorer) =>
-        new(instance, explorer, coreDialogService);
+    public ViewModels.MediaBrowserViewModel CreateMediaBrowserViewModel(IReadOnlyList<MediaBrowserSource> sources, MediaBrowserSource? initialSource = null) =>
+        new(sources, coreDialogService, initialSource);
 
     public ViewModels.QrCodeGeneratorViewModel CreateQrCodeGeneratorViewModel() =>
         new(viewDialogService);
