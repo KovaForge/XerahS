@@ -17,7 +17,34 @@
         WindowStartupLocation="Manual"
         Cursor="Hand"
         AutomationProperties.Name="Notification Toast">
-    
+
+    <Window.Styles>
+        <Style Selector="Button.toast-action">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="#CC383838"/>
+            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#F2FFFFFF"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.toast-action /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#CC383838"/>
+            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+            <Setter Property="Foreground" Value="#F2FFFFFF"/>
+        </Style>
+        <Style Selector="Button.toast-action:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}"/>
+        </Style>
+        <Style Selector="Button.toast-action:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.97)"/>
+        </Style>
+    </Window.Styles>
+
     <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="1"
@@ -38,7 +65,7 @@
             <StackPanel VerticalAlignment="Top"
                         HorizontalAlignment="Stretch"
                         IsVisible="{Binding !HasImage}"
-                        Margin="12">
+                        Margin="{Binding TextContentMargin}">
                 
                 <!-- Title -->
                 <TextBlock Text="{Binding Title}"
@@ -79,6 +106,44 @@
                     VerticalAlignment="Stretch"
                     x:Name="FlyoutHost"
                     ContextFlyout="{StaticResource HistoryItemMenuFlyout}"/>
+
+            <!-- Action buttons shown on hover (same toolbar as ShareX's notification window) -->
+            <Border x:Name="ActionsPanel"
+                    Padding="6"
+                    VerticalAlignment="Bottom"
+                    HorizontalAlignment="Stretch"
+                    CornerRadius="0,0,5,5"
+                    Background="#C01B1B1B"
+                    IsVisible="{Binding HasActionButtons}"
+                    IsHitTestVisible="False"
+                    Opacity="0">
+                <ItemsControl ItemsSource="{Binding ActionButtons}"
+                              HorizontalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel HorizontalAlignment="Center"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ToastActionButtonViewModel">
+                            <Button Classes="toast-action"
+                                    Command="{Binding Command}"
+                                    Width="{Binding $parent[views:ToastWindow].((vm:ToastViewModel)DataContext).ActionButtonSize}"
+                                    Height="{Binding $parent[views:ToastWindow].((vm:ToastViewModel)DataContext).ActionButtonSize}"
+                                    CornerRadius="{Binding $parent[views:ToastWindow].((vm:ToastViewModel)DataContext).ActionButtonCornerRadius}"
+                                    ToolTip.Tip="{Binding Label}"
+                                    ToolTip.Placement="Top"
+                                    ToolTip.ShowDelay="400"
+                                    AutomationProperties.Name="{Binding Label}">
+                                <TextBlock Classes="IconGlyph"
+                                           Text="{Binding Icon}"
+                                           FontSize="{Binding $parent[views:ToastWindow].((vm:ToastViewModel)DataContext).ActionButtonIconSize}"
+                                           HorizontalAlignment="Center"/>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
         </Grid>
     </Border>
 </views:OverlayWindow>

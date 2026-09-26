@@ -108,6 +108,17 @@ public class ToastConfig
     public ToastClickAction MiddleClickAction { get; set; } = ToastClickAction.AnnotateMedia;
 
     /// <summary>
+    /// Actions shown as buttons in the toast's hover toolbar, in display order.
+    /// Actions that cannot run for this toast's file/URL are hidden.
+    /// </summary>
+    public List<ToastClickAction> ActionButtons { get; set; } = [];
+
+    /// <summary>
+    /// Width and height of each hover toolbar button in pixels
+    /// </summary>
+    public int ActionButtonSize { get; set; } = 40;
+
+    /// <summary>
     /// Whether the toast should auto-hide when mouse is not over it
     /// </summary>
     public bool AutoHide { get; set; } = true;

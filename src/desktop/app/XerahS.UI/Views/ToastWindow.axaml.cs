@@ -49,6 +49,7 @@ public partial class ToastWindow : OverlayWindow
     private PointerPressedEventArgs? _dragStartEventArgs;
     private Border? _urlOverlay;
     private Border? _flyoutHost;
+    private Border? _actionsPanel;
 
     public ToastWindow()
     {
@@ -66,6 +67,7 @@ public partial class ToastWindow : OverlayWindow
         base.OnLoaded(e);
         _urlOverlay = this.FindControl<Border>("UrlOverlay");
         _flyoutHost = this.FindControl<Border>("FlyoutHost");
+        _actionsPanel = this.FindControl<Border>("ActionsPanel");
         if (_flyoutHost != null && _viewModel != null)
         {
             _flyoutHost.Tag = new ToastMenuContext(_viewModel);
@@ -324,6 +326,8 @@ public partial class ToastWindow : OverlayWindow
         {
             _urlOverlay.Opacity = 1;
         }
+
+        SetActionsPanelVisible(true);
     }
 
     private void OnPointerExited(object? sender, PointerEventArgs e)
@@ -335,6 +339,19 @@ public partial class ToastWindow : OverlayWindow
         {
             _urlOverlay.Opacity = 0;
         }
+
+        SetActionsPanelVisible(false);
+    }
+
+    private void SetActionsPanelVisible(bool visible)
+    {
+        if (_actionsPanel == null)
+        {
+            return;
+        }
+
+        _actionsPanel.Opacity = visible ? 1 : 0;
+        _actionsPanel.IsHitTestVisible = visible;
     }
 
     private void OnFlyoutOpened(object? sender, EventArgs e)

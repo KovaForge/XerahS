@@ -223,6 +223,15 @@ public class TaskSettingsGeneral
     public ToastClickAction ToastWindowLeftClickAction = ToastClickAction.OpenUrl;
     public ToastClickAction ToastWindowRightClickAction = ToastClickAction.CloseNotification;
     public ToastClickAction ToastWindowMiddleClickAction = ToastClickAction.AnnotateMedia;
+    [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+    public List<ToastClickAction> ToastWindowButtons =
+    [
+        ToastClickAction.CopyImageToClipboard,
+        ToastClickAction.AnnotateMedia,
+        ToastClickAction.PinToScreen,
+        ToastClickAction.Upload
+    ];
+    public int ToastWindowButtonSize = 40;
     public bool ToastWindowAutoHide = true;
     public bool DisableNotificationsOnFullscreen = false;
     public bool UseCustomCaptureSound = false;

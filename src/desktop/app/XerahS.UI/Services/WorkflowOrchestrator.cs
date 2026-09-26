@@ -531,6 +531,8 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
                     LeftClickAction = generalSettings.ToastWindowLeftClickAction,
                     RightClickAction = generalSettings.ToastWindowRightClickAction,
                     MiddleClickAction = generalSettings.ToastWindowMiddleClickAction,
+                    ActionButtons = generalSettings.ToastWindowButtons?.ToList() ?? [],
+                    ActionButtonSize = generalSettings.ToastWindowButtonSize,
                     AutoHide = generalSettings.ToastWindowAutoHide
                 };
 
