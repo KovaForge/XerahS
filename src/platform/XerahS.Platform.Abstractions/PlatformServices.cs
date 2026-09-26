@@ -72,6 +72,11 @@ namespace XerahS.Platform.Abstractions
             set => _windowService = value;
         }
 
+        /// <summary>
+        /// Checks if window service has been initialized
+        /// </summary>
+        public static bool IsWindowServiceInitialized => _windowService != null;
+
         public static IInputService Input
         {
             get => _inputService ?? throw new InvalidOperationException("Platform services not initialized. Call Initialize() first.");

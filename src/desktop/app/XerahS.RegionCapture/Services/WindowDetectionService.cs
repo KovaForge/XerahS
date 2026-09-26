@@ -450,7 +450,10 @@ public sealed class WindowDetectionService
         if (!OperatingSystem.IsLinux() || !MonitorEnumerationService.IsAvaloniaWaylandBackend())
             return default;
 
-        if (PlatformServices.Window is not PlatformLogicalWindowPointQueryService logicalPointQueryService)
+        // Pointer tracking runs per mouse move; skip the query instead of throwing when the
+        // window service is not registered (headless hosts and UI smoke tests).
+        if (!PlatformServices.IsWindowServiceInitialized ||
+            PlatformServices.Window is not PlatformLogicalWindowPointQueryService logicalPointQueryService)
             return default;
 
         if (!logicalPointQueryService.GetLogicalWindowPointQueryCapability().IsEnabled)
