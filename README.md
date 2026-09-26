@@ -92,7 +92,7 @@ dotnet run --project src/XerahS.Mobile.Maui/XerahS.Mobile.Maui.csproj -f net10.0
 ## 🚀 Getting Started
 
 ### Cloning the Repository
-XerahS requires the `ShareX.ImageEditor` and `ShareX.VideoEditor` submodules. Clone with:
+XerahS requires the `ShareX.ImageEditor` and `Omacut` submodules. `Omacut` is the [KovaForge fork of omacut](https://github.com/KovaForge/omacut): a native Avalonia video trimmer that powers the video editor. Clone with:
 ```bash
 git clone --recursive https://github.com/ShareX/XerahS.git
 ```
@@ -110,11 +110,11 @@ On Windows, the fastest verified first-run path is:
 dotnet build src/desktop/XerahS.sln -m:1 -p:nodeReuse=false -p:UseSharedCompilation=false
 ```
 
-If you skip submodule initialization and run `dotnet build src/desktop/XerahS.sln` immediately after a plain `git clone`, the build fails with `MSB3202` because `ShareX.ImageEditor` and `ShareX.VideoEditor` are checked out as Git submodules.
+If you skip submodule initialization and run `dotnet build src/desktop/XerahS.sln` immediately after a plain `git clone`, the build fails with `MSB3202` because `ShareX.ImageEditor` and `Omacut` are checked out as Git submodules.
 
 ### Prerequisites
 - [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- Node.js `^20.19.0 || >=22.12.0` for the `ShareX.VideoEditor` frontend build
+- FFmpeg (`ffmpeg` and `ffprobe`) for recording and the video editor. XerahS can download it for you.
 
 ### Linux distro repositories
 First-party auto-update channels (Launchpad PPA, Fedora COPR, openSUSE OBS) are documented in [docs/linux/distro-repos.md](docs/linux/distro-repos.md). They publish after a maintainer creates the empty projects and sets GitHub secrets.

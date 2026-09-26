@@ -17,11 +17,12 @@
     <DefineConstants Condition="'$(IsWindowsCliBuild)' == 'true'">$(DefineConstants);WINDOWS</DefineConstants>
     <DefineConstants Condition="'$(IsMacOSCliBuild)' == 'true'">$(DefineConstants);MACOS</DefineConstants>
     <DefineConstants Condition="'$(IsLinuxCliBuild)' == 'true'">$(DefineConstants);LINUX</DefineConstants>
-    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == '' And '$(AssembleProduct)' == 'true'">true</VideoEditorProjectReferenceBuildWebUI>
-    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == ''">false</VideoEditorProjectReferenceBuildWebUI>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj"
@@ -40,9 +41,7 @@
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\core\XerahS.Indexer\XerahS.Indexer.csproj" />
     <ProjectReference Include="..\..\app\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
-    <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj"
-                      GlobalPropertiesToRemove="Platform"
-                      AdditionalProperties="BuildWebUI=$(VideoEditorProjectReferenceBuildWebUI)" />
+    <ProjectReference Include="..\..\..\..\Omacut\dotnet\src\Omacut\Omacut.csproj" GlobalPropertiesToRemove="Platform" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Windows\XerahS.Platform.Windows.csproj" Condition="'$(IsWindowsCliBuild)' == 'true'" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.MacOS\XerahS.Platform.MacOS.csproj" Condition="'$(IsMacOSCliBuild)' == 'true'" />
@@ -119,22 +118,6 @@
           Condition="'@(_WatchFolderDaemonBuildFiles)' != ''" />
   </Target>
 
-  <Target Name="CopyVideoEditorWebUiForDev" AfterTargets="Build" Condition="'$(AssembleProduct)' == 'true'">
-    <PropertyGroup>
-      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\frontend\dist\</_VideoEditorWebUiDistDir>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <_VideoEditorWebUiBuildFiles Include="$(_VideoEditorWebUiDistDir)**\*" />
-    </ItemGroup>
-
-    <Error Condition="'@(_VideoEditorWebUiBuildFiles)' == ''"
-           Text="Missing ShareX.VideoEditor frontend build output: $(_VideoEditorWebUiDistDir)" />
-
-    <Copy SourceFiles="@(_VideoEditorWebUiBuildFiles)"
-          DestinationFiles="@(_VideoEditorWebUiBuildFiles->'$(OutDir)frontend\dist\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
-  </Target>
 
   <!-- Build and copy plugins into the publish output so the deployed CLI has uploader plugins. -->
   <Target Name="BundlePluginsForPublish" AfterTargets="Publish" Condition="'$(SkipBundlePlugins)' != 'true' And '@(_DiscoveredPluginProjects)' != ''">
@@ -146,27 +129,5 @@
              Properties="PluginProject=%(_DiscoveredPluginProjects.FullPath);PluginDestinationRoot=$(PublishDir)Plugins" />
   </Target>
 
-  <Target Name="CopyVideoEditorWebUiForPublish" AfterTargets="Publish">
-    <PropertyGroup>
-      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\frontend\dist\</_VideoEditorWebUiDistDir>
-    </PropertyGroup>
 
-    <ItemGroup>
-      <_VideoEditorWebUiPublishFiles Include="$(_VideoEditorWebUiDistDir)**\*" />
-    </ItemGroup>
-
-    <Error Condition="'@(_VideoEditorWebUiPublishFiles)' == ''"
-           Text="Missing ShareX.VideoEditor frontend build output: $(_VideoEditorWebUiDistDir)" />
-
-    <Copy SourceFiles="@(_VideoEditorWebUiPublishFiles)"
-          DestinationFiles="@(_VideoEditorWebUiPublishFiles->'$(PublishDir)frontend\dist\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
-  </Target>
-
-  <Target Name="RemoveTransitiveVideoEditorWebUiPublishItems" BeforeTargets="_HandleFileConflictsForPublish">
-    <ItemGroup>
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-                             Condition="'%(ResolvedFileToPublish.RelativePath)' != '' and $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Replace('\','/').StartsWith('frontend/dist/'))" />
-    </ItemGroup>
-  </Target>
 </Project>

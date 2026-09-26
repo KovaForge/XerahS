@@ -70,10 +70,6 @@ modules:
       # Install AppStream metainfo (for software-center compliance)
       - install -Dm644 com.xerahs.XerahS.metainfo.xml /app/share/metainfo/com.xerahs.XerahS.metainfo.xml
 
-      # WebUI dist must exist (copied into publish dir by CopyWebUIDist MSBuild target)
-      # Validate it was included
-      - test -d /app/frontend/dist || (echo "error: WebUI dist missing at /app/frontend/dist" && exit 1)
-
       # Fix executable permissions
       - chmod 755 /app/XerahS
       - test -f /app/xerahs-watchfolder-daemon && chmod 755 /app/xerahs-watchfolder-daemon || true

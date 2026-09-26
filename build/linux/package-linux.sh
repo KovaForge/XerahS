@@ -16,32 +16,6 @@ fi
 VERSION=$(grep '<Version>' "$ROOT/Directory.Build.props" | sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' | tr -d '[:space:]')
 echo "Building XerahS version $VERSION for Linux..."
 
-prepare_video_editor_frontend() {
-    local frontend_dir="$ROOT/ShareX.VideoEditor/frontend"
-    local npm_ci_args=(ci)
-
-    if [ ! -f "$frontend_dir/package.json" ]; then
-        echo "Error: ShareX.VideoEditor frontend package.json not found: $frontend_dir"
-        exit 1
-    fi
-
-    if [ "${XERAHS_NPM_OFFLINE:-}" = "1" ]; then
-        npm_ci_args+=(--offline)
-    fi
-
-    echo "Building ShareX.VideoEditor frontend..."
-    (
-        cd "$frontend_dir"
-        npm "${npm_ci_args[@]}"
-        npm run build
-    )
-
-    if [ ! -d "$frontend_dir/dist" ]; then
-        echo "Error: ShareX.VideoEditor frontend dist missing after build: $frontend_dir/dist"
-        exit 1
-    fi
-}
-
 restore_project_assets_for_os() {
     local project_path="$1"
     local os_value="$2"
@@ -445,7 +419,6 @@ if [ -n "${XERAHS_DOTNET_RESTORE_SOURCES:-}" ]; then
     done
 fi
 
-prepare_video_editor_frontend
 restore_scoped_intermediate_assets
 restore_project_assets_for_os "$PACKAGING_TOOL" "Linux"
 

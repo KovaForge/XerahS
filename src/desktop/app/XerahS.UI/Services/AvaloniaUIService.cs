@@ -40,7 +40,9 @@ using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Hosting;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
-using ShareX.VideoEditor.Hosting;
+using Omacut.Core;
+using Omacut.Hosting;
+using XerahS.Media;
 using SkiaSharp;
 
 namespace XerahS.UI.Services
@@ -254,20 +256,12 @@ namespace XerahS.UI.Services
 
         public async Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
         {
-            string detectedFfmpegPath = await Dispatcher.UIThread.InvokeAsync(PathsManager.GetFFmpegPath);
-
-            return await Task.Run(async () =>
+            return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
+                string? watermarkImage = null;
                 try
                 {
-                    Exception? startupFailure = null;
-                    VideoEditorLaunchPolicy launchPolicy = VideoEditorLaunchPolicyResolver.GetCurrentPolicy();
-                    if (!launchPolicy.AllowInteractiveLaunch)
-                    {
-                        await ShowVideoEditorStartupErrorAsync("The video editor is unavailable on this platform/session.");
-                        return null;
-                    }
-
+                    string detectedFfmpegPath = PathsManager.GetFFmpegPath();
                     var ffmpegResolution = VideoEditorFfmpegResolver.Resolve(ffmpegPath, detectedFfmpegPath);
                     LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
 
@@ -291,49 +285,33 @@ namespace XerahS.UI.Services
                         }
                     }
 
-                    var options = new VideoEditorOptions
+                    VideoWatermarkSettings? watermark = VideoEditorWatermarkMapper.FromDefaultTaskSettings();
+                    watermarkImage = VideoWatermarkRenderer.ResolveImage(watermark, VideoWatermarkWorkDirectory);
+
+                    var options = new OmacutEditorOptions
                     {
                         VideoPath = videoPath,
-                        FFmpegPath = ffmpegResolution.ConfiguredPath,
-                        FFprobePath = ffprobePath,
+                        FfmpegPath = ffmpegResolution.IsAvailable ? ffmpegResolution.ConfiguredPath : null,
+                        FfprobePath = string.IsNullOrWhiteSpace(ffprobePath) ? null : ffprobePath,
+                        AccentColor = ResolveAccentColor(),
                         WindowTitle = AppResources.AppName,
-                        Theme = ResolveTheme(),
-                        WatermarkSettings = VideoEditorWatermarkMapper.FromDefaultTaskSettings(),
-                        EnableLinuxWaylandExplicitSyncMitigation = launchPolicy.EnableLinuxWaylandExplicitSyncMitigation
+                        Watermark = watermarkImage == null
+                            ? null
+                            : new WatermarkOverlay(watermarkImage, watermark!.Opacity, watermark.PositionX, watermark.PositionY),
+                        // Hand the edited file straight back to the workflow (upload, copy, ...).
+                        CloseAfterExport = true,
+                        AllowOpeningOtherFiles = false,
+                        ConfigureWindow = window => window.Icon = TryGetDialogOwner()?.Icon,
+                        Log = message => DebugHelper.WriteLine(message),
                     };
 
-                    var events = new VideoEditorEvents
+                    string? exported = await OmacutEditor.ShowAsync(options);
+                    if (!string.IsNullOrEmpty(exported))
                     {
-                        DiagnosticReported = diagnosticEvent =>
-                        {
-                            string message = $"[VideoEditor:{diagnosticEvent.Source}] {diagnosticEvent.Message}";
-
-                            if (diagnosticEvent.Exception != null)
-                            {
-                                DebugHelper.WriteException(diagnosticEvent.Exception, message);
-                            }
-                            else
-                            {
-                                DebugHelper.WriteLine(message);
-                            }
-
-                            if (startupFailure == null &&
-                                diagnosticEvent.Source == nameof(VideoEditorHost) &&
-                                diagnosticEvent.Exception != null)
-                            {
-                                startupFailure = diagnosticEvent.Exception;
-                            }
-                        }
-                    };
-
-                    string? result = VideoEditorHost.ShowEditorDialog(options, events);
-
-                    if (startupFailure != null)
-                    {
-                        await ShowVideoEditorStartupErrorAsync(startupFailure.Message);
+                        DebugHelper.WriteLine($"[VideoEditor] Exported: {exported}");
                     }
 
-                    return result;
+                    return exported;
                 }
                 catch (Exception ex)
                 {
@@ -341,8 +319,27 @@ namespace XerahS.UI.Services
                     await ShowVideoEditorStartupErrorAsync(ex.Message);
                     return null;
                 }
+                finally
+                {
+                    if (watermarkImage != null && watermarkImage.StartsWith(VideoWatermarkWorkDirectory, StringComparison.Ordinal))
+                    {
+                        try
+                        {
+                            File.Delete(watermarkImage);
+                        }
+                        catch (IOException)
+                        {
+                        }
+                        catch (UnauthorizedAccessException)
+                        {
+                        }
+                    }
+                }
             });
         }
+
+        private static string VideoWatermarkWorkDirectory =>
+            Path.Combine(Path.GetTempPath(), "XerahS", "video-watermarks");
 
         private static void LogVideoEditorFfmpegResolution(
             string? hostPath,
@@ -367,15 +364,16 @@ namespace XerahS.UI.Services
             }
         }
 
-        private static string ResolveTheme()
+        private static string? ResolveAccentColor()
         {
-            // Map the XerahS theme setting to the VideoEditorOptions theme string.
-            return XerahS.Core.SettingsManager.Settings?.ThemeMode switch
+            // Match the XerahS accent; on Omarchy the editor follows the desktop theme instead.
+            var app = Avalonia.Application.Current;
+            if (app != null && app.TryGetResource("SystemAccentColor", app.ActualThemeVariant, out object? value) && value is Color color)
             {
-                XerahS.Core.AppThemeMode.Light  => "Light",
-                XerahS.Core.AppThemeMode.System => "System",
-                _                               => "Dark",
-            };
+                return $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+            }
+
+            return null;
         }
 
         private static async Task ShowVideoEditorStartupErrorAsync(string message)

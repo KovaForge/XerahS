@@ -24,6 +24,20 @@
     <SelfContained Condition="'$(Configuration)' == 'Release' And '$(RuntimeIdentifier)' != ''">true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
+  <!--
+    Keep the video editor's OpenAL Soft library next to the executable instead of inside the
+    single-file bundle: Silk.NET's native loader does not probe the bundle's extraction folder,
+    so a bundled copy is never found and audio silently falls back to a system OpenAL (absent on
+    Windows and on minimal Linux installs).
+  -->
+  <Target Name="KeepOpenAlOutOfSingleFileBundle" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Update="@(ResolvedFileToPublish)"
+                             Condition="'%(Filename)%(Extension)' == 'libopenal.so' Or '%(Filename)%(Extension)' == 'libopenal.dylib' Or '%(Filename)%(Extension)' == 'soft_oal.dll'"
+                             ExcludeFromSingleFile="true" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) OR $(RuntimeIdentifier.StartsWith('osx'))">
     <Content Include="$(RepoRoot)native/macos/libscreencapturekit_bridge.dylib">
       <Link>libscreencapturekit_bridge.dylib</Link>
@@ -297,46 +311,8 @@
           Condition="'@(_WatchFolderDaemonBuildFiles)' != ''" />
   </Target>
 
-  <Target Name="CopyVideoEditorWebUiForDev" AfterTargets="Build" Condition="'$(AssembleProduct)' == 'true'">
-    <PropertyGroup>
-      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\frontend\dist\</_VideoEditorWebUiDistDir>
-    </PropertyGroup>
 
-    <ItemGroup>
-      <_VideoEditorWebUiBuildFiles Include="$(_VideoEditorWebUiDistDir)**\*" />
-    </ItemGroup>
 
-    <Error Condition="'@(_VideoEditorWebUiBuildFiles)' == ''"
-           Text="Missing ShareX.VideoEditor frontend build output: $(_VideoEditorWebUiDistDir)" />
-
-    <Copy SourceFiles="@(_VideoEditorWebUiBuildFiles)"
-          DestinationFiles="@(_VideoEditorWebUiBuildFiles->'$(OutDir)frontend\dist\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
-  </Target>
-
-  <Target Name="CopyVideoEditorWebUiForPublish" AfterTargets="Publish">
-    <PropertyGroup>
-      <_VideoEditorWebUiDistDir>$(RepoRoot)ShareX.VideoEditor\frontend\dist\</_VideoEditorWebUiDistDir>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <_VideoEditorWebUiPublishFiles Include="$(_VideoEditorWebUiDistDir)**\*" />
-    </ItemGroup>
-
-    <Error Condition="'@(_VideoEditorWebUiPublishFiles)' == ''"
-           Text="Missing ShareX.VideoEditor frontend build output: $(_VideoEditorWebUiDistDir)" />
-
-    <Copy SourceFiles="@(_VideoEditorWebUiPublishFiles)"
-          DestinationFiles="@(_VideoEditorWebUiPublishFiles->'$(PublishDir)frontend\dist\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
-  </Target>
-
-  <Target Name="RemoveTransitiveVideoEditorWebUiPublishItems" BeforeTargets="_HandleFileConflictsForPublish">
-    <ItemGroup>
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-                             Condition="'%(ResolvedFileToPublish.RelativePath)' != '' and $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Replace('\','/').StartsWith('frontend/dist/'))" />
-    </ItemGroup>
-  </Target>
 
   <!-- Auto-discover all plugin csproj files under src/desktop/plugins/*/            -->
   <!-- Each plugin csproj must define <PluginId> (e.g. <PluginId>imgur</PluginId>).  -->

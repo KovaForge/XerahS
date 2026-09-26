@@ -15,8 +15,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AppendRuntimeIdentifierToOutputPath>true</AppendRuntimeIdentifierToOutputPath>
-    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == '' And '$(AssembleProduct)' == 'true'">true</VideoEditorProjectReferenceBuildWebUI>
-    <VideoEditorProjectReferenceBuildWebUI Condition="'$(VideoEditorProjectReferenceBuildWebUI)' == ''">false</VideoEditorProjectReferenceBuildWebUI>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" />
@@ -46,9 +44,7 @@
     <ProjectReference Include="..\..\core\XerahS.Services.Abstractions\XerahS.Services.Abstractions.csproj" />
     <ProjectReference Include="..\XerahS.RegionCapture\XerahS.RegionCapture.csproj" />
     <ProjectReference Include="..\..\..\..\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj" GlobalPropertiesToRemove="OS" />
-    <ProjectReference Include="..\..\..\..\ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj"
-                      GlobalPropertiesToRemove="OS"
-                      AdditionalProperties="BuildWebUI=$(VideoEditorProjectReferenceBuildWebUI)" />
+    <ProjectReference Include="..\..\..\..\Omacut\dotnet\src\Omacut\Omacut.csproj" GlobalPropertiesToRemove="OS" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Services\AvaloniaClipboardService.LinuxPersistence.cs" />

@@ -13,7 +13,7 @@ Options:
   --tag <vX.Y.Z>          Release tag to use (default: v<Directory.Build.props Version>)
   --repo <owner/name>     GitHub repository (default: resolved from origin)
   --output <path>         Output manifest path (default: dist/flathub/com.xerahs.XerahS.yml)
-  --skip-deps             Do not generate npm/NuGet dependency source files
+  --skip-deps             Do not generate NuGet dependency source files
   --lint                  Run flatpak-builder-lint manifest on the generated manifest
   -h, --help              Show this help
 
@@ -122,28 +122,7 @@ create_release_snapshot() {
 
   archive_git_tree "$repo_root" "$main_commit" "$snapshot_dir"
   archive_git_tree "$repo_root/ShareX.ImageEditor" "$image_editor_commit" "$snapshot_dir/ShareX.ImageEditor"
-  archive_git_tree "$repo_root/ShareX.VideoEditor" "$video_editor_commit" "$snapshot_dir/ShareX.VideoEditor"
-}
-
-generate_npm_sources() {
-  local snapshot_dir="$1"
-  local output_file="$2"
-  local lock_file="$snapshot_dir/ShareX.VideoEditor/frontend/package-lock.json"
-
-  if [[ ! -f "$lock_file" ]]; then
-    echo "Error: npm lock file missing from release snapshot: $lock_file" >&2
-    exit 1
-  fi
-
-  echo "Generating npm dependency sources from ShareX.VideoEditor/frontend/package-lock.json..."
-  flatpak run \
-    --filesystem="$snapshot_dir" \
-    --filesystem="$(dirname "$output_file")" \
-    --command=flatpak-node-generator \
-    org.flatpak.Builder \
-    npm "$lock_file" \
-    -o "$output_file" \
-    --node-sdk-extension=org.freedesktop.Sdk.Extension.node24//25.08
+  archive_git_tree "$repo_root/Omacut" "$omacut_commit" "$snapshot_dir/Omacut"
 }
 
 generate_nuget_sources() {
@@ -399,9 +378,9 @@ ensure_local_tag_object "$TAG_NAME"
 
 main_commit="$(git rev-parse "${TAG_NAME}^{commit}")"
 image_editor_commit="$(resolve_tree_commit "$TAG_NAME" ShareX.ImageEditor)"
-video_editor_commit="$(resolve_tree_commit "$TAG_NAME" ShareX.VideoEditor)"
+omacut_commit="$(resolve_tree_commit "$TAG_NAME" Omacut)"
 image_editor_url="$(resolve_submodule_url ShareX.ImageEditor)"
-video_editor_url="$(resolve_submodule_url ShareX.VideoEditor)"
+omacut_url="$(resolve_submodule_url Omacut)"
 main_url="https://github.com/${GH_TARGET_REPO}.git"
 output_dir="$(dirname "$OUTPUT_PATH")"
 generated_sources_dir="$output_dir/generated-sources"
@@ -414,12 +393,11 @@ if [[ $GENERATE_DEPS -eq 1 ]]; then
   require_cmd flatpak
   require_cmd python3
   ensure_commit_available "$repo_root/ShareX.ImageEditor" "$image_editor_url" "$image_editor_commit" "ShareX.ImageEditor"
-  ensure_commit_available "$repo_root/ShareX.VideoEditor" "$video_editor_url" "$video_editor_commit" "ShareX.VideoEditor"
+  ensure_commit_available "$repo_root/Omacut" "$omacut_url" "$omacut_commit" "Omacut"
   mkdir -p "$generated_sources_dir"
   snapshot_dir="$(mktemp -d "$repo_root/.flathub-source.XXXXXXXXXX")"
   trap 'rm -rf "$snapshot_dir"' EXIT
   create_release_snapshot "$snapshot_dir"
-  generate_npm_sources "$snapshot_dir" "$generated_sources_dir/npm-sources.json"
   generate_nuget_sources "$snapshot_dir" "$generated_sources_dir/nuget-sources.json"
 fi
 
@@ -431,7 +409,6 @@ sdk: org.freedesktop.Sdk
 command: xerahs
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.dotnet10
-  - org.freedesktop.Sdk.Extension.node24
 
 finish-args:
   # Display. Wayland native socket first so the XDG GlobalShortcuts portal
@@ -457,13 +434,8 @@ modules:
         DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
         DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
         NUGET_PACKAGES: /run/build/xerahs/.nuget/packages
-        NPM_CONFIG_CACHE: /run/build/xerahs/flatpak-node/npm-cache
-        NPM_CONFIG_AUDIT: 'false'
-        NPM_CONFIG_FUND: 'false'
-        NPM_CONFIG_OFFLINE: 'true'
-        PATH: /usr/lib/sdk/dotnet10/bin:/usr/lib/sdk/node24/bin:/app/bin:/usr/bin
+        PATH: /usr/lib/sdk/dotnet10/bin:/app/bin:/usr/bin
         XERAHS_DOTNET_RESTORE_SOURCES: /run/build/xerahs/nuget-sources;/usr/lib/sdk/dotnet10/nuget/packages
-        XERAHS_NPM_OFFLINE: '1'
         XERAHS_PLUGIN_JOBS: '2'
     build-commands:
       - |
@@ -486,7 +458,7 @@ modules:
         publish_dir="src/desktop/app/XerahS.App/bin/Release/net10.0/\${XERAHS_ARCHITECTURES}/publish"
         test -f "\${publish_dir}/XerahS"
         test -f "\${publish_dir}/xerahs-watchfolder-daemon"
-        test -d "\${publish_dir}/frontend/dist"
+        ls "\${publish_dir}"/libopenal.so* >/dev/null
         cp -rT "\${publish_dir}" /app
       - mkdir -p /app/bin
       - ln -s ../XerahS /app/bin/XerahS
@@ -507,21 +479,19 @@ modules:
         commit: ${image_editor_commit}
         dest: ShareX.ImageEditor
       - type: git
-        url: ${video_editor_url}
-        commit: ${video_editor_commit}
-        dest: ShareX.VideoEditor
+        url: ${omacut_url}
+        commit: ${omacut_commit}
+        dest: Omacut
 EOF
 
 if [[ $GENERATE_DEPS -eq 1 ]]; then
   cat >> "$OUTPUT_PATH" <<'EOF'
-      - generated-sources/npm-sources.json
       - generated-sources/nuget-sources.json
 EOF
 else
   cat >> "$OUTPUT_PATH" <<'EOF'
       # Before submission, add generated offline dependency sources for:
       #   - NuGet/.NET restore packages
-      #   - ShareX.VideoEditor/frontend npm packages
 EOF
 fi
 
@@ -531,7 +501,7 @@ echo ""
 echo "Resolved source commits:"
 echo "  XerahS             $main_commit ($TAG_NAME)"
 echo "  ShareX.ImageEditor $image_editor_commit"
-echo "  ShareX.VideoEditor $video_editor_commit"
+echo "  Omacut             $omacut_commit"
 
 if [[ $GENERATE_DEPS -eq 1 && -f "$generated_sources_dir/nuget-sources.json" ]]; then
   echo "NuGet source file: $generated_sources_dir/nuget-sources.json"
@@ -540,12 +510,6 @@ else
   echo "NuGet source file: missing"
 fi
 
-if [[ $GENERATE_DEPS -eq 1 && -f "$generated_sources_dir/npm-sources.json" ]]; then
-  echo "npm source file: $generated_sources_dir/npm-sources.json"
-  echo "npm source entries: $(jq 'length' "$generated_sources_dir/npm-sources.json" 2>/dev/null || echo unknown)"
-else
-  echo "npm source file: missing"
-fi
 
 if [[ $RUN_LINT -eq 1 ]]; then
   require_cmd flatpak

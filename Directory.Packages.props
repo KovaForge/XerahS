@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <!-- Disable CPM for submodules that manage their own package versions -->
-    <ManagePackageVersionsCentrally Condition="!$(MSBuildProjectDirectory.Contains('ShareX.ImageEditor')) And !$(MSBuildProjectDirectory.Contains('ShareX.VideoEditor'))">true</ManagePackageVersionsCentrally>
+    <ManagePackageVersionsCentrally Condition="!$(MSBuildProjectDirectory.Contains('ShareX.ImageEditor')) And !$(MSBuildProjectDirectory.Contains('Omacut'))">true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>

@@ -76,8 +76,8 @@ try {
             Path = Join-Path $repoRoot "ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj"
         },
         @{
-            Name = "ShareX.VideoEditor"
-            Path = Join-Path $repoRoot "ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj"
+            Name = "Omacut"
+            Path = Join-Path $repoRoot "Omacut\dotnet\src\Omacut\Omacut.csproj"
         }
     )
 

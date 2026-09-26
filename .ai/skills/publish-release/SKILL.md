@@ -67,10 +67,10 @@ Step 6 performs:
 
 Optional Step 8 performs:
 - Runs `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh --tag vX.Y.Z --repo owner/name --lint`.
-- Generates `dist/flathub/com.xerahs.XerahS.yml` from the GitHub release tag plus pinned `ShareX.ImageEditor` and `ShareX.VideoEditor` submodule commits.
+- Generates `dist/flathub/com.xerahs.XerahS.yml` from the GitHub release tag plus pinned `ShareX.ImageEditor` and `Omacut` submodule commits.
 - Adds the Freedesktop SDK `dotnet10` and `node24` extensions needed to run the Linux publish script inside the Flatpak build sandbox.
 - Verifies the generated manifest does not use local `dist/xerahs-flatpak-staging` sources.
-- Flags missing offline dependency source artifacts for NuGet/.NET and npm. A release is not Flathub-ready until these generated dependency sources are present and a network-disabled Flatpak source build passes.
+- Flags missing offline NuGet/.NET dependency source artifacts. A release is not Flathub-ready until the generated dependency sources are present and a network-disabled Flatpak source build passes. The video editor is native .NET (Omacut), so there are no npm sources.
 - Keeps this as a pre-release validation path. Do not mark a release stable for Flathub until the source-build manifest, dependency sources, manifest lint, repo lint, and manual smoke tests pass.
 
 Optional Step 9 performs:
@@ -237,7 +237,7 @@ On environments where `bash` is not in PATH, execute the sequence manually:
    - Prefer keeping ShareX validation releases as pre-release while Flathub work is ongoing.
    - Run `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh --tag v<new-version> --repo owner/name --lint`.
    - Confirm the generated manifest uses `type: git` sources pinned by tag/commit for the main repository and submodules.
-   - Generate and add offline dependency sources for NuGet/.NET packages and `ShareX.VideoEditor/frontend` npm packages before attempting a network-disabled Flathub build.
+   - Generate and add offline dependency sources for NuGet/.NET packages before attempting a network-disabled Flathub build.
    - Build and lint the generated manifest locally before a human maintainer manually opens the Flathub PR.
 
 9. Optional PPA / COPR / OBS
@@ -322,7 +322,7 @@ Default release-channel policy: `ShareX/XerahS` = pre-release; `KovaForge/XerahS
 - Flatpak manifest source paths are resolved relative to the manifest directory, so staging paths outside `flatpak/` need a `../` prefix.
 - Flathub submission manifests must not depend on local `dist/xerahs-flatpak-staging`; generate a tag-pinned source-build candidate with `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh`.
 - Flathub source-build candidates must include pinned submodule commits; GitHub source archives do not automatically include submodule contents.
-- Flathub source-build candidates are not ready until NuGet/.NET and npm dependency sources are generated and a network-disabled Flatpak build passes.
+- Flathub source-build candidates are not ready until NuGet/.NET dependency sources are generated and a network-disabled Flatpak build passes.
 - Distro-repo candidates (PPA / COPR / OBS) wrap the existing GitHub linux tarball. They are not a second package format. `publish-distro-repos.sh` uploads when secrets are present and skips a backend when they are not.
 - Flatpak build commands install into `/app`, not `/usr`; expose launchers through `/app/bin`.
 - Flatpak build commands run from the module build directory, not the repository root; add icons, desktop files, metainfo, or other repository assets as explicit manifest sources before installing them.

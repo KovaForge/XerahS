@@ -24,7 +24,8 @@
 #endregion License Information (GPL v3)
 
 using System.CommandLine;
-using ShareX.VideoEditor.Hosting;
+using Omacut.Core;
+using XerahS.Media;
 using XerahS.Common;
 using XerahS.Platform.Abstractions;
 
@@ -49,7 +50,7 @@ public static class OpenVideoEditorCommand
 
         var headlessOption = new Option<bool>("--headless")
         {
-            Description = "Skip the UI and trim/export through ShareX.VideoEditor automation APIs."
+            Description = "Skip the UI and trim/export through the Omacut export pipeline."
         };
 
         var trimStartOption = new Option<double>("--trim-start")
@@ -69,7 +70,7 @@ public static class OpenVideoEditorCommand
 
         var formatOption = new Option<string?>("--format")
         {
-            Description = "Headless output format: MP4, WebM, GIF, or WebP. When set with crop/watermark, uses the general export pipeline."
+            Description = "Headless output format: MP4 (default), WebM, or GIF."
         };
 
         var cropOption = new Option<string?>("--crop")
@@ -120,7 +121,7 @@ public static class OpenVideoEditorCommand
         return cmd;
     }
 
-    // Interactive (Photino window) mode
+    // Interactive (native Omacut window) mode
 
     private static async Task<int> RunAsync(string videoPath, string? ffmpegOverride)
     {
@@ -174,7 +175,7 @@ public static class OpenVideoEditorCommand
         }
     }
 
-    // Headless trim mode
+    // Headless trim/export mode
 
     private static async Task<int> RunHeadlessAsync(
         string videoPath,
@@ -187,6 +188,7 @@ public static class OpenVideoEditorCommand
         string? watermark,
         string? watermarkImage)
     {
+        string? renderedWatermark = null;
         try
         {
             if (!File.Exists(videoPath))
@@ -195,85 +197,97 @@ public static class OpenVideoEditorCommand
                 return 2;
             }
 
+            if (!TryParseFormat(format, out ExportFormat exportFormat))
+            {
+                Console.Error.WriteLine($"Unsupported format '{format}'. Use MP4, WebM or GIF.");
+                return 2;
+            }
+
+            if (!TryParseCrop(crop, out int cropX, out int cropY, out int cropWidth, out int cropHeight, out string? cropError))
+            {
+                Console.Error.WriteLine(cropError);
+                return 2;
+            }
+
+            if (!string.IsNullOrWhiteSpace(watermarkImage) && !File.Exists(watermarkImage))
+            {
+                Console.Error.WriteLine($"Watermark image does not exist: {watermarkImage}");
+                return 2;
+            }
+
             string detectedFfmpegPath = PathsManager.GetFFmpegPath();
             string normalizedOverride = VideoEditorFfmpegResolver.NormalizePath(ffmpegOverride);
             var resolution = VideoEditorFfmpegResolver.Resolve(normalizedOverride, detectedFfmpegPath);
-
             if (!resolution.IsAvailable)
             {
                 Console.Error.WriteLine($"FFmpeg not found. Checked: {detectedFfmpegPath}");
                 return 2;
             }
 
-            string ffprobePath = await VideoEditorFfprobeResolver.EnsureAvailableAsync(
-                resolution.ConfiguredPath,
-                Console.WriteLine);
-            var service = new VideoEditorAutomationService(resolution.ConfiguredPath, ffprobePath);
+            string ffprobePath = await VideoEditorFfprobeResolver.EnsureAvailableAsync(resolution.ConfiguredPath, Console.WriteLine);
+            var tools = new FfmpegTools(resolution.ConfiguredPath, ffprobePath);
+            MediaInfo info = await MediaProbe.ProbeAsync(tools, Path.GetFullPath(videoPath));
 
-            bool useGeneralExport =
-                !string.IsNullOrWhiteSpace(format) ||
-                !string.IsNullOrWhiteSpace(crop) ||
-                !string.IsNullOrWhiteSpace(watermark) ||
-                !string.IsNullOrWhiteSpace(watermarkImage);
-
-            if (useGeneralExport)
+            double start = Math.Clamp(trimStartSeconds, 0, info.Duration);
+            double end = info.Duration - Math.Max(0, trimEndOffsetSeconds);
+            if (end - start <= 0)
             {
-                return await RunHeadlessExportAsync(
-                    service,
-                    videoPath,
-                    outputPath,
-                    format,
-                    crop,
-                    watermark,
-                    watermarkImage,
-                    trimStartSeconds,
-                    trimEndOffsetSeconds);
-            }
-
-            string resolvedOutputPath = !string.IsNullOrWhiteSpace(outputPath)
-                ? Path.GetFullPath(outputPath)
-                : Path.Combine(
-                    Path.GetDirectoryName(videoPath) ?? ".",
-                    $"{Path.GetFileNameWithoutExtension(videoPath)}_trimmed.mp4");
-            var trimRequest = new VideoEditorTrimRequest
-            {
-                InputPath = videoPath,
-                OutputPath = resolvedOutputPath,
-                TrimStart = TimeSpan.FromSeconds(trimStartSeconds),
-                TrimEndOffset = TimeSpan.FromSeconds(trimEndOffsetSeconds),
-                OutputFormat = "MP4",
-                QualityScale = 1.0
-            };
-
-            Console.WriteLine("=== Open Video Editor (headless trim) ===");
-            Console.WriteLine($"Input    : {videoPath}");
-            Console.WriteLine($"Output   : {resolvedOutputPath}");
-            Console.WriteLine($"Trim     : start +{trimStartSeconds:F2}s, end -{trimEndOffsetSeconds:F2}s");
-            Console.WriteLine($"FFmpeg   : {resolution.ConfiguredPath}");
-            Console.WriteLine($"FFprobe  : {ffprobePath}");
-
-            Console.Write("Encoding");
-            VideoEditorTrimResult result = await service.TrimAsync(
-                trimRequest,
-                progress =>
-                {
-                    string speed = progress.Speed > 0 ? $"{progress.Speed:F1}x" : "-";
-                    Console.Write(
-                        $"\rEncoding {progress.ProgressPercent:F0}%  {progress.CurrentTime:hh\\:mm\\:ss\\.ff}  {speed,-6}");
-                });
-            Console.WriteLine();
-
-            if (!File.Exists(result.OutputPath))
-            {
-                Console.Error.WriteLine("Export completed but output file not found.");
+                Console.Error.WriteLine($"The trim leaves nothing to export (source is {info.Duration:F2}s).");
                 return 2;
             }
 
-            var info = new FileInfo(result.OutputPath);
-            Console.WriteLine($"Source   : {result.SourceDuration.TotalSeconds:F2}s");
-            Console.WriteLine(
-                $"Export   : {result.TrimStart.TotalSeconds:F2}s -> {result.TrimEnd.TotalSeconds:F2}s ({result.OutputDuration.TotalSeconds:F2}s)");
-            Console.WriteLine($"Done. Output: {result.OutputPath}  ({info.Length / 1024:N0} KB)");
+            WatermarkOverlay? overlay = null;
+            if (!string.IsNullOrWhiteSpace(watermark) || !string.IsNullOrWhiteSpace(watermarkImage))
+            {
+                var settings = new VideoWatermarkSettings
+                {
+                    Enabled = true,
+                    Text = watermark ?? string.Empty,
+                    ImagePath = watermarkImage ?? string.Empty,
+                };
+                string workDirectory = Path.Combine(Path.GetTempPath(), "XerahS", "video-watermarks");
+                string? image = VideoWatermarkRenderer.ResolveImage(settings, workDirectory);
+                if (image != null)
+                {
+                    renderedWatermark = image == watermarkImage ? null : image;
+                    overlay = new WatermarkOverlay(image, settings.Opacity, settings.PositionX, settings.PositionY);
+                }
+            }
+
+            var options = new ExportOptions
+            {
+                SourcePath = info.Path,
+                Start = start,
+                End = end,
+                Format = exportFormat,
+                Crop = cropWidth > 0 && cropHeight > 0 ? new CropRect(cropX, cropY, cropWidth, cropHeight) : null,
+                Watermark = overlay,
+            };
+
+            string requestedOutput = !string.IsNullOrWhiteSpace(outputPath)
+                ? Path.GetFullPath(outputPath)
+                : ExportFormats.SuggestedPath(info.Path, exportFormat);
+
+            Console.WriteLine("=== Open Video Editor (headless export) ===");
+            Console.WriteLine($"Input    : {info.Path}");
+            Console.WriteLine($"Output   : {ExportFormats.WithExtension(requestedOutput, exportFormat)}");
+            Console.WriteLine($"Format   : {ExportFormats.DisplayName(exportFormat)}");
+            Console.WriteLine($"Trim     : {start:F2}s -> {end:F2}s ({end - start:F2}s of {info.Duration:F2}s)");
+            Console.WriteLine($"Crop     : {(options.Crop is CropRect c ? $"{c.X},{c.Y},{c.Width},{c.Height}" : "(none)")}");
+            Console.WriteLine($"Watermark: {(overlay == null ? "(none)" : watermark ?? "(image)")}");
+            Console.WriteLine($"FFmpeg   : {tools.FfmpegPath}");
+
+            var service = new ExportService(tools, await EncoderSupport.ProbeAsync(tools));
+            Console.Write("Encoding");
+            string written = await service.ExportAsync(
+                options,
+                info,
+                requestedOutput,
+                new ConsoleProgress());
+            Console.WriteLine();
+
+            var fileInfo = new FileInfo(written);
+            Console.WriteLine($"Done. Output: {written}  ({fileInfo.Length / 1024:N0} KB)");
             return 0;
         }
         catch (Exception ex)
@@ -281,94 +295,58 @@ public static class OpenVideoEditorCommand
             Console.Error.WriteLine($"\nHeadless export failed: {ex.Message}");
             return 2;
         }
+        finally
+        {
+            if (renderedWatermark != null)
+            {
+                try
+                {
+                    File.Delete(renderedWatermark);
+                }
+                catch (IOException)
+                {
+                }
+            }
+        }
     }
 
-    private static async Task<int> RunHeadlessExportAsync(
-        VideoEditorAutomationService service,
-        string videoPath,
-        string? outputPath,
-        string? format,
-        string? crop,
-        string? watermark,
-        string? watermarkImage,
-        double trimStartSeconds,
-        double trimEndOffsetSeconds)
+    internal static bool TryParseFormat(string? format, out ExportFormat exportFormat)
     {
-        if (!TryParseCrop(crop, out int cropX, out int cropY, out int cropWidth, out int cropHeight, out string? cropError))
+        exportFormat = ExportFormat.Mp4;
+        if (string.IsNullOrWhiteSpace(format))
         {
-            Console.Error.WriteLine(cropError);
-            return 2;
+            return true;
         }
 
-        if (!string.IsNullOrWhiteSpace(watermarkImage) && !File.Exists(watermarkImage))
+        switch (format.Trim().TrimStart('.').ToUpperInvariant())
         {
-            Console.Error.WriteLine($"Watermark image does not exist: {watermarkImage}");
-            return 2;
+            case "MP4":
+                exportFormat = ExportFormat.Mp4;
+                return true;
+            case "WEBM":
+                exportFormat = ExportFormat.WebM;
+                return true;
+            case "GIF":
+                exportFormat = ExportFormat.Gif;
+                return true;
+            default:
+                return false;
         }
+    }
 
-        string outputFormat = string.IsNullOrWhiteSpace(format) ? "MP4" : format.Trim();
-        bool isTrimActive = trimStartSeconds > 0 || trimEndOffsetSeconds > 0;
-        TimeSpan trimEnd = TimeSpan.Zero;
+    private sealed class ConsoleProgress : IProgress<double>
+    {
+        private int _last = -1;
 
-        if (isTrimActive && trimEndOffsetSeconds > 0)
+        public void Report(double value)
         {
-            TimeSpan duration = await service.ProbeDurationAsync(videoPath);
-            trimEnd = duration - TimeSpan.FromSeconds(trimEndOffsetSeconds);
-        }
-
-        bool watermarkEnabled = !string.IsNullOrWhiteSpace(watermark) || !string.IsNullOrWhiteSpace(watermarkImage);
-        var exportRequest = new VideoEditorExportRequest
-        {
-            InputPath = videoPath,
-            OutputPath = outputPath,
-            OutputFormat = outputFormat,
-            IsTrimActive = isTrimActive,
-            TrimStart = TimeSpan.FromSeconds(Math.Max(0, trimStartSeconds)),
-            TrimEnd = trimEnd,
-            IsCropActive = cropWidth > 0 && cropHeight > 0,
-            CropX = cropX,
-            CropY = cropY,
-            CropWidth = cropWidth,
-            CropHeight = cropHeight,
-            WatermarkEnabled = watermarkEnabled,
-            WatermarkText = watermark ?? string.Empty,
-            Watermark = watermarkEnabled
-                ? new WatermarkSettings
-                {
-                    Enabled = true,
-                    Text = watermark ?? string.Empty,
-                    ImagePath = watermarkImage ?? string.Empty
-                }
-                : null,
-            QualityScale = 1.0
-        };
-
-        Console.WriteLine("=== Open Video Editor (headless export) ===");
-        Console.WriteLine($"Input    : {videoPath}");
-        Console.WriteLine($"Format   : {outputFormat}");
-        Console.WriteLine($"Crop     : {(exportRequest.IsCropActive ? $"{cropX},{cropY},{cropWidth},{cropHeight}" : "(none)")}");
-        Console.WriteLine($"Watermark: {(exportRequest.WatermarkEnabled ? watermark ?? "(image)" : "(none)")}");
-
-        Console.Write("Encoding");
-        VideoEditorExportResult result = await service.ExportAsync(
-            exportRequest,
-            progress =>
+            int percent = (int)Math.Round(value * 100);
+            if (percent != _last)
             {
-                string speed = progress.Speed > 0 ? $"{progress.Speed:F1}x" : "-";
-                Console.Write(
-                    $"\rEncoding {progress.ProgressPercent:F0}%  {progress.CurrentTime:hh\\:mm\\:ss\\.ff}  {speed,-6}");
-            });
-        Console.WriteLine();
-
-        if (!File.Exists(result.OutputPath))
-        {
-            Console.Error.WriteLine("Export completed but output file not found.");
-            return 2;
+                _last = percent;
+                Console.Write($"\rEncoding {percent}%   ");
+            }
         }
-
-        var info = new FileInfo(result.OutputPath);
-        Console.WriteLine($"Done. Output: {result.OutputPath}  ({info.Length / 1024:N0} KB)");
-        return 0;
     }
 
     private static bool TryParseCrop(

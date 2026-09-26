@@ -3,7 +3,8 @@
 	url = https://github.com/KovaForge/ShareX.ImageEditor.git
 	branch = develop
 	update = rebase
-[submodule "ShareX.VideoEditor"]
-	path = ShareX.VideoEditor
-	url = https://github.com/ShareX/ShareX.VideoEditor.git
-	branch = main
+[submodule "Omacut"]
+	path = Omacut
+	url = https://github.com/KovaForge/omacut.git
+	branch = develop
+	update = rebase

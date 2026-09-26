@@ -345,13 +345,14 @@ jobs:
           tar -xzf "dist/XerahS-${VERSION}-linux-x64.tar.gz" \
             -C "dist/xerahs-flatpak-staging"
 
-      - name: Validate WebUI dist is present
+      - name: Validate video editor audio library is present
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -d "dist/xerahs-flatpak-staging/frontend/dist" ]; then
-            echo "Error: WebUI dist missing at dist/xerahs-flatpak-staging/frontend/dist"
-            echo "This means ShareX.VideoEditor was not built. Ensure git submodules are initialized."
+          # The Omacut video editor plays audio through the bundled OpenAL Soft library.
+          if ! find "dist/xerahs-flatpak-staging" -maxdepth 1 -name 'libopenal.so*' | grep -q .; then
+            echo "Error: libopenal.so missing from dist/xerahs-flatpak-staging"
+            echo "This means the Omacut submodule was not built. Ensure git submodules are initialized."
             exit 1
           fi
 

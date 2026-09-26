@@ -26,7 +26,7 @@
 using NUnit.Framework;
 using ShareX.ImageEditor.Core.ImageEffects;
 using ShareX.ImageEditor.Core.ImageEffects.Drawings;
-using ShareX.VideoEditor.Hosting;
+using XerahS.Media;
 using SkiaSharp;
 using XerahS.UI.Services;
 
@@ -44,7 +44,7 @@ public class VideoEditorWatermarkMapperTests
     [Test]
     public void FromEffects_MapsTextWatermark()
     {
-        WatermarkSettings? settings = VideoEditorWatermarkMapper.FromEffects(
+        VideoWatermarkSettings? settings = VideoEditorWatermarkMapper.FromEffects(
         [
             new TextWatermarkEffect
             {
@@ -75,7 +75,7 @@ public class VideoEditorWatermarkMapperTests
 
         try
         {
-            WatermarkSettings? settings = VideoEditorWatermarkMapper.FromEffects(
+            VideoWatermarkSettings? settings = VideoEditorWatermarkMapper.FromEffects(
             [
                 new DrawImageEffect
                 {
