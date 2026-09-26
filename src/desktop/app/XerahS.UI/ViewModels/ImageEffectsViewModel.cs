@@ -804,6 +804,11 @@ namespace XerahS.UI.ViewModels
                 return null;
             }
 
+            if (importResult.SkippedEffects.Count > 0)
+            {
+                DebugHelper.WriteLine($"[ImageEffects] Legacy import of '{filePath}' skipped: {string.Join(", ", importResult.SkippedEffects)}");
+            }
+
             var preset = new ImageEffectPreset
             {
                 Name = importResult.PresetName ?? "Imported Preset",
@@ -909,6 +914,27 @@ namespace XerahS.UI.ViewModels
                     Width = width,
                     Height = height
                 };
+            }
+
+            if (mapped.TargetTypeName == nameof(DrawBackgroundEffect))
+            {
+                var background = new DrawBackgroundEffect();
+                if (mapped.Properties.TryGetValue("Color", out var colorValue) && colorValue is SKColor color)
+                    background.Color = color;
+
+                if (mapped.Properties.TryGetValue("GradientStops", out var stopsValue) &&
+                    stopsValue is IEnumerable<LegacyGradientStop> stops)
+                {
+                    background.UseGradient = true;
+                    background.GradientStops = stops.Select(stop => new DrawingGradientStop(stop.Color, stop.Location)).ToList();
+                    if (mapped.Properties.TryGetValue("GradientType", out var gradientTypeValue) &&
+                        Enum.TryParse(gradientTypeValue?.ToString(), ignoreCase: true, out DrawingGradientType gradientType))
+                    {
+                        background.GradientType = gradientType;
+                    }
+                }
+
+                return background;
             }
 
             var assembly = typeof(ImageEffect).Assembly;
