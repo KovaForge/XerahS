@@ -364,6 +364,13 @@ namespace XerahS.Core.Tasks.Processors
                         }
                     }
 
+                    // Screenshots uploaded by this workflow used to lose host, deletion URL and
+                    // upload metadata here; record them like upload jobs do.
+                    if (!string.IsNullOrWhiteSpace(historyItem.URL))
+                    {
+                        UploadJobProcessor.ApplyUploadResult(historyItem, info);
+                    }
+
                     bool appended = historyManager.AppendHistoryItem(historyItem);
                     DebugHelper.WriteLine($"Trace: History pipeline - AppendHistoryItem called for: {historyItem.FileName} (URL: {historyItem.URL})");
                     if (appended)

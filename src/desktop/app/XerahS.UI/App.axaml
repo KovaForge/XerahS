@@ -73,6 +73,9 @@
                           Command="{Binding UnpublishCommand}"
                           IsVisible="{Binding Item.CanUnpublish}"/>
                 <Separator/>
+                <MenuItem Header="Delete from host"
+                          Command="{Binding DeleteRemoteCommand}"
+                          IsVisible="{Binding Item.CanDeleteRemotely}"/>
                 <MenuItem Header="Delete"
                           Command="{Binding DeleteItemCommand}"
                           IsVisible="{Binding Item.HasExistingFile}"

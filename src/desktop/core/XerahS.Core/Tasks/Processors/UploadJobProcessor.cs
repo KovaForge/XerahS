@@ -31,6 +31,7 @@ using XerahS.History;
 using XerahS.Platform.Abstractions;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
+using XerahS.Core.Services;
 
 namespace XerahS.Core.Tasks.Processors
 {
@@ -607,6 +608,7 @@ namespace XerahS.Core.Tasks.Processors
             if (IsSuccessfulUploadResult(result))
             {
                 info.ResolvedUploaderHost = instance.DisplayName;
+                info.ResolvedUploaderInstanceId = instance.InstanceId;
             }
         }
 
@@ -675,18 +677,13 @@ namespace XerahS.Core.Tasks.Processors
 
         internal static HistoryItem CreateHistoryItem(TaskInfo info, string url)
         {
-            var uploadResult = info.Result;
             var historyItem = new HistoryItem
             {
                 FilePath = info.FilePath ?? string.Empty,
                 FileName = TaskHelpers.GetHistoryFileName(info.FileName, info.FilePath, url),
                 DateTime = DateTime.Now,
                 Type = GetHistoryType(info),
-                Host = info.UploaderHost ?? string.Empty,
-                URL = url,
-                ThumbnailURL = uploadResult?.ThumbnailURL ?? string.Empty,
-                DeletionURL = uploadResult?.DeletionURL ?? string.Empty,
-                ShortenedURL = uploadResult?.ShortenedURL ?? string.Empty
+                URL = url
             };
 
             var tags = info.GetTags();
@@ -699,15 +696,37 @@ namespace XerahS.Core.Tasks.Processors
                 }
             }
 
+            ApplyUploadResult(historyItem, info);
+            return historyItem;
+        }
+
+        /// <summary>
+        /// Copies upload details (host, thumbnail/deletion/shortened URLs, result metadata, uploader
+        /// instance, errors) onto a history item. Shared by upload jobs and capture-then-upload.
+        /// </summary>
+        internal static void ApplyUploadResult(HistoryItem historyItem, TaskInfo info)
+        {
+            var uploadResult = info.Result;
+            historyItem.Host = info.ResolvedUploaderHost ?? info.UploaderHost ?? string.Empty;
+            historyItem.ThumbnailURL = uploadResult?.ThumbnailURL ?? string.Empty;
+            historyItem.DeletionURL = uploadResult?.DeletionURL ?? string.Empty;
+            historyItem.ShortenedURL = uploadResult?.ShortenedURL ?? string.Empty;
+            historyItem.Tags ??= new Dictionary<string, string?>();
+
             if (uploadResult?.Metadata?.Count > 0)
             {
                 foreach (var pair in uploadResult.Metadata)
                 {
                     if (!string.IsNullOrWhiteSpace(pair.Key))
                     {
-                        historyItem.Tags[$"UploadResult.{pair.Key}"] = pair.Value;
+                        historyItem.Tags[UploadRemoteDeletionService.UploadResultTagPrefix + pair.Key] = pair.Value;
                     }
                 }
+            }
+
+            if (!string.IsNullOrWhiteSpace(info.ResolvedUploaderInstanceId))
+            {
+                historyItem.Tags[UploadRemoteDeletionService.UploaderInstanceIdTag] = info.ResolvedUploaderInstanceId;
             }
 
             // Store upload errors if any
@@ -715,8 +734,6 @@ namespace XerahS.Core.Tasks.Processors
             {
                 historyItem.Errors = uploadResult.Errors.ToString();
             }
-
-            return historyItem;
         }
 
         private static string GetHistoryType(TaskInfo info)

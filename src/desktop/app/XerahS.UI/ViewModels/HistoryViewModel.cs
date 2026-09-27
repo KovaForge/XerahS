@@ -34,6 +34,7 @@ using XerahS.Bootstrap;
 using XerahS.Core;
 using XerahS.Core.Cloud;
 using XerahS.Core.Managers;
+using XerahS.Core.Services;
 using XerahS.History;
 using XerahS.Media;
 using XerahS.Platform.Abstractions;
@@ -966,6 +967,27 @@ namespace XerahS.UI.ViewModels
             _historyManager.Delete(item);
             new HistoryOcrIndexStore(SettingsManager.GetHistoryFilePath()).Delete(item.Id);
             DebugHelper.WriteLine($"Deleted history item: {item.FileName}");
+        }
+
+        [RelayCommand]
+        private async Task DeleteRemoteItem(HistoryItem? item)
+        {
+            if (item == null || !UploadRemoteDeletionService.CanDelete(item)) return;
+
+            bool confirmed = await _coreDialogService.ShowConfirmationAsync(
+                "Delete from host",
+                $"Delete '{item.FileName}' from {(string.IsNullOrWhiteSpace(item.Host) ? "the upload destination" : item.Host)}?\n\n{item.URL} will stop working. The local file and history entry are kept.");
+            if (!confirmed) return;
+
+            bool deleted = await UploadRemoteDeletionService.DeleteAsync(item);
+            if (deleted)
+            {
+                await PersistHistoryItemAsync(item);
+            }
+
+            ShowCloudToast(
+                deleted ? "Deleted from host" : "Delete from host failed",
+                deleted ? item.FileName : "See the XerahS log for details.");
         }
 
         private Task<bool> ShowDeleteConfirmationDialog(string fileName)

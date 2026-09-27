@@ -175,12 +175,14 @@ public class AmazonS3Uploader : FileUploader
 
             if ((int)response.HttpStatusCode is >= 200 and < 300)
             {
-                return new UploadResult
+                var putResult = new UploadResult
                 {
                     IsSuccess = true,
                     Response = response.ETag,
                     URL = resultUrl
                 };
+                AddObjectMetadata(putResult, uploadPath);
+                return putResult;
             }
 
             string responseMessage = $"Upload to Amazon S3 failed ({(int)response.HttpStatusCode}).";
@@ -286,12 +288,18 @@ public class AmazonS3Uploader : FileUploader
                 () => new S3MultipartUploader(client).UploadAsync(filePath, options, progressReporter, multipartCancellationTokenSource.Token),
                 multipartCancellationTokenSource.Token).GetAwaiter().GetResult();
 
-            return new UploadResult
+            var multipartUploadResult = new UploadResult
             {
                 IsSuccess = multipartResult.IsSuccess,
                 Response = multipartResult.ETag,
                 URL = multipartResult.URL ?? resultUrl
             };
+            if (multipartResult.IsSuccess)
+            {
+                AddObjectMetadata(multipartUploadResult, uploadPath);
+            }
+
+            return multipartUploadResult;
         }
         catch (OperationCanceledException)
         {
@@ -380,6 +388,47 @@ public class AmazonS3Uploader : FileUploader
     {
         string uploadPath = GetUploadPath(fileName);
         return (uploadPath, GenerateURL(uploadPath), MimeTypes.GetMimeTypeFromFileName(fileName));
+    }
+
+    /// <summary>Upload result metadata key holding the S3 object key (used by "Delete from host").</summary>
+    internal const string ObjectKeyMetadata = "S3Key";
+    internal const string BucketMetadata = "S3Bucket";
+
+    private void AddObjectMetadata(UploadResult result, string objectKey)
+    {
+        result.Metadata[ObjectKeyMetadata] = objectKey;
+        result.Metadata[BucketMetadata] = _config.BucketName;
+    }
+
+    /// <summary>
+    /// Recovers the object key from a URL this uploader generated (endpoint/bucket or custom domain form).
+    /// </summary>
+    internal bool TryGetObjectKey(string url, out string objectKey)
+    {
+        objectKey = string.Empty;
+        const string marker = "xerahs-object-key-marker";
+        string template = GenerateURL(marker);
+        int markerIndex = template.IndexOf(marker, StringComparison.Ordinal);
+        if (string.IsNullOrWhiteSpace(url) || markerIndex < 0)
+        {
+            return false;
+        }
+
+        string prefix = template[..markerIndex];
+        if (!url.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) || url.Length == prefix.Length)
+        {
+            return false;
+        }
+
+        string encodedKey = url[prefix.Length..];
+        int query = encodedKey.IndexOfAny(['?', '#']);
+        if (query >= 0)
+        {
+            encodedKey = encodedKey[..query];
+        }
+
+        objectKey = Uri.UnescapeDataString(encodedKey);
+        return objectKey.Length > 0;
     }
 
     private string GenerateURL(string uploadPath)

@@ -78,6 +78,9 @@ public class TaskInfo
 
     internal string? ResolvedUploaderHost { get; set; }
 
+    /// <summary>Uploader instance that produced the successful upload (recorded in History for "Delete from host").</summary>
+    internal string? ResolvedUploaderInstanceId { get; set; }
+
     public string? UploaderHost
     {
         get

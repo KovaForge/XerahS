@@ -40,7 +40,7 @@ namespace ShareX.AmazonS3.Plugin;
 /// Amazon S3 file uploader provider (supports Image, Text, and File categories).
 /// Also implements <see cref="IUploaderExplorer"/> for the Media Explorer.
 /// </summary>
-public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretMigrator, IInstanceSecretBackupProvider
+public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IUploadRemover, IInstanceSecretMigrator, IInstanceSecretBackupProvider
 {
     public override string ProviderId => "amazons3";
     public override string Name => "Amazon S3";
@@ -428,6 +428,51 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         await RunExplorerOperationAsync(context, async (operations, _) =>
             hasChildren = await operations.HasChildrenAsync(key, cancellation));
         return hasChildren;
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> DeleteUploadAsync(
+        ExplorerContext context,
+        string url,
+        IReadOnlyDictionary<string, string?> uploadMetadata,
+        CancellationToken cancellation = default)
+    {
+        S3ConfigModel config = DeserializeConfig(context.SettingsJson);
+        if (!TryResolveUploadedObjectKey(config, url, uploadMetadata, out string key))
+        {
+            return false;
+        }
+
+        return await RunExplorerOperationAsync(context, (operations, _) => operations.DeleteFileAsync(key, cancellation));
+    }
+
+    /// <summary>
+    /// Prefers the key recorded at upload time; falls back to parsing the URL for older uploads.
+    /// A recorded bucket that differs from the instance's bucket is refused rather than deleting
+    /// the same key in the wrong bucket.
+    /// </summary>
+    internal static bool TryResolveUploadedObjectKey(
+        S3ConfigModel config,
+        string url,
+        IReadOnlyDictionary<string, string?> uploadMetadata,
+        out string key)
+    {
+        key = string.Empty;
+        if (uploadMetadata.TryGetValue(AmazonS3Uploader.BucketMetadata, out string? bucket) &&
+            !string.IsNullOrWhiteSpace(bucket) &&
+            !string.Equals(bucket, config.BucketName, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (uploadMetadata.TryGetValue(AmazonS3Uploader.ObjectKeyMetadata, out string? recordedKey) &&
+            !string.IsNullOrWhiteSpace(recordedKey))
+        {
+            key = recordedKey;
+            return true;
+        }
+
+        return new AmazonS3Uploader(config, string.Empty, string.Empty).TryGetObjectKey(url, out key);
     }
 
     /// <summary>

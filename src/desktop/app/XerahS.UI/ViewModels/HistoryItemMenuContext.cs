@@ -50,6 +50,7 @@ public interface IHistoryItemMenuContext
     ICommand PublishCommand { get; }
     ICommand UnpublishCommand { get; }
     ICommand DeleteItemCommand { get; }
+    ICommand DeleteRemoteCommand { get; }
 
     /// <summary>Current item used for visibility (URL, HasErrors).</summary>
     IHistoryItemMenuTarget? Item { get; }
@@ -71,6 +72,7 @@ public interface IHistoryItemMenuTarget
     bool HasExistingFile { get; }
     bool CanPublish { get; }
     bool CanUnpublish { get; }
+    bool CanDeleteRemotely { get; }
 }
 
 /// <summary>
@@ -96,6 +98,7 @@ public sealed class HistoryItemMenuTargetAdapter : IHistoryItemMenuTarget
     public bool HasExistingFile => !string.IsNullOrWhiteSpace(_item.FilePath) && File.Exists(_item.FilePath);
     public bool CanPublish => HistoryPublishMetadata.CanPublish(_item, _currentOwnerSubject);
     public bool CanUnpublish => HistoryPublishMetadata.CanUnpublish(_item, _currentOwnerSubject);
+    public bool CanDeleteRemotely => XerahS.Core.Services.UploadRemoteDeletionService.CanDelete(_item);
 }
 
 /// <summary>
@@ -125,6 +128,7 @@ public sealed class HistoryItemMenuContext : IHistoryItemMenuContext
         PublishCommand = new AsyncRelayCommand(() => _vm.PublishItemCommand.ExecuteAsync(_item));
         UnpublishCommand = new AsyncRelayCommand(() => _vm.UnpublishItemCommand.ExecuteAsync(_item));
         DeleteItemCommand = new RelayCommand(() => _vm.DeleteItemCommand.Execute(_item));
+        DeleteRemoteCommand = new AsyncRelayCommand(() => _vm.DeleteRemoteItemCommand.ExecuteAsync(_item));
     }
 
     public IHistoryItemMenuTarget? Item { get; }
@@ -144,6 +148,7 @@ public sealed class HistoryItemMenuContext : IHistoryItemMenuContext
     public ICommand PublishCommand { get; }
     public ICommand UnpublishCommand { get; }
     public ICommand DeleteItemCommand { get; }
+    public ICommand DeleteRemoteCommand { get; }
 }
 
 /// <summary>
@@ -166,6 +171,7 @@ public sealed class ToastItemMenuTargetAdapter : IHistoryItemMenuTarget
     public bool HasExistingFile => _vm.HasExistingFile;
     public bool CanPublish => _vm.CanPublishHistoryItem;
     public bool CanUnpublish => _vm.CanUnpublishHistoryItem;
+    public bool CanDeleteRemotely => false;
 }
 
 
@@ -200,4 +206,5 @@ public sealed class ToastMenuContext : IHistoryItemMenuContext
     public ICommand PublishCommand => ViewModel.PublishCommand;
     public ICommand UnpublishCommand => ViewModel.UnpublishCommand;
     public ICommand DeleteItemCommand => ViewModel.DeleteItemCommand;
+    public ICommand DeleteRemoteCommand { get; } = new RelayCommand(() => { });
 }
