@@ -45,6 +45,7 @@ internal static class NavigationSearchKeywords
         ["Tools_ImageThumbnailer"] = "thumbnail thumbs",
         ["Tools_VideoEditor"] = "video edit ffmpeg",
         ["Tools_VideoConverter"] = "video convert ffmpeg transcode",
+        ["Tools_VideoTrimmer"] = "video trim cut clip shorten ffmpeg",
         ["Tools_VideoThumbnailer"] = "video thumbnail thumbs",
         ["Tools_AnalyzeImage"] = "analyze analyse metadata exif",
         ["Tools_MonitorTest"] = "monitor display test pattern",

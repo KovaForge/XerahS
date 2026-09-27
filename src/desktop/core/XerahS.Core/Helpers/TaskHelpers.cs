@@ -109,6 +109,7 @@ public static partial class TaskHelpers
 
             // Video-specific tools
             WorkflowType.VideoConverter or
+            WorkflowType.VideoTrimmer or
             WorkflowType.VideoThumbnailer => JobMediaType.Video,
 
             // Text-specific tools

@@ -970,6 +970,13 @@ namespace XerahS.UI.ViewModels
         }
 
         [RelayCommand]
+        private void TrimVideo(HistoryItem? item)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath)) return;
+            MediaToolsToolService.OpenVideoTrimmer(item.FilePath, owner: null);
+        }
+
+        [RelayCommand]
         private async Task DeleteRemoteItem(HistoryItem? item)
         {
             if (item == null || !UploadRemoteDeletionService.CanDelete(item)) return;

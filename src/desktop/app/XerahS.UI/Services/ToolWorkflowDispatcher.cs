@@ -115,6 +115,7 @@ internal static class ToolWorkflowDispatcher
             case WorkflowType.ImageSplitter:
             case WorkflowType.ImageThumbnailer:
             case WorkflowType.VideoConverter:
+            case WorkflowType.VideoTrimmer:
             case WorkflowType.VideoThumbnailer:
             case WorkflowType.AnalyzeImage:
                 dispatchTask = MediaToolsToolService.HandleWorkflowAsync(workflowType, owner);

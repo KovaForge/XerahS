@@ -279,6 +279,9 @@ public enum WorkflowType // Localized
     [Description("Video converter")]
     VideoConverter,
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Video trimmer")]
+    VideoTrimmer,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Video thumbnailer")]
     VideoThumbnailer,
     [Category(EnumExtensions.WorkflowType_Category_Tools)]

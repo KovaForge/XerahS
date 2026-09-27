@@ -56,6 +56,7 @@ public static class WorkflowCatalog
         WorkflowType.ImageSplitter,
         WorkflowType.ImageThumbnailer,
         WorkflowType.VideoConverter,
+        WorkflowType.VideoTrimmer,
         WorkflowType.VideoThumbnailer,
         WorkflowType.AnalyzeImage,
         WorkflowType.ClipboardViewer,

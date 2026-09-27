@@ -50,6 +50,7 @@ internal static class ToolNavigationRegistry
         ["Tools_ImageThumbnailer"] = new(WorkflowType.ImageThumbnailer, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_VideoEditor"] = new(WorkflowType.VideoEditor, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_VideoConverter"] = new(WorkflowType.VideoConverter, ToolNavigationDispatchMode.DirectToolService),
+        ["Tools_VideoTrimmer"] = new(WorkflowType.VideoTrimmer, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_VideoThumbnailer"] = new(WorkflowType.VideoThumbnailer, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_AnalyzeImage"] = new(WorkflowType.AnalyzeImage, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_Ruler"] = new(WorkflowType.Ruler, ToolNavigationDispatchMode.DirectToolService),

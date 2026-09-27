@@ -51,6 +51,7 @@ public interface IHistoryItemMenuContext
     ICommand UnpublishCommand { get; }
     ICommand DeleteItemCommand { get; }
     ICommand DeleteRemoteCommand { get; }
+    ICommand TrimVideoCommand { get; }
 
     /// <summary>Current item used for visibility (URL, HasErrors).</summary>
     IHistoryItemMenuTarget? Item { get; }
@@ -73,6 +74,7 @@ public interface IHistoryItemMenuTarget
     bool CanPublish { get; }
     bool CanUnpublish { get; }
     bool CanDeleteRemotely { get; }
+    bool HasVideoFile { get; }
 }
 
 /// <summary>
@@ -99,6 +101,7 @@ public sealed class HistoryItemMenuTargetAdapter : IHistoryItemMenuTarget
     public bool CanPublish => HistoryPublishMetadata.CanPublish(_item, _currentOwnerSubject);
     public bool CanUnpublish => HistoryPublishMetadata.CanUnpublish(_item, _currentOwnerSubject);
     public bool CanDeleteRemotely => XerahS.Core.Services.UploadRemoteDeletionService.CanDelete(_item);
+    public bool HasVideoFile => HasExistingFile && FileHelpers.IsVideoFile(_item.FilePath);
 }
 
 /// <summary>
@@ -129,6 +132,7 @@ public sealed class HistoryItemMenuContext : IHistoryItemMenuContext
         UnpublishCommand = new AsyncRelayCommand(() => _vm.UnpublishItemCommand.ExecuteAsync(_item));
         DeleteItemCommand = new RelayCommand(() => _vm.DeleteItemCommand.Execute(_item));
         DeleteRemoteCommand = new AsyncRelayCommand(() => _vm.DeleteRemoteItemCommand.ExecuteAsync(_item));
+        TrimVideoCommand = new RelayCommand(() => _vm.TrimVideoCommand.Execute(_item));
     }
 
     public IHistoryItemMenuTarget? Item { get; }
@@ -149,6 +153,7 @@ public sealed class HistoryItemMenuContext : IHistoryItemMenuContext
     public ICommand UnpublishCommand { get; }
     public ICommand DeleteItemCommand { get; }
     public ICommand DeleteRemoteCommand { get; }
+    public ICommand TrimVideoCommand { get; }
 }
 
 /// <summary>
@@ -172,6 +177,7 @@ public sealed class ToastItemMenuTargetAdapter : IHistoryItemMenuTarget
     public bool CanPublish => _vm.CanPublishHistoryItem;
     public bool CanUnpublish => _vm.CanUnpublishHistoryItem;
     public bool CanDeleteRemotely => false;
+    public bool HasVideoFile => false;
 }
 
 
@@ -207,4 +213,5 @@ public sealed class ToastMenuContext : IHistoryItemMenuContext
     public ICommand UnpublishCommand => ViewModel.UnpublishCommand;
     public ICommand DeleteItemCommand => ViewModel.DeleteItemCommand;
     public ICommand DeleteRemoteCommand { get; } = new RelayCommand(() => { });
+    public ICommand TrimVideoCommand { get; } = new RelayCommand(() => { });
 }

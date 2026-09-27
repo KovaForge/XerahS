@@ -37,6 +37,7 @@ public static class MediaToolsToolService
     private static ImageSplitterWindow? _splitterWindow;
     private static ImageThumbnailerWindow? _thumbnailerWindow;
     private static VideoConverterWindow? _converterWindow;
+    private static VideoTrimmerWindow? _trimmerWindow;
     private static VideoThumbnailerWindow? _videoThumbnailerWindow;
     private static ImageAnalyzerWindow? _analyzerWindow;
 
@@ -84,6 +85,10 @@ public static class MediaToolsToolService
                 }, w => _converterWindow = w, "VideoConverter");
                 break;
 
+            case WorkflowType.VideoTrimmer:
+                OpenVideoTrimmer(null, owner);
+                break;
+
             case WorkflowType.VideoThumbnailer:
                 ShowWindow(_videoThumbnailerWindow, owner, () =>
                 {
@@ -106,6 +111,23 @@ public static class MediaToolsToolService
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>Opens the Video Trimmer, optionally with a video already loaded (History "Trim video...").</summary>
+    public static void OpenVideoTrimmer(string? filePath, Window? owner)
+    {
+        ShowWindow(_trimmerWindow, owner, () =>
+        {
+            var vm = new VideoTrimmerViewModel();
+            var w = new VideoTrimmerWindow();
+            w.Initialize(vm);
+            return w;
+        }, w => _trimmerWindow = w, "VideoTrimmer");
+
+        if (!string.IsNullOrWhiteSpace(filePath) && _trimmerWindow?.ViewModel is { } viewModel)
+        {
+            _ = viewModel.LoadAsync(filePath);
+        }
     }
 
     private static void ShowWindow<T>(T? current, Window? owner, Func<T> createWindow, Action<T?> setWindow, string toolName) where T : Window

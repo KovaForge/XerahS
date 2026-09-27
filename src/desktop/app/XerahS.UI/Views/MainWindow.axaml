@@ -110,6 +110,7 @@
                     <Separator/>
                     <MenuItem Name="MenuItemVideoEditor" Header="_Video Editor..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_VideoEditor"/>
                     <MenuItem Header="_Video Converter..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_VideoConverter"/>
+                    <MenuItem Header="Video _Trimmer..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_VideoTrimmer"/>
                     <MenuItem Header="Video Thumb_nailer..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_VideoThumbnailer"/>
                     <Separator/>
                     <MenuItem Header="Clipboard _Viewer" Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ClipboardViewer"/>

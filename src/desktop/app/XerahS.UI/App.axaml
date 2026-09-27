@@ -34,6 +34,9 @@
                           Command="{Binding EditImageCommand}"
                           IsVisible="{Binding Item.HasExistingFile}"
                           InputGesture="Enter"/>
+                <MenuItem Header="Trim video..."
+                          Command="{Binding TrimVideoCommand}"
+                          IsVisible="{Binding Item.HasVideoFile}"/>
                 <MenuItem Header="Edit Annotations"
                           Command="{Binding EditAnnotationsCommand}"
                           IsVisible="{Binding Item.HasEditableAnnotations}"
