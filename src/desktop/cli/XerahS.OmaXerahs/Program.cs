@@ -40,7 +40,18 @@ internal static class Program
         try
         {
             var rootCommand = BuildRootCommand();
-            return await rootCommand.Parse(args).InvokeAsync();
+            ParseResult parseResult = rootCommand.Parse(args);
+
+            // Keep the one-JSON-object contract for bad arguments too; System.CommandLine would
+            // otherwise print its help text to stdout, which agents cannot parse.
+            if (parseResult.Errors.Count > 0)
+            {
+                string message = string.Join(" ", parseResult.Errors.Select(error => error.Message));
+                JsonStdout.WriteFailure(CliErrorCodes.Usage, $"{message} See: omaxerahs {string.Join(' ', args.TakeWhile(a => !a.StartsWith('-')).Take(2))} --help".Replace("  ", " "));
+                return 1;
+            }
+
+            return await parseResult.InvokeAsync();
         }
         catch (Exception ex)
         {
