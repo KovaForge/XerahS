@@ -61,6 +61,18 @@ public static class AppContracts
         /// </summary>
         public const string SilentStartupFlag = "-silent";
 
+        /// <summary>
+        /// Relayed by automation (omaxerahs, agents) after writing WorkflowsConfig so the running
+        /// instance reloads workflows from disk. Handled without surfacing the main window.
+        /// </summary>
+        public const string ReloadWorkflowsFlag = "--reload-workflows";
+
+        public static bool IsReloadWorkflowsInvocation(IReadOnlyCollection<string>? args)
+        {
+            return args is { Count: > 0 } &&
+                args.All(arg => arg.Equals(ReloadWorkflowsFlag, StringComparison.OrdinalIgnoreCase));
+        }
+
         /// <summary>Flag used by helper processes (e.g. screen capture helpers) to forward a capture back to the running instance.</summary>
         public const string SendToFlag = "--send-to";
 

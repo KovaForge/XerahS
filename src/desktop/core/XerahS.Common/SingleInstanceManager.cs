@@ -323,6 +323,39 @@ namespace XerahS.Common
             return Path.Combine(tempPath, $"{sb}.instance.lock");
         }
 
+        /// <summary>
+        /// Sends arguments to an already running instance without starting one.
+        /// Returns false when no instance is listening.
+        /// </summary>
+        public static bool TrySendToRunningInstance(string logicalPipeName, string[] args, int timeoutMs = 1000)
+        {
+            string pipeName = GetPlatformPipeName(logicalPipeName);
+            if (!OperatingSystem.IsWindows() && Path.IsPathRooted(pipeName) && !File.Exists(pipeName))
+            {
+                return false;
+            }
+
+            try
+            {
+                using var namedPipeClient = new NamedPipeClientStream(".", pipeName, PipeDirection.Out, PipeOptions.CurrentUserOnly);
+                namedPipeClient.Connect(timeoutMs);
+
+                using var writer = new BinaryWriter(namedPipeClient, Encoding.UTF8);
+                writer.Write(args.Length);
+                foreach (string argument in args)
+                {
+                    writer.Write(argument);
+                }
+
+                return true;
+            }
+            catch (Exception e) when (e is TimeoutException or IOException or UnauthorizedAccessException)
+            {
+                DebugHelper.WriteLine($"SingleInstanceManager: No running instance reachable on '{pipeName}': {e.Message}");
+                return false;
+            }
+        }
+
         private void RedirectArgumentsToFirstInstance(string[] args)
         {
             try

@@ -39,6 +39,12 @@ namespace XerahS.Bootstrap
         public bool EnableLogging { get; set; } = true;
 
         /// <summary>
+        /// Echo log lines to the console (Debug builds do by default). Machine-readable CLIs set
+        /// this to false so stdout carries only their own output.
+        /// </summary>
+        public bool? ConsoleLogging { get; set; }
+
+        /// <summary>
         /// Custom log file path. If null, uses default location.
         /// </summary>
         public string? LogPath { get; set; }

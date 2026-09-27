@@ -52,7 +52,19 @@ internal static class CapabilitiesCommand
             Name = "omaxerahs",
             Version = UploadHost.GetVersion(),
             MinPluginProtocol = 1,
-            Capabilities = ["doctor.image", "upload.image"]
+            Capabilities =
+            [
+                "doctor.image",
+                "upload.image",
+                "workflow.list",
+                "workflow.show",
+                "workflow.tasks",
+                "effects.import",
+                "effects.show",
+                "effects.toggle",
+                "effects.clear",
+                "skill.install"
+            ]
         };
     }
 

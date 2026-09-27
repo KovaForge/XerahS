@@ -674,6 +674,8 @@ namespace XerahS.App
                         XerahS.Common.DebugHelper.WriteException(ex, "Failed to start network monitor");
                     }
 
+                    AgentSkillBootstrapper.EnsureInstalled();
+
                     // 1. Initialize Plugins (ProviderCatalog)
                     try
                     {
@@ -819,6 +821,12 @@ namespace XerahS.App
                 return;
             }
 
+            if (AppContracts.Cli.IsReloadWorkflowsInvocation(args))
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(ReloadWorkflowsFromDisk);
+                return;
+            }
+
             // Process the arguments on the UI thread to handle any UI-related actions
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
@@ -859,6 +867,28 @@ namespace XerahS.App
                     XerahS.Common.DebugHelper.WriteException(ex, "Failed to handle arguments from secondary instance");
                 }
             });
+        }
+
+        /// <summary>
+        /// Picks up WorkflowsConfig changes written by automation (omaxerahs) while the app is running,
+        /// so the next save does not overwrite them and hotkeys/menus reflect the new state.
+        /// </summary>
+        private static void ReloadWorkflowsFromDisk()
+        {
+            try
+            {
+                XerahS.Core.SettingsManager.LoadWorkflowsConfig();
+                if (Avalonia.Application.Current is XerahS.UI.App app && app.WorkflowManager != null)
+                {
+                    app.WorkflowManager.UpdateHotkeys(XerahS.Core.SettingsManager.WorkflowsConfig.Hotkeys);
+                }
+
+                XerahS.Common.DebugHelper.WriteLine("Workflows reloaded from disk at the request of an automation client.");
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, "Failed to reload workflows from disk");
+            }
         }
 
         private static void ProcessIncomingArguments(string[]? args, string source)

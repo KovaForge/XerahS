@@ -23,6 +23,10 @@
     <PackageReference Include="System.CommandLine" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Agent skill shipped inside the binary; "omaxerahs skill install" writes it out. -->
+    <EmbeddedResource Include="AgentSkill\**\*" LogicalName="AgentSkill/$([System.String]::Copy('%(RecursiveDir)').Replace('\','/'))%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Dual Windows/non-Windows Bootstrap refs match XerahS.CLI, but always drop OS so this net10.0 host binds Bootstrap's net10.0 TFM. -->
     <ProjectReference Include="..\..\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj"
                       Condition="$(RuntimeIdentifier.StartsWith('win')) Or ('$(OS)' == 'Windows_NT' And '$(RuntimeIdentifier)' == '')"

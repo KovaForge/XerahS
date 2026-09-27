@@ -66,16 +66,19 @@ internal static class Program
 
     private static RootCommand BuildRootCommand()
     {
-        var rootCommand = new RootCommand("OmaXerahs — upload Omarchy screenshots through the configured XerahS image destination.");
+        var rootCommand = new RootCommand("OmaXerahs — the XerahS command line: uploads, workflows, image effects, and the agent skill. Every command prints one JSON object.");
         rootCommand.Add(CapabilitiesCommand.Create());
         rootCommand.Add(DoctorCommand.Create());
         rootCommand.Add(UploadCommand.Create());
+        rootCommand.Add(WorkflowCommand.Create());
+        rootCommand.Add(EffectsCommand.Create());
+        rootCommand.Add(SkillCommand.Create());
         rootCommand.SetAction(parseResult =>
         {
             JsonStdout.Enabled = JsonStdout.ShouldEnable(Environment.GetCommandLineArgs());
             return JsonStdout.WriteFailureAndExit(
                 CliErrorCodes.Usage,
-                "No command specified. Use capabilities, doctor, or upload. See --help.");
+                "No command specified. Use capabilities, doctor, upload, workflow, effects, or skill. See --help.");
         });
         return rootCommand;
     }

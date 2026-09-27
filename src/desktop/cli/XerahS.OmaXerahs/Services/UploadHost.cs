@@ -78,6 +78,7 @@ internal static class UploadHost
         var result = await ShareXBootstrap.InitializeAsync(new BootstrapOptions
         {
             EnableLogging = true,
+            ConsoleLogging = false,
             InitializeRecording = false,
             UIService = new HeadlessUIService(),
             ToastService = new HeadlessToastService()

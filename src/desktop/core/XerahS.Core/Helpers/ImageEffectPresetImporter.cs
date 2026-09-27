@@ -46,6 +46,18 @@ public static class ImageEffectPresetImporter
     /// </summary>
     public static ImageEffectPreset? LoadPresetFile(string filePath)
     {
+        return LoadPresetFile(filePath, out _);
+    }
+
+    /// <summary>
+    /// Loads a preset file and reports ShareX effects that have no XerahS equivalent
+    /// (they are left out of the returned preset).
+    /// </summary>
+    public static ImageEffectPreset? LoadPresetFile(string filePath, out IReadOnlyList<string> skippedEffects)
+    {
+        var skipped = new List<string>();
+        skippedEffects = skipped;
+
         if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
             return null;
 
@@ -56,7 +68,7 @@ public static class ImageEffectPresetImporter
         try
         {
             var preset = extension == ".sxie"
-                ? LoadSxiePreset(filePath)
+                ? LoadSxiePreset(filePath, skipped)
                 : ImageEffectPresetSerializer.LoadXsieFile(filePath);
 
             if (preset != null)
@@ -73,7 +85,7 @@ public static class ImageEffectPresetImporter
         }
     }
 
-    private static ImageEffectPreset? LoadLegacyPreset(string filePath)
+    private static ImageEffectPreset? LoadLegacyPreset(string filePath, List<string> skipped)
     {
         var importResult = LegacyImageEffectImporter.ImportSxieFile(filePath);
         if (importResult == null || !importResult.Success)
@@ -85,6 +97,7 @@ public static class ImageEffectPresetImporter
         if (importResult.SkippedEffects.Count > 0)
         {
             DebugHelper.WriteLine($"[ImageEffectPresetImporter] Legacy import of '{filePath}' skipped: {string.Join(", ", importResult.SkippedEffects)}");
+            skipped.AddRange(importResult.SkippedEffects);
         }
 
         var preset = new ImageEffectPreset
@@ -104,7 +117,7 @@ public static class ImageEffectPresetImporter
         return preset;
     }
 
-    private static ImageEffectPreset? LoadSxiePreset(string filePath)
+    private static ImageEffectPreset? LoadSxiePreset(string filePath, List<string> skipped)
     {
         try
         {
@@ -119,7 +132,7 @@ public static class ImageEffectPresetImporter
             // Legacy .sxie files may use ShareX.ImageEffectsLib schema.
         }
 
-        return LoadLegacyPreset(filePath);
+        return LoadLegacyPreset(filePath, skipped);
     }
 
 

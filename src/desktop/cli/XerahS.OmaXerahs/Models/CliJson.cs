@@ -38,6 +38,9 @@ internal static class CliErrorCodes
     public const string SecretStore = "secret_store";
     public const string Incompatible = "incompatible";
     public const string Usage = "usage";
+    public const string NotFound = "not_found";
+    public const string Ambiguous = "ambiguous";
+    public const string InvalidValue = "invalid_value";
 }
 
 internal sealed class CliError
@@ -69,7 +72,7 @@ internal sealed class CapabilitiesResponse
     public string Name { get; init; } = "omaxerahs";
     public string Version { get; init; } = "0.1.0";
     public int MinPluginProtocol { get; init; } = 1;
-    public string[] Capabilities { get; init; } = ["doctor.image", "upload.image"];
+    public string[] Capabilities { get; init; } = [];
 }
 
 internal sealed class DoctorResponse

@@ -37,7 +37,9 @@ internal static class JsonStdout
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-        WriteIndented = false
+        WriteIndented = false,
+        // Output is read by scripts and agents, not embedded in HTML: keep '+', quotes and non-ASCII readable.
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
     internal static bool Enabled { get; set; }
