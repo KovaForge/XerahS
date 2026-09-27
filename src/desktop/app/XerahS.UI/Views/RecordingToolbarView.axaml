@@ -123,6 +123,19 @@
                     </StackPanel>
                 </Button>
 
+                <!-- Restart -->
+                <Button Command="{Binding RestartRecordingCommand}"
+                        IsVisible="{Binding IsRecordingOrPaused}"
+                        ToolTip.Tip="Discard this take and start again"
+                        AutomationProperties.Name="Restart Recording">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Classes="IconGlyph"
+                                   FontSize="16"
+                                   Text="{x:Static theming:HostIcons.ActionRestart}"/>
+                        <TextBlock Text="Restart" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
                 <!-- Abort -->
                 <Button Command="{Binding AbortRecordingCommand}"
                         IsVisible="{Binding IsRecordingOrPaused}"

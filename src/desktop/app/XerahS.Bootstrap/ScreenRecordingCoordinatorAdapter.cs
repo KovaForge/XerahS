@@ -64,5 +64,6 @@ namespace XerahS.Bootstrap
         public Task AbortRecordingAsync() => manager.AbortRecordingAsync();
         public Task TogglePauseResumeAsync() => manager.TogglePauseResumeAsync();
         public void SignalStop() => manager.SignalStop();
+        public void RequestRestart() => manager.RequestRestart();
     }
 }

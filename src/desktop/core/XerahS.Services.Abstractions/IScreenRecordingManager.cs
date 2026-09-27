@@ -41,4 +41,10 @@ public interface IScreenRecordingManager
     Task<string?> StopRecordingAsync();
     Task AbortRecordingAsync();
     Task TogglePauseResumeAsync();
+
+    /// <summary>Asks the running recording workflow to discard the current take and start again.</summary>
+    void RequestRestart() { }
+
+    /// <summary>True once per <see cref="RequestRestart"/>; read by the workflow after the stop signal.</summary>
+    bool ConsumeRestartRequest() => false;
 }

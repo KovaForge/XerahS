@@ -46,4 +46,6 @@ internal sealed class ScreenRecordingWorkflowCoordinator(IScreenRecordingManager
     public Task AbortRecordingAsync() => recordingManager.AbortRecordingAsync();
 
     public Task TogglePauseResumeAsync() => recordingManager.TogglePauseResumeAsync();
+
+    public bool ConsumeRestartRequest() => recordingManager.ConsumeRestartRequest();
 }

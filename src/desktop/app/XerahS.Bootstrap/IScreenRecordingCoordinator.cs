@@ -48,5 +48,8 @@ namespace XerahS.Bootstrap
         Task AbortRecordingAsync();
         Task TogglePauseResumeAsync();
         void SignalStop();
+
+        /// <summary>Discard the current take and start recording again with the same settings.</summary>
+        void RequestRestart() { }
     }
 }

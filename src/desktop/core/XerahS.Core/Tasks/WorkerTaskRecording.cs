@@ -43,6 +43,35 @@ namespace XerahS.Core.Tasks
     {
         #region Recording Handlers (Stage 5)
 
+        /// <summary>
+        /// Starts recording and waits for the stop signal. A restart request (ShareX #7255) discards
+        /// the current take and records again with the same options, so the surrounding workflow
+        /// (save, upload, history) only ever sees the final take.
+        /// </summary>
+        internal static async Task RecordUntilStoppedAsync(
+            ScreenRecordingWorkflowCoordinator recordingCoordinator,
+            RecordingOptions recordingOptions,
+            Action<string?> onStarted)
+        {
+            string? requestedOutputPath = recordingOptions.OutputPath;
+            while (true)
+            {
+                recordingOptions.OutputPath = requestedOutputPath;
+                await recordingCoordinator.StartRecordingAsync(recordingOptions);
+                recordingOptions.OutputPath = recordingCoordinator.PlannedOutputPath ?? recordingOptions.OutputPath;
+                onStarted(recordingOptions.OutputPath);
+
+                await recordingCoordinator.WaitForStopSignalAsync();
+                if (!recordingCoordinator.ConsumeRestartRequest())
+                {
+                    return;
+                }
+
+                DebugHelper.WriteLine("Restarting recording: discarding the current take.");
+                await recordingCoordinator.AbortRecordingAsync();
+            }
+        }
+
         private static ScreenRecordingWorkflowCoordinator CreateRecordingCoordinator()
         {
             return new ScreenRecordingWorkflowCoordinator(RecordingManagerService);
@@ -107,16 +136,12 @@ namespace XerahS.Core.Tasks
                 DebugHelper.WriteLine($"Starting recording: Mode={mode}, Codec={recordingOptions.Settings?.Codec}, FPS={recordingOptions.Settings?.FPS}");
                 DebugHelper.WriteLine($"Output path: {recordingOptions.OutputPath}");
 
-                // 1. Start recording
                 var recordingCoordinator = CreateRecordingCoordinator();
-                await recordingCoordinator.StartRecordingAsync(recordingOptions);
-                recordingOptions.OutputPath = recordingCoordinator.PlannedOutputPath ?? recordingOptions.OutputPath;
-                Info.FilePath = recordingOptions.OutputPath;
-                XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "ScreenRecordingManager.StartRecordingAsync completed");
-
-                // 2. Wait for stop signal (ASYNC WAIT - Yields thread, keeps task alive)
-                XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Waiting for stop signal...");
-                await recordingCoordinator.WaitForStopSignalAsync();
+                await RecordUntilStoppedAsync(recordingCoordinator, recordingOptions, plannedPath =>
+                {
+                    Info.FilePath = plannedPath ?? Info.FilePath;
+                    XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Recording started; waiting for stop signal...");
+                });
                 XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Stop signal received. Resuming...");
 
                 // 3. Stop recording
