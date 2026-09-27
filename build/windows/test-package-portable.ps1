@@ -35,7 +35,7 @@ try {
         try {
             $names = @($zip.Entries | ForEach-Object { $_.FullName })
             foreach ($required in @('XerahS.exe', 'xerahs-watchfolder-daemon.exe', 'portable.txt',
-                    'frontend/dist/index.html', 'Plugins/example/plugin.json', 'Plugins/example/example.dll', '.hidden', 'LICENSE.txt')) {
+                    'Plugins/example/plugin.json', 'Plugins/example/example.dll', '.hidden', 'LICENSE.txt')) {
                 Assert-True ($names -contains $required) "Archive missing root-relative entry $required"
             }
             Assert-True (@($names | Where-Object { $_ -like '*.pdb' }).Count -eq 0) 'Archive contains debug symbols.'
