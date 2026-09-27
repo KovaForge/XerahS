@@ -34,7 +34,7 @@ if ($destination.Equals($source, [StringComparison]::OrdinalIgnoreCase) -or
     throw 'OutputDirectory must be outside the publish directory.'
 }
 
-foreach ($required in @('XerahS.exe', 'coreclr.dll', 'xerahs-watchfolder-daemon.exe', 'frontend/dist/index.html')) {
+foreach ($required in @('XerahS.exe', 'coreclr.dll', 'xerahs-watchfolder-daemon.exe')) {
     $requiredPath = Join-Path $source $required
     if (!(Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
         throw "Incomplete publish payload: missing $required."
