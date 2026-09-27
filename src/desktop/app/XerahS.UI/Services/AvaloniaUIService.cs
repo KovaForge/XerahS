@@ -427,10 +427,34 @@ namespace XerahS.UI.Services
             {
                 var viewModel = new AfterCaptureViewModel(image, afterCapture, afterUpload);
 
-                await ModalDialogHost.ShowUntilClosedAsync(
-                    viewModel,
-                    set => viewModel.RequestClose += () => set(),
-                    debugSource: nameof(AfterCaptureViewModel));
+                // Standalone, unowned window: hosting this in the main window's modal overlay
+                // (or giving it an owner) raised the XerahS main window after every capture.
+                var window = new Views.SurfaceWindow
+                {
+                    Title = "After Capture Tasks",
+                    Icon = TryGetDialogOwner()?.Icon,
+                    Width = 960,
+                    Height = 640,
+                    MinWidth = 760,
+                    MinHeight = 520,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    Content = new Views.AfterCaptureWindow { DataContext = viewModel }
+                };
+
+                var closedTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                viewModel.RequestClose += () => window.Close();
+                window.Closed += (_, _) => closedTcs.TrySetResult(true);
+                window.Opened += (_, _) => window.Activate();
+                window.KeyDown += (_, e) =>
+                {
+                    if (e.Key == Avalonia.Input.Key.Escape)
+                    {
+                        window.Close();
+                    }
+                };
+                window.Show();
+                DebugHelper.WriteLine($"[{nameof(AfterCaptureViewModel)}] Window opened");
+                await closedTcs.Task;
 
                 return (viewModel.AfterCaptureTasks, viewModel.AfterUploadTasks, viewModel.Cancelled, viewModel.QuickAction);
             });
