@@ -304,6 +304,23 @@ When executing this skill:
 
 Default release-channel policy: `ShareX/XerahS` = pre-release; `KovaForge/XerahS` = full latest release. Use `--set-prerelease` / `--no-prerelease` only for intentional overrides.
 
+## Known iteration foot-guns
+
+One line per failed release iteration. Read before tagging; append a line for every new failure.
+
+- **Removing a shipped artifact leaves stale checks in several layers.** When a failed run names a missing file, grep the exact string across `build/` (including `build/ci/*.py` and the `.ps1` test fixtures), `src/desktop/app/XerahS.App/XerahS.App.csproj`, and `.github/workflows/`, then fix every hit in one `[Fix]` commit. Each run only reveals the first failing layer.
+- v0.30.4: `build/windows/package-portable.ps1` still required `frontend/dist/index.html` from the removed ShareX.VideoEditor frontend.
+- v0.30.5: `build/windows/test-package-portable.ps1` fixture held a second `frontend/dist/index.html` reference.
+- v0.30.6: `XerahS.App.csproj` `<Error>` validators required the watch folder daemon/omaxerahs `.runtimeconfig.json` sidecar on macOS; .NET 10 single-file publish embeds it.
+- v0.30.7: `build/macos/package-mac.sh` bundle validation required the same macOS runtimeconfig sidecar.
+- v0.30.8: `.github/workflows/release-build-all-platforms.yml` post-build archive `grep -q` required the macOS runtimeconfig sidecar.
+- v0.30.9: `build/ci/validate_release_assets.py` (the `release` job, after every build job passed) required `frontend/dist/index.html` in the portable ZIP and the macOS runtimeconfig sidecar; `build/ci/test_validate_release_assets.py` needed the same edit.
+- v0.30.10: both RPM specs copied `usr/*` into `/usr/lib/xerahs/` (since 09-06). XerahS.Packaging's staged source already has a `usr/` layout, so it needs `cp -a usr/. %{buildroot}/usr/`; `repo-staging/xerahs.spec` consumes the flat release tarball, so it needs `cp -a . %{buildroot}/usr/lib/xerahs/`. The packager only logs "Skipped RPM package", so the Linux jobs passed and the `release` job failed on the missing `.rpm`. `Validate Linux archive` now fails the build job when the `.deb` or `.rpm` is missing.
+- A green build job does not mean every package was produced. Check the "Skipped ... package" lines in the Linux build log whenever the `release` job reports a missing asset.
+- `run-release-sequence.sh` waits only 90 x 10 s (15 min) for the GitHub release, even without `--monitor`, and a full run takes longer. `Error: release vX.Y.Z was not found` from the script is not a CI failure: poll the run with `gh run view <id> --repo KovaForge/XerahS` until it completes, then apply Steps 6-7 manually (v0.30.10 and v0.30.11 both hit this; the release appeared about 18 minutes after the tag).
+- `--no-bump` skips syncing `build/windows/chocolatey/xerahs.nuspec` and the Flatpak metainfo `<release>` entry. When `Directory.Build.props` was already bumped by a feature commit, sync those two files yourself before tagging.
+- Several agents may share one checkout. Maintenance auto-commits whatever is uncommitted, so check `git status` and `git log` before a run to avoid releasing, or sweeping up, another agent's half-finished work.
+
 ## Notes (lessons learnt)
 
 - Windows/PowerShell: bash may be unavailable; manual fallback must be first-class.
