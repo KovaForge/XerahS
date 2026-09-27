@@ -7561,3 +7561,13 @@ M build/linux/aur/xerahs-git/PKGBUILD
 - Commit: none (empty-queue audit; SHA in Step 9 summary only)
 - Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch preserved stashes / unstaged PKGBUILD AUR-artifact for human review; do not auto-apply from this consumer cron.
 - Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-27 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md (this entry)
+- Findings: Step 5a categoriser (queue-classification-20260927-160505.json) classified zero items into any bucket — queue remains empty after pruning. No real-bug, no pivots.
+- Status: No-op (queue empty)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: producer-side `xerahs-review` will repopulate on next clawpatch cycle; next consumer tick re-reads queue
