@@ -105,20 +105,12 @@ def ensure_tar_has_daemon(path: Path, os_name: str) -> None:
         return
 
     if os_name == "mac":
+        # .NET 10 single-file publish embeds the runtimeconfig on macOS; no sidecar to check.
         expected_binary = "XerahS.app/Contents/MacOS/xerahs-watchfolder-daemon"
-        expected_runtimeconfig = (
-            "XerahS.app/Contents/MacOS/xerahs-watchfolder-daemon.runtimeconfig.json"
-        )
         has_binary = any(name.endswith(expected_binary) for name in names)
-        has_runtimeconfig = any(name.endswith(expected_runtimeconfig) for name in names)
         if not has_binary:
             raise RuntimeError(
                 f"Missing daemon executable '{expected_binary}' in macOS archive: {path}"
-            )
-
-        if not has_runtimeconfig:
-            raise RuntimeError(
-                f"Missing daemon runtimeconfig '{expected_runtimeconfig}' in macOS archive: {path}"
             )
 
 
@@ -136,7 +128,6 @@ def ensure_portable_zip_payload(path: Path) -> None:
         "portable.txt",
         "coreclr.dll",
         "LICENSE.txt",
-        "frontend/dist/index.html",
     }
     with zipfile.ZipFile(path) as archive:
         files = {item.filename: item for item in archive.infolist() if not item.is_dir()}

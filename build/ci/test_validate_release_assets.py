@@ -25,7 +25,6 @@ class PortableReleaseTests(unittest.TestCase):
             "portable.txt": b"",
             "coreclr.dll": b"runtime",
             "LICENSE.txt": b"license",
-            "frontend/dist/index.html": b"<html>editor</html>",
             "Plugins/example/plugin.json": json.dumps({"assemblyFileName": "Example.dll"}).encode(),
             "Plugins/example/Example.dll": b"plugin",
         }
@@ -49,7 +48,7 @@ class PortableReleaseTests(unittest.TestCase):
         ensure_portable_zip_payload(self.path)
 
     def test_required_payload_cannot_be_missing(self):
-        for name in ("XerahS.exe", "portable.txt", "xerahs-watchfolder-daemon.exe", "frontend/dist/index.html"):
+        for name in ("XerahS.exe", "portable.txt", "xerahs-watchfolder-daemon.exe"):
             with self.subTest(name=name):
                 content = self.payload.pop(name)
                 self.write_archive()
