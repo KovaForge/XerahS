@@ -167,7 +167,8 @@ jobs:
             ARCHIVE_LIST="$(mktemp)"
             tar -tzf "$ARCHIVE" > "$ARCHIVE_LIST"
             grep -q "XerahS.app/Contents/MacOS/xerahs-watchfolder-daemon" "$ARCHIVE_LIST"
-            grep -q "XerahS.app/Contents/MacOS/xerahs-watchfolder-daemon.runtimeconfig.json" "$ARCHIVE_LIST"
+            # runtimeconfig sidecar is embedded in the single-file binary on macOS
+            # (see XerahS.App.csproj PublishWatchFolderDaemon / package-mac.sh).
             rm -f "$ARCHIVE_LIST"
           done
 
