@@ -51,21 +51,18 @@ public sealed partial class AvaloniaClipboardService : IClipboardService
 
     public void Clear()
     {
-        RunOnUIThread(() =>
-        {
-            _clipboard.ClearAsync().GetAwaiter().GetResult();
-        });
+        WaitWithoutBlockingUI(RunOnUIThreadAsync(() => _clipboard.ClearAsync()));
     }
 
     public bool ContainsText()
     {
-        return !string.IsNullOrEmpty(GetTextAsync().GetAwaiter().GetResult());
+        return !string.IsNullOrEmpty(WaitWithoutBlockingUI(GetTextAsync()));
     }
 
     public bool ContainsImage()
     {
-        return RunOnUIThread(() =>
-            _clipboard.GetDataFormatsAsync().GetAwaiter().GetResult().Contains(DataFormat.Bitmap));
+        return WaitWithoutBlockingUI(RunOnUIThreadAsync(async () =>
+            (await _clipboard.GetDataFormatsAsync()).Contains(DataFormat.Bitmap)));
     }
 
     public bool ContainsFileDropList()
@@ -76,7 +73,7 @@ public sealed partial class AvaloniaClipboardService : IClipboardService
 
     public string? GetText()
     {
-        return RunOnUIThread(() => _clipboard.TryGetTextAsync().GetAwaiter().GetResult());
+        return WaitWithoutBlockingUI(RunOnUIThreadAsync(() => _clipboard.TryGetTextAsync()));
     }
 
     public void SetText(string text)
@@ -84,26 +81,16 @@ public sealed partial class AvaloniaClipboardService : IClipboardService
         if (string.IsNullOrEmpty(text))
             return;
 
-        RunOnUIThread(() =>
+        WaitWithoutBlockingUI(RunOnUIThreadAsync(async () =>
         {
-            _clipboard.SetTextAsync(text).GetAwaiter().GetResult();
+            await _clipboard.SetTextAsync(text);
             OnAfterSetText(text);
-        });
+        }));
     }
 
     public SKBitmap? GetImage()
     {
-        return RunOnUIThread(() =>
-        {
-            using var bitmap = _clipboard.TryGetBitmapAsync().GetAwaiter().GetResult();
-            if (bitmap == null)
-                return null;
-
-            using var stream = new MemoryStream();
-            bitmap.Save(stream, PngBitmapEncoderOptions.Default);
-            stream.Position = 0;
-            return SKBitmap.Decode(stream);
-        });
+        return WaitWithoutBlockingUI(GetImageAsync());
     }
 
     public void SetImage(SKBitmap image)
@@ -114,11 +101,11 @@ public sealed partial class AvaloniaClipboardService : IClipboardService
         using var stream = new MemoryStream();
         image.Encode(stream, SKEncodedImageFormat.Png, 100);
         byte[] bytes = stream.ToArray();
-        RunOnUIThread(() =>
+        WaitWithoutBlockingUI(RunOnUIThreadAsync(async () =>
         {
-            SetImageBytesAsync(_clipboard, bytes).GetAwaiter().GetResult();
+            await SetImageBytesAsync(_clipboard, bytes);
             OnAfterSetImage(bytes);
-        });
+        }));
     }
 
     /// <summary>
@@ -144,7 +131,7 @@ public sealed partial class AvaloniaClipboardService : IClipboardService
 
     public string[]? GetFileDropList()
     {
-        return GetFileDropListCoreAsync().GetAwaiter().GetResult();
+        return WaitWithoutBlockingUI(GetFileDropListCoreAsync());
     }
 
     /// <summary>
@@ -179,26 +166,26 @@ public sealed partial class AvaloniaClipboardService : IClipboardService
     {
         if (files == null || files.Length == 0)
             return;
-        SetFileDropListAsync(files).GetAwaiter().GetResult();
+        WaitWithoutBlockingUI(SetFileDropListAsync(files));
     }
 
     public object? GetData(string format)
     {
-        return GetDataAsync(format).GetAwaiter().GetResult();
+        return WaitWithoutBlockingUI(GetDataAsync(format));
     }
 
     public void SetData(string format, object data)
     {
         if (string.IsNullOrEmpty(format) || data == null)
             return;
-        SetDataAsync(format, data).GetAwaiter().GetResult();
+        WaitWithoutBlockingUI(SetDataAsync(format, data));
     }
 
     public bool ContainsData(string format)
     {
         if (string.IsNullOrEmpty(format))
             return false;
-        return ContainsDataAsync(format).GetAwaiter().GetResult();
+        return WaitWithoutBlockingUI(ContainsDataAsync(format));
     }
 
     public async Task<string?> GetTextAsync()
@@ -291,25 +278,30 @@ public sealed partial class AvaloniaClipboardService : IClipboardService
         return false;
     }
 
-    private static void RunOnUIThread(Action action)
+    /// <summary>
+    /// Waits for a clipboard operation from the synchronous API without deadlocking.
+    /// Avalonia's clipboard calls complete through the UI message loop (X11/XWayland selection
+    /// handshakes, Wayland data offers), so blocking the UI thread on them never returns. Off the
+    /// UI thread we simply block; on the UI thread we pump a nested dispatcher frame until done.
+    /// </summary>
+    private static void WaitWithoutBlockingUI(Task task)
     {
-        if (Dispatcher.UIThread.CheckAccess())
+        if (!task.IsCompleted && Dispatcher.UIThread.CheckAccess())
         {
-            action();
-            return;
+            var frame = new DispatcherFrame();
+            task.ContinueWith(
+                _ => Dispatcher.UIThread.Post(() => frame.Continue = false, DispatcherPriority.Send),
+                TaskScheduler.Default);
+            Dispatcher.UIThread.PushFrame(frame);
         }
 
-        Dispatcher.UIThread.InvokeAsync(action).GetAwaiter().GetResult();
+        task.GetAwaiter().GetResult();
     }
 
-    private static T RunOnUIThread<T>(Func<T> func)
+    private static T WaitWithoutBlockingUI<T>(Task<T> task)
     {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            return func();
-        }
-
-        return Dispatcher.UIThread.InvokeAsync(func).GetAwaiter().GetResult();
+        WaitWithoutBlockingUI((Task)task);
+        return task.Result;
     }
 
     private static async Task RunOnUIThreadAsync(Func<Task> func)
