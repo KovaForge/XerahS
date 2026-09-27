@@ -90,6 +90,8 @@ public static class RulerToolService
                 UseSquareMagnifier = regionOptions?.UseSquareMagnifier ?? false,
                 MagnifierPixelCount = regionOptions?.MagnifierPixelCount ?? 15,
                 ShowInfo = regionOptions?.ShowInfo ?? true,
+                CustomInfoFormat = regionOptions?.UseCustomInfoText == true ? regionOptions.CustomInfoText : null,
+                ShowScreenCrosshair = regionOptions?.ShowScreenCrosshair ?? true,
                 EnableKeyboardNudge = true,         // Allow arrow key adjustments
                 ShowCursor = false,                 // Hide cursor (overlay draws crosshair)
                 EditorOptions = RegionCaptureAnnotationOptionsStore.GetEditorOptions(workflowType: WorkflowType.Ruler),

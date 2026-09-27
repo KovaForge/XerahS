@@ -63,6 +63,7 @@ public sealed class RegionCaptureControl : UserControl
     private readonly double _dimOpacity;
     private readonly uint _crosshairColor;
     private readonly uint _crosshairLineColor;
+    private readonly bool _showScreenCrosshair;
     private readonly bool _enableWindowSnapping;
     private readonly bool _useTransparentOverlay;
     private readonly bool _quickCrop;
@@ -172,6 +173,7 @@ public sealed class RegionCaptureControl : UserControl
         _useTransparentOverlay = options.UseTransparentOverlay;
         _crosshairColor = options.CrosshairColor;
         _crosshairLineColor = options.CrosshairLineColor;
+        _showScreenCrosshair = options.ShowScreenCrosshair;
         _quickCrop = options.QuickCrop;
         _useLightResizeNodes = options.UseLightResizeNodes;
         _sessionStartUtc = options.SessionStartUtc;
@@ -197,6 +199,7 @@ public sealed class RegionCaptureControl : UserControl
         _magnifier.ApplyShape(_useSquareMagnifier);
         _magnifier.SetAccentBrush(new SolidColorBrush(Color.FromUInt32(options.WindowSnapColor)));
         _magnifier.SetPixelCount(_magnifierPixelCount);
+        _magnifier.SetInfoFormat(options.CustomInfoFormat);
         _magnifier.SetHudVisibility(_enableMagnifier, _showInfo);
 
         _hudCanvas = new Canvas { IsHitTestVisible = false };
@@ -835,22 +838,27 @@ public sealed class RegionCaptureControl : UserControl
         int centerY = (int)Math.Floor(cursorLocal.Y);
         const double crosshairLength = 32;
 
-        context.DrawLine(_crosshairLinePen,
-            new Point(centerX, 0),
-            new Point(centerX, Math.Max(0, centerY - crosshairLength)));
         context.DrawLine(_crosshairPen,
             new Point(centerX, Math.Max(0, centerY - crosshairLength)),
             new Point(centerX, Math.Min(bounds.Height, centerY + crosshairLength)));
-        context.DrawLine(_crosshairLinePen,
-            new Point(centerX, Math.Min(bounds.Height, centerY + crosshairLength)),
-            new Point(centerX, bounds.Height));
-
-        context.DrawLine(_crosshairLinePen,
-            new Point(0, centerY),
-            new Point(Math.Max(0, centerX - crosshairLength), centerY));
         context.DrawLine(_crosshairPen,
             new Point(Math.Max(0, centerX - crosshairLength), centerY),
             new Point(Math.Min(bounds.Width, centerX + crosshairLength), centerY));
+
+        if (!_showScreenCrosshair)
+        {
+            return;
+        }
+
+        context.DrawLine(_crosshairLinePen,
+            new Point(centerX, 0),
+            new Point(centerX, Math.Max(0, centerY - crosshairLength)));
+        context.DrawLine(_crosshairLinePen,
+            new Point(centerX, Math.Min(bounds.Height, centerY + crosshairLength)),
+            new Point(centerX, bounds.Height));
+        context.DrawLine(_crosshairLinePen,
+            new Point(0, centerY),
+            new Point(Math.Max(0, centerX - crosshairLength), centerY));
         context.DrawLine(_crosshairLinePen,
             new Point(Math.Min(bounds.Width, centerX + crosshairLength), centerY),
             new Point(bounds.Width, centerY));

@@ -51,6 +51,7 @@ public sealed class MagnifierControl : StackPanel
     private readonly Border _squareInner;
     private readonly Border _infoPanel;
     private readonly TextBlock _infoText;
+    private string? _infoFormat;
     private WriteableBitmap? _bitmap;
     private int _pixelCount = MagnifierLayout.DefaultPixelCount;
     private bool _useSquare;
@@ -172,6 +173,22 @@ public sealed class MagnifierControl : StackPanel
 
     public void SetAccentBrush(IBrush brush) => _pixelGrid.AccentBrush = brush;
 
+    /// <summary>Uses a pixel-info token format ($x, $y, $r, $hex, $n, ...) for the HUD text; null restores the default.</summary>
+    public void SetInfoFormat(string? format) => _infoFormat = string.IsNullOrWhiteSpace(format) ? null : format;
+
+    internal static string FormatInfo(string? format, PixelPoint physicalCursor, Color color)
+    {
+        if (format is null)
+        {
+            return $"X: {physicalCursor.X:F0} Y: {physicalCursor.Y:F0}\n#{color.R:X2}{color.G:X2}{color.B:X2}";
+        }
+
+        return XerahS.Common.CodeMenuEntryPixelInfo.Parse(
+            format,
+            System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B),
+            new System.Drawing.Point((int)Math.Round(physicalCursor.X), (int)Math.Round(physicalCursor.Y)));
+    }
+
     public void SetHudVisibility(bool showMagnifier, bool showInfo)
     {
         _view.IsVisible = showMagnifier;
@@ -269,8 +286,7 @@ public sealed class MagnifierControl : StackPanel
             }
         }
 
-        _infoText.Text =
-            $"X: {physicalCursor.X:F0} Y: {physicalCursor.Y:F0}\n#{_centerPixelColor.R:X2}{_centerPixelColor.G:X2}{_centerPixelColor.B:X2}";
+        _infoText.Text = FormatInfo(_infoFormat, physicalCursor, _centerPixelColor);
         _image.InvalidateVisual();
     }
 

@@ -99,6 +99,18 @@ public sealed record RegionCaptureOptions
     public bool ShowInfo { get; init; } = true;
 
     /// <summary>
+    /// Custom HUD info text using pixel-info tokens ($x, $y, $r, $g, $b, $hex, $HEX, $n, ...).
+    /// Null keeps the built-in "X/Y + hex" text.
+    /// </summary>
+    public string? CustomInfoFormat { get; init; }
+
+    /// <summary>
+    /// Draw crosshair lines across the whole screen through the cursor. When false only the
+    /// short crosshair around the cursor is drawn. Default: true
+    /// </summary>
+    public bool ShowScreenCrosshair { get; init; } = true;
+
+    /// <summary>
     /// Magnifier zoom level. Default: 4x
     /// </summary>
     public int MagnifierZoom { get; init; } = 4;

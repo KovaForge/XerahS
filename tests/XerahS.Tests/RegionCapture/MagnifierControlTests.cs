@@ -149,4 +149,41 @@ public class MagnifierControlTests
         Assert.That(magnifier.InfoTextForTests, Does.Contain("X: 1 Y: 1"));
         Assert.That(magnifier.InfoTextForTests, Does.Contain("#0A141E"));
     }
+
+    [AvaloniaTest]
+    public void UpdateFromBackground_UsesCustomInfoFormat()
+    {
+        using var bitmap = new SKBitmap(3, 3, SKColorType.Bgra8888, SKAlphaType.Premul);
+        bitmap.Erase(new SKColor(0, 0, 0));
+        bitmap.SetPixel(1, 1, new SKColor(10, 20, 30, 255));
+
+        var magnifier = new MagnifierControl();
+        magnifier.SetPixelCount(3);
+        magnifier.SetInfoFormat("X: $x, Y: $y$nR: $r, G: $g, B: $b$nHex: $HEX");
+        magnifier.UpdateFromBackground(new CapturePixelPoint(1, 1), bitmap, new CapturePixelRect(0, 0, 3, 3));
+
+        Assert.That(magnifier.InfoTextForTests,
+            Is.EqualTo($"X: 1, Y: 1{Environment.NewLine}R: 10, G: 20, B: 30{Environment.NewLine}Hex: 0A141E"));
+    }
+
+    [AvaloniaTest]
+    public void SetInfoFormat_BlankRestoresDefaultText()
+    {
+        using var bitmap = new SKBitmap(3, 3, SKColorType.Bgra8888, SKAlphaType.Premul);
+        bitmap.Erase(new SKColor(10, 20, 30));
+
+        var magnifier = new MagnifierControl();
+        magnifier.SetPixelCount(3);
+        magnifier.SetInfoFormat("   ");
+        magnifier.UpdateFromBackground(new CapturePixelPoint(1, 1), bitmap, new CapturePixelRect(0, 0, 3, 3));
+
+        Assert.That(magnifier.InfoTextForTests, Does.Contain("X: 1 Y: 1"));
+    }
+
+    [AvaloniaTest]
+    public void RegionCaptureOptions_ShowScreenCrosshairDefaultsOn()
+    {
+        Assert.That(new RegionCaptureOptions().ShowScreenCrosshair, Is.True);
+        Assert.That(new XerahS.Core.RegionCaptureOptions().ShowScreenCrosshair, Is.True);
+    }
 }

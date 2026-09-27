@@ -192,6 +192,8 @@ internal static class OverlayRegionCaptureSession
             UseSquareMagnifier = regionOptions?.UseSquareMagnifier ?? false,
             MagnifierPixelCount = regionOptions?.MagnifierPixelCount ?? 15,
             ShowInfo = regionOptions?.ShowInfo ?? true,
+            CustomInfoFormat = regionOptions?.UseCustomInfoText == true ? regionOptions.CustomInfoText : null,
+            ShowScreenCrosshair = regionOptions?.ShowScreenCrosshair ?? true,
             SnapSizes = snapSizes,
             SnapDistance = XerahS.Core.RegionCaptureOptions.SnapDistance
         };

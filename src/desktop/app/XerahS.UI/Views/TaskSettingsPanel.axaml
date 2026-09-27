@@ -102,6 +102,36 @@
                             </Border>
                         </StackPanel>
 
+                        <!-- Region Capture Section -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Region capture" FontWeight="SemiBold"/>
+                            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="10">
+                                    <CheckBox IsChecked="{Binding RegionCaptureShowMagnifier}" Content="Show magnifier near cursor"/>
+                                    <CheckBox IsChecked="{Binding RegionCaptureUseSquareMagnifier}" Content="Use square magnifier" IsEnabled="{Binding RegionCaptureShowMagnifier}" Margin="24,0,0,0"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="24,0,0,0" IsEnabled="{Binding RegionCaptureShowMagnifier}">
+                                        <TextBlock Text="Magnifier pixel count:" VerticalAlignment="Center"/>
+                                        <NumericUpDown Value="{Binding RegionCaptureMagnifierPixelCount}" Minimum="3" Maximum="35" Increment="2" FormatString="0" MinWidth="120" AutomationProperties.Name="Magnifier Pixel Count"/>
+                                    </StackPanel>
+                                    <CheckBox IsChecked="{Binding RegionCaptureShowInfo}" Content="Show position and color info"/>
+                                    <CheckBox IsChecked="{Binding RegionCaptureUseCustomInfoText}" Content="Use custom info text" IsEnabled="{Binding RegionCaptureShowInfo}" Margin="24,0,0,0"/>
+                                    <TextBox Text="{Binding RegionCaptureCustomInfoText}"
+                                             AcceptsReturn="True"
+                                             TextWrapping="Wrap"
+                                             MinHeight="64"
+                                             Margin="24,0,0,0"
+                                             IsEnabled="{Binding RegionCaptureUseCustomInfoText}"
+                                             AutomationProperties.Name="Custom Info Text"/>
+                                    <TextBlock Text="Tokens: $x $y $r $g $b $hex $HEX $name $c100 $m100 $y100 $k100 $r1 $g1 $b1"
+                                               FontSize="12"
+                                               Margin="24,0,0,0"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
+                                    <CheckBox IsChecked="{Binding RegionCaptureShowScreenCrosshair}" Content="Show screen-wide crosshair"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
                         <!-- After Capture Tasks Section -->
                         <StackPanel Spacing="8">
                             <TextBlock Text="After capture" FontWeight="SemiBold"/>
