@@ -72,17 +72,15 @@ dotnet_publish_serial() {
 validate_daemon_bundle() {
     local app_bundle_path="$1"
     local daemon_path="$app_bundle_path/Contents/MacOS/xerahs-watchfolder-daemon"
-    local runtimeconfig_path="$app_bundle_path/Contents/MacOS/xerahs-watchfolder-daemon.runtimeconfig.json"
 
     if [ ! -f "$daemon_path" ]; then
         echo "Error: Missing daemon executable in app bundle: $daemon_path"
         exit 1
     fi
 
-    if [ ! -f "$runtimeconfig_path" ]; then
-        echo "Error: Missing daemon runtimeconfig in app bundle: $runtimeconfig_path"
-        exit 1
-    fi
+    # .NET 10+ single-file publish embeds runtimeconfig; no sidecar is written
+    # to the .app bundle. See XerahS.App.csproj PublishWatchFolderDaemon for the
+    # matching logic on the build side.
 }
 
 build_native_library() {
