@@ -117,6 +117,7 @@ internal static class ToolWorkflowDispatcher
             case WorkflowType.ImageResizer:
             case WorkflowType.ImageConverter:
             case WorkflowType.ImageWatermark:
+            case WorkflowType.AnimatedGifMaker:
             case WorkflowType.VideoConverter:
             case WorkflowType.VideoTrimmer:
             case WorkflowType.VideoThumbnailer:

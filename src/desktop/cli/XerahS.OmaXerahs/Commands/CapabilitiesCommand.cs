@@ -66,6 +66,7 @@ internal static class CapabilitiesCommand
                 "image.resize",
                 "image.convert",
                 "image.watermark",
+                "image.gif",
                 "skill.install"
             ]
         };

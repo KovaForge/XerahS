@@ -39,6 +39,7 @@ internal static class ImageCommand
         command.Add(CreateResize());
         command.Add(CreateConvert());
         command.Add(CreateWatermark());
+        command.Add(CreateGif());
         return command;
     }
 
@@ -115,6 +116,66 @@ internal static class ImageCommand
                 }
             };
         });
+    }
+
+    private static Command CreateGif()
+    {
+        var command = new Command("gif", "Combine two or more images, in the given order, into an animated GIF.");
+        var files = new Argument<string[]>("files") { Description = "Frame images, in order.", Arity = new ArgumentArity(2, 100000) };
+        var output = new Option<string>("--output", "-o") { Description = "Output .gif path.", Required = true };
+        var delay = new Option<int>("--delay") { DefaultValueFactory = _ => 500, Description = "Milliseconds per frame (min 10)." };
+        var repeat = new Option<int?>("--repeat") { Description = "Play this many extra times instead of looping forever (0 = play once)." };
+        var maxSize = new Option<int>("--max-size") { DefaultValueFactory = _ => 0, Description = "Longest side in pixels (0 = first image's size)." };
+        var jsonOption = JsonStdout.CreateJsonOption();
+        foreach (Symbol symbol in new Symbol[] { files, output, delay, repeat, maxSize, jsonOption })
+        {
+            if (symbol is Argument argument) command.Add(argument);
+            else command.Add((Option)symbol);
+        }
+
+        command.SetAction(async parseResult =>
+        {
+            JsonStdout.Enabled = parseResult.GetValue(jsonOption);
+            string outputPath = Path.GetFullPath(parseResult.GetValue(output)!);
+            string[] frames = (parseResult.GetValue(files) ?? []).Select(Path.GetFullPath).ToArray();
+            string? missing = frames.FirstOrDefault(f => !File.Exists(f));
+            if (missing != null)
+            {
+                return JsonStdout.WriteFailureAndExit(CliErrorCodes.InvalidPath, $"File not found: {missing}");
+            }
+
+            string ffmpegPath = XerahS.Common.PathsManager.GetFFmpegPath();
+            if (string.IsNullOrEmpty(ffmpegPath) || !File.Exists(ffmpegPath))
+            {
+                return JsonStdout.WriteFailureAndExit(CliErrorCodes.NotReady, "FFmpeg not found. Install FFmpeg (e.g. pacman -S ffmpeg).");
+            }
+
+            int? repeatCount = parseResult.GetValue(repeat);
+            var options = new AnimatedGifOptions
+            {
+                DelayMilliseconds = parseResult.GetValue(delay),
+                Loop = repeatCount == null,
+                RepeatCount = repeatCount ?? 0,
+                MaxDimension = parseResult.GetValue(maxSize)
+            };
+
+            try
+            {
+                await new AnimatedGifMakerService(ffmpegPath).CreateAsync(frames, outputPath, options);
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IOException)
+            {
+                return JsonStdout.WriteFailureAndExit(CliErrorCodes.InvalidValue, ex.Message.Split('\n')[0]);
+            }
+
+            JsonStdout.Write(new ImageBatchResponse
+            {
+                Ok = true,
+                Outputs = [new ImageOutput { Source = frames[0], Output = outputPath }]
+            });
+            return 0;
+        });
+        return command;
     }
 
     /// <summary>Adds the shared file/output options and runs the batch.</summary>

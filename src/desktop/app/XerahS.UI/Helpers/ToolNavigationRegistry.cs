@@ -51,6 +51,7 @@ internal static class ToolNavigationRegistry
         ["Tools_ImageResizer"] = new(WorkflowType.ImageResizer, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_ImageConverter"] = new(WorkflowType.ImageConverter, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_ImageWatermark"] = new(WorkflowType.ImageWatermark, ToolNavigationDispatchMode.DirectToolService),
+        ["Tools_AnimatedGifMaker"] = new(WorkflowType.AnimatedGifMaker, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_VideoEditor"] = new(WorkflowType.VideoEditor, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_VideoConverter"] = new(WorkflowType.VideoConverter, ToolNavigationDispatchMode.DirectToolService),
         ["Tools_VideoTrimmer"] = new(WorkflowType.VideoTrimmer, ToolNavigationDispatchMode.DirectToolService),

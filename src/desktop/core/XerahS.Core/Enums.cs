@@ -285,6 +285,9 @@ public enum WorkflowType // Localized
     [Description("Image watermark")]
     ImageWatermark,
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Animated GIF maker")]
+    AnimatedGifMaker,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Video converter")]
     VideoConverter,
     [Category(EnumExtensions.WorkflowType_Category_Tools)]

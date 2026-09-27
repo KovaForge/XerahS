@@ -23,6 +23,7 @@ and AI coding agents.
 | `effects import <file> --workflow <workflow> [--no-enable]` | Replace a workflow's image effects with a `.xsie` or ShareX `.sxie` preset. |
 | `effects show / enable / disable / clear --workflow <workflow>` | Inspect or change a workflow's image effects. |
 | `image resize / convert / watermark <files...>` | Batch image tools (same engine as the Image Resizer, Converter and Watermark windows). |
+| `image gif <frames...> -o out.gif` | Animated GIF from images (same engine as the Animated GIF Maker). |
 | `skill install / uninstall / path` | Manage the `xerahs` agent skill. |
 
 `<workflow>` is a workflow id, a unique id prefix (6+ characters), or a workflow name.

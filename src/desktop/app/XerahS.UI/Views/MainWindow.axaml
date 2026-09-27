@@ -109,6 +109,7 @@
                     <MenuItem Header="Image Resizer..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageResizer"/>
                     <MenuItem Header="Image Converter..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageConverter"/>
                     <MenuItem Header="Image Watermark..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageWatermark"/>
+                    <MenuItem Header="Animated GIF Maker..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_AnimatedGifMaker"/>
                     <MenuItem Header="_Analyze Image..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_AnalyzeImage"/>
                     <Separator/>
                     <MenuItem Name="MenuItemVideoEditor" Header="_Video Editor..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_VideoEditor"/>

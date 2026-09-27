@@ -58,6 +58,7 @@ public static class WorkflowCatalog
         WorkflowType.ImageResizer,
         WorkflowType.ImageConverter,
         WorkflowType.ImageWatermark,
+        WorkflowType.AnimatedGifMaker,
         WorkflowType.VideoConverter,
         WorkflowType.VideoTrimmer,
         WorkflowType.VideoThumbnailer,

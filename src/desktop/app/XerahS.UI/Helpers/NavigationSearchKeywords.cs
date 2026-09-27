@@ -45,6 +45,7 @@ internal static class NavigationSearchKeywords
         ["Tools_ImageThumbnailer"] = "thumbnail thumbs",
         ["Tools_ImageResizer"] = "image resize scale dimensions batch",
         ["Tools_ImageConverter"] = "image convert format png jpeg webp batch",
+        ["Tools_AnimatedGifMaker"] = "gif animated animation frames images slideshow",
         ["Tools_ImageWatermark"] = "image watermark text logo stamp batch",
         ["Tools_VideoEditor"] = "video edit ffmpeg",
         ["Tools_VideoConverter"] = "video convert ffmpeg transcode",

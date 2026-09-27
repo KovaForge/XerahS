@@ -104,6 +104,7 @@ omaxerahs image convert *.png --format webp --quality 85                  # png 
 omaxerahs image convert logo.png --format jpeg --background "#000000"     # fill for transparency
 omaxerahs image watermark shot.png --text "© Mike" --position BottomRight --opacity 60
 omaxerahs image watermark shot.png --image logo.png --image-scale 15 --position TopRight
+omaxerahs image gif frame1.png frame2.png frame3.png -o demo.gif --delay 400   # --repeat N instead of looping forever
 ```
 
 ## Uploads

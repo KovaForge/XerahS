@@ -39,6 +39,7 @@ public static class MediaToolsToolService
     private static ImageThumbnailerWindow? _thumbnailerWindow;
     private static VideoConverterWindow? _converterWindow;
     private static VideoTrimmerWindow? _trimmerWindow;
+    private static AnimatedGifMakerWindow? _gifMakerWindow;
     private static readonly Dictionary<ImageBatchOperation, ImageBatchToolWindow> _imageBatchWindows = new();
     private static VideoThumbnailerWindow? _videoThumbnailerWindow;
     private static ImageAnalyzerWindow? _analyzerWindow;
@@ -101,6 +102,16 @@ public static class MediaToolsToolService
 
             case WorkflowType.ImageWatermark:
                 OpenImageBatchTool(ImageBatchOperation.Watermark, null, owner);
+                break;
+
+            case WorkflowType.AnimatedGifMaker:
+                ShowWindow(_gifMakerWindow, owner, () =>
+                {
+                    var vm = new AnimatedGifMakerViewModel();
+                    var w = new AnimatedGifMakerWindow();
+                    w.Initialize(vm);
+                    return w;
+                }, w => _gifMakerWindow = w, "AnimatedGifMaker");
                 break;
 
             case WorkflowType.VideoThumbnailer:
