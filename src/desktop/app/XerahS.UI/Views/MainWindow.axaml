@@ -106,6 +106,9 @@
                     <MenuItem Header="_Image Combiner..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageCombiner"/>
                     <MenuItem Header="Image _Splitter..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageSplitter"/>
                     <MenuItem Header="Image _Thumbnailer..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageThumbnailer"/>
+                    <MenuItem Header="Image Resizer..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageResizer"/>
+                    <MenuItem Header="Image Converter..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageConverter"/>
+                    <MenuItem Header="Image Watermark..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageWatermark"/>
                     <MenuItem Header="_Analyze Image..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_AnalyzeImage"/>
                     <Separator/>
                     <MenuItem Name="MenuItemVideoEditor" Header="_Video Editor..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_VideoEditor"/>

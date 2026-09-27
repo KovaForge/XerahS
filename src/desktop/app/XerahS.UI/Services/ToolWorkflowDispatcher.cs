@@ -114,6 +114,9 @@ internal static class ToolWorkflowDispatcher
             case WorkflowType.ImageCombiner:
             case WorkflowType.ImageSplitter:
             case WorkflowType.ImageThumbnailer:
+            case WorkflowType.ImageResizer:
+            case WorkflowType.ImageConverter:
+            case WorkflowType.ImageWatermark:
             case WorkflowType.VideoConverter:
             case WorkflowType.VideoTrimmer:
             case WorkflowType.VideoThumbnailer:

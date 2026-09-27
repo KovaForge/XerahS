@@ -119,6 +119,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     public ICommand PublishCommand { get; }
     public ICommand UnpublishCommand { get; }
     public ICommand DeleteItemCommand { get; }
+    public ICommand ResizeImageCommand { get; }
     public bool CanCopyImage => !string.IsNullOrWhiteSpace(_config.FilePath) && File.Exists(_config.FilePath) && FileHelpers.IsImageFile(_config.FilePath);
     internal string? FilePath => _config.FilePath;
     internal bool HasExistingFile => !string.IsNullOrWhiteSpace(_config.FilePath) && File.Exists(_config.FilePath);
@@ -165,6 +166,13 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         UploadItemCommand = new AsyncRelayCommand(UploadFileAsync);
         OpenFolderCommand = new RelayCommand(OpenFolder);
         CopyFilePathCommand = new RelayCommand(CopyFilePath);
+        ResizeImageCommand = new RelayCommand(() =>
+        {
+            if (CanCopyImage && FilePath != null)
+            {
+                XerahS.UI.Services.MediaToolsToolService.OpenImageBatchTool(XerahS.Media.ImageBatchOperation.Resize, [FilePath], owner: null);
+            }
+        });
         CopyUrlCommand = new RelayCommand(CopyUrl);
         CopyMarkdownImageCommand = new RelayCommand(CopyMarkdownImage);
         CopyErrorsCommand = new RelayCommand(CopyErrors);

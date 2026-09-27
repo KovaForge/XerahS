@@ -276,6 +276,15 @@ public enum WorkflowType // Localized
     [Description("Image thumbnailer")]
     ImageThumbnailer,
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Image resizer")]
+    ImageResizer,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Image converter")]
+    ImageConverter,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Image watermark")]
+    ImageWatermark,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Video converter")]
     VideoConverter,
     [Category(EnumExtensions.WorkflowType_Category_Tools)]

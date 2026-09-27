@@ -34,6 +34,9 @@
                           Command="{Binding EditImageCommand}"
                           IsVisible="{Binding Item.HasExistingFile}"
                           InputGesture="Enter"/>
+                <MenuItem Header="Resize image..."
+                          Command="{Binding ResizeImageCommand}"
+                          IsVisible="{Binding Item.HasImageFile}"/>
                 <MenuItem Header="Trim video..."
                           Command="{Binding TrimVideoCommand}"
                           IsVisible="{Binding Item.HasVideoFile}"/>

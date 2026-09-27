@@ -72,13 +72,14 @@ internal static class Program
         rootCommand.Add(UploadCommand.Create());
         rootCommand.Add(WorkflowCommand.Create());
         rootCommand.Add(EffectsCommand.Create());
+        rootCommand.Add(ImageCommand.Create());
         rootCommand.Add(SkillCommand.Create());
         rootCommand.SetAction(parseResult =>
         {
             JsonStdout.Enabled = JsonStdout.ShouldEnable(Environment.GetCommandLineArgs());
             return JsonStdout.WriteFailureAndExit(
                 CliErrorCodes.Usage,
-                "No command specified. Use capabilities, doctor, upload, workflow, effects, or skill. See --help.");
+                "No command specified. Use capabilities, doctor, upload, workflow, effects, image, or skill. See --help.");
         });
         return rootCommand;
     }

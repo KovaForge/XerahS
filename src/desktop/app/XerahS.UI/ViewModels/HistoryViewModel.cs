@@ -970,6 +970,13 @@ namespace XerahS.UI.ViewModels
         }
 
         [RelayCommand]
+        private void ResizeImage(HistoryItem? item)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath)) return;
+            MediaToolsToolService.OpenImageBatchTool(XerahS.Media.ImageBatchOperation.Resize, [item.FilePath], owner: null);
+        }
+
+        [RelayCommand]
         private void TrimVideo(HistoryItem? item)
         {
             if (item == null || string.IsNullOrWhiteSpace(item.FilePath) || !File.Exists(item.FilePath)) return;

@@ -27,6 +27,7 @@ using Avalonia.Controls;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.UI.ViewModels;
+using XerahS.Media;
 using XerahS.UI.Views;
 
 namespace XerahS.UI.Services;
@@ -38,6 +39,7 @@ public static class MediaToolsToolService
     private static ImageThumbnailerWindow? _thumbnailerWindow;
     private static VideoConverterWindow? _converterWindow;
     private static VideoTrimmerWindow? _trimmerWindow;
+    private static readonly Dictionary<ImageBatchOperation, ImageBatchToolWindow> _imageBatchWindows = new();
     private static VideoThumbnailerWindow? _videoThumbnailerWindow;
     private static ImageAnalyzerWindow? _analyzerWindow;
 
@@ -89,6 +91,18 @@ public static class MediaToolsToolService
                 OpenVideoTrimmer(null, owner);
                 break;
 
+            case WorkflowType.ImageResizer:
+                OpenImageBatchTool(ImageBatchOperation.Resize, null, owner);
+                break;
+
+            case WorkflowType.ImageConverter:
+                OpenImageBatchTool(ImageBatchOperation.Convert, null, owner);
+                break;
+
+            case WorkflowType.ImageWatermark:
+                OpenImageBatchTool(ImageBatchOperation.Watermark, null, owner);
+                break;
+
             case WorkflowType.VideoThumbnailer:
                 ShowWindow(_videoThumbnailerWindow, owner, () =>
                 {
@@ -111,6 +125,28 @@ public static class MediaToolsToolService
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>Opens the Image Resizer / Converter / Watermark tool, optionally with images added.</summary>
+    public static void OpenImageBatchTool(ImageBatchOperation operation, IEnumerable<string>? filePaths, Window? owner)
+    {
+        _imageBatchWindows.TryGetValue(operation, out var current);
+        ShowWindow(current, owner, () =>
+        {
+            var vm = new ImageBatchToolViewModel(operation);
+            var w = new ImageBatchToolWindow();
+            w.Initialize(vm);
+            return w;
+        }, w =>
+        {
+            if (w == null) _imageBatchWindows.Remove(operation);
+            else _imageBatchWindows[operation] = w;
+        }, operation.ToString());
+
+        if (filePaths != null && _imageBatchWindows.TryGetValue(operation, out var window) && window.ViewModel is { } viewModel)
+        {
+            viewModel.AddFilePaths(filePaths);
+        }
     }
 
     /// <summary>Opens the Video Trimmer, optionally with a video already loaded (History "Trim video...").</summary>

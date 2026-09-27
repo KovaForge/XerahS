@@ -63,6 +63,9 @@ internal static class CapabilitiesCommand
                 "effects.show",
                 "effects.toggle",
                 "effects.clear",
+                "image.resize",
+                "image.convert",
+                "image.watermark",
                 "skill.install"
             ]
         };

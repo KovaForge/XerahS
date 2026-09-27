@@ -530,6 +530,9 @@ namespace XerahS.UI.Views
             toolsNode.AddChild(CreateNode("Image Combiner...", "Tools_ImageCombiner", null, NavigationNodeKind.Action));
             toolsNode.AddChild(CreateNode("Image Splitter...", "Tools_ImageSplitter", null, NavigationNodeKind.Action));
             toolsNode.AddChild(CreateNode("Image Thumbnailer...", "Tools_ImageThumbnailer", null, NavigationNodeKind.Action));
+            toolsNode.AddChild(CreateNode("Image Resizer...", "Tools_ImageResizer", null, NavigationNodeKind.Action));
+            toolsNode.AddChild(CreateNode("Image Converter...", "Tools_ImageConverter", null, NavigationNodeKind.Action));
+            toolsNode.AddChild(CreateNode("Image Watermark...", "Tools_ImageWatermark", null, NavigationNodeKind.Action));
 #if DEBUG
             toolsNode.AddChild(CreateNode("Video Editor...", "Tools_VideoEditor", null, NavigationNodeKind.Action));
 #endif

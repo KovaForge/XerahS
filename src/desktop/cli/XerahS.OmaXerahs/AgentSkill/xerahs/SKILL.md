@@ -92,6 +92,20 @@ Example: "configure ~/Downloads/GoldBorder.sxie in XerahS":
 2. `omaxerahs effects import ~/Downloads/GoldBorder.sxie --workflow <id>`.
 3. Confirm the effect list and whether `appNotified` is true.
 
+## Image tools
+
+Resize, convert or watermark image files without opening XerahS. Results go next to each
+image unless `--output-folder` is given; `--name` sets the file name (`$filename` = source name).
+Sources are never overwritten. The response lists `outputs` and any `failures`.
+
+```bash
+omaxerahs image resize shot.png --width 1280 --height 720 --mode fit      # fit | fill | stretch
+omaxerahs image convert *.png --format webp --quality 85                  # png | jpeg | webp
+omaxerahs image convert logo.png --format jpeg --background "#000000"     # fill for transparency
+omaxerahs image watermark shot.png --text "© Mike" --position BottomRight --opacity 60
+omaxerahs image watermark shot.png --image logo.png --image-scale 15 --position TopRight
+```
+
 ## Uploads
 
 ```bash

@@ -52,6 +52,7 @@ public interface IHistoryItemMenuContext
     ICommand DeleteItemCommand { get; }
     ICommand DeleteRemoteCommand { get; }
     ICommand TrimVideoCommand { get; }
+    ICommand ResizeImageCommand { get; }
 
     /// <summary>Current item used for visibility (URL, HasErrors).</summary>
     IHistoryItemMenuTarget? Item { get; }
@@ -133,6 +134,7 @@ public sealed class HistoryItemMenuContext : IHistoryItemMenuContext
         DeleteItemCommand = new RelayCommand(() => _vm.DeleteItemCommand.Execute(_item));
         DeleteRemoteCommand = new AsyncRelayCommand(() => _vm.DeleteRemoteItemCommand.ExecuteAsync(_item));
         TrimVideoCommand = new RelayCommand(() => _vm.TrimVideoCommand.Execute(_item));
+        ResizeImageCommand = new RelayCommand(() => _vm.ResizeImageCommand.Execute(_item));
     }
 
     public IHistoryItemMenuTarget? Item { get; }
@@ -154,6 +156,7 @@ public sealed class HistoryItemMenuContext : IHistoryItemMenuContext
     public ICommand DeleteItemCommand { get; }
     public ICommand DeleteRemoteCommand { get; }
     public ICommand TrimVideoCommand { get; }
+    public ICommand ResizeImageCommand { get; }
 }
 
 /// <summary>
@@ -214,4 +217,5 @@ public sealed class ToastMenuContext : IHistoryItemMenuContext
     public ICommand DeleteItemCommand => ViewModel.DeleteItemCommand;
     public ICommand DeleteRemoteCommand { get; } = new RelayCommand(() => { });
     public ICommand TrimVideoCommand { get; } = new RelayCommand(() => { });
+    public ICommand ResizeImageCommand => ViewModel.ResizeImageCommand;
 }
