@@ -190,6 +190,7 @@
       <_WatchFolderDaemonExecutableName Condition="'$(RuntimeIdentifier)' == '' and '$(OS)' == 'Windows_NT'">xerahs-watchfolder-daemon.exe</_WatchFolderDaemonExecutableName>
       <_WatchFolderDaemonRequireRuntimeConfig>true</_WatchFolderDaemonRequireRuntimeConfig>
       <_WatchFolderDaemonRequireRuntimeConfig Condition="$(RuntimeIdentifier.StartsWith('win'))">false</_WatchFolderDaemonRequireRuntimeConfig>
+      <_WatchFolderDaemonRequireRuntimeConfig Condition="$(RuntimeIdentifier.StartsWith('osx'))">false</_WatchFolderDaemonRequireRuntimeConfig>
       <_WatchFolderDaemonRequireRuntimeConfig Condition="'$(RuntimeIdentifier)' == '' and '$(OS)' == 'Windows_NT'">false</_WatchFolderDaemonRequireRuntimeConfig>
     </PropertyGroup>
 
@@ -267,6 +268,7 @@
       <_OmaXerahsExecutableName Condition="'$(RuntimeIdentifier)' == '' and '$(OS)' == 'Windows_NT'">omaxerahs.exe</_OmaXerahsExecutableName>
       <_OmaXerahsRequireRuntimeConfig>true</_OmaXerahsRequireRuntimeConfig>
       <_OmaXerahsRequireRuntimeConfig Condition="$(RuntimeIdentifier.StartsWith('win'))">false</_OmaXerahsRequireRuntimeConfig>
+      <_OmaXerahsRequireRuntimeConfig Condition="$(RuntimeIdentifier.StartsWith('osx'))">false</_OmaXerahsRequireRuntimeConfig>
       <_OmaXerahsRequireRuntimeConfig Condition="'$(RuntimeIdentifier)' == '' and '$(OS)' == 'Windows_NT'">false</_OmaXerahsRequireRuntimeConfig>
     </PropertyGroup>
 
