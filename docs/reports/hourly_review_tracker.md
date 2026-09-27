@@ -7571,3 +7571,16 @@ M build/linux/aur/xerahs-git/PKGBUILD
 - Build/test: n/a (documentation-only audit, no code change)
 - Commit: none (empty-queue audit; SHA in Step 9 summary only)
 - Follow-up: producer-side `xerahs-review` will repopulate on next clawpatch cycle; next consumer tick re-reads queue
+
+### 2026-09-28 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 96 -> 97)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (01fc48ff70) == declan/develop (01fc48ff70) == origin/develop (9e1c53cef2) at tick start. Upstream/develop (1f4249d5bb) is already an ancestor of HEAD: True (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at d7c027fa9b9212e611c8f3574618431c48700467 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). Working tree porcelain: empty. Stash list unchanged (preserved across ticks):
+  - stash@{0}: On develop: wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor
+  - stash@{1}: On develop: xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18)
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch preserved stashes (9-file teammate ModalOpenService WIP + WaylandPortalHotkeyService orphan) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
