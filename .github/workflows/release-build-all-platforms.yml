@@ -240,6 +240,14 @@ jobs:
           grep -Eq '(^|/)xerahs-watchfolder-daemon$' "$ARCHIVE_LIST"
           grep -Eq '(^|/)xerahs-watchfolder-daemon.runtimeconfig.json$' "$ARCHIVE_LIST"
           rm -f "$ARCHIVE_LIST"
+          # The packager logs "Skipped RPM package" and exits 0 when rpmbuild fails; fail here
+          # instead of 15 minutes later in the release job's asset validator.
+          for package in deb rpm; do
+            if [ ! -f "dist/XerahS-${VERSION}-${{ matrix.rid }}.${package}" ]; then
+              echo "::error::Missing dist/XerahS-${VERSION}-${{ matrix.rid }}.${package}; see the Build Linux packages log."
+              exit 1
+            fi
+          done
 
       - name: Validate AppImage
         shell: bash
