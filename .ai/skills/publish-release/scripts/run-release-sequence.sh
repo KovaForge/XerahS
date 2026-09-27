@@ -17,6 +17,7 @@ Sequence options:
   --assume-changelog-done     Skip interactive confirmation for step 2
   --monitor                   Monitor tag release workflow after step 3
   --monitor-interval <sec>    Poll interval in seconds (default: 120)
+  --release-wait <minutes>    How long to wait for the GitHub release before release notes (default: 30)
   --repo <owner/name>         GitHub repository for gh commands (default: origin remote owner/name)
   --push-remote <name>        Git remote used for branch/tag push (default: origin; pass through to bump script)
   --git-wrapper <cmd>         Git identity wrapper for commit/push (e.g. git-vladislava); also XERAHS_GIT_WRAPPER
@@ -223,7 +224,8 @@ wait_for_release() {
   local tag_name="$1"
   local gh_repo="$2"
   local attempt=1
-  local max_attempts=90
+  # A full release run takes ~18-20 minutes before the GitHub release exists.
+  local max_attempts=$(( RELEASE_WAIT_MINUTES * 6 ))
 
   while [[ $attempt -le $max_attempts ]]; do
     if gh release view "$tag_name" --repo "$gh_repo" --json url >/dev/null 2>&1; then
@@ -444,6 +446,7 @@ SKIP_MAINTENANCE=0
 ASSUME_CHANGELOG_DONE=0
 MONITOR=0
 MONITOR_INTERVAL=120
+RELEASE_WAIT_MINUTES=30
 # empty = auto from repo policy; 1 = force prerelease; 0 = force stable
 SET_PRERELEASE=""
 PREPARE_FLATHUB_SOURCE=0
@@ -477,6 +480,14 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       MONITOR_INTERVAL="$2"
+      shift 2
+      ;;
+    --release-wait)
+      if [[ $# -lt 2 || ! "$2" =~ ^[1-9][0-9]*$ ]]; then
+        echo "Error: --release-wait requires a positive number of minutes." >&2
+        exit 1
+      fi
+      RELEASE_WAIT_MINUTES="$2"
       shift 2
       ;;
     --repo)
