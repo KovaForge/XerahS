@@ -1009,7 +1009,30 @@
                                                        FontSize="12"
                                                        Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                                        TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding LinuxOmaSnapStatusText}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                       TextWrapping="Wrap"/>
                                         </StackPanel>
+                                        <Grid ColumnDefinitions="120, 16, *">
+                                            <TextBlock Grid.Column="0" Text="Annotation editor:" VerticalAlignment="Center"/>
+                                            <ComboBox Grid.Column="2"
+                                                      ItemsSource="{Binding LinuxAnnotationEditors}"
+                                                      SelectedItem="{Binding LinuxAnnotationEditor}"
+                                                      HorizontalAlignment="Stretch"
+                                                      MinWidth="240"
+                                                      AutomationProperties.Name="Linux Annotation Editor">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="x:Object">
+                                                        <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </Grid>
+                                        <TextBlock Text="The OmaSnap editor needs OmaSnap on Hyprland and falls back to the XerahS editor otherwise. Annotation sidecar files and re-editing from History need the XerahS editor."
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                   TextWrapping="Wrap"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>

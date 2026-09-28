@@ -26,6 +26,7 @@
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using XerahS.Common;
+using XerahS.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.RegionCapture.ScreenRecording;
 using XerahS.UI.Helpers;
@@ -54,6 +55,14 @@ namespace XerahS.UI.ViewModels
 
         [ObservableProperty]
         private string _linuxRegionSelectorLastDecisionText = string.Empty;
+
+        [ObservableProperty]
+        private string _linuxOmaSnapStatusText = string.Empty;
+
+        [ObservableProperty]
+        private LinuxAnnotationEditor _linuxAnnotationEditor;
+
+        public LinuxAnnotationEditor[] LinuxAnnotationEditors => Enum.GetValues<LinuxAnnotationEditor>();
 
         [ObservableProperty]
         private bool _showLinuxClipboardCliWarning;
@@ -103,6 +112,7 @@ namespace XerahS.UI.ViewModels
             LinuxRegionSelectorAvailableText = $"Available selectors: {string.Join(", ", diagnostics.AvailablePreferences.Select(GetPreferenceDescription))}";
             LinuxRegionSelectorAutomaticText = $"Automatic will prefer: {GetPreferenceDescription(diagnostics.AutomaticPreference)}";
             LinuxRegionSelectorLastDecisionText = FormatLastDecision(diagnostics.LastDecision);
+            LinuxOmaSnapStatusText = PlatformServices.OmaSnap?.Status.Summary ?? diagnostics.OmaSnapSummary ?? string.Empty;
             OnPropertyChanged(nameof(LinuxRegionSelectorPreferences));
         }
 
