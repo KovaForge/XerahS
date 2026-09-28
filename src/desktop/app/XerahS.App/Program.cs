@@ -144,6 +144,10 @@ namespace XerahS.App
                 {
                     ValidateLinuxDisplayEnvironment();
                     ClearX11SessionManagement();
+                    if (!EnsureLinuxDisplayUsable())
+                    {
+                        return;
+                    }
                 }
 
                 // Initialize settings first (Linux portal service preference is needed for platform init)
@@ -419,6 +423,63 @@ namespace XerahS.App
 
             string socketName = !string.IsNullOrWhiteSpace(waylandDisplay) ? waylandDisplay : "wayland-0";
             return System.IO.Path.Combine(xdgRuntimeDir, socketName);
+        }
+
+        /// <summary>
+        /// Waits briefly for XWayland at autostart, and exits with a readable message (stderr and a
+        /// desktop notification, since there is no tray yet) when no usable X display exists,
+        /// instead of crashing inside the UI toolkit with "XOpenDisplay failed".
+        /// </summary>
+        private static bool EnsureLinuxDisplayUsable()
+        {
+            string? display = Environment.GetEnvironmentVariable("DISPLAY");
+            string? waylandDisplay = Environment.GetEnvironmentVariable("WAYLAND_DISPLAY");
+            var state = XerahS.Common.LinuxDisplayReadiness.Evaluate(display, waylandDisplay, System.IO.File.Exists);
+            if (state == XerahS.Common.LinuxDisplayState.WaitingForX11)
+            {
+                XerahS.Common.DebugHelper.WriteLine($"Display: waiting for the X server socket for DISPLAY={display} (XWayland may still be starting).");
+                state = XerahS.Common.LinuxDisplayReadiness.WaitForX11(display, waylandDisplay, XerahS.Common.LinuxDisplayReadiness.DefaultX11WaitTimeout);
+            }
+
+            if (state == XerahS.Common.LinuxDisplayState.Ready || state == XerahS.Common.LinuxDisplayState.NoDisplay)
+            {
+                // NoDisplay keeps the historical behaviour (the toolkit reports it below).
+                return true;
+            }
+
+            string message = XerahS.Common.LinuxDisplayReadiness.DescribeProblem(state, display);
+            XerahS.Common.DebugHelper.WriteLine($"Display: {message}");
+            XerahS.Common.DebugHelper.Flush();
+            Console.Error.WriteLine(message);
+            TrySendStartupFailureNotification(message);
+            return false;
+        }
+
+        private static void TrySendStartupFailureNotification(string message)
+        {
+            foreach (string program in new[] { "omarchy-notification-send", "notify-send" })
+            {
+                try
+                {
+                    var startInfo = new System.Diagnostics.ProcessStartInfo(program)
+                    {
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
+                    };
+                    startInfo.ArgumentList.Add("XerahS");
+                    startInfo.ArgumentList.Add(message);
+                    using var process = System.Diagnostics.Process.Start(startInfo);
+                    if (process != null && process.WaitForExit(3000) && process.ExitCode == 0)
+                    {
+                        return;
+                    }
+                }
+                catch (Exception)
+                {
+                    // Try the next notifier; a missing tool is expected.
+                }
+            }
         }
 
         private static string? GetX11SocketPath(string? displayVar)
