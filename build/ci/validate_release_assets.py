@@ -102,6 +102,7 @@ def ensure_tar_has_daemon(path: Path, os_name: str) -> None:
             raise RuntimeError(
                 f"Missing omaxerahs runtimeconfig '{expected_omaxerahs_runtimeconfig}' in Linux archive: {path}"
             )
+        ensure_optional_omasnap(names, path)
         return
 
     if os_name == "mac":
@@ -112,6 +113,36 @@ def ensure_tar_has_daemon(path: Path, os_name: str) -> None:
             raise RuntimeError(
                 f"Missing daemon executable '{expected_binary}' in macOS archive: {path}"
             )
+
+
+OMASNAP_REQUIRED_FILES = (
+    "omasnap/omasnap",
+    "omasnap/licenses/LICENSE-MIT",
+    "omasnap/licenses/LICENSE-OFL",
+    "omasnap/licenses/LICENSE-ISC",
+)
+
+
+def ensure_optional_omasnap(names: set[str], path: Path) -> None:
+    """OmaSnap (XIP0088) is optional. Check it only when the archive contains it.
+
+    When any omasnap/ entry is present, the binary and all three license notices
+    (MIT, OFL, ISC) must be present too; a partial copy is an error.
+    """
+    stripped = set()
+    for name in names:
+        index = name.find("omasnap/")
+        if index >= 0 and (index == 0 or name[index - 1] == "/"):
+            stripped.add(name[index:])
+
+    if not any(entry.startswith("omasnap/") and entry != "omasnap/" for entry in stripped):
+        return
+
+    missing = [entry for entry in OMASNAP_REQUIRED_FILES if entry not in stripped]
+    if missing:
+        raise RuntimeError(
+            f"Incomplete optional OmaSnap bundle in {path}; missing: {', '.join(missing)}"
+        )
 
 
 def build_file_name(version: str, os_name: str, arch: str, extension: str) -> str:

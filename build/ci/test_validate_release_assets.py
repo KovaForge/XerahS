@@ -9,7 +9,9 @@ from pathlib import Path
 
 from validate_release_assets import (
     EXPECTED_ASSETS,
+    OMASNAP_REQUIRED_FILES,
     build_file_name,
+    ensure_optional_omasnap,
     ensure_portable_zip_payload,
 )
 
@@ -94,6 +96,31 @@ class PortableReleaseTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "Unsafe portable archive path"):
                     ensure_portable_zip_payload(self.path)
                 del self.payload[name]
+
+
+class OptionalOmaSnapTests(unittest.TestCase):
+    """OmaSnap is optional in Linux archives (XIP0088): checked only when present."""
+
+    base = {"XerahS", "omaxerahs", "omaxerahs.runtimeconfig.json"}
+
+    def test_archive_without_omasnap_passes(self):
+        ensure_optional_omasnap(set(self.base), Path("x.tar.gz"))
+
+    def test_complete_omasnap_bundle_passes(self):
+        names = set(self.base) | {"omasnap/"} | set(OMASNAP_REQUIRED_FILES)
+        ensure_optional_omasnap(names, Path("x.tar.gz"))
+
+    def test_nested_root_folder_is_supported(self):
+        names = {"XerahS-1.0.0/" + name for name in OMASNAP_REQUIRED_FILES}
+        ensure_optional_omasnap(names, Path("x.tar.gz"))
+
+    def test_missing_license_fails(self):
+        names = set(self.base) | {"omasnap/omasnap", "omasnap/licenses/LICENSE-MIT"}
+        with self.assertRaisesRegex(RuntimeError, "LICENSE-OFL"):
+            ensure_optional_omasnap(names, Path("x.tar.gz"))
+
+    def test_unrelated_names_containing_omasnap_are_ignored(self):
+        ensure_optional_omasnap(set(self.base) | {"docs/notomasnap/readme"}, Path("x.tar.gz"))
 
 
 if __name__ == "__main__":
