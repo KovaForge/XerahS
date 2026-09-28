@@ -59,6 +59,8 @@ internal static class CapabilitiesCommand
                 "workflow.list",
                 "workflow.show",
                 "workflow.tasks",
+                "workflow.run",
+                "capture",
                 "effects.import",
                 "effects.show",
                 "effects.toggle",

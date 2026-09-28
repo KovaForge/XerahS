@@ -452,6 +452,18 @@ public partial class App : Application
     public static Action? PostUIInitializationCallback { get; set; }
     public Core.Hotkeys.WorkflowManager? WorkflowManager => _workflowOrchestrator?.WorkflowManager;
 
+    /// <summary>Runs a workflow relayed by <c>--run-workflow</c>; false when it is unknown or the app is not ready.</summary>
+    public Task<bool> RunWorkflowAsync(string idOrName)
+    {
+        return _workflowOrchestrator?.RunWorkflowAsync(idOrName) ?? Task.FromResult(false);
+    }
+
+    /// <summary>Runs a capture relayed by <c>--capture</c>; false when the target is unknown or the app is not ready.</summary>
+    public Task<bool> RunCaptureAsync(string target)
+    {
+        return _workflowOrchestrator?.RunCaptureAsync(target) ?? Task.FromResult(false);
+    }
+
     private static void HideMainWindowToTray(Window? window)
     {
         if (window == null || IsExiting || !SettingsManager.Settings.SilentRun)

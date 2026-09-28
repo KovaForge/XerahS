@@ -889,6 +889,20 @@ namespace XerahS.App
                 return;
             }
 
+            if (AppContracts.Cli.TryGetRunWorkflowTarget(args, out string workflowTarget))
+            {
+                // Hyprland keybindings and agents call this for every key press: run the workflow
+                // like a hotkey would and leave the main window where it is.
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => RunRelayedWorkflow(workflowTarget, "secondary-instance"));
+                return;
+            }
+
+            if (AppContracts.Cli.TryGetCaptureTarget(args, out string captureTarget))
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => RunRelayedCapture(captureTarget, "secondary-instance"));
+                return;
+            }
+
             // Process the arguments on the UI thread to handle any UI-related actions
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
@@ -935,6 +949,41 @@ namespace XerahS.App
         /// Picks up WorkflowsConfig changes written by automation (omaxerahs) while the app is running,
         /// so the next save does not overwrite them and hotkeys/menus reflect the new state.
         /// </summary>
+        private static async void RunRelayedWorkflow(string workflowTarget, string source)
+        {
+            try
+            {
+                if (Avalonia.Application.Current is not XerahS.UI.App app)
+                {
+                    return;
+                }
+
+                if (!await app.RunWorkflowAsync(workflowTarget))
+                {
+                    XerahS.Common.DebugHelper.WriteLine($"Run workflow ({source}): '{workflowTarget}' did not match a workflow.");
+                }
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, $"Failed to run workflow '{workflowTarget}' ({source})");
+            }
+        }
+
+        private static async void RunRelayedCapture(string captureTarget, string source)
+        {
+            try
+            {
+                if (Avalonia.Application.Current is XerahS.UI.App app && !await app.RunCaptureAsync(captureTarget))
+                {
+                    XerahS.Common.DebugHelper.WriteLine($"Capture ({source}): '{captureTarget}' could not start.");
+                }
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, $"Failed to run capture '{captureTarget}' ({source})");
+            }
+        }
+
         private static void ReloadWorkflowsFromDisk()
         {
             try
@@ -957,6 +1006,18 @@ namespace XerahS.App
         {
             if (args == null || args.Length == 0)
             {
+                return;
+            }
+
+            if (AppContracts.Cli.TryGetRunWorkflowTarget(args, out string workflowTarget))
+            {
+                RunRelayedWorkflow(workflowTarget, source);
+                return;
+            }
+
+            if (AppContracts.Cli.TryGetCaptureTarget(args, out string captureTarget))
+            {
+                RunRelayedCapture(captureTarget, source);
                 return;
             }
 

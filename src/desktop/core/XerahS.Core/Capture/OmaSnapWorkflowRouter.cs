@@ -91,6 +91,20 @@ public static class OmaSnapWorkflowRouter
         }
     }
 
+    /// <summary>
+    /// The capture job behind <c>omaxerahs capture &lt;target&gt;</c>. A window capture picks a window
+    /// through OmaSnap when it fronts captures, and captures the active window otherwise.
+    /// </summary>
+    public static WorkflowType? JobForCaptureTarget(string target, bool omaSnapActive) =>
+        target.ToLowerInvariant() switch
+        {
+            "region" => WorkflowType.RectangleRegion,
+            "window" => omaSnapActive ? WorkflowType.CustomWindow : WorkflowType.ActiveWindow,
+            "fullscreen" => WorkflowType.PrintScreen,
+            "scroll" => WorkflowType.ScrollingCapture,
+            _ => null
+        };
+
     /// <summary>Region jobs remember what the user selected so Last region can repeat it.</summary>
     public static bool ShouldRememberRegion(WorkflowType job) =>
         job is WorkflowType.RectangleRegion or WorkflowType.RectangleTransparent;

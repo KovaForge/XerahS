@@ -337,6 +337,54 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         await ExecuteWorkflowFromTriggerAsync(settings);
     }
 
+    public async Task<bool> RunWorkflowAsync(string idOrName)
+    {
+        Core.Hotkeys.WorkflowSettings settings;
+        try
+        {
+            settings = Core.Automation.WorkflowAutomation.FindWorkflow(idOrName);
+        }
+        catch (Core.Automation.AutomationException ex)
+        {
+            DebugHelper.WriteLine($"Run workflow request ignored: {ex.Message}");
+            return false;
+        }
+
+        DebugHelper.WriteLine($"Run workflow requested: {settings} (ID: {settings.Id})");
+        await ExecuteWorkflowFromTriggerAsync(settings);
+        return true;
+    }
+
+    public async Task<bool> RunCaptureAsync(string target)
+    {
+        bool omaSnapActive = OperatingSystem.IsLinux() &&
+            PlatformServices.OmaSnap?.ShouldHandle(LinuxInteractiveRegionSelectorPreference.Automatic) == true;
+        WorkflowType? job = Core.Capture.OmaSnapWorkflowRouter.JobForCaptureTarget(target, omaSnapActive);
+        if (job is not { } captureJob)
+        {
+            DebugHelper.WriteLine($"Capture request ignored: unknown target '{target}'.");
+            return false;
+        }
+
+        // A configured workflow keeps the user's after-capture tasks and destinations. A window
+        // pick through OmaSnap needs a CustomWindow job without a target name, so it runs bare.
+        Core.Hotkeys.WorkflowSettings? workflow = captureJob == WorkflowType.CustomWindow
+            ? null
+            : SettingsManager.GetFirstWorkflow(captureJob);
+        DebugHelper.WriteLine($"Capture requested: {target} -> {captureJob} ({workflow?.Id ?? "default task settings"})");
+
+        if (workflow != null)
+        {
+            await ExecuteWorkflowFromTriggerAsync(workflow);
+        }
+        else
+        {
+            await Core.Helpers.TaskHelpers.ExecuteJob(captureJob, new TaskSettings { Job = captureJob });
+        }
+
+        return true;
+    }
+
     private async Task ExecuteWorkflowFromPaletteAsync(Core.Hotkeys.WorkflowSettings settings)
     {
         DebugHelper.WriteLine($"Capture command palette selected: {settings} (ID: {settings?.Id ?? "null"})");
