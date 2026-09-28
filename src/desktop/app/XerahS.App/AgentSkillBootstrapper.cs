@@ -36,8 +36,11 @@ namespace XerahS.App
     {
         internal static bool IsOmarchy()
         {
-            return !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OMARCHY_PATH")) ||
-                Directory.Exists("/usr/share/omarchy");
+#if LINUX
+            return XerahS.Platform.Linux.Services.LinuxDesktopProfile.Current.IsOmarchy;
+#else
+            return false;
+#endif
         }
 
         internal static void EnsureInstalled()
