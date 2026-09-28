@@ -23,24 +23,32 @@
 
 #endregion License Information (GPL v3)
 
-namespace XerahS.UI.Services;
+#nullable enable
 
-public static class UiViewModelFactoryAccessor
+using NUnit.Framework;
+using XerahS.UI.Helpers;
+
+namespace XerahS.Tests.UI;
+
+[TestFixture]
+public sealed class StartupReadinessTests
 {
-    private static IUiViewModelFactory? _factory;
-
-    public static void Configure(IUiViewModelFactory factory)
+    [Test]
+    public async Task AlreadyReady_CompletesTrue()
     {
-        _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+        Assert.That(await StartupReadiness.WaitUntilAsync(() => true, TimeSpan.FromMilliseconds(10)), Is.True);
     }
 
-    public static void Reset() => _factory = null;
-
-    /// <summary>True once bootstrap has configured the factory.</summary>
-    public static bool IsConfigured => _factory != null;
-
-    public static IUiViewModelFactory GetRequired()
+    [Test]
+    public async Task BecomesReady_CompletesTrue()
     {
-        return _factory ?? throw new InvalidOperationException("UI view model factory is not available.");
+        int calls = 0;
+        Assert.That(await StartupReadiness.WaitUntilAsync(() => ++calls >= 3, TimeSpan.FromSeconds(5)), Is.True);
+    }
+
+    [Test]
+    public async Task NeverReady_TimesOutFalse()
+    {
+        Assert.That(await StartupReadiness.WaitUntilAsync(() => false, TimeSpan.FromMilliseconds(300)), Is.False);
     }
 }
