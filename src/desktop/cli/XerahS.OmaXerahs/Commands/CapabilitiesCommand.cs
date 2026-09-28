@@ -44,9 +44,10 @@ internal static class CapabilitiesCommand
         return command;
     }
 
-    internal static CapabilitiesResponse BuildResponse()
+    /// <param name="omaSnapUsable">Adds <c>capture.omasnap</c>: captures run through OmaSnap's native overlay.</param>
+    internal static CapabilitiesResponse BuildResponse(bool omaSnapUsable = false)
     {
-        return new CapabilitiesResponse
+        var response = new CapabilitiesResponse
         {
             SchemaVersion = 1,
             Name = "omaxerahs",
@@ -72,11 +73,39 @@ internal static class CapabilitiesCommand
                 "skill.install"
             ]
         };
+
+        return omaSnapUsable
+            ? new CapabilitiesResponse
+            {
+                SchemaVersion = response.SchemaVersion,
+                Name = response.Name,
+                Version = response.Version,
+                MinPluginProtocol = response.MinPluginProtocol,
+                Capabilities = [.. response.Capabilities, "capture.omasnap"]
+            }
+            : response;
     }
 
     internal static int Run()
     {
-        JsonStdout.Write(BuildResponse());
+        JsonStdout.Write(BuildResponse(IsOmaSnapUsable()));
         return 0;
+    }
+
+    private static bool IsOmaSnapUsable()
+    {
+#if LINUX
+        try
+        {
+            return XerahS.Platform.Linux.Services.LinuxDesktopDiagnostics.IsOmaSnapUsableAsync().GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            XerahS.Common.DebugHelper.WriteLine($"omaxerahs capabilities: OmaSnap probe failed: {ex.Message}");
+            return false;
+        }
+#else
+        return false;
+#endif
     }
 }

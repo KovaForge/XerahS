@@ -13,8 +13,13 @@ public static class DoctorCommand
         {
             Description = "Diagnose Linux global hotkey input device permissions (direct evdev listener)."
         };
+        var linuxDesktopOption = new Option<bool>("--linux-desktop")
+        {
+            Description = "Show the Linux desktop profile, the OmaSnap probe and Hyprland keybinding state (XIP0088)."
+        };
         var doctorJsonOption = new Option<bool>("--json") { Description = "Write diagnostic output as JSON." };
         doctorCommand.Add(linuxInputOption);
+        doctorCommand.Add(linuxDesktopOption);
         doctorCommand.Add(doctorJsonOption);
         doctorCommand.SetAction(parseResult =>
         {
@@ -22,9 +27,13 @@ public static class DoctorCommand
             {
                 Environment.ExitCode = RunLinuxInputDoctor(parseResult.GetValue(doctorJsonOption));
             }
+            else if (parseResult.GetValue(linuxDesktopOption))
+            {
+                Environment.ExitCode = RunLinuxDesktopDoctor(parseResult.GetValue(doctorJsonOption));
+            }
             else
             {
-                Console.WriteLine("Specify a diagnostic, e.g. 'doctor --linux-input' or 'doctor uploaders'.");
+                Console.WriteLine("Specify a diagnostic, e.g. 'doctor --linux-input', 'doctor --linux-desktop' or 'doctor uploaders'.");
             }
         });
 
@@ -51,6 +60,20 @@ public static class DoctorCommand
         Console.WriteLine(json
             ? "{\"error\":\"--linux-input is only available on Linux builds\"}"
             : "doctor --linux-input is only available on Linux builds.");
+        return 1;
+#endif
+    }
+
+    private static int RunLinuxDesktopDoctor(bool json)
+    {
+#if LINUX
+        var (report, exitCode) = XerahS.Platform.Linux.Services.LinuxDesktopDiagnostics.BuildReportAsync(json).GetAwaiter().GetResult();
+        Console.WriteLine(report);
+        return exitCode;
+#else
+        Console.WriteLine(json
+            ? "{\"error\":\"--linux-desktop is only available on Linux builds\"}"
+            : "doctor --linux-desktop is only available on Linux builds.");
         return 1;
 #endif
     }

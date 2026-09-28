@@ -222,6 +222,8 @@ public class AppRelayTests
 
         Assert.That(capabilities, Does.Contain("workflow.run"));
         Assert.That(capabilities, Does.Contain("capture"));
+        Assert.That(capabilities, Does.Not.Contain("capture.omasnap"));
+        Assert.That(CapabilitiesCommand.BuildResponse(omaSnapUsable: true).Capabilities, Does.Contain("capture.omasnap"));
     }
 
     private void UseFakes(bool running)
