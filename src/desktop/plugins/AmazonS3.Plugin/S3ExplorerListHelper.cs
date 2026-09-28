@@ -94,6 +94,82 @@ internal static class S3ExplorerListHelper
             "The service said: " + serviceMessage;
     }
 
+    /// <summary>
+    /// True for S3's "wrong region or endpoint" replies: PermanentRedirect (301), a temporary
+    /// redirect, or a signature scoped to the wrong region.
+    /// </summary>
+    public static bool IsWrongRegionResponse(int statusCode, string? body)
+    {
+        string? code = GetErrorElement(body, "Code");
+        if (code is "PermanentRedirect" or "TemporaryRedirect" or "AuthorizationHeaderMalformed" or "IllegalLocationConstraintException")
+        {
+            return true;
+        }
+
+        return statusCode is 301 or 307 && string.IsNullOrEmpty(code);
+    }
+
+    /// <summary>
+    /// Rewrites an AWS S3 host (s3.amazonaws.com, s3.REGION.amazonaws.com, s3-REGION.amazonaws.com,
+    /// with or without a virtual-hosted bucket prefix) for another region. Returns null for
+    /// non-AWS endpoints, which must be corrected by the user.
+    /// </summary>
+    public static string? TryRewriteAwsHostForRegion(string host, string region)
+    {
+        if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(region) ||
+            !System.Text.RegularExpressions.Regex.IsMatch(region, "^[a-z0-9-]+$"))
+        {
+            return null;
+        }
+
+        var match = System.Text.RegularExpressions.Regex.Match(
+            host,
+            @"^(?<prefix>(?:.+\.)?)s3(?:[.-](?<region>[a-z0-9-]+))?\.amazonaws\.com$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        return $"{match.Groups["prefix"].Value}s3.{region}.amazonaws.com";
+    }
+
+    public static string BuildWrongRegionMessage(string configuredRegion, string? bucketRegion, string? endpointHint, string serviceMessage)
+    {
+        string use = !string.IsNullOrWhiteSpace(bucketRegion)
+            ? $"Set the region to {bucketRegion.Trim()}"
+            : !string.IsNullOrWhiteSpace(endpointHint)
+                ? $"Use the endpoint {endpointHint.Trim()}"
+                : "Check the region and endpoint in the destination settings";
+        return
+            $"Amazon S3 Media Explorer used the wrong region or endpoint for this bucket (configured region: {configuredRegion}). " +
+            $"{use}, then try again. The service said: {serviceMessage}";
+    }
+
+    /// <summary>Reads a child of an S3 &lt;Error&gt; document, or null.</summary>
+    public static string? GetErrorElement(string? body, string localName)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return null;
+        }
+
+        try
+        {
+            var root = System.Xml.Linq.XDocument.Parse(body).Root;
+            if (root == null || !root.Name.LocalName.Equals("Error", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            return root.Elements().FirstOrDefault(e => e.Name.LocalName == localName)?.Value;
+        }
+        catch (System.Xml.XmlException)
+        {
+            return null;
+        }
+    }
+
     private static string NormalizePrefix(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))

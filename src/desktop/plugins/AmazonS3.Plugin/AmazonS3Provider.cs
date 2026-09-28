@@ -569,6 +569,36 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IUpload
             return body;
         }
 
+        if (S3ExplorerListHelper.IsWrongRegionResponse((int)response.StatusCode, body))
+        {
+            string? bucketRegion = response.Headers.TryGetValues("x-amz-bucket-region", out var regionValues)
+                ? regionValues.FirstOrDefault()
+                : null;
+
+            // Follow the region hint once for AWS hosts; otherwise explain what to change.
+            string? redirectedHost = string.IsNullOrWhiteSpace(bucketRegion) ||
+                                     string.Equals(bucketRegion, region, StringComparison.OrdinalIgnoreCase)
+                ? null
+                : S3ExplorerListHelper.TryRewriteAwsHostForRegion(host, bucketRegion);
+            if (redirectedHost != null)
+            {
+                DebugHelper.WriteLine($"S3 Media Explorer: bucket is in {bucketRegion}, not {region}; retrying with {redirectedHost}.");
+                using var retry = BuildSignedRequest("GET", redirectedHost, canonicalUri, canonicalQs, bucketRegion!, ak, sk, st);
+                using var retryResponse = await ExplorerHttpClient.SendAsync(retry, cancellation);
+                string retryBody = await retryResponse.Content.ReadAsStringAsync(cancellation);
+                if (retryResponse.IsSuccessStatusCode)
+                {
+                    return retryBody;
+                }
+            }
+
+            throw new InvalidOperationException(S3ExplorerListHelper.BuildWrongRegionMessage(
+                region,
+                bucketRegion,
+                S3ExplorerListHelper.GetErrorElement(body, "Endpoint"),
+                BuildS3ErrorMessage(response, body)));
+        }
+
         throw new InvalidOperationException(BuildS3ErrorMessage(response, body));
     }
 
