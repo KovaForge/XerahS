@@ -480,15 +480,16 @@ namespace XerahS.App
             {
                 try
                 {
-                    bool isIgnorableAvaloniaDbusException = 
-                        eventArgs.Exception?.InnerException != null &&
-                        eventArgs.Exception.InnerException.GetType().FullName == "Tmds.DBus.Protocol.DBusException" &&
-                        eventArgs.Exception.InnerException.Message.Contains("ServiceUnknown");
-
-                    if (!isIgnorableAvaloniaDbusException)
+                    switch (XerahS.Common.UnobservedTaskExceptionPolicy.Classify(eventArgs.Exception))
                     {
-                        XerahS.Common.DebugHelper.WriteException(eventArgs.Exception!, "Unobserved task exception");
-                        XerahS.Common.DebugHelper.Flush();
+                        case XerahS.Common.UnobservedTaskExceptionPolicy.Disposition.Error:
+                            XerahS.Common.DebugHelper.WriteException(eventArgs.Exception!, "Unobserved task exception");
+                            XerahS.Common.DebugHelper.Flush();
+                            break;
+                        case XerahS.Common.UnobservedTaskExceptionPolicy.Disposition.Informational:
+                            XerahS.Common.DebugHelper.WriteLine(
+                                $"D-Bus connection closed while a background task was running ({eventArgs.Exception?.GetBaseException().Message}).");
+                            break;
                     }
                 }
                 catch
