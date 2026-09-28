@@ -1,6 +1,6 @@
 # XIP0088 OmaSnap Native Omarchy Capture Engine
 
-**Status**: Draft
+**Status**: Completed
 **Created**: 2026-09-28
 **Updated**: 2026-09-28
 **Target version**: v0.31.0 (feature; bump minor)
@@ -270,6 +270,21 @@ omaxerahs workflow run <id> ──single-instance──▶ XerahS (running, tray
                   └─ PinToScreen → omasnap --pin <png>
                         (Upload button → omaxerahs upload)
 ```
+
+---
+
+## Implementation Notes
+
+Implemented in v0.31.0 on branch `claude/xip0088-omasnap-capture-0awcv6` (KovaForge/XerahS) with OmaSnap host mode in KovaForge/omasnap. User documentation: [docs/linux/omarchy.md](../../linux/omarchy.md) and [docs/linux/omaxerahs-cli.md](../../linux/omaxerahs-cli.md). Where the build differs from the plan above:
+
+- **Include line.** The user config gets `do local path = "<abs>/xerahs.lua"; ... dofile(path) end` instead of `require("xerahs")`. Omarchy's module path is `~/.config/?.lua` (so `require` would need `hypr.xerahs`), plain Hyprland Lua setups have no such path, and the existence check keeps Hyprland loading if the managed file is deleted. The line goes into `bindings.lua` when it exists, otherwise `hyprland.lua`. Hyprland keybindings need the Lua config; `hyprland.conf` setups keep portal or evdev hotkeys.
+- **Conflicts.** A key that Omarchy or the user already binds is left out of the managed file unless the user ticks it, in which case the file emits `hl.unbind` first. Binds from an earlier XerahS file are recognised by their `XerahS: ` description and never count as conflicts.
+- **Hotkeys in Hyprland mode.** Only workflow hotkeys move to Hyprland. The assistant and capture command palette hotkeys keep the portal or evdev service. The mode is restored at startup only while the user config still includes the managed file.
+- **`omaxerahs capture window`** runs a CustomWindow job with no window name when OmaSnap fronts captures (OmaSnap's window picker) and ActiveWindow otherwise.
+- **Latency.** The plain forms of `workflow run` and `capture` bypass System.CommandLine and the reflection serializer. Measured in the cloud container on a Release single-file build: about 50 ms when XerahS is not reachable and 55 to 90 ms when the request is delivered, against a runtime start floor of about 30 ms; the 50 ms target is met only on the first path. ReadyToRun brought little and adds about 80 MB, so it is not used.
+- **Diagnostics.** `xerahs doctor --linux-desktop [--json]` prints the profile, the OmaSnap search order and the probe JSON, and the Hyprland keybinding state. `omaxerahs capabilities` adds `workflow.run`, `capture`, and `capture.omasnap` when the probe passes.
+- **Packaging.** OmaSnap ships in the linux-x64 tarball (built by the `build-omasnap` Arch container job, `continue-on-error`) and the `xerahs-git` AUR package. deb, rpm, AppImage, Flatpak and arm64 artifacts do not carry it (Open Question 5).
+- **Open questions** keep this XIP's defaults: the After Capture window stays; the XerahS editor stays the default editor; `feature/uploader` is not merged into OmaSnap and XerahS-hosted OmaSnap has no uploader of its own; host mode is fork-only for now.
 
 ---
 
