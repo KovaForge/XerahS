@@ -233,6 +233,17 @@ namespace XerahS.Platform.Abstractions
             set => _omaSnapService = value;
         }
 
+        private static IHyprlandKeybindingService? _hyprlandKeybindingService;
+
+        /// <summary>
+        /// Optional Hyprland-managed workflow keybindings (XIP0088). Registered on Hyprland sessions only; null elsewhere.
+        /// </summary>
+        public static IHyprlandKeybindingService? HyprlandKeybindings
+        {
+            get => _hyprlandKeybindingService;
+            set => _hyprlandKeybindingService = value;
+        }
+
         /// <summary>
         /// Initializes platform services with provided implementations
         /// </summary>
@@ -314,6 +325,7 @@ namespace XerahS.Platform.Abstractions
             _scrollingCaptureService = null;
             _ocrService = null;
             _omaSnapService = null;
+            _hyprlandKeybindingService = null;
             _uiService = null;
             _imageEncoderService = null;
             NativeWindowHandleProvider = null;

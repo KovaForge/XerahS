@@ -74,6 +74,7 @@ public partial class HotkeySettingsViewModel : ViewModelBase
 
         LoadHotkeys();
         RefreshHotkeyDiagnostics();
+        RefreshHyprlandKeybindings();
     }
 
     private void RefreshHotkeyDiagnostics()

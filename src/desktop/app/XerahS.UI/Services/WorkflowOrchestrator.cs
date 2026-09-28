@@ -280,7 +280,8 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
         try
         {
-            var hotkeyService = PlatformServices.Hotkey;
+            // XIP0088: on Hyprland, workflow hotkeys may be Hyprland keybindings instead of portal/evdev shortcuts.
+            var hotkeyService = HyprlandKeybindingCoordinator.Attach(PlatformServices.Hotkey);
             _workflowManager = new Core.Hotkeys.WorkflowManager(hotkeyService);
             _workflowManager.HotkeyTriggered += HotkeyManager_HotkeyTriggered;
 
@@ -293,6 +294,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             }
 
             _workflowManager.UpdateHotkeys(hotkeys);
+            HyprlandKeybindingCoordinator.Track(_workflowManager);
             DebugHelper.WriteLine($"Initialized hotkey manager with {hotkeys.Count} hotkeys from configuration");
         }
         catch (Exception ex)

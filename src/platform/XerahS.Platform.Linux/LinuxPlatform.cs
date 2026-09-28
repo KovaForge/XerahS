@@ -115,6 +115,13 @@ namespace XerahS.Platform.Linux
                 _ => DebugHelper.WriteLine($"Linux: Desktop profile: {desktopProfile.ToDiagnosticString()}"),
                 TaskScheduler.Default);
 
+            // XIP0088 Phase 5: workflow hotkeys can become Hyprland keybindings. Registered on
+            // Hyprland only; the mode stays off until the user turns it on in settings.
+            if (desktopProfile.IsHyprland && !desktopProfile.IsSandboxed)
+            {
+                PlatformServices.HyprlandKeybindings = new Hyprland.HyprlandKeybindingService(useOmarchyHelpers: desktopProfile.IsOmarchy);
+            }
+
             // Register OCR service stub (Tesseract integration planned)
             PlatformServices.Ocr = new LinuxOcrService();
 

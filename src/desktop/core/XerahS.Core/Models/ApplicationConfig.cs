@@ -271,6 +271,12 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     [Category("Hotkey"), DefaultValue(false), Description("Disable hotkeys on fullscreen.")]
     public bool DisableHotkeysOnFullscreen { get; set; }
 
+    [Category("Hotkey"), DefaultValue(false), Description("Linux Hyprland: workflow hotkeys are Hyprland keybindings in ~/.config/hypr/xerahs.lua instead of portal or evdev shortcuts (XIP0088).")]
+    public bool LinuxHyprlandKeybindings { get; set; }
+
+    [Category("Hotkey"), Description("Linux Hyprland: keys the user agreed XerahS may unbind from Omarchy or their own config.")]
+    public List<string> LinuxHyprlandApprovedUnbinds { get; set; } = new();
+
     private int hotkeyRepeatLimit = 500;
 
     [Category("Hotkey"), DefaultValue(500), Description("Hotkey repeat limit in milliseconds.")]
