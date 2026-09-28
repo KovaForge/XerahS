@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Archive fixtures for portable release validation; no release downloads required."""
 
+import io
 import json
+import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -9,7 +11,9 @@ from pathlib import Path
 
 from validate_release_assets import (
     EXPECTED_ASSETS,
+    OMASNAP_LICENSES,
     build_file_name,
+    check_optional_omasnap,
     ensure_portable_zip_payload,
 )
 
@@ -94,6 +98,55 @@ class PortableReleaseTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "Unsafe portable archive path"):
                     ensure_portable_zip_payload(self.path)
                 del self.payload[name]
+
+
+class OptionalOmaSnapTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.path = Path(self.temp_dir.name) / "linux.tar.gz"
+        self.members = {
+            "XerahS": (b"app", 0o755),
+            "omaxerahs": (b"cli", 0o755),
+            "omasnap/omasnap": (b"elf", 0o755),
+        }
+        for name in OMASNAP_LICENSES:
+            self.members[name] = (b"notice", 0o644)
+
+    def write_archive(self):
+        with tarfile.open(self.path, "w:gz") as archive:
+            for name, (content, mode) in self.members.items():
+                info = tarfile.TarInfo(name)
+                info.size = len(content)
+                info.mode = mode
+                archive.addfile(info, io.BytesIO(content))
+
+    def test_absent_omasnap_is_fine(self):
+        self.members = {name: value for name, value in self.members.items() if not name.startswith("omasnap/")}
+        self.write_archive()
+        self.assertFalse(check_optional_omasnap(self.path))
+
+    def test_complete_omasnap_is_reported(self):
+        self.write_archive()
+        self.assertTrue(check_optional_omasnap(self.path))
+
+    def test_missing_notice_is_rejected(self):
+        del self.members["omasnap/licenses/Lucide-ISC.txt"]
+        self.write_archive()
+        with self.assertRaisesRegex(RuntimeError, "license notices missing"):
+            check_optional_omasnap(self.path)
+
+    def test_licenses_without_binary_are_rejected(self):
+        del self.members["omasnap/omasnap"]
+        self.write_archive()
+        with self.assertRaisesRegex(RuntimeError, "partly present"):
+            check_optional_omasnap(self.path)
+
+    def test_non_executable_binary_is_rejected(self):
+        self.members["omasnap/omasnap"] = (b"elf", 0o644)
+        self.write_archive()
+        with self.assertRaisesRegex(RuntimeError, "not executable"):
+            check_optional_omasnap(self.path)
 
 
 if __name__ == "__main__":

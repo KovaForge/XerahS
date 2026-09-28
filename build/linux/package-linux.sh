@@ -437,6 +437,11 @@ fi
 restore_scoped_intermediate_assets
 restore_project_assets_for_os "$PACKAGING_TOOL" "Linux"
 
+host_rid_for_omasnap="linux-x64"
+if [ "$(uname -m)" = "aarch64" ]; then
+    host_rid_for_omasnap="linux-arm64"
+fi
+
 for ARCH in "${ARCHITECTURES[@]}"; do
     echo ""
     echo "=========================================="
@@ -513,11 +518,27 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     find "$PUBLISH_DIR" \( -name '*.pdb' -o -name 'DirectML*.dll' -o -name 'DirectML*.pdb' -o -name 'onnxruntime.dll' -o -name 'onnxruntime_providers_shared.dll' -o -name 'libe_sqlite3.a' \) -delete
     dotnet build-server shutdown >/dev/null 2>&1 || true
 
+    # 1.6 Optional OmaSnap (XIP0088), portable tarball only.
+    # OMASNAP_PREBUILT_DIR/<arch> holds a stage built elsewhere (the release workflow builds
+    # OmaSnap in an Arch container because Ubuntu's Qt is too old); XERAHS_BUILD_OMASNAP=1
+    # builds it here instead (AUR). Either way it is optional and never fails the package.
+    OMASNAP_STAGE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/xerahs-omasnap-stage.XXXXXX")"
+    if [ -n "${OMASNAP_PREBUILT_DIR:-}" ] && [ -x "$OMASNAP_PREBUILT_DIR/$ARCH/omasnap/omasnap" ]; then
+        cp -a "$OMASNAP_PREBUILT_DIR/$ARCH/omasnap" "$OMASNAP_STAGE_DIR/"
+        echo "Including prebuilt OmaSnap for $ARCH from $OMASNAP_PREBUILT_DIR/$ARCH"
+    elif [ "${XERAHS_BUILD_OMASNAP:-0}" = "1" ] && [ "$ARCH" = "$host_rid_for_omasnap" ]; then
+        "$SCRIPT_DIR/build-omasnap.sh" "$OMASNAP_STAGE_DIR"
+    else
+        echo "OmaSnap not included for $ARCH (optional)."
+    fi
+
     # 2. Package
     echo "Packaging ($ARCH)..."
     echo "Note: rpmbuild is required to produce RPM packages."
     echo "Note: squashfs-tools is required to produce AppImage packages."
-    dotnet run --no-restore --project "$PACKAGING_TOOL" -- "$PUBLISH_DIR" "$OUTPUT_DIR" "$VERSION" "$ARCH"
+    XERAHS_TARBALL_EXTRA_DIR="$OMASNAP_STAGE_DIR" \
+        dotnet run --no-restore --project "$PACKAGING_TOOL" -- "$PUBLISH_DIR" "$OUTPUT_DIR" "$VERSION" "$ARCH"
+    rm -rf "$OMASNAP_STAGE_DIR"
 done
 
 echo ""
