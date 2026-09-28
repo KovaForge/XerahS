@@ -53,6 +53,23 @@ omaxerahs workflow task-names                # valid after-capture task names
 omaxerahs workflow tasks "Region capture" --add AddImageEffects --remove ShowAfterCaptureWindow
 ```
 
+On Hyprland, XerahS can instead manage the keys itself (Settings > Hotkeys >
+Hyprland Keybindings): it writes `~/.config/hypr/xerahs.lua`, and each key runs
+`omaxerahs workflow run <id>`. Do not edit that file; it is regenerated.
+
+### Run a workflow or start a capture
+
+```bash
+omaxerahs workflow run "Region capture"   # run it like its hotkey (in the running XerahS)
+omaxerahs capture region                  # region | window | fullscreen | scroll
+omaxerahs capture fullscreen --workflow "Full screen"
+```
+
+Both return at once with `"delivery":"running-instance"` (or `"started"` when
+XerahS had to be launched); the capture itself happens in the app, using OmaSnap
+on Hyprland when `omaxerahs capabilities` lists `capture.omasnap`, and the
+workflow's normal after-capture tasks, upload and history.
+
 Resolve the workflow first. When the user says "my screenshot" or names a key,
 run `workflow list` and pick the capture workflow they mean (for a region
 screenshot that is usually job `RectangleRegion`). If more than one could match,

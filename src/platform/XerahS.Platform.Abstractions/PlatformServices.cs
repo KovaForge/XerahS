@@ -157,6 +157,18 @@ namespace XerahS.Platform.Abstractions
         }
 
         /// <summary>
+        /// Optional native capture engine (OmaSnap on Hyprland, XIP0088). Null on platforms and
+        /// sessions without one; callers must keep their normal capture path.
+        /// </summary>
+        public static IHostedCaptureEngine? HostedCaptureEngine { get; set; }
+
+        /// <summary>Optional desktop profile (Linux: Omarchy/Hyprland detection). Null elsewhere.</summary>
+        public static IDesktopEnvironmentProfile? DesktopProfile { get; set; }
+
+        /// <summary>Optional compositor-managed keybindings (Hyprland, XIP0088). Null elsewhere.</summary>
+        public static ICompositorKeybindingService? CompositorKeybindings { get; set; }
+
+        /// <summary>
         /// Checks if platform services have been initialized
         /// </summary>
         public static bool IsInitialized =>
@@ -257,6 +269,59 @@ namespace XerahS.Platform.Abstractions
             _notificationService = notificationService;  // Optional - null means no native notifications
             _watchFolderDaemonService = watchFolderDaemonService ?? new UnsupportedWatchFolderDaemonService();
             _clipboardMonitorService = clipboardMonitorService ?? new UnsupportedClipboardMonitorService();
+
+            RunPendingInitializedCallbacks();
+        }
+
+        private static readonly object InitializedCallbacksLock = new();
+        private static List<Action> _initializedCallbacks = new();
+
+        /// <summary>
+        /// Runs <paramref name="callback"/> now when platform services are ready, otherwise once
+        /// <see cref="Initialize"/> completes. Lets UI code that can run before bootstrap finishes
+        /// (window opened events) defer work instead of throwing.
+        /// </summary>
+        public static void RunWhenInitialized(Action callback)
+        {
+            ArgumentNullException.ThrowIfNull(callback);
+
+            lock (InitializedCallbacksLock)
+            {
+                if (!IsInitialized)
+                {
+                    _initializedCallbacks.Add(callback);
+                    return;
+                }
+            }
+
+            callback();
+        }
+
+        private static void RunPendingInitializedCallbacks()
+        {
+            List<Action> pending;
+            lock (InitializedCallbacksLock)
+            {
+                if (!IsInitialized || _initializedCallbacks.Count == 0)
+                {
+                    return;
+                }
+
+                pending = _initializedCallbacks;
+                _initializedCallbacks = new List<Action>();
+            }
+
+            foreach (Action callback in pending)
+            {
+                try
+                {
+                    callback();
+                }
+                catch (Exception ex)
+                {
+                    global::System.Diagnostics.Debug.WriteLine($"PlatformServices: deferred initialization callback failed: {ex}");
+                }
+            }
         }
 
 
@@ -283,6 +348,14 @@ namespace XerahS.Platform.Abstractions
         /// </summary>
         public static void Reset()
         {
+            lock (InitializedCallbacksLock)
+            {
+                _initializedCallbacks = new List<Action>();
+            }
+
+            HostedCaptureEngine = null;
+            DesktopProfile = null;
+            CompositorKeybindings = null;
             _platformInfo = null;
             _screenService = null;
             _clipboardService = null;

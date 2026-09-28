@@ -31,4 +31,7 @@ public interface IWorkflowOrchestrator
 {
     Core.Hotkeys.WorkflowManager? WorkflowManager { get; }
     void Start(IClassicDesktopStyleApplicationLifetime desktop, string baseTitle);
+
+    /// <summary>Runs a workflow exactly as its hotkey would (XIP0088 "omaxerahs workflow run").</summary>
+    Task RunWorkflowAsync(Core.Hotkeys.WorkflowSettings workflow);
 }

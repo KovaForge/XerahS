@@ -29,12 +29,57 @@ public static class UiViewModelFactoryAccessor
 {
     private static IUiViewModelFactory? _factory;
 
+    private static readonly object PendingLock = new();
+    private static List<Action> _pending = new();
+
+    public static bool IsAvailable => _factory != null;
+
     public static void Configure(IUiViewModelFactory factory)
     {
         _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+
+        List<Action> pending;
+        lock (PendingLock)
+        {
+            pending = _pending;
+            _pending = new List<Action>();
+        }
+
+        foreach (Action callback in pending)
+        {
+            callback();
+        }
     }
 
-    public static void Reset() => _factory = null;
+    public static void Reset()
+    {
+        _factory = null;
+        lock (PendingLock)
+        {
+            _pending = new List<Action>();
+        }
+    }
+
+    /// <summary>
+    /// Runs <paramref name="callback"/> now when the factory is configured, otherwise once
+    /// <see cref="Configure"/> is called. Avoids startup races where a window opens before
+    /// bootstrap finishes composing the UI services.
+    /// </summary>
+    public static void RunWhenAvailable(Action callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+
+        lock (PendingLock)
+        {
+            if (_factory == null)
+            {
+                _pending.Add(callback);
+                return;
+            }
+        }
+
+        callback();
+    }
 
     public static IUiViewModelFactory GetRequired()
     {

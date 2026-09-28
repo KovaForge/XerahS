@@ -299,6 +299,9 @@ public class TaskSettingsCapture
     public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference { get; set; } =
         LinuxInteractiveRegionSelectorPreference.Automatic;
 
+    [Category("Capture"), DefaultValue(false), Description("On Hyprland with OmaSnap: start region captures in plain region mode instead of smart (region, window or monitor) selection.")]
+    public bool OmaSnapRegionOnly { get; set; } = false;
+
     [Category("Capture"), DefaultValue(MacOSInteractiveRegionSelectorPreference.Automatic), Description("Preferred macOS interactive region selector.")]
     public MacOSInteractiveRegionSelectorPreference MacOSRegionSelectorPreference { get; set; } =
         MacOSInteractiveRegionSelectorPreference.Automatic;

@@ -26,6 +26,7 @@
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using XerahS.Common;
+using XerahS.Core;
 using XerahS.Platform.Abstractions;
 using XerahS.RegionCapture.ScreenRecording;
 using XerahS.UI.Helpers;
@@ -66,6 +67,37 @@ namespace XerahS.UI.ViewModels
         public IReadOnlyList<LinuxInteractiveRegionSelectorPreference> LinuxRegionSelectorPreferences =>
             LinuxRegionSelectorPreferenceSupport.GetVisiblePreferences();
 
+        /// <summary>OmaSnap probe result, e.g. "OmaSnap 1.22.0 · Hyprland · ready" (XIP0088).</summary>
+        [ObservableProperty]
+        private string _linuxOmaSnapStatusText = string.Empty;
+
+        [ObservableProperty]
+        private bool _isOmaSnapAvailable;
+
+        public LinuxAnnotationEditor[] LinuxAnnotationEditors => Enum.GetValues<LinuxAnnotationEditor>();
+
+        public LinuxAnnotationEditor LinuxAnnotationEditor
+        {
+            get => SettingsManager.Settings.LinuxAnnotationEditor;
+            set
+            {
+                if (SettingsManager.Settings.LinuxAnnotationEditor != value)
+                {
+                    SettingsManager.Settings.LinuxAnnotationEditor = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private void RefreshLinuxOmaSnapStatus()
+        {
+            HostedCaptureEngineStatus? status = PlatformServices.HostedCaptureEngine?.CurrentStatus;
+            IsOmaSnapAvailable = status?.Available == true;
+            LinuxOmaSnapStatusText = status == null
+                ? string.Empty
+                : $"Capture engine: {status.Summary}";
+        }
+
         public LinuxRecordingBackendPreference[] LinuxRecordingBackendPreferences =>
             Enum.GetValues<LinuxRecordingBackendPreference>();
 
@@ -82,6 +114,7 @@ namespace XerahS.UI.ViewModels
                 return;
             }
 
+            RefreshLinuxOmaSnapStatus();
             var diagnostics = LinuxRegionSelectorPreferenceSupport.TryGetDiagnostics();
             if (diagnostics == null)
             {

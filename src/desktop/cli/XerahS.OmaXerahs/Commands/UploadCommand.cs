@@ -52,11 +52,17 @@ internal static class UploadCommand
             Arity = ArgumentArity.ZeroOrOne
         };
         var jsonOption = JsonStdout.CreateJsonOption();
+        var urlOnlyOption = new Option<bool>("--url-only")
+        {
+            Description = "Print only the uploaded URL (for hosts such as OmaSnap pins); errors go to stderr."
+        };
         command.Add(pathArgument);
         command.Add(jsonOption);
+        command.Add(urlOnlyOption);
         command.SetAction(parseResult =>
         {
-            JsonStdout.Enabled = parseResult.GetValue(jsonOption);
+            JsonStdout.UrlOnly = parseResult.GetValue(urlOnlyOption);
+            JsonStdout.Enabled = !JsonStdout.UrlOnly && parseResult.GetValue(jsonOption);
             return UploadAsync(parseResult.GetValue(pathArgument)).GetAwaiter().GetResult();
         });
         return command;

@@ -144,6 +144,21 @@ namespace XerahS.App
                 {
                     ValidateLinuxDisplayEnvironment();
                     ClearX11SessionManagement();
+
+                    // Avalonia renders through X11/XWayland. On pure Wayland autostart, wait briefly for
+                    // XWayland and adopt its socket when DISPLAY is unset (XIP0088 Phase 0 item 6).
+                    var displayResult = LinuxDisplayBootstrap.EnsureDisplay();
+                    XerahS.Common.DebugHelper.WriteLine($"Linux display: {displayResult.Message}");
+                    if (!displayResult.Usable)
+                    {
+                        string message = LinuxDisplayBootstrap.BuildUserMessage(displayResult);
+                        XerahS.Common.DebugHelper.WriteLine($"Startup stopped: {message}");
+                        XerahS.Common.DebugHelper.Flush();
+                        Console.Error.WriteLine(message);
+                        LinuxDisplayBootstrap.NotifyStartupFailure(message);
+                        Environment.ExitCode = 1;
+                        return;
+                    }
                 }
 
                 // Initialize settings first (Linux portal service preference is needed for platform init)
@@ -160,11 +175,23 @@ namespace XerahS.App
             }
             catch (Exception ex)
             {
-                XerahS.Common.DebugHelper.WriteException(ex, "Critical application startup failure");
-                XerahS.Common.DebugHelper.Flush();
-
                 // Provide helpful guidance for common Linux display issues
                 bool isLinuxDisplayError = IsLinuxDisplayError(ex);
+                if (isLinuxDisplayError)
+                {
+                    // Environment problem, not a bug: one readable line plus a desktop notification.
+                    string displayMessage = LinuxDisplayBootstrap.BuildUserMessage(
+                        new LinuxDisplayBootstrap.Result(false, Environment.GetEnvironmentVariable("DISPLAY"), false, ex.Message + "."));
+                    XerahS.Common.DebugHelper.WriteLine($"Startup stopped: {displayMessage}");
+                    LinuxDisplayBootstrap.NotifyStartupFailure(displayMessage);
+                }
+                else
+                {
+                    XerahS.Common.DebugHelper.WriteException(ex, "Critical application startup failure");
+                }
+
+                XerahS.Common.DebugHelper.Flush();
+
                 if (isLinuxDisplayError)
                 {
                     Console.Error.WriteLine("\n" + new string('=', 70));
@@ -485,7 +512,14 @@ namespace XerahS.App
                         eventArgs.Exception.InnerException.GetType().FullName == "Tmds.DBus.Protocol.DBusException" &&
                         eventArgs.Exception.InnerException.Message.Contains("ServiceUnknown");
 
-                    if (!isIgnorableAvaloniaDbusException)
+                    if (!isIgnorableAvaloniaDbusException &&
+                        XerahS.Common.DBusExceptionClassifier.IsConnectionGone(eventArgs.Exception))
+                    {
+                        // The session bus or a portal went away (logout, portal restart). Expected; not an error.
+                        XerahS.Common.DebugHelper.WriteLine(
+                            $"Unobserved D-Bus task ended after the connection closed: {XerahS.Common.DBusExceptionClassifier.Describe(eventArgs.Exception!)}");
+                    }
+                    else if (!isIgnorableAvaloniaDbusException)
                     {
                         XerahS.Common.DebugHelper.WriteException(eventArgs.Exception!, "Unobserved task exception");
                         XerahS.Common.DebugHelper.Flush();
@@ -548,6 +582,8 @@ namespace XerahS.App
             if (OperatingSystem.IsLinux())
             {
                 XerahS.Common.DebugHelper.WriteLine("Linux: Initializing platform services");
+                XerahS.Platform.Linux.Services.LinuxDesktopProfile.ConfigureOmaSnapPathOverride(
+                    XerahS.Core.SettingsManager.Settings?.LinuxOmaSnapPathOverride);
                 var linuxCaptureService = new XerahS.Platform.Linux.LinuxScreenCaptureService();
                 var uiCaptureService = new XerahS.UI.Services.ScreenCaptureService(linuxCaptureService);
 
@@ -827,6 +863,13 @@ namespace XerahS.App
                 return;
             }
 
+            // Hyprland keybinding trigger (XIP0088): run like a hotkey, never raise the main window.
+            if (AppContracts.Cli.TryGetRunWorkflowId(args, out string runWorkflowId))
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => RunWorkflowFromAutomation(runWorkflowId));
+                return;
+            }
+
             // Process the arguments on the UI thread to handle any UI-related actions
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
@@ -891,10 +934,33 @@ namespace XerahS.App
             }
         }
 
+        private static void RunWorkflowFromAutomation(string workflowId)
+        {
+            try
+            {
+                XerahS.Core.Hotkeys.WorkflowSettings workflow = XerahS.Core.Automation.WorkflowAutomation.FindWorkflow(workflowId);
+                if (Avalonia.Application.Current is not XerahS.UI.App app || !app.TryRunWorkflow(workflow))
+                {
+                    XerahS.Common.DebugHelper.WriteLine($"Workflow run '{workflowId}' ignored: workflows are not initialized yet.");
+                }
+            }
+            catch (XerahS.Core.Automation.AutomationException ex)
+            {
+                XerahS.Common.DebugHelper.WriteLine($"Workflow run '{workflowId}' rejected: {ex.Message}");
+            }
+        }
+
         private static void ProcessIncomingArguments(string[]? args, string source)
         {
             if (args == null || args.Length == 0)
             {
+                return;
+            }
+
+            if (AppContracts.Cli.TryGetRunWorkflowId(args, out string runWorkflowId))
+            {
+                // XerahS was started by "omaxerahs workflow run" because it was not running.
+                RunWorkflowFromAutomation(runWorkflowId);
                 return;
             }
 

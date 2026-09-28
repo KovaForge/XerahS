@@ -9,7 +9,9 @@ url='https://github.com/ShareX/XerahS'
 license=('GPL3')
 provides=('xerahs')
 conflicts=('xerahs')
-depends=('glibc' 'gcc-libs' 'hicolor-icon-theme')
+# qt6-base, layer-shell-qt, libdeflate and wl-clipboard are needed by the bundled OmaSnap
+# capture engine (XIP0088), used on Hyprland/Omarchy sessions and ignored elsewhere.
+depends=('glibc' 'gcc-libs' 'hicolor-icon-theme' 'qt6-base' 'layer-shell-qt' 'libdeflate' 'wl-clipboard')
 optdepends=(
     'gnome-shell-extension-appindicator: system tray icon on GNOME'
     'webkit2gtk-4.1: video editor webview support'
@@ -18,8 +20,10 @@ optdepends=(
     'xdotool: X11 window management'
     'grim: Wayland screenshot utility'
     'slurp: Wayland region selection for screenshots'
+    'tesseract: OCR in the OmaSnap editor'
+    'tesseract-data-eng: English OCR data for the OmaSnap editor'
 )
-makedepends=('git' 'dotnet-sdk')
+makedepends=('git' 'dotnet-sdk' 'cmake' 'ninja' 'pkgconf' 'qt6-base' 'layer-shell-qt' 'wayland-protocols' 'libdeflate')
 options=('!strip' '!debug')
 
 _xerahs_repo_root="${XERAHS_REPO_ROOT:?Set XERAHS_REPO_ROOT to the repository root before running makepkg.}"
@@ -74,6 +78,8 @@ build() {
     cd "$srcdir/xerahs"
 
     export XERAHS_ARCHITECTURES='linux-x64'
+    # Build the vendored OmaSnap capture engine into the portable tarball (XIP0088).
+    export XERAHS_BUILD_OMASNAP=1
     export XERAHS_PLUGIN_JOBS="${XERAHS_PLUGIN_JOBS:-4}"
 
     # The packaging step exits non-zero when optional formats (AppImage, RPM)
@@ -117,6 +123,12 @@ package() {
 
     if [[ -f "$pkgdir/usr/lib/xerahs/omaxerahs" ]]; then
         chmod 755 "$pkgdir/usr/lib/xerahs/omaxerahs"
+    fi
+
+    if [[ -f "$pkgdir/usr/lib/xerahs/omasnap/omasnap" ]]; then
+        chmod 755 "$pkgdir/usr/lib/xerahs/omasnap/omasnap"
+        install -d "$pkgdir/usr/share/licenses/$pkgname/omasnap"
+        cp -a "$pkgdir/usr/lib/xerahs/omasnap/licenses/." "$pkgdir/usr/share/licenses/$pkgname/omasnap/"
     fi
 
     install -d "$pkgdir/usr/bin"

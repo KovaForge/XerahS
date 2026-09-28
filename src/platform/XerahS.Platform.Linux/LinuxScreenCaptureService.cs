@@ -33,6 +33,7 @@ using XerahS.Platform.Linux.Capture.Orchestration;
 using XerahS.Platform.Linux.Capture.Providers;
 using XerahS.Platform.Linux.Capture.Gnome;
 using XerahS.Platform.Linux.Capture.Kde;
+using XerahS.Platform.Linux.Capture.OmaSnap;
 using XerahS.Platform.Linux.Capture.Portal;
 using XerahS.Platform.Linux.Capture.Wayland;
 using XerahS.Platform.Linux.Capture.X11;
@@ -51,10 +52,20 @@ namespace XerahS.Platform.Linux
         private LinuxRegionSelectorRuntimeDecision? _lastLinuxRegionSelectorDecision;
 
         public LinuxScreenCaptureService()
+            : this(null)
         {
+        }
+
+        public LinuxScreenCaptureService(IHostedCaptureEngine? hostedCaptureEngine)
+        {
+            IHostedCaptureEngine engine = hostedCaptureEngine ??
+                PlatformServices.HostedCaptureEngine ??
+                new OmaSnapCaptureEngine(Services.LinuxDesktopProfile.Current);
+
             _captureCoordinator = new LinuxCaptureCoordinator(
                 new ILinuxCaptureProvider[]
                 {
+                    new OmaSnapCaptureStrategy(engine),
                     new PortalCaptureProvider(this),
                     new KdeDbusCaptureProvider(this),
                     new GnomeDbusCaptureProvider(this),
@@ -549,6 +560,7 @@ namespace XerahS.Platform.Linux
                 "kde-dbus" or "gnome-dbus" => LinuxInteractiveRegionSelectorPreference.DesktopNative,
                 "wlroots" => LinuxInteractiveRegionSelectorPreference.Slurp,
                 "xerahs-overlay" => LinuxInteractiveRegionSelectorPreference.XerahSOverlay,
+                OmaSnapCaptureEngine.Id => LinuxInteractiveRegionSelectorPreference.OmaSnap,
                 _ => requestedPreference
             };
         }
@@ -564,6 +576,7 @@ namespace XerahS.Platform.Linux
                 "xerahs-overlay" => "XerahS overlay crosshair",
                 "x11" => "X11 native capture",
                 "cli-tools" => "CLI capture tools",
+                OmaSnapCaptureEngine.Id => "OmaSnap native Hyprland overlay",
                 "none" => "No provider",
                 _ => providerId
             };
@@ -613,6 +626,7 @@ namespace XerahS.Platform.Linux
                 MacOSPlayCaptureSound = options?.MacOSPlayCaptureSound ?? true,
                 LinuxForceLegacyCapturePath = options?.LinuxForceLegacyCapturePath ?? false,
                 LinuxDisallowPortalAfterOverlaySelection = false,
+                LinuxSkipHostedCaptureEngine = options?.LinuxSkipHostedCaptureEngine ?? false,
                 ShowCursor = options?.ShowCursor ?? true,
                 CaptureTransparent = options?.CaptureTransparent ?? false,
                 // Match the pre-direct-area fallback path: once the fast transparent-overlay path

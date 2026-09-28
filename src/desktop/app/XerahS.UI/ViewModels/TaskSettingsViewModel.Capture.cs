@@ -80,6 +80,22 @@ namespace XerahS.UI.ViewModels
         public IReadOnlyList<LinuxInteractiveRegionSelectorPreference> LinuxRegionSelectorPreferences =>
             LinuxRegionSelectorPreferenceSupport.GetVisiblePreferences();
 
+        /// <summary>True when the OmaSnap engine passed its probe in this session (XIP0088).</summary>
+        public bool IsOmaSnapAvailable => PlatformServices.HostedCaptureEngine?.CurrentStatus.Available == true;
+
+        public bool OmaSnapRegionOnly
+        {
+            get => _settings.CaptureSettings.OmaSnapRegionOnly;
+            set
+            {
+                if (_settings.CaptureSettings.OmaSnapRegionOnly != value)
+                {
+                    _settings.CaptureSettings.OmaSnapRegionOnly = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public MacOSInteractiveRegionSelectorPreference MacOSRegionSelectorPreference
         {
             get => _settings.CaptureSettings.MacOSRegionSelectorPreference;

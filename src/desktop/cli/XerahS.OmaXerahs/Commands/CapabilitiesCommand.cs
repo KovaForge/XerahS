@@ -52,13 +52,15 @@ internal static class CapabilitiesCommand
             Name = "omaxerahs",
             Version = UploadHost.GetVersion(),
             MinPluginProtocol = 1,
-            Capabilities =
-            [
+            Capabilities = new[]
+            {
                 "doctor.image",
                 "upload.image",
                 "workflow.list",
                 "workflow.show",
                 "workflow.tasks",
+                "workflow.run",
+                "capture",
                 "effects.import",
                 "effects.show",
                 "effects.toggle",
@@ -68,8 +70,22 @@ internal static class CapabilitiesCommand
                 "image.watermark",
                 "image.gif",
                 "skill.install"
-            ]
+            }
+            .Concat(HasOmaSnapCapture() ? new[] { "capture.omasnap" } : Array.Empty<string>())
+            .ToArray()
         };
+    }
+
+    /// <summary>OmaSnap host mode passed its probe (Hyprland only; elsewhere no process is started).</summary>
+    internal static bool HasOmaSnapCapture()
+    {
+#if LINUX
+        if (OperatingSystem.IsLinux())
+        {
+            return XerahS.Platform.Linux.Services.LinuxDesktopProfile.Current.IsOmaSnapUsableAsync().GetAwaiter().GetResult();
+        }
+#endif
+        return false;
     }
 
     internal static int Run()

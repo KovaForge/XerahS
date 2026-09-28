@@ -50,10 +50,14 @@
                                                 </DataTemplate>
                                             </ComboBox.ItemTemplate>
                                         </ComboBox>
-                                        <TextBlock Text="Automatic keeps the current safe Linux fallback behavior and only prefers a specific native selector when requested."
+                                        <TextBlock Text="Automatic keeps the current safe Linux fallback behavior and only prefers a specific native selector when requested. On Hyprland with OmaSnap available, Automatic captures through OmaSnap."
                                                    FontSize="12"
                                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                                    TextWrapping="Wrap"/>
+                                        <CheckBox IsChecked="{Binding OmaSnapRegionOnly}"
+                                                  IsVisible="{Binding IsOmaSnapAvailable}"
+                                                  Content="OmaSnap: region only (skip smart window and monitor selection)"
+                                                  AutomationProperties.Name="OmaSnap Region Only"/>
                                     </StackPanel>
                                     <StackPanel Spacing="10" IsVisible="{Binding IsMacOSPlatform}">
                                         <TextBlock Text="Preferred macOS region selector:" VerticalAlignment="Center"/>

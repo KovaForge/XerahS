@@ -73,6 +73,26 @@ public static class AppContracts
                 args.All(arg => arg.Equals(ReloadWorkflowsFlag, StringComparison.OrdinalIgnoreCase));
         }
 
+        /// <summary>
+        /// Relayed by "omaxerahs workflow run" (Hyprland keybindings, XIP0088) as
+        /// <c>--run-workflow &lt;id&gt;</c>. Runs the workflow like a hotkey without surfacing the main window.
+        /// </summary>
+        public const string RunWorkflowFlag = "--run-workflow";
+
+        public static bool TryGetRunWorkflowId(IReadOnlyList<string>? args, out string workflowId)
+        {
+            workflowId = string.Empty;
+            if (args is not { Count: 2 } ||
+                !args[0].Equals(RunWorkflowFlag, StringComparison.OrdinalIgnoreCase) ||
+                string.IsNullOrWhiteSpace(args[1]))
+            {
+                return false;
+            }
+
+            workflowId = args[1].Trim();
+            return true;
+        }
+
         /// <summary>Flag used by helper processes (e.g. screen capture helpers) to forward a capture back to the running instance.</summary>
         public const string SendToFlag = "--send-to";
 

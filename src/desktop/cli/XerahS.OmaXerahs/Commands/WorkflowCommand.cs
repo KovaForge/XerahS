@@ -38,6 +38,7 @@ internal static class WorkflowCommand
         command.Add(CreateShow());
         command.Add(CreateTasks());
         command.Add(CreateTaskNames());
+        command.Add(RunCommands.CreateWorkflowRun());
         return command;
     }
 

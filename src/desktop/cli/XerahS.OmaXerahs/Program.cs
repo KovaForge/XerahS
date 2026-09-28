@@ -82,6 +82,7 @@ internal static class Program
         rootCommand.Add(DoctorCommand.Create());
         rootCommand.Add(UploadCommand.Create());
         rootCommand.Add(WorkflowCommand.Create());
+        rootCommand.Add(RunCommands.CreateCapture());
         rootCommand.Add(EffectsCommand.Create());
         rootCommand.Add(ImageCommand.Create());
         rootCommand.Add(SkillCommand.Create());
