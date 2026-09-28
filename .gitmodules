@@ -12,3 +12,4 @@
 	path = native/omasnap
 	url = https://github.com/KovaForge/omasnap.git
 	branch = main
+	update = rebase
