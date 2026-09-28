@@ -189,8 +189,45 @@ jobs:
           if-no-files-found: warn
           path: build/logs/macos-build.log
 
-  build-linux:
+  # XIP0088: OmaSnap needs Qt 6.8+ and LayerShellQt, which Ubuntu 24.04 lacks, so it is built
+  # in an Arch container and added to the linux-x64 tarball as an optional component (links
+  # against the host's Qt at runtime: right for Arch/Omarchy; elsewhere XerahS's capability
+  # probe fails and it keeps its existing capture chain). No official Arch ARM image, so
+  # linux-arm64 ships without OmaSnap. A failure here never blocks the release.
+  build-omasnap:
     needs: validate-version
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Install OmaSnap build dependencies
+        run: |
+          pacman -Syu --noconfirm --needed git base-devel cmake ninja pkgconf qt6-base layer-shell-qt \
+            wayland wayland-protocols libdeflate
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build OmaSnap
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          ./build/linux/build-omasnap.sh "$PWD/omasnap-stage/linux-x64" --strict
+          # Artifacts drop the executable bit; ship the stage as a tarball.
+          tar -C omasnap-stage -czf omasnap-linux-x64.tar.gz linux-x64
+
+      - name: Upload OmaSnap stage
+        uses: actions/upload-artifact@v4
+        with:
+          name: omasnap-linux-x64
+          if-no-files-found: error
+          path: omasnap-linux-x64.tar.gz
+
+  build-linux:
+    needs: [validate-version, build-omasnap]
     strategy:
       fail-fast: false
       matrix:
@@ -221,11 +258,26 @@ jobs:
             libx11-6 libx11-xcb1 libice6 libsm6 libfontconfig1 libgl1 libxcursor1 \
             libxrandr2 libxi6 libxinerama1
 
+      - name: Download OmaSnap stage (optional)
+        if: matrix.rid == 'linux-x64'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: omasnap-linux-x64
+          path: omasnap-download
+
       - name: Build Linux packages
         shell: bash
         run: |
           set -o pipefail
           mkdir -p build/logs
+          if [ -f omasnap-download/omasnap-linux-x64.tar.gz ]; then
+            mkdir -p omasnap-prebuilt
+            tar -C omasnap-prebuilt -xzf omasnap-download/omasnap-linux-x64.tar.gz
+            export OMASNAP_PREBUILT_DIR="$PWD/omasnap-prebuilt"
+          else
+            echo "OmaSnap stage not available; packaging without OmaSnap (optional)."
+          fi
           chmod +x ./build/linux/package-linux.sh
           XERAHS_ARCHITECTURES="${{ matrix.rid }}" ./build/linux/package-linux.sh 2>&1 | tee "build/logs/linux-${{ matrix.rid }}-build.log"
 
@@ -239,6 +291,19 @@ jobs:
           tar -tzf "$ARCHIVE" > "$ARCHIVE_LIST"
           grep -Eq '(^|/)xerahs-watchfolder-daemon$' "$ARCHIVE_LIST"
           grep -Eq '(^|/)xerahs-watchfolder-daemon.runtimeconfig.json$' "$ARCHIVE_LIST"
+          # OmaSnap is optional; when present its binary and MIT/OFL/ISC notices must all be there.
+          if grep -Eq '^(\./)?omasnap/' "$ARCHIVE_LIST"; then
+            for required in omasnap/omasnap omasnap/licenses/LICENSE-MIT.txt omasnap/licenses/Neucha-OFL.txt \
+                omasnap/licenses/JetBrainsMono-OFL.txt omasnap/licenses/Inter-OFL.txt omasnap/licenses/Lucide-ISC.txt; do
+              if ! grep -Eq "^(\./)?${required}\$" "$ARCHIVE_LIST"; then
+                echo "::error::OmaSnap is in the archive but ${required} is missing."
+                exit 1
+              fi
+            done
+            echo "OmaSnap included in $ARCHIVE."
+          else
+            echo "OmaSnap not included in $ARCHIVE (optional)."
+          fi
           rm -f "$ARCHIVE_LIST"
           # The packager logs "Skipped RPM package" and exits 0 when rpmbuild fails; fail here
           # instead of 15 minutes later in the release job's asset validator.
