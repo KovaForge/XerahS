@@ -45,9 +45,21 @@ public static class PinToScreenManager
 
     public static void PinImage(SKBitmap bitmap, PixelPoint? location, PinToScreenOptions options)
     {
+        if (OmaSnapPinRouter.ShouldUseOmaSnap())
+        {
+            // The pinned window's view model owns (and disposes) the copy on this fallback path.
+            OmaSnapPinRouter.Pin(bitmap, copy => Dispatcher.UIThread.Post(() => PinImageInWindow(copy, location, options)));
+            return;
+        }
+
+        PinImageInWindow(bitmap, location, options);
+    }
+
+    private static void PinImageInWindow(SKBitmap bitmap, PixelPoint? location, PinToScreenOptions options)
+    {
         if (!Dispatcher.UIThread.CheckAccess())
         {
-            Dispatcher.UIThread.Post(() => PinImage(bitmap, location, options));
+            Dispatcher.UIThread.Post(() => PinImageInWindow(bitmap, location, options));
             return;
         }
 
