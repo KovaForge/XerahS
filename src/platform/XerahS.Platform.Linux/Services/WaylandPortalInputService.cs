@@ -410,10 +410,18 @@ public sealed class WaylandPortalInputService : IInputService
         }
         catch (Exception ex)
         {
+            // Stop retrying for the rest of the session: Deactivated/Disabled signals call back here.
             _enableFailed = true;
+            if (DBusExceptionClassifier.IsEisUnavailable(ex) || DBusExceptionClassifier.IsConnectionGone(ex))
+            {
+                // Expected on compositors whose portal has no EIS server (e.g. Hyprland). Not an error.
+                DebugHelper.WriteLine("WaylandPortalInputService: Portal input capture is not supported in this session " +
+                    $"({DBusExceptionClassifier.Describe(ex)}). Cursor tracking will use fallback.");
+                return;
+            }
+
             DebugHelper.WriteException(ex, "WaylandPortalInputService: Enable failed");
-            DebugHelper.WriteLine("WaylandPortalInputService: Portal input capture disabled due to EIS connection failure. " +
-                "This is expected if the EIS daemon is not running. Cursor tracking will use fallback.");
+            DebugHelper.WriteLine("WaylandPortalInputService: Portal input capture disabled. Cursor tracking will use fallback.");
         }
     }
 
@@ -424,6 +432,12 @@ public sealed class WaylandPortalInputService : IInputService
 
     private static void OnPortalWatchError(Exception ex)
     {
+        if (DBusExceptionClassifier.IsConnectionGone(ex))
+        {
+            DebugHelper.WriteLine($"WaylandPortalInputService: Portal signal watch ended ({DBusExceptionClassifier.Describe(ex)}).");
+            return;
+        }
+
         DebugHelper.WriteException(ex, "WaylandPortalInputService: Portal watch error (e.g. service gone).");
     }
 

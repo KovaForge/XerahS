@@ -210,7 +210,36 @@ internal static class UploadHost
                 Backend = inspection.SecretStoreBackend,
                 Fallback = inspection.SecretStoreFallback
             },
-            Plugins = new DoctorPluginsInfo { Loaded = inspection.PluginsLoaded }
+            Plugins = new DoctorPluginsInfo { Loaded = inspection.PluginsLoaded },
+            History = ProbeHistoryDatabase()
         };
+    }
+
+    /// <summary>
+    /// Opens an in-memory SQLite connection. A single-file publish that cannot load the native
+    /// e_sqlite3 provider fails here (TypeInitializationException) instead of silently losing
+    /// history entries after an upload (XIP0088 Phase 0 item 3).
+    /// </summary>
+    internal static DoctorHistoryInfo ProbeHistoryDatabase()
+    {
+        try
+        {
+            using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT sqlite_version();";
+            _ = command.ExecuteScalar();
+            return new DoctorHistoryInfo { Ok = true };
+        }
+        catch (Exception ex)
+        {
+            Exception root = ex;
+            while (root.InnerException != null)
+            {
+                root = root.InnerException;
+            }
+
+            return new DoctorHistoryInfo { Ok = false, Error = $"{root.GetType().Name}: {root.Message}" };
+        }
     }
 }
