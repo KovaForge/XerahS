@@ -778,6 +778,9 @@ namespace XerahS.App
         {
             return AppBuilder.Configure<XerahS.UI.App>()
                 .UsePlatformDetect()
+                // Avalonia defaults the X11 WM_CLASS to the entry assembly name ("XerahS"),
+                // which does not match StartupWMClass=xerahs in our .desktop files.
+                .With(new X11PlatformOptions { WmClass = "xerahs" })
                 .WithInterFont()
                 .LogToTrace();
         }
