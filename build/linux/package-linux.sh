@@ -598,9 +598,18 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     echo "Packaging ($ARCH)..."
     echo "Note: rpmbuild is required to produce RPM packages."
     echo "Note: squashfs-tools is required to produce AppImage packages."
-    dotnet run --no-restore --project "$PACKAGING_TOOL" -- "$PUBLISH_DIR" "$OUTPUT_DIR" "$VERSION" "$ARCH"
+    # The portable tarball is written first; a later format (AppImage without squashfs-tools,
+    # RPM without rpmbuild) can fail after it. Finish the tarball with OmaSnap either way, then
+    # report the packaging failure, so no tarball leaves here without its capture engine.
+    packaging_status=0
+    dotnet run --no-restore --project "$PACKAGING_TOOL" -- "$PUBLISH_DIR" "$OUTPUT_DIR" "$VERSION" "$ARCH" || packaging_status=$?
 
     append_omasnap "$OUTPUT_DIR/XerahS-${VERSION}-${ARCH}.tar.gz" "$ARCH"
+
+    if [ "$packaging_status" -ne 0 ]; then
+        echo "Error: packaging ($ARCH) failed with exit code $packaging_status; see the messages above."
+        exit "$packaging_status"
+    fi
 done
 
 echo ""
