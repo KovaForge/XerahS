@@ -190,6 +190,103 @@ internal static class UploadHost
         return preferred ?? usable.OrderByDescending(i => i.CreatedAt).FirstOrDefault();
     }
 
+    /// <summary>
+    /// Test-only surface that lifts the routing decisions in
+    /// <see cref="IsUsableImageInstance"/>, <see cref="PreferDefault(List{UploaderInstance})"/>,
+    /// and the host-name match used by
+    /// <c>UploadCommand.ResolveUploadedInstance</c> into pure functions that can be
+    /// exercised without touching the static <see cref="InstanceManager"/> or
+    /// <see cref="ProviderCatalog"/> singletons.
+    /// </summary>
+    internal static class TestAccessor
+    {
+        /// <summary>
+        /// Pure mirror of <see cref="IsUsableImageInstance"/>. The caller supplies
+        /// the answers to the static lookups (<paramref name="isAutoProvider"/>,
+        /// <paramref name="providerExists"/>, <paramref name="validateSettings"/>)
+        /// so tests can exercise the predicate without populating the catalog.
+        /// </summary>
+        internal static bool IsUsableImageInstance(
+            UploaderInstance instance,
+            bool isAutoProvider,
+            bool providerExists,
+            bool validateSettings)
+        {
+            if (instance.Category != UploaderCategory.Image || !instance.IsAvailable)
+            {
+                return false;
+            }
+
+            if (isAutoProvider)
+            {
+                return false;
+            }
+
+            if (!providerExists)
+            {
+                return false;
+            }
+
+            return validateSettings;
+        }
+
+        /// <summary>
+        /// Pure mirror of the host-name match in
+        /// <c>UploadCommand.ResolveUploadedInstance</c>: case-insensitive
+        /// <see cref="UploaderInstance.DisplayName"/> match. Returns the first hit
+        /// or <c>null</c> when <paramref name="host"/> is null/empty/whitespace
+        /// or no instance matches.
+        /// </summary>
+        internal static UploaderInstance? RouteByDisplayName(
+            IReadOnlyList<UploaderInstance> instances,
+            string? host)
+        {
+            if (string.IsNullOrWhiteSpace(host))
+            {
+                return null;
+            }
+
+            foreach (var instance in instances)
+            {
+                if (string.Equals(instance.DisplayName, host, StringComparison.OrdinalIgnoreCase))
+                {
+                    return instance;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Pure mirror of <see cref="PreferDefault(List{UploaderInstance})"/>:
+        /// returns the instance whose <see cref="UploaderInstance.InstanceId"/> is
+        /// the default for the Image category. Falls back to the most recently
+        /// created instance when no default is configured.
+        /// </summary>
+        internal static UploaderInstance? PreferDefault(
+            IReadOnlyList<UploaderInstance> usable,
+            string? defaultInstanceId)
+        {
+            if (usable.Count == 0)
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrEmpty(defaultInstanceId))
+            {
+                foreach (var instance in usable)
+                {
+                    if (string.Equals(instance.InstanceId, defaultInstanceId, StringComparison.Ordinal))
+                    {
+                        return instance;
+                    }
+                }
+            }
+
+            return usable.OrderByDescending(i => i.CreatedAt).FirstOrDefault();
+        }
+    }
+
     internal static DoctorResponse CreateDoctorResponse(ImageDestinationInspection inspection)
     {
         string version = GetVersion();
