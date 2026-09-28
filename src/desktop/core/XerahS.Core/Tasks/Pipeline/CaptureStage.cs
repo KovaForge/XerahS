@@ -141,6 +141,13 @@ namespace XerahS.Core.Tasks.Pipeline
                 WorkflowCategory = workflowCategory
             };
 
+            var omaSnapOutcome = await TryCaptureWithOmaSnapAsync(
+                context, linuxRegionSelectorPreference, isScreenCaptureDelay, workflowCategory, captureDelaySeconds, token);
+            if (omaSnapOutcome.HasValue)
+            {
+                return omaSnapOutcome.Value;
+            }
+
             if (WorkflowCatalog.IsToolWorkflow(taskSettings.Job))
             {
                 await _workerTask.HandleToolWorkflowAsync(token);
@@ -451,6 +458,88 @@ namespace XerahS.Core.Tasks.Pipeline
             }
 
             return PipelineStageResult.Continue;
+        }
+
+        /// <summary>
+        /// XIP0088: on Omarchy-like sessions (or when the user picked OmaSnap) mapped capture jobs
+        /// run through OmaSnap host mode. The PNG then continues through this pipeline like any
+        /// other capture. Returns null to continue with the existing path: OmaSnap is not in use,
+        /// the job is not mapped, or OmaSnap failed (not cancelled), which falls back.
+        /// </summary>
+        private async Task<PipelineStageResult?> TryCaptureWithOmaSnapAsync(
+            PipelineContext context,
+            LinuxInteractiveRegionSelectorPreference linuxRegionSelectorPreference,
+            bool isScreenCaptureDelay,
+            string workflowCategory,
+            double captureDelaySeconds,
+            CancellationToken token)
+        {
+            var taskSettings = context.Info.TaskSettings!;
+            var omaSnap = PlatformServices.OmaSnap;
+            if (!OperatingSystem.IsLinux() || omaSnap == null || !omaSnap.ShouldHandle(linuxRegionSelectorPreference))
+            {
+                return null;
+            }
+
+            System.Drawing.Rectangle? lastRegion = LastRegionStore.TryGet(out var storedRegion) ? storedRegion : null;
+            if (!OmaSnapWorkflowRouter.TryCreateRequest(taskSettings.Job, taskSettings.CaptureSettings, lastRegion, out var request))
+            {
+                return null;
+            }
+
+            if (isScreenCaptureDelay && !await _workerTask.ApplyCaptureStartDelayAsync(taskSettings, workflowCategory, captureDelaySeconds, token))
+            {
+                return PipelineStageResult.Stop;
+            }
+
+            var stopwatch = Stopwatch.StartNew();
+            OmaSnapCaptureResult result = await omaSnap.CaptureAsync(request, token).ConfigureAwait(false);
+            try
+            {
+                switch (result.Outcome)
+                {
+                    case OmaSnapOutcome.Cancelled:
+                        DebugHelper.WriteLine($"OmaSnap: {taskSettings.Job} cancelled by the user.");
+                        context.Status = TaskStatus.Stopped;
+                        return PipelineStageResult.Stop;
+
+                    case OmaSnapOutcome.Succeeded when result.ImagePath != null:
+                        SKBitmap? bitmap = SKBitmap.Decode(result.ImagePath);
+                        if (bitmap == null)
+                        {
+                            DebugHelper.WriteLine($"OmaSnap: could not decode {result.ImagePath}; using the existing capture path.");
+                            return null;
+                        }
+
+                        var metadata = context.Info.Metadata;
+                        metadata.Image = bitmap;
+                        if (!string.IsNullOrWhiteSpace(result.WindowTitle))
+                        {
+                            metadata.WindowTitle = result.WindowTitle;
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(result.WindowClass))
+                        {
+                            metadata.ProcessName = result.WindowClass;
+                        }
+
+                        if (OmaSnapWorkflowRouter.ShouldRememberRegion(taskSettings.Job) && result.Region is { IsValid: true } region)
+                        {
+                            LastRegionStore.Set(region.X, region.Y, region.Width, region.Height);
+                        }
+
+                        DebugHelper.WriteLine($"Captured image via OmaSnap: {bitmap.Width}x{bitmap.Height} in {stopwatch.ElapsedMilliseconds}ms");
+                        return PipelineStageResult.Continue;
+
+                    default:
+                        DebugHelper.WriteLine($"OmaSnap: {taskSettings.Job} {result.Outcome} ({result.Error ?? "no detail"}); using the existing capture path.");
+                        return null;
+                }
+            }
+            finally
+            {
+                omaSnap.Release(result);
+            }
         }
 
         private async Task HandleScreenRecorderRegionAsync(PipelineContext context, CaptureOptions captureOptions, bool isDelay, double delay, string category, CancellationToken token)
