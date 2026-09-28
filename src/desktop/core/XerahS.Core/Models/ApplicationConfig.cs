@@ -91,6 +91,20 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
     public bool DisableToastNotification = false;
     public bool? LinuxUseWaylandPortalServices = null;
     /// <summary>
+    /// Annotation editor for AnnotateImage on Hyprland sessions where OmaSnap is available (XIP0088).
+    /// XerahS keeps sidecar annotation files and History re-editing; OmaSnap is the native overlay editor.
+    /// </summary>
+    public LinuxAnnotationEditor LinuxAnnotationEditor = LinuxAnnotationEditor.XerahS;
+    /// <summary>Development override for the OmaSnap binary. Empty uses the bundled copy.</summary>
+    public string LinuxOmaSnapPathOverride = string.Empty;
+    /// <summary>
+    /// Hyprland-managed keybindings (XIP0088 Phase 5): XerahS writes ~/.config/hypr/xerahs.lua and
+    /// skips portal/evdev hotkey registration. Turned on only through the consent flow.
+    /// </summary>
+    public bool LinuxHyprlandKeybindings = false;
+    /// <summary>Keys the user approved to unbind from Omarchy/user bindings in the managed file.</summary>
+    public List<string> LinuxHyprlandApprovedUnbinds = new();
+    /// <summary>
     /// After UI clipboard copy, also hand off to wl-copy so paste survives app exit (Linux Wayland).
     /// Null applies platform default: enabled on Wayland, disabled on X11.
     /// </summary>
@@ -270,12 +284,6 @@ public class ApplicationConfig : SettingsBase<ApplicationConfig>
 
     [Category("Hotkey"), DefaultValue(false), Description("Disable hotkeys on fullscreen.")]
     public bool DisableHotkeysOnFullscreen { get; set; }
-
-    [Category("Hotkey"), DefaultValue(false), Description("Linux Hyprland: workflow hotkeys are Hyprland keybindings in ~/.config/hypr/xerahs.lua instead of portal or evdev shortcuts (XIP0088).")]
-    public bool LinuxHyprlandKeybindings { get; set; }
-
-    [Category("Hotkey"), Description("Linux Hyprland: keys the user agreed XerahS may unbind from Omarchy or their own config.")]
-    public List<string> LinuxHyprlandApprovedUnbinds { get; set; } = new();
 
     private int hotkeyRepeatLimit = 500;
 

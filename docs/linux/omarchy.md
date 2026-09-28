@@ -1,66 +1,112 @@
-# Omarchy and Hyprland integration
+# XerahS on Omarchy and Hyprland
 
-XerahS 0.31.0 uses OmaSnap, the native Wayland capture and annotation tool, as its capture front end on Omarchy and on other Hyprland systems where OmaSnap works ([XIP0088](../proposals/xip/XIP0088-omasnap-native-omarchy-capture-engine.md)). XerahS still owns workflows, hotkeys, after-capture tasks, uploads and history. Every other Linux desktop keeps the existing capture chain unchanged.
+From 0.31.0, XerahS uses [OmaSnap](https://github.com/KovaForge/omasnap) as its capture front end on
+Hyprland (XIP0088). OmaSnap is a native Qt6/LayerShellQt overlay: it captures the focused output
+through `ext-image-copy-capture`, then offers smart region, window and monitor selection, scrolling
+capture, an annotation editor and floating pins. XerahS keeps owning workflows, hotkeys,
+after-capture tasks, uploads and history.
 
-## What changes on Omarchy
+Nothing changes on GNOME, KDE, Sway, X11 or Flatpak. XerahS decides by probing OmaSnap, not by the
+distribution name.
 
-- **Captures.** Region, window, fullscreen and scrolling captures open OmaSnap's overlay instead of the XerahS overlay, slurp or the portal dialog. OmaSnap hands XerahS a PNG plus the region, window class and scale; the After Capture window, image effects, annotation, save, clipboard, upload and history run exactly as before. OmaSnap never uploads, copies or saves anything itself when XerahS starts it.
-- **Toggle.** Pressing the capture hotkey again while the overlay is open closes it without capturing.
-- **Annotation editor.** Settings > Advanced > Linux Region Selector can open captures in OmaSnap's editor instead of the XerahS editor. The XerahS editor stays the default.
-- **Pins.** Pin to screen uses OmaSnap pins. A pin's Upload button (`U`) uploads through `omaxerahs upload` to your XerahS destination and copies the link.
-- **Hyprland keybindings (optional).** Workflow hotkeys can become Hyprland keybindings instead of portal or evdev shortcuts. See below.
+## When OmaSnap is used
 
-## How XerahS decides
+XerahS runs `omasnap --host-capabilities` once, in the background, only when all of these hold:
 
-A probe decides, not the distro name. At startup XerahS runs `omasnap --host-capabilities` in the background and uses OmaSnap only when the session is Hyprland, XerahS is not sandboxed (Flatpak or Snap), and the probe reports host mode. Until the probe passes, or when it fails, captures use the existing chain and the log has one line saying why.
+- the session is Wayland and Hyprland (`HYPRLAND_INSTANCE_SIGNATURE` is set);
+- XerahS is not sandboxed (Flatpak, Snap);
+- an OmaSnap binary exists. Search order: the development override in settings
+  (`LinuxOmaSnapPathOverride`), `XERAHS_OMASNAP_PATH`, `omasnap/omasnap` next to XerahS,
+  `/usr/lib/xerahs/omasnap/omasnap`, then `omasnap` on `PATH`.
 
-XerahS looks for OmaSnap in this order:
+The probe must report `ok`, Hyprland, `ext-image-copy-capture`, layer-shell and `hostMode >= 1`
+(OmaSnap 1.22.0 or newer). A standalone OmaSnap 1.21 in `~/.local/bin` has no host mode and is
+ignored. A failed probe writes one line to the normal log, never to the error log, and XerahS keeps
+its existing capture chain.
 
-1. `XERAHS_OMASNAP_PATH`
-2. `omasnap/omasnap` next to the XerahS binary (the linux-x64 tarball)
-3. `/usr/lib/xerahs/omasnap/omasnap` (the AUR package)
-4. `omasnap` on `PATH`
-
-The linux-x64 tarball and the `xerahs-git` AUR package ship OmaSnap with its MIT, OFL and ISC notices under `omasnap/licenses`. Other packages (deb, rpm, AppImage, Flatpak, arm64) do not include it; installing OmaSnap 1.22.0 or later on `PATH` works too.
-
-Check what XerahS sees:
+Check the result:
 
 ```bash
-xerahs doctor --linux-desktop          # add --json for machine-readable output
-omaxerahs capabilities                 # lists capture.omasnap when OmaSnap is usable
+xerahs doctor --linux-desktop          # profile and probe JSON
+omaxerahs capabilities                 # lists capture.omasnap when usable
 ```
 
-## Switching the capture engine
+Settings > Capture > Linux Region Selector also shows it, e.g. `Capture engine: OmaSnap 1.22.0 · Hyprland · ready`.
 
-Settings > Advanced > Linux Region Selector:
+## Which captures use OmaSnap
 
-- **Automatic** uses OmaSnap on Omarchy-like systems and the existing order everywhere else.
-- **OmaSnap (native Hyprland overlay)** uses OmaSnap whenever the probe passes, even outside the Automatic rule.
-- Any other choice (XerahS overlay, portal, slurp) turns OmaSnap off for captures.
+With the region selector on **Automatic** (default) or **OmaSnap**:
 
-Jobs OmaSnap does not front (active window, a named window, colour picker, ruler, OCR and screen recording) always keep their XerahS paths.
+| Workflow | OmaSnap |
+|---|---|
+| Region capture, transparent region | smart selection (`--capture-region` when the workflow's "OmaSnap: region only" option is on) |
+| Custom region | the configured rectangle, preselected; without one, smart selection |
+| Last region | the last region, preselected |
+| Custom window (no title configured) | window pick |
+| Print screen, active monitor | focused monitor |
+| Scrolling capture | OmaSnap scroll capture |
+
+Active window, custom window with a configured title, color picker, ruler, QR and OCR tools, and
+screen recording keep their XerahS paths. Other selectors (XerahS overlay, portal dialog, slurp,
+desktop native) keep today's behavior.
+
+The PNG goes through the normal pipeline: After Capture window, image effects, annotation, save,
+clipboard, upload and history. The window class and title OmaSnap reports fill `%pn` and the window
+title in file names and history. Pressing the hotkey again while the overlay is open dismisses it;
+`Esc` cancels. If OmaSnap fails (not cancels), XerahS falls back to its existing chain for that
+capture.
+
+OmaSnap in host mode never copies to the clipboard, saves to its screenshots folder, notifies,
+uploads, or keeps a pin: XerahS does all of that according to the workflow.
+
+## Annotation editor and pins
+
+Settings > Capture > Linux Region Selector > **Annotation editor** chooses between the XerahS editor
+(default) and the OmaSnap editor for the "Annotate" after-capture task. Sidecar annotation files and
+re-editing from History work only with the XerahS editor.
+
+Pin to screen uses `omasnap --pin` on Hyprland when OmaSnap is available. The pin's Upload button
+runs `omaxerahs upload --url-only`, so it uploads to your XerahS image destination.
 
 ## Hyprland keybindings
 
-Portal shortcuts on Hyprland can steal keys such as F1 or PRINT from Omarchy. The Hyprland way is a compositor binding, so XerahS can manage one file of bindings for you.
+Portal shortcuts (`xerahs:3`, `xerahs:13`) can take keys such as PRINT or F1 from Omarchy. On
+Hyprland, let Hyprland own XerahS hotkeys instead:
 
-Settings > Hotkeys > Use Hyprland keybindings (shown on Hyprland only):
+1. Settings > Application > **Hyprland Keybindings** > **Review changes…** shows every binding
+   XerahS will write, and every key Omarchy or you already bound.
+2. Tick **Unbind the conflicting keys** only if XerahS should take those keys over.
+3. **Apply to my Hyprland config** then:
+   - backs up `~/.config/hypr/bindings.lua` to `bindings.lua.bak.<unix-time>`;
+   - writes `~/.config/hypr/xerahs.lua` (generated; do not edit);
+   - appends `require("xerahs")` to `bindings.lua` once;
+   - runs `hyprctl reload` and `hyprctl configerrors`, and restores both files if Hyprland reports
+     errors.
 
-1. **Check conflicts** reads `hyprctl binds -j` and lists keys that Omarchy or your own config already bind. Tick the keys XerahS may take over. Unticked keys keep their current binding and the matching XerahS hotkey is left out.
-2. **Turn on** writes `~/.config/hypr/xerahs.lua`, copies `bindings.lua` (or `hyprland.lua` when there is no `bindings.lua`) to `bindings.lua.bak.<unix-time>`, appends one line that loads the managed file, runs `hyprctl reload` and then `hyprctl configerrors`. If Hyprland reports any error, XerahS restores your file from the backup, removes or restores the managed file, and reloads again.
-3. While it is on, XerahS registers no portal or evdev shortcuts for workflows, so a key never fires twice. Each binding runs `omaxerahs workflow run <workflow id>`, which returns at once while the capture runs in XerahS. Editing a hotkey in XerahS rewrites the managed file and reloads Hyprland; your own config is not touched again.
+Each binding runs `omaxerahs workflow run <workflow id>`; with Omarchy it uses
+`o.bind(keys, "XerahS: <workflow>", command)`, otherwise `hl.bind`. While this is on, XerahS does
+not register portal, evdev or X11 hotkeys, so nothing triggers twice. Changing a hotkey in XerahS
+regenerates `xerahs.lua` and reloads Hyprland. `/usr/share/omarchy` is never touched.
 
-The line added to your config is:
+### Turning it off or reverting
 
-```lua
--- XerahS keybindings (added by XerahS; delete these two lines to stop loading them)
-do local path = "/home/you/.config/hypr/xerahs.lua"; local file = io.open(path, "r"); if file then file:close(); dofile(path) end end
-```
+- **Turn off** in the same card empties `xerahs.lua`, reloads Hyprland and registers portal/evdev
+  hotkeys again. The `require("xerahs")` line stays and loads nothing; delete it if you like.
+- To undo everything by hand, copy the newest `bindings.lua.bak.<time>` back to `bindings.lua`,
+  delete `xerahs.lua` and run `hyprctl reload`.
 
-It loads the file only when it exists, so deleting `xerahs.lua` never breaks Hyprland. XerahS never edits anything under `/usr/share/omarchy`. The managed file uses Omarchy's `o.bind`, so the bindings appear in `omarchy menu keybindings`; without Omarchy it uses `hl.bind`. XerahS keybindings need Hyprland's Lua config (`hyprland.lua`).
+## Switching engines
 
-## Reverting
+- Per workflow: Task settings > Capture > Preferred Linux region selector. Choose any selector other
+  than Automatic or OmaSnap to keep OmaSnap out of that workflow.
+- Everywhere: remove or rename the OmaSnap binary, or point `XERAHS_OMASNAP_PATH` at a file that is
+  not executable. XerahS then reports OmaSnap as absent.
 
-- **Keybindings:** Settings > Hotkeys > Turn off empties `xerahs.lua` and reloads Hyprland, which also gives back any keys XerahS unbound, and XerahS registers its hotkeys itself again. To remove every trace, delete the two XerahS lines from `bindings.lua` (or restore the `.bak.<unix-time>` copy) and delete `xerahs.lua`. If the include line is gone, XerahS notices at startup and falls back to portal or evdev hotkeys.
-- **Capture engine:** pick another region selector in Settings > Advanced > Linux Region Selector, or remove the bundled `omasnap` folder. Either way XerahS returns to the existing chain.
-- **Annotation editor:** set it back to XerahS in Settings > Advanced > Linux Region Selector.
+## Packaging
+
+- The linux-x64 portable tarball and the AUR package include `omasnap/omasnap` with its MIT, OFL and
+  ISC notices when it could be built (Arch container job in CI). It links against the system Qt6 and
+  LayerShellQt; elsewhere the probe fails and nothing changes.
+- deb, rpm, AppImage and Flatpak do not include OmaSnap.
+- Build it locally with `build/linux/build-omasnap.sh <publish-dir>` (needs `cmake ninja pkgconf
+  qt6-base layer-shell-qt wayland-protocols libdeflate`).

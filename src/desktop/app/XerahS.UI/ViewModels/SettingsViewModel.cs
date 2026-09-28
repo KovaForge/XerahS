@@ -332,7 +332,6 @@ namespace XerahS.UI.ViewModels
             MacOSRegionSelectorPreference = taskSettings.CaptureSettings.MacOSRegionSelectorPreference;
             MacOSPlayCaptureSound = taskSettings.CaptureSettings.MacOSPlayCaptureSound;
             LinuxRecordingBackendPreference = ResolveLinuxRecordingBackendPreference(taskSettings.CaptureSettings);
-            LinuxAnnotationEditor = taskSettings.CaptureSettings.LinuxAnnotationEditor;
 
             // Task Settings - File Naming Defaults
             NameFormatPattern = taskSettings.UploadSettings.NameFormatPattern;
@@ -443,7 +442,6 @@ namespace XerahS.UI.ViewModels
             taskSettings.CaptureSettings.MacOSRegionSelectorPreference = MacOSRegionSelectorPreference;
             taskSettings.CaptureSettings.MacOSPlayCaptureSound = MacOSPlayCaptureSound;
             taskSettings.CaptureSettings.LinuxRecordingBackendPreference = LinuxRecordingBackendPreference;
-            taskSettings.CaptureSettings.LinuxAnnotationEditor = LinuxAnnotationEditor;
 
             taskSettings.UploadSettings.NameFormatPattern = NameFormatPattern;
             taskSettings.UploadSettings.NameFormatPatternActiveWindow = NameFormatPatternActiveWindow;
@@ -546,7 +544,6 @@ namespace XerahS.UI.ViewModels
             MacOSRegionSelectorPreference = MacOSInteractiveRegionSelectorPreference.Automatic;
             MacOSPlayCaptureSound = true;
             LinuxRecordingBackendPreference = XerahS.RegionCapture.ScreenRecording.LinuxRecordingBackendPreference.Automatic;
-            LinuxAnnotationEditor = LinuxAnnotationEditor.XerahS;
         }
 
         private static RegionCapture.ScreenRecording.LinuxRecordingBackendPreference ResolveLinuxRecordingBackendPreference(TaskSettingsCapture captureSettings)

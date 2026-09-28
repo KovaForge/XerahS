@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """Archive fixtures for portable release validation; no release downloads required."""
 
-import io
 import json
-import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -11,9 +9,9 @@ from pathlib import Path
 
 from validate_release_assets import (
     EXPECTED_ASSETS,
-    OMASNAP_LICENSES,
+    OMASNAP_REQUIRED_FILES,
     build_file_name,
-    check_optional_omasnap,
+    ensure_optional_omasnap,
     ensure_portable_zip_payload,
 )
 
@@ -101,52 +99,28 @@ class PortableReleaseTests(unittest.TestCase):
 
 
 class OptionalOmaSnapTests(unittest.TestCase):
-    def setUp(self):
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp_dir.cleanup)
-        self.path = Path(self.temp_dir.name) / "linux.tar.gz"
-        self.members = {
-            "XerahS": (b"app", 0o755),
-            "omaxerahs": (b"cli", 0o755),
-            "omasnap/omasnap": (b"elf", 0o755),
-        }
-        for name in OMASNAP_LICENSES:
-            self.members[name] = (b"notice", 0o644)
+    """OmaSnap is optional in Linux archives (XIP0088): checked only when present."""
 
-    def write_archive(self):
-        with tarfile.open(self.path, "w:gz") as archive:
-            for name, (content, mode) in self.members.items():
-                info = tarfile.TarInfo(name)
-                info.size = len(content)
-                info.mode = mode
-                archive.addfile(info, io.BytesIO(content))
+    base = {"XerahS", "omaxerahs", "omaxerahs.runtimeconfig.json"}
 
-    def test_absent_omasnap_is_fine(self):
-        self.members = {name: value for name, value in self.members.items() if not name.startswith("omasnap/")}
-        self.write_archive()
-        self.assertFalse(check_optional_omasnap(self.path))
+    def test_archive_without_omasnap_passes(self):
+        ensure_optional_omasnap(set(self.base), Path("x.tar.gz"))
 
-    def test_complete_omasnap_is_reported(self):
-        self.write_archive()
-        self.assertTrue(check_optional_omasnap(self.path))
+    def test_complete_omasnap_bundle_passes(self):
+        names = set(self.base) | {"omasnap/"} | set(OMASNAP_REQUIRED_FILES)
+        ensure_optional_omasnap(names, Path("x.tar.gz"))
 
-    def test_missing_notice_is_rejected(self):
-        del self.members["omasnap/licenses/Lucide-ISC.txt"]
-        self.write_archive()
-        with self.assertRaisesRegex(RuntimeError, "license notices missing"):
-            check_optional_omasnap(self.path)
+    def test_nested_root_folder_is_supported(self):
+        names = {"XerahS-1.0.0/" + name for name in OMASNAP_REQUIRED_FILES}
+        ensure_optional_omasnap(names, Path("x.tar.gz"))
 
-    def test_licenses_without_binary_are_rejected(self):
-        del self.members["omasnap/omasnap"]
-        self.write_archive()
-        with self.assertRaisesRegex(RuntimeError, "partly present"):
-            check_optional_omasnap(self.path)
+    def test_missing_license_fails(self):
+        names = set(self.base) | {"omasnap/omasnap", "omasnap/licenses/LICENSE-MIT"}
+        with self.assertRaisesRegex(RuntimeError, "LICENSE-OFL"):
+            ensure_optional_omasnap(names, Path("x.tar.gz"))
 
-    def test_non_executable_binary_is_rejected(self):
-        self.members["omasnap/omasnap"] = (b"elf", 0o644)
-        self.write_archive()
-        with self.assertRaisesRegex(RuntimeError, "not executable"):
-            check_optional_omasnap(self.path)
+    def test_unrelated_names_containing_omasnap_are_ignored(self):
+        ensure_optional_omasnap(set(self.base) | {"docs/notomasnap/readme"}, Path("x.tar.gz"))
 
 
 if __name__ == "__main__":

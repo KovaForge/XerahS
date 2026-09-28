@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (c) 2026 ShareX Team.
 // Lightweight reader for /etc/os-release. Exposes the few fields XerahS needs
-// for package-family hints without taking a hard dependency on a distro-info
-// library. Omarchy/Hyprland detection lives in LinuxDesktopProfile.
+// to make platform-default decisions (Omarchy/Arch/Hyprland detection) without
+// taking a hard dependency on a distro-info library.
 namespace XerahS.Platform.Linux.Services;
 
 internal static class LinuxOsRelease
@@ -60,7 +60,7 @@ internal static class LinuxOsRelease
         catch
         {
             // /etc/os-release is best-effort: missing/unreadable means
-            // unknown fields, which is the safe fallback.
+            // IsOmarchy returns false, which is the safe fallback.
         }
 
         return new LinuxOsReleaseInfo(id, idLike, prettyName);

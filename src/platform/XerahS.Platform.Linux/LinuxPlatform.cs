@@ -41,10 +41,19 @@ namespace XerahS.Platform.Linux
                 ? new UnsupportedClipboardMonitorService()
                 : new LinuxClipboardMonitorService();
 
+            // One source of truth for Omarchy/Hyprland/OmaSnap (XIP0088). The OmaSnap probe runs in the
+            // background and only on non-sandboxed Hyprland sessions with an OmaSnap binary present.
+            var desktopProfile = LinuxDesktopProfile.Current;
+            var hostedCaptureEngine = new Capture.OmaSnap.OmaSnapCaptureEngine(desktopProfile);
+            PlatformServices.DesktopProfile = desktopProfile;
+            PlatformServices.HostedCaptureEngine = hostedCaptureEngine;
+            PlatformServices.CompositorKeybindings = new HyprlandKeybindingService(desktopProfile);
+            desktopProfile.StartBackgroundProbe();
+
             // Use LinuxScreenCaptureService if none provided
             if (screenCaptureService == null)
             {
-                screenCaptureService = new LinuxScreenCaptureService();
+                screenCaptureService = new LinuxScreenCaptureService(hostedCaptureEngine);
                 DebugHelper.WriteLine(environment.IsWayland || environment.IsSandboxed
                     ? "Linux: Using LinuxScreenCaptureService with portal-aware capture routing."
                     : "Linux: Using LinuxScreenCaptureService with native X11/CLI fallbacks.");
@@ -105,22 +114,6 @@ namespace XerahS.Platform.Linux
                 watchFolderDaemonService: new LinuxWatchFolderDaemonService(),
                 clipboardMonitorService: clipboardMonitorService
             );
-
-            // XIP0088: OmaSnap front end on Omarchy-like Hyprland sessions. The probe runs in the
-            // background; until it passes nothing routes to OmaSnap.
-            var desktopProfile = LinuxDesktopProfile.Current;
-            var omaSnapService = new Capture.OmaSnap.OmaSnapService(desktopProfile);
-            PlatformServices.OmaSnap = omaSnapService;
-            _ = omaSnapService.EnsureProbedAsync().ContinueWith(
-                _ => DebugHelper.WriteLine($"Linux: Desktop profile: {desktopProfile.ToDiagnosticString()}"),
-                TaskScheduler.Default);
-
-            // XIP0088 Phase 5: workflow hotkeys can become Hyprland keybindings. Registered on
-            // Hyprland only; the mode stays off until the user turns it on in settings.
-            if (desktopProfile.IsHyprland && !desktopProfile.IsSandboxed)
-            {
-                PlatformServices.HyprlandKeybindings = new Hyprland.HyprlandKeybindingService(useOmarchyHelpers: desktopProfile.IsOmarchy);
-            }
 
             // Register OCR service stub (Tesseract integration planned)
             PlatformServices.Ocr = new LinuxOcrService();

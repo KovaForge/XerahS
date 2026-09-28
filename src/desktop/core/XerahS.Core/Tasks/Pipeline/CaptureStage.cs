@@ -141,11 +141,14 @@ namespace XerahS.Core.Tasks.Pipeline
                 WorkflowCategory = workflowCategory
             };
 
-            var omaSnapOutcome = await TryCaptureWithOmaSnapAsync(
-                context, linuxRegionSelectorPreference, isScreenCaptureDelay, workflowCategory, captureDelaySeconds, token);
-            if (omaSnapOutcome.HasValue)
+            // OmaSnap native capture on Hyprland (XIP0088). Returns null when the job keeps its normal
+            // path; a failure falls through to the existing chain with the engine skipped.
+            PipelineStageResult? hostedResult = await TryHostedCaptureAsync(
+                context, taskSettings, captureSettings, captureOptions, linuxRegionSelectorPreference,
+                isScreenCaptureDelay, captureDelaySeconds, workflowCategory, captureStopwatch, token);
+            if (hostedResult.HasValue)
             {
-                return omaSnapOutcome.Value;
+                return hostedResult.Value;
             }
 
             if (WorkflowCatalog.IsToolWorkflow(taskSettings.Job))
@@ -426,6 +429,13 @@ namespace XerahS.Core.Tasks.Pipeline
                     return PipelineStageResult.Stop;
             }
 
+            return FinishCapture(context, image, captureStopwatch);
+        }
+
+        private static PipelineStageResult FinishCapture(PipelineContext context, SKBitmap? image, Stopwatch captureStopwatch)
+        {
+            var taskSettings = context.Info.TaskSettings;
+            var metadata = context.Info.Metadata!;
             captureStopwatch.Stop();
 
             bool hasClipboardPayload = taskSettings?.Job is WorkflowType.ClipboardUpload or WorkflowType.ClipboardUploadWithContentViewer
@@ -461,29 +471,47 @@ namespace XerahS.Core.Tasks.Pipeline
         }
 
         /// <summary>
-        /// XIP0088: on Omarchy-like sessions (or when the user picked OmaSnap) mapped capture jobs
-        /// run through OmaSnap host mode. The PNG then continues through this pipeline like any
-        /// other capture. Returns null to continue with the existing path: OmaSnap is not in use,
-        /// the job is not mapped, or OmaSnap failed (not cancelled), which falls back.
+        /// Runs the hosted capture engine for jobs it maps. Returns the stage result when the engine
+        /// handled the job (captured or cancelled), or null to continue with the normal capture path.
         /// </summary>
-        private async Task<PipelineStageResult?> TryCaptureWithOmaSnapAsync(
+        private async Task<PipelineStageResult?> TryHostedCaptureAsync(
             PipelineContext context,
-            LinuxInteractiveRegionSelectorPreference linuxRegionSelectorPreference,
+            TaskSettings taskSettings,
+            TaskSettingsCapture captureSettings,
+            CaptureOptions captureOptions,
+            LinuxInteractiveRegionSelectorPreference preference,
             bool isScreenCaptureDelay,
-            string workflowCategory,
             double captureDelaySeconds,
+            string workflowCategory,
+            Stopwatch captureStopwatch,
             CancellationToken token)
         {
-            var taskSettings = context.Info.TaskSettings!;
-            var omaSnap = PlatformServices.OmaSnap;
-            if (!OperatingSystem.IsLinux() || omaSnap == null || !omaSnap.ShouldHandle(linuxRegionSelectorPreference))
+            IHostedCaptureEngine? engine = PlatformServices.HostedCaptureEngine;
+            if (!OperatingSystem.IsLinux() || engine == null)
             {
                 return null;
             }
 
-            System.Drawing.Rectangle? lastRegion = LastRegionStore.TryGet(out var storedRegion) ? storedRegion : null;
-            if (!OmaSnapWorkflowRouter.TryCreateRequest(taskSettings.Job, taskSettings.CaptureSettings, lastRegion, out var request))
+            Rectangle? lastRegion = LastRegionStore.TryGet(out var last) ? last : null;
+            HostedCaptureRequest? request = HostedCaptureWorkflowMapper.Map(
+                taskSettings.Job,
+                captureSettings.OmaSnapRegionOnly,
+                captureSettings.CaptureCustomRegion,
+                captureSettings.CaptureCustomWindow,
+                lastRegion);
+            if (request == null)
             {
+                return null;
+            }
+
+            HostedCaptureEngineStatus status = await engine.GetStatusAsync(token).ConfigureAwait(false);
+            if (!HostedCaptureWorkflowMapper.ShouldUseEngine(preference, status, captureOptions.LinuxSkipHostedCaptureEngine))
+            {
+                if (preference == LinuxInteractiveRegionSelectorPreference.OmaSnap)
+                {
+                    DebugHelper.WriteLine($"CaptureStage: OmaSnap selected but unavailable ({status.Summary}); using the existing capture chain.");
+                }
+
                 return null;
             }
 
@@ -492,54 +520,55 @@ namespace XerahS.Core.Tasks.Pipeline
                 return PipelineStageResult.Stop;
             }
 
-            var stopwatch = Stopwatch.StartNew();
-            OmaSnapCaptureResult result = await omaSnap.CaptureAsync(request, token).ConfigureAwait(false);
+            DebugHelper.WriteLine($"CaptureStage: {taskSettings.Job} via {engine.EngineId} (target={request.Target}).");
+            HostedCaptureResult result = await engine.CaptureAsync(request, token).ConfigureAwait(false);
+
+            if (result.Status == HostedCaptureStatus.Cancelled)
+            {
+                DebugHelper.WriteLine($"CaptureStage: {engine.EngineId} capture cancelled by the user.");
+                context.Status = TaskStatus.Stopped;
+                return PipelineStageResult.Stop;
+            }
+
+            SKBitmap? image = null;
             try
             {
-                switch (result.Outcome)
+                if (result.IsOk)
                 {
-                    case OmaSnapOutcome.Cancelled:
-                        DebugHelper.WriteLine($"OmaSnap: {taskSettings.Job} cancelled by the user.");
-                        context.Status = TaskStatus.Stopped;
-                        return PipelineStageResult.Stop;
-
-                    case OmaSnapOutcome.Succeeded when result.ImagePath != null:
-                        SKBitmap? bitmap = SKBitmap.Decode(result.ImagePath);
-                        if (bitmap == null)
-                        {
-                            DebugHelper.WriteLine($"OmaSnap: could not decode {result.ImagePath}; using the existing capture path.");
-                            return null;
-                        }
-
-                        var metadata = context.Info.Metadata;
-                        metadata.Image = bitmap;
-                        if (!string.IsNullOrWhiteSpace(result.WindowTitle))
-                        {
-                            metadata.WindowTitle = result.WindowTitle;
-                        }
-
-                        if (!string.IsNullOrWhiteSpace(result.WindowClass))
-                        {
-                            metadata.ProcessName = result.WindowClass;
-                        }
-
-                        if (OmaSnapWorkflowRouter.ShouldRememberRegion(taskSettings.Job) && result.Region is { IsValid: true } region)
-                        {
-                            LastRegionStore.Set(region.X, region.Y, region.Width, region.Height);
-                        }
-
-                        DebugHelper.WriteLine($"Captured image via OmaSnap: {bitmap.Width}x{bitmap.Height} in {stopwatch.ElapsedMilliseconds}ms");
-                        return PipelineStageResult.Continue;
-
-                    default:
-                        DebugHelper.WriteLine($"OmaSnap: {taskSettings.Job} {result.Outcome} ({result.Error ?? "no detail"}); using the existing capture path.");
-                        return null;
+                    image = SKBitmap.Decode(result.ImagePath);
                 }
             }
             finally
             {
-                omaSnap.Release(result);
+                engine.Release(result);
             }
+
+            if (image == null)
+            {
+                // Failure (not cancel): fall through to the existing chain and keep the engine out of it.
+                DebugHelper.WriteLine($"CaptureStage: {engine.EngineId} {result.Status}: {result.Error ?? "no image"}; falling back to the existing capture chain.");
+                captureOptions.LinuxSkipHostedCaptureEngine = true;
+                return null;
+            }
+
+            var metadata = context.Info.Metadata!;
+            if (!string.IsNullOrWhiteSpace(result.WindowTitle))
+            {
+                metadata.WindowTitle = result.WindowTitle;
+            }
+
+            if (!string.IsNullOrWhiteSpace(result.WindowClass))
+            {
+                metadata.ProcessName = result.WindowClass;
+            }
+
+            if (result.Region is { Width: > 0, Height: > 0 } region &&
+                request.Target is HostedCaptureTarget.Smart or HostedCaptureTarget.Region or HostedCaptureTarget.Window)
+            {
+                LastRegionStore.Set(region);
+            }
+
+            return FinishCapture(context, image, captureStopwatch);
         }
 
         private async Task HandleScreenRecorderRegionAsync(PipelineContext context, CaptureOptions captureOptions, bool isDelay, double delay, string category, CancellationToken token)

@@ -26,56 +26,40 @@
 namespace XerahS.Platform.Linux.Capture.OmaSnap;
 
 /// <summary>
-/// Candidate omasnap binaries, best first: a development override, the copy bundled with
-/// XerahS, the AUR package location, then a standalone install on PATH. The service probes them
-/// in order and uses the first that passes with host mode, so a standalone omasnap without host
-/// mode (for example v1.21.0 in ~/.local/bin) is never used.
+/// Finds the OmaSnap binary. Order: settings override, <c>XERAHS_OMASNAP_PATH</c>, the copy bundled
+/// next to XerahS (<c>omasnap/omasnap</c>), the AUR location (<c>/usr/lib/xerahs/omasnap/omasnap</c>),
+/// then <c>omasnap</c> on PATH. Any candidate is used only after the host-mode probe accepts it.
 /// </summary>
 internal static class OmaSnapLocator
 {
-    public const string OverrideEnvironmentVariable = "XERAHS_OMASNAP_PATH";
+    public const string PathOverrideVariable = "XERAHS_OMASNAP_PATH";
     public const string PackagedPath = "/usr/lib/xerahs/omasnap/omasnap";
 
-    public static IReadOnlyList<string> GetCandidates(string? overridePath = null)
-    {
-        return GetCandidates(
-            overridePath ?? Environment.GetEnvironmentVariable(OverrideEnvironmentVariable),
-            AppContext.BaseDirectory,
-            Environment.GetEnvironmentVariable("PATH"),
-            File.Exists);
-    }
+    /// <summary>Development override from settings; empty means none.</summary>
+    public static string? SettingsOverridePath { get; set; }
 
-    internal static IReadOnlyList<string> GetCandidates(string? overridePath, string baseDirectory, string? pathVariable, Func<string, bool> fileExists)
+    public static IReadOnlyList<string> GetCandidates(
+        Func<string, string?> getEnvironment,
+        string baseDirectory,
+        string? settingsOverride)
     {
         var candidates = new List<string>();
 
         void Add(string? path)
         {
-            if (string.IsNullOrWhiteSpace(path))
+            if (!string.IsNullOrWhiteSpace(path) && !candidates.Contains(path, StringComparer.Ordinal))
             {
-                return;
-            }
-
-            string full;
-            try
-            {
-                full = Path.GetFullPath(path);
-            }
-            catch (Exception)
-            {
-                return;
-            }
-
-            if (!candidates.Contains(full, StringComparer.Ordinal) && SafeExists(fileExists, full))
-            {
-                candidates.Add(full);
+                candidates.Add(path);
             }
         }
 
-        Add(overridePath);
+        Add(settingsOverride);
+        Add(getEnvironment(PathOverrideVariable));
         Add(Path.Combine(baseDirectory, "omasnap", "omasnap"));
         Add(PackagedPath);
-        if (!string.IsNullOrWhiteSpace(pathVariable))
+
+        string? pathVariable = getEnvironment("PATH");
+        if (!string.IsNullOrEmpty(pathVariable))
         {
             foreach (string directory in pathVariable.Split(':', StringSplitOptions.RemoveEmptyEntries))
             {
@@ -86,15 +70,100 @@ internal static class OmaSnapLocator
         return candidates;
     }
 
-    private static bool SafeExists(Func<string, bool> fileExists, string path)
+    public static string? Resolve(Func<string, string?> getEnvironment, string baseDirectory, string? settingsOverride, Func<string, bool> isExecutable)
     {
+        return GetCandidates(getEnvironment, baseDirectory, settingsOverride).FirstOrDefault(isExecutable);
+    }
+
+    public static string? Resolve()
+    {
+        return Resolve(Environment.GetEnvironmentVariable, AppContext.BaseDirectory, SettingsOverridePath, IsExecutableFile);
+    }
+
+    internal static bool IsExecutableFile(string path)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return false;
+        }
+
         try
         {
-            return fileExists(path);
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+
+            UnixFileMode mode = File.GetUnixFileMode(path);
+            return (mode & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) != 0;
         }
         catch
         {
             return false;
         }
+    }
+}
+
+/// <summary>
+/// Private per-user folder for OmaSnap output: <c>$XDG_RUNTIME_DIR/xerahs/omasnap/</c>, falling back
+/// to <c>/tmp/xerahs-&lt;uid&gt;/omasnap/</c>. Created with mode 0700.
+/// </summary>
+internal static class OmaSnapRuntimeFolder
+{
+    public static string Resolve(Func<string, string?> getEnvironment, Func<string> getUserId)
+    {
+        string? runtimeDir = getEnvironment("XDG_RUNTIME_DIR");
+        if (!string.IsNullOrWhiteSpace(runtimeDir) && Path.IsPathRooted(runtimeDir))
+        {
+            return Path.Combine(runtimeDir, "xerahs", "omasnap");
+        }
+
+        return Path.Combine(Path.GetTempPath(), $"xerahs-{getUserId()}", "omasnap");
+    }
+
+    public static string Ensure()
+    {
+        string folder = Resolve(Environment.GetEnvironmentVariable, GetUserId);
+        Directory.CreateDirectory(folder);
+        TrySetPrivate(folder);
+        TrySetPrivate(Path.GetDirectoryName(folder)!);
+        return folder;
+    }
+
+    private static void TrySetPrivate(string folder)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            File.SetUnixFileMode(folder, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+        catch
+        {
+            // Best effort; the parent of $XDG_RUNTIME_DIR is already private.
+        }
+    }
+
+    private static string GetUserId()
+    {
+        try
+        {
+            return NativeUserId.Get().ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch
+        {
+            return Environment.UserName;
+        }
+    }
+
+    private static class NativeUserId
+    {
+        [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "getuid")]
+        private static extern uint getuid();
+
+        public static uint Get() => getuid();
     }
 }

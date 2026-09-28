@@ -24,9 +24,7 @@
 #endregion License Information (GPL v3)
 
 using System.CommandLine;
-using XerahS.Common;
 using XerahS.Core.Automation;
-using XerahS.OmaXerahs.Models;
 using XerahS.OmaXerahs.Services;
 
 namespace XerahS.OmaXerahs.Commands;
@@ -40,7 +38,7 @@ internal static class WorkflowCommand
         command.Add(CreateShow());
         command.Add(CreateTasks());
         command.Add(CreateTaskNames());
-        command.Add(CreateRun());
+        command.Add(RunCommands.CreateWorkflowRun());
         return command;
     }
 
@@ -104,27 +102,6 @@ internal static class WorkflowCommand
             JsonStdout.Enabled = parseResult.GetValue(jsonOption);
             JsonStdout.Write(new TaskNamesResponse { AfterCaptureTasks = WorkflowAutomation.GetAfterCaptureTaskNames() });
             return 0;
-        });
-        return command;
-    }
-    private static Command CreateRun()
-    {
-        var command = new Command("run", "Run a workflow in XerahS as if its hotkey was pressed. Returns at once; the capture runs in the app. Hyprland keybindings call this.");
-        var workflowArgument = new Argument<string>("workflow") { Description = "Workflow id, unique id prefix, or name." };
-        var jsonOption = JsonStdout.CreateJsonOption();
-        command.Add(workflowArgument);
-        command.Add(jsonOption);
-        command.SetAction(parseResult =>
-        {
-            // Called on every key press: no settings bootstrap. The app resolves the id or name.
-            JsonStdout.Enabled = parseResult.GetValue(jsonOption);
-            string workflow = parseResult.GetValue(workflowArgument)!.Trim();
-            if (workflow.Length == 0)
-            {
-                return JsonStdout.WriteFailureAndExit(CliErrorCodes.Usage, "Workflow id or name is required.");
-            }
-
-            return CaptureCommand.Run("workflow.run", workflow, [AppContracts.Cli.RunWorkflowFlag, workflow]);
         });
         return command;
     }

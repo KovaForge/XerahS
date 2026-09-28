@@ -1,6 +1,6 @@
 # XIP0088 OmaSnap Native Omarchy Capture Engine
 
-**Status**: Completed
+**Status**: Implemented in XerahS v0.31.0 (Phases 0, 2-7); Phase 1 (OmaSnap host mode in KovaForge/omasnap) and the `native/omasnap` submodule pin pending
 **Created**: 2026-09-28
 **Updated**: 2026-09-28
 **Target version**: v0.31.0 (feature; bump minor)
@@ -273,21 +273,6 @@ omaxerahs workflow run <id> ──single-instance──▶ XerahS (running, tray
 
 ---
 
-## Implementation Notes
-
-Implemented in v0.31.0 on branch `claude/xip0088-omasnap-capture-0awcv6` (KovaForge/XerahS) with OmaSnap host mode in KovaForge/omasnap. User documentation: [docs/linux/omarchy.md](../../linux/omarchy.md) and [docs/linux/omaxerahs-cli.md](../../linux/omaxerahs-cli.md). Where the build differs from the plan above:
-
-- **Include line.** The user config gets `do local path = "<abs>/xerahs.lua"; ... dofile(path) end` instead of `require("xerahs")`. Omarchy's module path is `~/.config/?.lua` (so `require` would need `hypr.xerahs`), plain Hyprland Lua setups have no such path, and the existence check keeps Hyprland loading if the managed file is deleted. The line goes into `bindings.lua` when it exists, otherwise `hyprland.lua`. Hyprland keybindings need the Lua config; `hyprland.conf` setups keep portal or evdev hotkeys.
-- **Conflicts.** A key that Omarchy or the user already binds is left out of the managed file unless the user ticks it, in which case the file emits `hl.unbind` first. Binds from an earlier XerahS file are recognised by their `XerahS: ` description and never count as conflicts.
-- **Hotkeys in Hyprland mode.** Only workflow hotkeys move to Hyprland. The assistant and capture command palette hotkeys keep the portal or evdev service. The mode is restored at startup only while the user config still includes the managed file.
-- **`omaxerahs capture window`** runs a CustomWindow job with no window name when OmaSnap fronts captures (OmaSnap's window picker) and ActiveWindow otherwise.
-- **Latency.** The plain forms of `workflow run` and `capture` bypass System.CommandLine and the reflection serializer. Measured in the cloud container on a Release single-file build: about 50 ms when XerahS is not reachable and 55 to 90 ms when the request is delivered, against a runtime start floor of about 30 ms; the 50 ms target is met only on the first path. ReadyToRun brought little and adds about 80 MB, so it is not used.
-- **Diagnostics.** `xerahs doctor --linux-desktop [--json]` prints the profile, the OmaSnap search order and the probe JSON, and the Hyprland keybinding state. `omaxerahs capabilities` adds `workflow.run`, `capture`, and `capture.omasnap` when the probe passes.
-- **Packaging.** OmaSnap ships in the linux-x64 tarball (built by the `build-omasnap` Arch container job, `continue-on-error`) and the `xerahs-git` AUR package. deb, rpm, AppImage, Flatpak and arm64 artifacts do not carry it (Open Question 5).
-- **Open questions** keep this XIP's defaults: the After Capture window stays; the XerahS editor stays the default editor; `feature/uploader` is not merged into OmaSnap and XerahS-hosted OmaSnap has no uploader of its own; host mode is fork-only for now.
-
----
-
 ## Open Questions
 
 1. Should OmaSnap's timed preview replace or complement the XerahS After Capture window on Omarchy? (Default in this XIP: keep After Capture.)
@@ -297,6 +282,45 @@ Implemented in v0.31.0 on branch `claude/xip0088-omasnap-capture-0awcv6` (KovaFo
 5. Release tarball: ship the Arch-built OmaSnap in the generic `linux-x64` tarball (probe-gated), or only in the AUR package?
 
 ---
+
+## Implementation Notes (v0.31.0)
+
+- **Phase 1 not done here.** The implementing session had no access to `KovaForge/omasnap`. XerahS
+  implements the host contract exactly as specified above and is tested against
+  `tests/fixtures/fake-omasnap/omasnap`. Until OmaSnap 1.22.0 ships host mode, every probe fails
+  (`--host-capabilities` unknown) and XerahS behaves as before. Host-mode OmaSnap must accept
+  `--host`, `--output`, `--result-json`, `smart|--capture-region|--capture-window|--capture-fullscreen|--scroll`,
+  `--region x,y,w,h`, `--editor`, `--file`, `--no-recents`, `--pin`, and `OMASNAP_HOST_UPLOAD_COMMAND`
+  (XerahS sets it to `<omaxerahs> upload --url-only`; OmaSnap appends the PNG path).
+- **Submodule.** Add `native/omasnap` pinned to the 1.22.0 release commit; `build-omasnap.sh`, the CI
+  Arch job and the PKGBUILD already use it and skip cleanly while it is absent.
+- **Automatic.** Workflow jobs reach OmaSnap through `CaptureStage` (Automatic or OmaSnap selector,
+  engine available). The coordinator's own Automatic order and the Linux diagnostics'
+  `AutomaticPreference` are unchanged, so tools that call `CaptureRegionAsync` directly (QR, OCR)
+  keep their current selector. The explicit OmaSnap selector puts `stage=OmaSnap` first in the trace.
+- **CustomRegion** with a configured rectangle is captured as `--capture-region --region <rect>`
+  (non-interactive) instead of smart selection; without one it uses smart selection.
+- **ActiveWindow** keeps the existing non-interactive path (no measurement was possible here).
+- **Phase 0 item 9.** Root cause: the tests project passed `AssembleProduct=false;…` to App/CLI and
+  CLI/omaxerahs/daemon passed empty `RuntimeIdentifier` plus `CrossCompile=true` to Bootstrap. Each
+  created a second configuration of UI/Core/RegionCapture building into the same `obj` folder in
+  parallel. After the fix every project builds in one configuration.
+- **Phase 5 include form.** `require("xerahs")` is appended to `~/.config/hypr/bindings.lua`; the
+  Omarchy include form and `hl.bind`/`hl.unbind` names must be confirmed on the maintainer machine
+  (checklist item 4). Settings live in Settings > Application > Hyprland Keybindings.
+
+### Manual validation checklist (maintainer machine, Appendix A)
+
+1. Region, window, fullscreen, scroll captures through XerahS hotkeys: correct PNG, After Capture
+   window, upload, history (`%pn` = window class).
+2. Hotkey while the overlay is open dismisses it; no stray capture.
+3. OmaSnap editor round trip; pin Upload button puts the XerahS destination URL on the clipboard.
+4. Hyprland keybinding opt-in: backup created, `hyprctl configerrors` clean, portal shortcuts no
+   longer registered, Turn off restores them.
+5. Remove the OmaSnap binary: fallback to the old chain with one log line, no error-log entries.
+6. GNOME machine or VM: no visible change.
+7. `xerahs doctor --linux-desktop` and `omaxerahs capabilities` report the probe.
+8. `omaxerahs workflow run <id>` from a terminal returns in well under 50 ms with XerahS running.
 
 ## Appendix A: Maintainer machine facts (for sessions without local access)
 

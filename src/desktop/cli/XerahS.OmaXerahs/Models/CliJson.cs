@@ -83,6 +83,14 @@ internal sealed class DoctorResponse
     public DoctorImageInfo Image { get; init; } = new();
     public DoctorSecretStoreInfo SecretStore { get; init; } = new();
     public DoctorPluginsInfo Plugins { get; init; } = new();
+    public DoctorHistoryInfo History { get; init; } = new();
+}
+
+/// <summary>Whether the native SQLite provider loads, so uploads can be written to history.</summary>
+internal sealed class DoctorHistoryInfo
+{
+    public bool Ok { get; init; }
+    public string? Error { get; init; }
 }
 
 internal sealed class DoctorCliInfo

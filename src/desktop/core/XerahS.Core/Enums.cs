@@ -28,16 +28,6 @@ using System.ComponentModel;
 
 namespace XerahS.Core;
 
-/// <summary>Which editor opens for the Annotate after-capture task on Linux (XIP0088).</summary>
-public enum LinuxAnnotationEditor
-{
-    [Description("XerahS editor")]
-    XerahS = 0,
-
-    [Description("OmaSnap editor")]
-    OmaSnap = 1
-}
-
 public enum ShareXBuild
 {
     Debug,

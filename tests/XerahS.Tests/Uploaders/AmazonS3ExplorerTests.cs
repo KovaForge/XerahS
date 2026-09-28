@@ -132,40 +132,4 @@ public class AmazonS3ExplorerTests
         Assert.That(message, Does.Contain("bucket-level list permission"));
         Assert.That(message, Does.Contain("s3:prefix"));
     }
-
-    [TestCase(301, "<Error><Code>PermanentRedirect</Code><Message>m</Message><Endpoint>b.s3.ap-southeast-2.amazonaws.com</Endpoint></Error>", true)]
-    [TestCase(400, "<Error><Code>AuthorizationHeaderMalformed</Code></Error>", true)]
-    [TestCase(301, "", true)]
-    [TestCase(403, "<Error><Code>AccessDenied</Code></Error>", false)]
-    public void IsWrongRegionResponse_DetectsRedirects(int status, string body, bool expected)
-    {
-        Assert.That(S3ExplorerListHelper.IsWrongRegionResponse(status, body), Is.EqualTo(expected));
-    }
-
-    [TestCase("s3.amazonaws.com", "ap-southeast-2", "s3.ap-southeast-2.amazonaws.com")]
-    [TestCase("bucket.s3.us-east-1.amazonaws.com", "eu-west-1", "bucket.s3.eu-west-1.amazonaws.com")]
-    [TestCase("bucket.s3-us-west-2.amazonaws.com", "us-east-2", "bucket.s3.us-east-2.amazonaws.com")]
-    [TestCase("minio.example.com", "us-east-1", null)]
-    [TestCase("s3.amazonaws.com", "bad region", null)]
-    public void TryRewriteAwsHostForRegion(string host, string region, string? expected)
-    {
-        Assert.That(S3ExplorerListHelper.TryRewriteAwsHostForRegion(host, region), Is.EqualTo(expected));
-    }
-
-    [Test]
-    public void BuildWrongRegionMessage_NamesTheRegionToUse()
-    {
-        string message = S3ExplorerListHelper.BuildWrongRegionMessage("us-east-1", "ap-southeast-2", null, "S3 request failed: PermanentRedirect - m");
-        Assert.That(message, Does.Contain("Set the region to ap-southeast-2"));
-        Assert.That(message, Does.Contain("us-east-1"));
-    }
-
-    [Test]
-    public void BuildWrongRegionMessage_FallsBackToEndpointHint()
-    {
-        string endpoint = S3ExplorerListHelper.GetErrorElement(
-            "<Error><Code>PermanentRedirect</Code><Endpoint>b.s3.eu-west-1.amazonaws.com</Endpoint></Error>", "Endpoint")!;
-        string message = S3ExplorerListHelper.BuildWrongRegionMessage("us-east-1", null, endpoint, "x");
-        Assert.That(message, Does.Contain("Use the endpoint b.s3.eu-west-1.amazonaws.com"));
-    }
 }

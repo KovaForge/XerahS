@@ -23,392 +23,281 @@
 
 #endregion License Information (GPL v3)
 
-using System.Text.Json;
+using System.Diagnostics;
+using System.Text;
 using XerahS.Common;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.Platform.Linux.Capture.OmaSnap;
 
 /// <summary>
-/// Talks to one omasnap binary through the host-mode contract (omasnap 1.22.0+): runs it,
-/// waits for the user (captures have no timeout; only the probe does), and turns the result
-/// JSON into an <see cref="OmaSnapCaptureResult"/>. Every run gets a private runtime folder
-/// that <see cref="Release"/> deletes once the pipeline has taken the PNG.
+/// Talks to one OmaSnap binary through the host-mode contract (XIP0088 Phase 1): capture or edit,
+/// write the PNG where XerahS says, report one JSON object. Output files live in a private runtime
+/// folder and are deleted by <see cref="Release"/> once the pipeline has taken the image.
 /// </summary>
 internal sealed class OmaSnapClient
 {
-    public const string HostName = "xerahs";
-    public const string UploadCommandEnvironmentVariable = "OMASNAP_HOST_UPLOAD_COMMAND";
     public static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(3);
+    public const string HostUploadCommandVariable = "OMASNAP_HOST_UPLOAD_COMMAND";
 
-    private const int ExitOk = 0;
-    private const int ExitUsage = 2;
-    private const int ExitCancelled = 3;
-    private const string OutputFileName = "capture.png";
-    private const string ResultFileName = "result.json";
+    private readonly Func<string> _runtimeFolder;
 
-    private readonly string _runtimeRoot;
-
-    public OmaSnapClient(string binaryPath, string? runtimeRoot = null)
+    public OmaSnapClient(string executablePath, Func<string>? runtimeFolder = null)
     {
-        BinaryPath = binaryPath;
-        _runtimeRoot = runtimeRoot ?? ResolveRuntimeRoot(Environment.GetEnvironmentVariable);
+        ExecutablePath = executablePath;
+        _runtimeFolder = runtimeFolder ?? OmaSnapRuntimeFolder.Ensure;
     }
 
-    public string BinaryPath { get; }
+    public string ExecutablePath { get; }
 
-    public async Task<OmaSnapCapabilities?> ProbeAsync(CancellationToken cancellationToken = default)
+    public async Task<OmaSnapCapabilities> ProbeAsync(CancellationToken cancellationToken = default)
     {
+        OmaSnapProcessResult result;
         try
         {
-            var run = await OmaSnapProcess.RunAsync(BinaryPath, ["--host-capabilities"], null, ProbeTimeout, cancellationToken).ConfigureAwait(false);
-            if (run.TimedOut)
-            {
-                DebugHelper.WriteLine($"OmaSnap: probe timed out ({BinaryPath}).");
-                return null;
-            }
-
-            return OmaSnapCapabilities.Parse(FirstJsonLine(run.StandardOutput), BinaryPath);
+            result = await OmaSnapProcessRunner.RunAsync(
+                ExecutablePath, OmaSnapArguments.Probe(), ProbeTimeout, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException or InvalidOperationException)
+        catch (OperationCanceledException)
         {
-            DebugHelper.WriteLine($"OmaSnap: probe could not run {BinaryPath}: {ex.Message}");
-            return null;
+            throw;
         }
+        catch (Exception ex)
+        {
+            return OmaSnapCapabilities.Unusable($"could not run {ExecutablePath} ({ex.Message})");
+        }
+
+        if (result.TimedOut)
+        {
+            return OmaSnapCapabilities.Unusable($"probe timed out after {ProbeTimeout.TotalSeconds:0}s");
+        }
+
+        string json = result.StandardOutput.Trim();
+        if (json.Length == 0)
+        {
+            // Builds without host mode reject --host-capabilities: exactly the "too old" case.
+            return OmaSnapCapabilities.Unusable($"no host mode (exit {result.ExitCode}; OmaSnap 1.22.0 or newer is required)");
+        }
+
+        OmaSnapCapabilities capabilities = OmaSnapCapabilities.Parse(json);
+        if (result.ExitCode != 0 && capabilities.FailureReason == null && capabilities.Ok)
+        {
+            return OmaSnapCapabilities.Unusable($"probe exited with code {result.ExitCode}", json);
+        }
+
+        return capabilities;
     }
 
-    public Task<OmaSnapCaptureResult> CaptureAsync(OmaSnapCaptureRequest request, CancellationToken cancellationToken = default)
+    public Task<HostedCaptureResult> CaptureAsync(HostedCaptureRequest request, CancellationToken cancellationToken = default)
     {
-        return RunHostedAsync(folder => BuildCaptureArguments(request, Path.Combine(folder, OutputFileName), Path.Combine(folder, ResultFileName)), cancellationToken);
+        return RunHostedAsync(
+            (output, resultJson) => OmaSnapArguments.Capture(request, output, resultJson),
+            environment: null,
+            cancellationToken);
     }
 
-    public Task<OmaSnapCaptureResult> AnnotateAsync(string imagePath, CancellationToken cancellationToken = default)
+    public Task<HostedCaptureResult> AnnotateAsync(string inputPath, string editor, CancellationToken cancellationToken = default)
     {
-        return RunHostedAsync(folder => BuildAnnotateArguments(imagePath, Path.Combine(folder, OutputFileName), Path.Combine(folder, ResultFileName)), cancellationToken);
+        return RunHostedAsync(
+            (output, resultJson) => OmaSnapArguments.Annotate(inputPath, output, resultJson, editor),
+            environment: null,
+            cancellationToken);
     }
 
+    /// <summary>
+    /// Starts a floating pin and returns once the process is running; the pin lives until the user
+    /// closes it. With <paramref name="uploadCommand"/>, the pin's Upload button runs that command.
+    /// Without it, hosted pins hide their upload control.
+    /// </summary>
     public bool StartPin(string imagePath, IReadOnlyList<string>? uploadCommand)
     {
-        var environment = new Dictionary<string, string?>
+        var startInfo = new ProcessStartInfo(ExecutablePath)
         {
-            [UploadCommandEnvironmentVariable] = uploadCommand is { Count: > 0 } ? JoinCommand(uploadCommand) : null
+            UseShellExecute = false,
+            RedirectStandardOutput = false,
+            RedirectStandardError = false,
+            CreateNoWindow = true
         };
-        return OmaSnapProcess.StartDetached(BinaryPath, ["--pin", imagePath], environment);
+
+        foreach (string argument in OmaSnapArguments.Pin(imagePath))
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        if (uploadCommand is { Count: > 0 })
+        {
+            startInfo.Environment[HostUploadCommandVariable] = FormatCommand(uploadCommand);
+        }
+        else
+        {
+            startInfo.Environment.Remove(HostUploadCommandVariable);
+        }
+
+        try
+        {
+            using Process? process = Process.Start(startInfo);
+            return process != null;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"OmaSnap: could not start pin ({ex.Message}).");
+            return false;
+        }
     }
 
-    public void Release(OmaSnapCaptureResult result)
+    /// <summary>Deletes result files that live in the runtime folder. Never touches other paths.</summary>
+    public void Release(HostedCaptureResult result)
     {
         if (string.IsNullOrEmpty(result.ImagePath))
         {
             return;
         }
 
-        string? folder = Path.GetDirectoryName(result.ImagePath);
-        if (folder == null || !IsUnderRuntimeRoot(folder))
-        {
-            return;
-        }
-
-        TryDeleteDirectory(folder);
+        TryDeleteInRuntimeFolder(result.ImagePath);
     }
 
-    private async Task<OmaSnapCaptureResult> RunHostedAsync(Func<string, IReadOnlyList<string>> buildArguments, CancellationToken cancellationToken)
+    /// <summary>
+    /// Joins argv for <c>OMASNAP_HOST_UPLOAD_COMMAND</c>, which OmaSnap splits with shell-like
+    /// quoting rules (no shell is involved). Arguments with spaces or quotes are double-quoted.
+    /// </summary>
+    internal static string FormatCommand(IReadOnlyList<string> argv)
     {
-        string folder = CreateRunFolder();
-        IReadOnlyList<string> arguments = buildArguments(folder);
-        string outputPath = Path.Combine(folder, OutputFileName);
-        string resultPath = Path.Combine(folder, ResultFileName);
-        DebugHelper.WriteLine($"OmaSnap: running {BinaryPath} {string.Join(' ', arguments)}");
+        var builder = new StringBuilder();
+        foreach (string argument in argv)
+        {
+            if (builder.Length > 0)
+            {
+                builder.Append(' ');
+            }
 
-        OmaSnapCaptureResult result;
+            bool needsQuotes = argument.Length == 0 || argument.Any(c => char.IsWhiteSpace(c) || c is '"' or '\'' or '\\');
+            if (!needsQuotes)
+            {
+                builder.Append(argument);
+                continue;
+            }
+
+            builder.Append('"');
+            foreach (char c in argument)
+            {
+                if (c is '"' or '\\')
+                {
+                    builder.Append('\\');
+                }
+
+                builder.Append(c);
+            }
+
+            builder.Append('"');
+        }
+
+        return builder.ToString();
+    }
+
+    private async Task<HostedCaptureResult> RunHostedAsync(
+        Func<string, string, IReadOnlyList<string>> buildArguments,
+        IReadOnlyDictionary<string, string?>? environment,
+        CancellationToken cancellationToken)
+    {
+        string folder;
         try
         {
-            // Hosted runs must never pick up an upload command from the user's environment.
-            var environment = new Dictionary<string, string?> { [UploadCommandEnvironmentVariable] = null };
-            var run = await OmaSnapProcess.RunAsync(BinaryPath, arguments, environment, timeout: null, cancellationToken).ConfigureAwait(false);
-            if (run.Cancelled)
-            {
-                result = new OmaSnapCaptureResult(OmaSnapOutcome.Cancelled);
-            }
-            else
-            {
-                string json = File.Exists(resultPath) ? await File.ReadAllTextAsync(resultPath, CancellationToken.None).ConfigureAwait(false) : string.Empty;
-                result = ParseResult(json, run.ExitCode, outputPath, run.StandardError);
-            }
+            folder = _runtimeFolder();
         }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException or InvalidOperationException)
+        catch (Exception ex)
         {
-            result = new OmaSnapCaptureResult(OmaSnapOutcome.Failed) { Error = $"Could not run omasnap: {ex.Message}" };
+            return HostedCaptureResult.Failed($"Cannot create the OmaSnap runtime folder ({ex.Message}).");
         }
 
-        if (result.Outcome != OmaSnapOutcome.Succeeded)
+        string id = Guid.NewGuid().ToString("N");
+        string outputPath = Path.Combine(folder, $"cap-{id}.png");
+        string resultPath = Path.Combine(folder, $"cap-{id}.json");
+        IReadOnlyList<string> arguments = buildArguments(outputPath, resultPath);
+
+        OmaSnapProcessResult process;
+        try
         {
-            TryDeleteDirectory(folder);
+            // Captures wait for the user: no timeout. Cancellation kills the process tree.
+            process = await OmaSnapProcessRunner.RunAsync(ExecutablePath, arguments, timeout: null, environment, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            TryDelete(outputPath);
+            TryDelete(resultPath);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            TryDelete(outputPath);
+            TryDelete(resultPath);
+            return HostedCaptureResult.Failed($"Could not run OmaSnap ({ex.Message}).");
+        }
+
+        string? json = null;
+        try
+        {
+            if (File.Exists(resultPath))
+            {
+                json = await File.ReadAllTextAsync(resultPath, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (IOException)
+        {
+            json = null;
+        }
+        finally
+        {
+            TryDelete(resultPath);
+        }
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            json = process.StandardOutput.Trim();
+        }
+
+        HostedCaptureResult result = OmaSnapResultParser.Parse(json, process.ExitCode, outputPath);
+        if (!result.IsOk)
+        {
+            TryDelete(outputPath);
+            if (result.Status == HostedCaptureStatus.Failed && !string.IsNullOrWhiteSpace(process.StandardError))
+            {
+                DebugHelper.WriteLine($"OmaSnap stderr: {process.StandardError.Trim()}");
+            }
         }
 
         return result;
     }
 
-    internal static IReadOnlyList<string> BuildCaptureArguments(OmaSnapCaptureRequest request, string outputPath, string resultPath)
-    {
-        var arguments = new List<string>(HostArguments(outputPath, resultPath));
-        if (request.Region is { IsValid: true } region)
-        {
-            // A fixed rectangle is a non-interactive region capture; it never opens the editor.
-            arguments.Add("--capture-region");
-            arguments.Add("--region");
-            arguments.Add(region.ToString());
-            return arguments;
-        }
-
-        switch (request.Target)
-        {
-            case OmaSnapCaptureTarget.Region:
-                arguments.Add("--capture-region");
-                break;
-            case OmaSnapCaptureTarget.Window:
-                arguments.Add("--capture-window");
-                break;
-            case OmaSnapCaptureTarget.Fullscreen:
-                arguments.Add("--capture-fullscreen");
-                break;
-            case OmaSnapCaptureTarget.Scroll:
-                arguments.Add("--scroll");
-                break;
-        }
-
-        if (request.OpenEditor && request.Target != OmaSnapCaptureTarget.Scroll)
-        {
-            arguments.Add("--editor");
-            arguments.Add("overlay");
-        }
-
-        return arguments;
-    }
-
-    internal static IReadOnlyList<string> BuildAnnotateArguments(string imagePath, string outputPath, string resultPath)
-    {
-        var arguments = new List<string>(HostArguments(outputPath, resultPath))
-        {
-            "--file",
-            imagePath,
-            "--editor",
-            "overlay"
-        };
-        return arguments;
-    }
-
-    private static IEnumerable<string> HostArguments(string outputPath, string resultPath)
-    {
-        yield return "--host";
-        yield return HostName;
-        yield return "--output";
-        yield return outputPath;
-        yield return "--result-json";
-        yield return resultPath;
-        yield return "--no-recents";
-    }
-
-    /// <summary>
-    /// Interprets a finished run. The result JSON is authoritative; the exit code covers a
-    /// process that died before reporting (0 ok, 2 usage, 3 cancelled, anything else failed).
-    /// </summary>
-    internal static OmaSnapCaptureResult ParseResult(string? json, int exitCode, string outputPath, string? standardError = null)
-    {
-        JsonElement root = default;
-        bool parsed = false;
-        JsonDocument? document = null;
-        try
-        {
-            string? line = FirstJsonLine(json);
-            if (line != null)
-            {
-                document = JsonDocument.Parse(line);
-                root = document.RootElement;
-                parsed = root.ValueKind == JsonValueKind.Object &&
-                         root.TryGetProperty("schemaVersion", out var schema) &&
-                         schema.ValueKind == JsonValueKind.Number &&
-                         schema.GetInt32() == 1;
-            }
-        }
-        catch (JsonException)
-        {
-            parsed = false;
-        }
-
-        try
-        {
-            if (!parsed)
-            {
-                return exitCode switch
-                {
-                    ExitCancelled => new OmaSnapCaptureResult(OmaSnapOutcome.Cancelled),
-                    ExitUsage => new OmaSnapCaptureResult(OmaSnapOutcome.Failed) { Error = Describe("omasnap rejected the arguments", standardError) },
-                    ExitOk => new OmaSnapCaptureResult(OmaSnapOutcome.Failed) { Error = "omasnap exited without a result." },
-                    _ => new OmaSnapCaptureResult(OmaSnapOutcome.Failed) { Error = Describe($"omasnap failed (exit code {exitCode})", standardError) }
-                };
-            }
-
-            string status = GetString(root, "status") ?? string.Empty;
-            if (status == "cancelled")
-            {
-                return new OmaSnapCaptureResult(OmaSnapOutcome.Cancelled);
-            }
-
-            if (status != "ok")
-            {
-                return new OmaSnapCaptureResult(OmaSnapOutcome.Failed) { Error = GetString(root, "error") ?? $"omasnap reported '{status}'." };
-            }
-
-            string path = GetString(root, "path") ?? outputPath;
-            if (!File.Exists(path))
-            {
-                return new OmaSnapCaptureResult(OmaSnapOutcome.Failed) { Error = $"omasnap reported success but {path} does not exist." };
-            }
-
-            string? windowClass = null;
-            string? windowTitle = null;
-            if (root.TryGetProperty("window", out var window) && window.ValueKind == JsonValueKind.Object)
-            {
-                windowClass = GetString(window, "class");
-                windowTitle = GetString(window, "title");
-            }
-
-            OmaSnapRegion? region = null;
-            if (root.TryGetProperty("region", out var regionElement) && regionElement.ValueKind == JsonValueKind.Object)
-            {
-                region = new OmaSnapRegion(GetInt(regionElement, "x"), GetInt(regionElement, "y"), GetInt(regionElement, "width"), GetInt(regionElement, "height"));
-            }
-
-            return new OmaSnapCaptureResult(OmaSnapOutcome.Succeeded)
-            {
-                ImagePath = path,
-                WindowClass = string.IsNullOrWhiteSpace(windowClass) ? null : windowClass,
-                WindowTitle = string.IsNullOrWhiteSpace(windowTitle) ? null : windowTitle,
-                Region = region,
-                Scale = root.TryGetProperty("scale", out var scale) && scale.ValueKind == JsonValueKind.Number ? scale.GetDouble() : 1.0,
-                Monitor = GetString(root, "monitor"),
-                Annotated = root.TryGetProperty("annotated", out var annotated) && annotated.ValueKind == JsonValueKind.True
-            };
-        }
-        finally
-        {
-            document?.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// Private runtime folder: $XDG_RUNTIME_DIR/xerahs/omasnap, or /tmp/xerahs-USER/omasnap.
-    /// </summary>
-    internal static string ResolveRuntimeRoot(Func<string, string?> getEnvironmentVariable)
-    {
-        string? runtimeDir = getEnvironmentVariable("XDG_RUNTIME_DIR");
-        if (!string.IsNullOrWhiteSpace(runtimeDir) && Path.IsPathRooted(runtimeDir))
-        {
-            return Path.Combine(runtimeDir, "xerahs", "omasnap");
-        }
-
-        string user = getEnvironmentVariable("USER") ?? Environment.UserName;
-        return Path.Combine(Path.GetTempPath(), $"xerahs-{user}", "omasnap");
-    }
-
-    /// <summary>Joins argv back into the quoted form omasnap splits (OMASNAP_HOST_UPLOAD_COMMAND).</summary>
-    internal static string JoinCommand(IReadOnlyList<string> command)
-    {
-        return string.Join(' ', command.Select(QuoteArgument));
-    }
-
-    private static string QuoteArgument(string argument)
-    {
-        if (argument.Length > 0 && argument.All(c => char.IsLetterOrDigit(c) || "/._-=:+@,".Contains(c)))
-        {
-            return argument;
-        }
-
-        return "'" + argument.Replace("'", "'\\''", StringComparison.Ordinal) + "'";
-    }
-
-    private string CreateRunFolder()
-    {
-        string? parent = Path.GetDirectoryName(_runtimeRoot);
-        if (!string.IsNullOrEmpty(parent) && !Directory.Exists(parent))
-        {
-            CreatePrivateDirectory(parent);
-        }
-
-        CreatePrivateDirectory(_runtimeRoot);
-        string folder = Path.Combine(_runtimeRoot, Guid.NewGuid().ToString("N"));
-        CreatePrivateDirectory(folder);
-        return folder;
-    }
-
-    private static void CreatePrivateDirectory(string path)
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            Directory.CreateDirectory(path);
-        }
-        else
-        {
-            Directory.CreateDirectory(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        }
-    }
-
-    private bool IsUnderRuntimeRoot(string folder)
-    {
-        string root = Path.GetFullPath(_runtimeRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-        return Path.GetFullPath(folder).StartsWith(root, StringComparison.Ordinal);
-    }
-
-    private static void TryDeleteDirectory(string folder)
+    private void TryDeleteInRuntimeFolder(string path)
     {
         try
         {
-            if (Directory.Exists(folder))
+            string folder = Path.GetFullPath(_runtimeFolder());
+            string full = Path.GetFullPath(path);
+            if (full.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             {
-                Directory.Delete(folder, recursive: true);
+                TryDelete(full);
             }
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch
         {
-            DebugHelper.WriteLine($"OmaSnap: could not delete runtime folder {folder}: {ex.Message}");
+            // Cleanup is best effort.
         }
     }
 
-    private static string? FirstJsonLine(string? text)
+    private static void TryDelete(string path)
     {
-        if (string.IsNullOrWhiteSpace(text))
+        try
         {
-            return null;
-        }
-
-        foreach (string line in text.Split('\n'))
-        {
-            string trimmed = line.Trim();
-            if (trimmed.StartsWith('{'))
+            if (File.Exists(path))
             {
-                return trimmed;
+                File.Delete(path);
             }
         }
-
-        return null;
-    }
-
-    private static string Describe(string message, string? standardError)
-    {
-        string? detail = standardError?
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .LastOrDefault();
-        return string.IsNullOrWhiteSpace(detail) ? message + "." : $"{message}: {detail}";
-    }
-
-    private static string? GetString(JsonElement element, string name)
-    {
-        return element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
-    }
-
-    private static int GetInt(JsonElement element, string name)
-    {
-        return element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetInt32() : 0;
+        catch
+        {
+            // Cleanup is best effort.
+        }
     }
 }

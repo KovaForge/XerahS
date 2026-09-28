@@ -122,9 +122,17 @@ namespace XerahS.Core.Tasks.Processors
             // Annotation should happen BEFORE save, so the saved file includes annotations
             if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnnotateMedia))
             {
-                if (info.Metadata?.Image != null && await TryAnnotateWithOmaSnapAsync(info, settings))
+                // OmaSnap editor on Hyprland when selected in settings (XIP0088); otherwise the XerahS editor.
+                var hostedAnnotation = info.Metadata?.Image != null
+                    ? await HostedEditorAndPinService.TryAnnotateAsync(info.Metadata.Image, token)
+                    : (Handled: false, Annotated: null);
+                if (hostedAnnotation.Handled)
                 {
-                    // OmaSnap editor handled it (XIP0088).
+                    if (hostedAnnotation.Annotated != null)
+                    {
+                        info.Metadata!.Image!.Dispose();
+                        info.Metadata.Image = hostedAnnotation.Annotated;
+                    }
                 }
                 else if (info.Metadata?.Image != null && PlatformServices.UI != null)
                 {
@@ -228,9 +236,16 @@ namespace XerahS.Core.Tasks.Processors
                 {
                     try
                     {
-                        var options = SettingsManager.DefaultTaskSettings?.ToolsSettings?.PinToScreenOptions ?? new PinToScreenOptions();
-                        await PinToScreenCallback(info.Metadata.Image, null, options);
-                        DebugHelper.WriteLine("PinToScreen: image pinned to desktop.");
+                        if (await HostedEditorAndPinService.TryPinAsync(info.Metadata.Image, token))
+                        {
+                            DebugHelper.WriteLine("PinToScreen: image pinned with OmaSnap.");
+                        }
+                        else
+                        {
+                            var options = SettingsManager.DefaultTaskSettings?.ToolsSettings?.PinToScreenOptions ?? new PinToScreenOptions();
+                            await PinToScreenCallback(info.Metadata.Image, null, options);
+                            DebugHelper.WriteLine("PinToScreen: image pinned to desktop.");
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -409,78 +424,6 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// XIP0088: the Linux "OmaSnap editor" choice opens the capture in OmaSnap's editor and
-        /// continues with the flattened result. Returns false to use the XerahS editor instead
-        /// (another editor chosen, OmaSnap unavailable, or OmaSnap failed). A cancelled OmaSnap
-        /// edit keeps the capture unchanged, like closing the XerahS editor.
-        /// </summary>
-        private static async Task<bool> TryAnnotateWithOmaSnapAsync(TaskInfo info, TaskSettings settings)
-        {
-            var omaSnap = PlatformServices.OmaSnap;
-            if (!OperatingSystem.IsLinux() ||
-                settings.CaptureSettings?.LinuxAnnotationEditor != LinuxAnnotationEditor.OmaSnap ||
-                omaSnap == null ||
-                !omaSnap.Status.IsAvailable ||
-                info.Metadata?.Image == null)
-            {
-                return false;
-            }
-
-            string input = Path.Combine(Path.GetTempPath(), $"xerahs-annotate-{Guid.NewGuid():N}.png");
-            try
-            {
-                using (var data = info.Metadata.Image.Encode(SKEncodedImageFormat.Png, 100))
-                await using (var stream = File.Create(input))
-                {
-                    data.SaveTo(stream);
-                }
-
-                OmaSnapCaptureResult result = await omaSnap.AnnotateAsync(input).ConfigureAwait(false);
-                try
-                {
-                    switch (result.Outcome)
-                    {
-                        case OmaSnapOutcome.Cancelled:
-                            DebugHelper.WriteLine("OmaSnap editor: closed without changes.");
-                            return true;
-                        case OmaSnapOutcome.Succeeded when result.ImagePath != null:
-                            SKBitmap? annotated = SKBitmap.Decode(result.ImagePath);
-                            if (annotated == null)
-                            {
-                                return false;
-                            }
-
-                            info.Metadata.Image.Dispose();
-                            info.Metadata.Image = annotated;
-                            return true;
-                        default:
-                            DebugHelper.WriteLine($"OmaSnap editor: {result.Outcome} ({result.Error ?? "no detail"}); opening the XerahS editor.");
-                            return false;
-                    }
-                }
-                finally
-                {
-                    omaSnap.Release(result);
-                }
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                DebugHelper.WriteLine($"OmaSnap editor: could not prepare the capture ({ex.Message}); opening the XerahS editor.");
-                return false;
-            }
-            finally
-            {
-                try
-                {
-                    File.Delete(input);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                }
-            }
         }
 
         private static async Task<string?> SaveAnnotationSidecarAsync(TaskInfo info, ImageEditorSessionResult? editorResult)
@@ -873,14 +816,6 @@ namespace XerahS.Core.Tasks.Processors
                     GenericUploader genericUploader => UploadWithGenericUploader(genericUploader, filePath),
                     _ => null
                 };
-            }
-            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
-            {
-                // The file vanished between queueing and upload (moved or deleted by the program
-                // that handed it over): report it plainly instead of logging a stack trace.
-                string missingMessage = $"The file to upload no longer exists: {(ex as FileNotFoundException)?.FileName ?? ex.Message}";
-                DebugHelper.WriteLine($"Upload failed for {instance.DisplayName}: {missingMessage}");
-                return new UploadResult { IsSuccess = false, Response = missingMessage };
             }
             catch (Exception ex)
             {

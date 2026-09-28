@@ -111,7 +111,23 @@ namespace XerahS.Core.Tasks.Processors
             return true;
         }
 
-        private Task<UploadResult?> UploadAsync(TaskInfo info, CancellationToken token)
+        private async Task<UploadResult?> UploadAsync(TaskInfo info, CancellationToken token)
+        {
+            if ((info.DataType is EDataType.Image or EDataType.File) && !string.IsNullOrEmpty(info.FilePath))
+            {
+                FileReadinessStatus readiness = await FileReadiness.WaitUntilReadyAsync(info.FilePath, cancellationToken: token).ConfigureAwait(false);
+                if (readiness != FileReadinessStatus.Ready)
+                {
+                    string message = FileReadiness.Describe(readiness, info.FilePath);
+                    DebugHelper.WriteLine($"[UploadTrace {info.CorrelationId}] Upload skipped: {message}");
+                    return new UploadResult { IsSuccess = false, Response = message };
+                }
+            }
+
+            return await StartUploadAsync(info, token).ConfigureAwait(false);
+        }
+
+        private Task<UploadResult?> StartUploadAsync(TaskInfo info, CancellationToken token)
         {
             try
             {

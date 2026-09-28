@@ -31,72 +31,56 @@ using XerahS.Platform.Linux.Capture.Contracts;
 namespace XerahS.Platform.Linux.Capture.OmaSnap;
 
 /// <summary>
-/// OmaSnap as a provider in the Linux capture waterfall (stage <see cref="LinuxCaptureStage.OmaSnap"/>),
-/// so interactive region captures show up in the decision trace as
-/// <c>stage=OmaSnap, provider=omasnap, outcome=…</c>. The policy only puts this stage first when
-/// <see cref="IOmaSnapService.ShouldHandle"/> agrees; a failure falls through to the existing
-/// chain and a user cancel stays a cancel.
+/// Capture provider for the Linux capture coordinator: region captures through OmaSnap host mode.
+/// Appears in the decision trace as <c>stage=OmaSnap, provider=omasnap</c>. The policy schedules it
+/// only for the explicit OmaSnap selector; it declines when the probe has not accepted OmaSnap.
 /// </summary>
 internal sealed class OmaSnapCaptureStrategy : ILinuxCaptureProvider
 {
-    public const string Id = "omasnap";
+    private readonly IHostedCaptureEngine _engine;
 
-    private readonly Func<IOmaSnapService?> _service;
-
-    public OmaSnapCaptureStrategy()
-        : this(() => PlatformServices.OmaSnap)
+    public OmaSnapCaptureStrategy(IHostedCaptureEngine engine)
     {
+        _engine = engine;
     }
 
-    internal OmaSnapCaptureStrategy(Func<IOmaSnapService?> service)
-    {
-        _service = service;
-    }
-
-    public string ProviderId => Id;
+    public string ProviderId => OmaSnapCaptureEngine.Id;
 
     public LinuxCaptureStage Stage => LinuxCaptureStage.OmaSnap;
 
     public bool CanHandle(LinuxCaptureRequest request, ILinuxCaptureContext context)
     {
-        // Full-screen and window requests also serve internal crop flows across all monitors,
-        // which OmaSnap (focused monitor only) must not answer.
         return request.Kind == LinuxCaptureKind.Region &&
-               !context.IsSandboxed &&
-               _service()?.ShouldHandle(request.SelectorPreference) == true;
+            context.IsWayland &&
+            !context.IsSandboxed &&
+            request.Options?.LinuxSkipHostedCaptureEngine != true;
     }
 
-    public async Task<LinuxCaptureResult> TryCaptureAsync(LinuxCaptureRequest request, ILinuxCaptureContext context, CancellationToken cancellationToken = default)
+    public async Task<LinuxCaptureResult> TryCaptureAsync(
+        LinuxCaptureRequest request,
+        ILinuxCaptureContext context,
+        CancellationToken cancellationToken = default)
     {
-        IOmaSnapService? service = _service();
-        if (service == null)
-        {
-            return LinuxCaptureResult.Failure(Id);
-        }
+        HostedCaptureResult result = await _engine.CaptureAsync(new HostedCaptureRequest(HostedCaptureTarget.Smart), cancellationToken)
+            .ConfigureAwait(false);
 
-        OmaSnapCaptureResult result = await service.CaptureAsync(new OmaSnapCaptureRequest(OmaSnapCaptureTarget.Smart), cancellationToken).ConfigureAwait(false);
         try
         {
-            switch (result.Outcome)
+            switch (result.Status)
             {
-                case OmaSnapOutcome.Cancelled:
-                    return LinuxCaptureResult.Cancelled(Id);
-                case OmaSnapOutcome.Succeeded when result.ImagePath != null:
+                case HostedCaptureStatus.Cancelled:
+                    return LinuxCaptureResult.Cancelled(ProviderId);
+                case HostedCaptureStatus.Ok when result.ImagePath != null:
                     SKBitmap? bitmap = SKBitmap.Decode(result.ImagePath);
-                    if (bitmap != null)
-                    {
-                        return LinuxCaptureResult.Success(Id, bitmap);
-                    }
-
-                    DebugHelper.WriteLine($"OmaSnap: could not decode {result.ImagePath}.");
-                    return LinuxCaptureResult.Failure(Id);
+                    return bitmap != null ? LinuxCaptureResult.Success(ProviderId, bitmap) : LinuxCaptureResult.Failure(ProviderId);
                 default:
-                    return LinuxCaptureResult.Failure(Id);
+                    DebugHelper.WriteLine($"OmaSnapCaptureStrategy: {result.Status}: {result.Error}");
+                    return LinuxCaptureResult.Failure(ProviderId);
             }
         }
         finally
         {
-            service.Release(result);
+            _engine.Release(result);
         }
     }
 }

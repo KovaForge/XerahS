@@ -292,7 +292,38 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IUpload
 
         try
         {
-            string xml = await SendSignedGetAsync(host, canonicalUri, canonicalQs, region, ak, sk, st, cancellation);
+            string xml;
+            try
+            {
+                xml = await SendSignedGetAsync(host, canonicalUri, canonicalQs, region, ak, sk, st, cancellation);
+            }
+            catch (S3RequestException ex) when (ex.Redirect != null)
+            {
+                // Follow S3's region hint once (PermanentRedirect / wrong signing region) and
+                // otherwise tell the user which region/endpoint to configure.
+                string? redirectRegion = ex.Redirect.Region ?? S3ExplorerListHelper.RegionFromEndpoint(ex.Redirect.EndpointHost);
+                bool isAws = endpoint.Contains("amazonaws.com", StringComparison.OrdinalIgnoreCase);
+                if (!isAws || string.IsNullOrWhiteSpace(redirectRegion) ||
+                    string.Equals(redirectRegion, region, StringComparison.OrdinalIgnoreCase) && ex.Redirect.EndpointHost == null)
+                {
+                    throw new InvalidOperationException(
+                        S3ExplorerListHelper.BuildWrongRegionMessage(config.BucketName, ex.Redirect, ex.Message), ex);
+                }
+
+                string regionalEndpoint = $"s3.{redirectRegion}.amazonaws.com";
+                string redirectedHost = pathStyle ? regionalEndpoint : $"{config.BucketName}.{regionalEndpoint}";
+                DebugHelper.WriteLine($"Amazon S3 explorer: bucket '{config.BucketName}' is in region '{redirectRegion}'; retrying via {redirectedHost}.");
+                try
+                {
+                    xml = await SendSignedGetAsync(redirectedHost, canonicalUri, canonicalQs, redirectRegion, ak, sk, st, cancellation);
+                }
+                catch (S3RequestException retryEx) when (retryEx.Redirect != null)
+                {
+                    throw new InvalidOperationException(
+                        S3ExplorerListHelper.BuildWrongRegionMessage(config.BucketName, retryEx.Redirect, retryEx.Message), retryEx);
+                }
+            }
+
             return ParseListObjectsXml(xml, config);
         }
         catch (InvalidOperationException ex) when (S3ExplorerListHelper.IsListBucketDenied(ex.Message))
@@ -569,37 +600,24 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IUpload
             return body;
         }
 
-        if (S3ExplorerListHelper.IsWrongRegionResponse((int)response.StatusCode, body))
+        string? bucketRegion = response.Headers.TryGetValues("x-amz-bucket-region", out var regionValues)
+            ? regionValues.FirstOrDefault()
+            : null;
+        throw new S3RequestException(
+            BuildS3ErrorMessage(response, body),
+            S3ExplorerListHelper.TryParseRegionRedirect(body, bucketRegion));
+    }
+
+    /// <summary>S3 error carrying the bucket's real region when S3 says it lives elsewhere.</summary>
+    private sealed class S3RequestException : InvalidOperationException
+    {
+        public S3RequestException(string message, S3RegionRedirect? redirect)
+            : base(message)
         {
-            string? bucketRegion = response.Headers.TryGetValues("x-amz-bucket-region", out var regionValues)
-                ? regionValues.FirstOrDefault()
-                : null;
-
-            // Follow the region hint once for AWS hosts; otherwise explain what to change.
-            string? redirectedHost = string.IsNullOrWhiteSpace(bucketRegion) ||
-                                     string.Equals(bucketRegion, region, StringComparison.OrdinalIgnoreCase)
-                ? null
-                : S3ExplorerListHelper.TryRewriteAwsHostForRegion(host, bucketRegion);
-            if (redirectedHost != null)
-            {
-                DebugHelper.WriteLine($"S3 Media Explorer: bucket is in {bucketRegion}, not {region}; retrying with {redirectedHost}.");
-                using var retry = BuildSignedRequest("GET", redirectedHost, canonicalUri, canonicalQs, bucketRegion!, ak, sk, st);
-                using var retryResponse = await ExplorerHttpClient.SendAsync(retry, cancellation);
-                string retryBody = await retryResponse.Content.ReadAsStringAsync(cancellation);
-                if (retryResponse.IsSuccessStatusCode)
-                {
-                    return retryBody;
-                }
-            }
-
-            throw new InvalidOperationException(S3ExplorerListHelper.BuildWrongRegionMessage(
-                region,
-                bucketRegion,
-                S3ExplorerListHelper.GetErrorElement(body, "Endpoint"),
-                BuildS3ErrorMessage(response, body)));
+            Redirect = redirect;
         }
 
-        throw new InvalidOperationException(BuildS3ErrorMessage(response, body));
+        public S3RegionRedirect? Redirect { get; }
     }
 
     private static SysHttpRequestMessage BuildSignedRequest(string method, string host,

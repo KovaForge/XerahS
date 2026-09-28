@@ -44,11 +44,7 @@ public sealed record LinuxRegionSelectorDiagnostics(
     string PortalBackendSummary,
     LinuxInteractiveRegionSelectorPreference AutomaticPreference,
     IReadOnlyList<LinuxInteractiveRegionSelectorPreference> AvailablePreferences,
-    LinuxRegionSelectorRuntimeDecision? LastDecision = null)
-{
-    /// <summary>OmaSnap probe result for display (XIP0088), e.g. "OmaSnap 1.22.0 · Hyprland · ready".</summary>
-    public string? OmaSnapSummary { get; init; }
-}
+    LinuxRegionSelectorRuntimeDecision? LastDecision = null);
 
 public interface ILinuxRegionSelectorDiagnosticsProvider
 {

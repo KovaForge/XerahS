@@ -144,8 +144,19 @@ namespace XerahS.App
                 {
                     ValidateLinuxDisplayEnvironment();
                     ClearX11SessionManagement();
-                    if (!EnsureLinuxDisplayUsable())
+
+                    // Avalonia renders through X11/XWayland. On pure Wayland autostart, wait briefly for
+                    // XWayland and adopt its socket when DISPLAY is unset (XIP0088 Phase 0 item 6).
+                    var displayResult = LinuxDisplayBootstrap.EnsureDisplay();
+                    XerahS.Common.DebugHelper.WriteLine($"Linux display: {displayResult.Message}");
+                    if (!displayResult.Usable)
                     {
+                        string message = LinuxDisplayBootstrap.BuildUserMessage(displayResult);
+                        XerahS.Common.DebugHelper.WriteLine($"Startup stopped: {message}");
+                        XerahS.Common.DebugHelper.Flush();
+                        Console.Error.WriteLine(message);
+                        LinuxDisplayBootstrap.NotifyStartupFailure(message);
+                        Environment.ExitCode = 1;
                         return;
                     }
                 }
@@ -164,11 +175,23 @@ namespace XerahS.App
             }
             catch (Exception ex)
             {
-                XerahS.Common.DebugHelper.WriteException(ex, "Critical application startup failure");
-                XerahS.Common.DebugHelper.Flush();
-
                 // Provide helpful guidance for common Linux display issues
                 bool isLinuxDisplayError = IsLinuxDisplayError(ex);
+                if (isLinuxDisplayError)
+                {
+                    // Environment problem, not a bug: one readable line plus a desktop notification.
+                    string displayMessage = LinuxDisplayBootstrap.BuildUserMessage(
+                        new LinuxDisplayBootstrap.Result(false, Environment.GetEnvironmentVariable("DISPLAY"), false, ex.Message + "."));
+                    XerahS.Common.DebugHelper.WriteLine($"Startup stopped: {displayMessage}");
+                    LinuxDisplayBootstrap.NotifyStartupFailure(displayMessage);
+                }
+                else
+                {
+                    XerahS.Common.DebugHelper.WriteException(ex, "Critical application startup failure");
+                }
+
+                XerahS.Common.DebugHelper.Flush();
+
                 if (isLinuxDisplayError)
                 {
                     Console.Error.WriteLine("\n" + new string('=', 70));
@@ -425,63 +448,6 @@ namespace XerahS.App
             return System.IO.Path.Combine(xdgRuntimeDir, socketName);
         }
 
-        /// <summary>
-        /// Waits briefly for XWayland at autostart, and exits with a readable message (stderr and a
-        /// desktop notification, since there is no tray yet) when no usable X display exists,
-        /// instead of crashing inside the UI toolkit with "XOpenDisplay failed".
-        /// </summary>
-        private static bool EnsureLinuxDisplayUsable()
-        {
-            string? display = Environment.GetEnvironmentVariable("DISPLAY");
-            string? waylandDisplay = Environment.GetEnvironmentVariable("WAYLAND_DISPLAY");
-            var state = XerahS.Common.LinuxDisplayReadiness.Evaluate(display, waylandDisplay, System.IO.File.Exists);
-            if (state == XerahS.Common.LinuxDisplayState.WaitingForX11)
-            {
-                XerahS.Common.DebugHelper.WriteLine($"Display: waiting for the X server socket for DISPLAY={display} (XWayland may still be starting).");
-                state = XerahS.Common.LinuxDisplayReadiness.WaitForX11(display, waylandDisplay, XerahS.Common.LinuxDisplayReadiness.DefaultX11WaitTimeout);
-            }
-
-            if (state == XerahS.Common.LinuxDisplayState.Ready || state == XerahS.Common.LinuxDisplayState.NoDisplay)
-            {
-                // NoDisplay keeps the historical behaviour (the toolkit reports it below).
-                return true;
-            }
-
-            string message = XerahS.Common.LinuxDisplayReadiness.DescribeProblem(state, display);
-            XerahS.Common.DebugHelper.WriteLine($"Display: {message}");
-            XerahS.Common.DebugHelper.Flush();
-            Console.Error.WriteLine(message);
-            TrySendStartupFailureNotification(message);
-            return false;
-        }
-
-        private static void TrySendStartupFailureNotification(string message)
-        {
-            foreach (string program in new[] { "omarchy-notification-send", "notify-send" })
-            {
-                try
-                {
-                    var startInfo = new System.Diagnostics.ProcessStartInfo(program)
-                    {
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true
-                    };
-                    startInfo.ArgumentList.Add("XerahS");
-                    startInfo.ArgumentList.Add(message);
-                    using var process = System.Diagnostics.Process.Start(startInfo);
-                    if (process != null && process.WaitForExit(3000) && process.ExitCode == 0)
-                    {
-                        return;
-                    }
-                }
-                catch (Exception)
-                {
-                    // Try the next notifier; a missing tool is expected.
-                }
-            }
-        }
-
         private static string? GetX11SocketPath(string? displayVar)
         {
             if (string.IsNullOrWhiteSpace(displayVar))
@@ -541,16 +507,22 @@ namespace XerahS.App
             {
                 try
                 {
-                    switch (XerahS.Common.UnobservedTaskExceptionPolicy.Classify(eventArgs.Exception))
+                    bool isIgnorableAvaloniaDbusException = 
+                        eventArgs.Exception?.InnerException != null &&
+                        eventArgs.Exception.InnerException.GetType().FullName == "Tmds.DBus.Protocol.DBusException" &&
+                        eventArgs.Exception.InnerException.Message.Contains("ServiceUnknown");
+
+                    if (!isIgnorableAvaloniaDbusException &&
+                        XerahS.Common.DBusExceptionClassifier.IsConnectionGone(eventArgs.Exception))
                     {
-                        case XerahS.Common.UnobservedTaskExceptionPolicy.Disposition.Error:
-                            XerahS.Common.DebugHelper.WriteException(eventArgs.Exception!, "Unobserved task exception");
-                            XerahS.Common.DebugHelper.Flush();
-                            break;
-                        case XerahS.Common.UnobservedTaskExceptionPolicy.Disposition.Informational:
-                            XerahS.Common.DebugHelper.WriteLine(
-                                $"D-Bus connection closed while a background task was running ({eventArgs.Exception?.GetBaseException().Message}).");
-                            break;
+                        // The session bus or a portal went away (logout, portal restart). Expected; not an error.
+                        XerahS.Common.DebugHelper.WriteLine(
+                            $"Unobserved D-Bus task ended after the connection closed: {XerahS.Common.DBusExceptionClassifier.Describe(eventArgs.Exception!)}");
+                    }
+                    else if (!isIgnorableAvaloniaDbusException)
+                    {
+                        XerahS.Common.DebugHelper.WriteException(eventArgs.Exception!, "Unobserved task exception");
+                        XerahS.Common.DebugHelper.Flush();
                     }
                 }
                 catch
@@ -610,6 +582,8 @@ namespace XerahS.App
             if (OperatingSystem.IsLinux())
             {
                 XerahS.Common.DebugHelper.WriteLine("Linux: Initializing platform services");
+                XerahS.Platform.Linux.Services.LinuxDesktopProfile.ConfigureOmaSnapPathOverride(
+                    XerahS.Core.SettingsManager.Settings?.LinuxOmaSnapPathOverride);
                 var linuxCaptureService = new XerahS.Platform.Linux.LinuxScreenCaptureService();
                 var uiCaptureService = new XerahS.UI.Services.ScreenCaptureService(linuxCaptureService);
 
@@ -889,17 +863,10 @@ namespace XerahS.App
                 return;
             }
 
-            if (AppContracts.Cli.TryGetRunWorkflowTarget(args, out string workflowTarget))
+            // Hyprland keybinding trigger (XIP0088): run like a hotkey, never raise the main window.
+            if (AppContracts.Cli.TryGetRunWorkflowId(args, out string runWorkflowId))
             {
-                // Hyprland keybindings and agents call this for every key press: run the workflow
-                // like a hotkey would and leave the main window where it is.
-                Avalonia.Threading.Dispatcher.UIThread.Post(() => RunRelayedWorkflow(workflowTarget, "secondary-instance"));
-                return;
-            }
-
-            if (AppContracts.Cli.TryGetCaptureTarget(args, out string captureTarget))
-            {
-                Avalonia.Threading.Dispatcher.UIThread.Post(() => RunRelayedCapture(captureTarget, "secondary-instance"));
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => RunWorkflowFromAutomation(runWorkflowId));
                 return;
             }
 
@@ -949,41 +916,6 @@ namespace XerahS.App
         /// Picks up WorkflowsConfig changes written by automation (omaxerahs) while the app is running,
         /// so the next save does not overwrite them and hotkeys/menus reflect the new state.
         /// </summary>
-        private static async void RunRelayedWorkflow(string workflowTarget, string source)
-        {
-            try
-            {
-                if (Avalonia.Application.Current is not XerahS.UI.App app)
-                {
-                    return;
-                }
-
-                if (!await app.RunWorkflowAsync(workflowTarget))
-                {
-                    XerahS.Common.DebugHelper.WriteLine($"Run workflow ({source}): '{workflowTarget}' did not match a workflow.");
-                }
-            }
-            catch (Exception ex)
-            {
-                XerahS.Common.DebugHelper.WriteException(ex, $"Failed to run workflow '{workflowTarget}' ({source})");
-            }
-        }
-
-        private static async void RunRelayedCapture(string captureTarget, string source)
-        {
-            try
-            {
-                if (Avalonia.Application.Current is XerahS.UI.App app && !await app.RunCaptureAsync(captureTarget))
-                {
-                    XerahS.Common.DebugHelper.WriteLine($"Capture ({source}): '{captureTarget}' could not start.");
-                }
-            }
-            catch (Exception ex)
-            {
-                XerahS.Common.DebugHelper.WriteException(ex, $"Failed to run capture '{captureTarget}' ({source})");
-            }
-        }
-
         private static void ReloadWorkflowsFromDisk()
         {
             try
@@ -1002,6 +934,22 @@ namespace XerahS.App
             }
         }
 
+        private static void RunWorkflowFromAutomation(string workflowId)
+        {
+            try
+            {
+                XerahS.Core.Hotkeys.WorkflowSettings workflow = XerahS.Core.Automation.WorkflowAutomation.FindWorkflow(workflowId);
+                if (Avalonia.Application.Current is not XerahS.UI.App app || !app.TryRunWorkflow(workflow))
+                {
+                    XerahS.Common.DebugHelper.WriteLine($"Workflow run '{workflowId}' ignored: workflows are not initialized yet.");
+                }
+            }
+            catch (XerahS.Core.Automation.AutomationException ex)
+            {
+                XerahS.Common.DebugHelper.WriteLine($"Workflow run '{workflowId}' rejected: {ex.Message}");
+            }
+        }
+
         private static void ProcessIncomingArguments(string[]? args, string source)
         {
             if (args == null || args.Length == 0)
@@ -1009,15 +957,10 @@ namespace XerahS.App
                 return;
             }
 
-            if (AppContracts.Cli.TryGetRunWorkflowTarget(args, out string workflowTarget))
+            if (AppContracts.Cli.TryGetRunWorkflowId(args, out string runWorkflowId))
             {
-                RunRelayedWorkflow(workflowTarget, source);
-                return;
-            }
-
-            if (AppContracts.Cli.TryGetCaptureTarget(args, out string captureTarget))
-            {
-                RunRelayedCapture(captureTarget, source);
+                // XerahS was started by "omaxerahs workflow run" because it was not running.
+                RunWorkflowFromAutomation(runWorkflowId);
                 return;
             }
 
@@ -1306,13 +1249,6 @@ namespace XerahS.App
 
                 foreach (string file in files)
                 {
-                    var check = await XerahS.Common.HandoffFileGate.WaitForReadyAsync(file).ConfigureAwait(false);
-                    if (!check.IsReady)
-                    {
-                        XerahS.Common.DebugHelper.WriteLine($"Shell integration: skipped upload. {check.Describe()}");
-                        continue;
-                    }
-
                     TaskSettings settings = CreateFileUploadTaskSettings();
                     settings.Job = WorkflowType.FileUpload;
                     await taskManager.StartFileTask(settings, file);

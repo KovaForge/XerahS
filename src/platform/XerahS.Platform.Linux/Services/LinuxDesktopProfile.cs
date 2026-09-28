@@ -23,118 +23,191 @@
 
 #endregion License Information (GPL v3)
 
+using XerahS.Common;
+using XerahS.Platform.Abstractions;
 using XerahS.Platform.Linux.Capture.OmaSnap;
 
 namespace XerahS.Platform.Linux.Services;
 
-/// <summary>
-/// The one source of truth for "what kind of Linux desktop is this" (XIP0088): Omarchy,
-/// Hyprland, sandboxing and the cached OmaSnap capability probe. Omarchy detection used to live
-/// in three places (os-release, the agent skill bootstrapper and the Omarchy plugin).
-/// A capability probe, never a distro string, decides whether OmaSnap is used:
-/// <see cref="IsOmarchyLike"/> needs a live Hyprland session and a passing probe.
-/// </summary>
-public sealed class LinuxDesktopProfile
+/// <summary>Environment facts behind <see cref="LinuxDesktopProfile"/>; detected without running any process.</summary>
+internal sealed record LinuxDesktopFacts(
+    bool IsWayland,
+    bool IsHyprland,
+    bool IsOmarchy,
+    bool IsSandboxed,
+    string? Desktop)
 {
-    private static readonly Lazy<LinuxDesktopProfile> CurrentProfile = new(Detect);
-    private volatile OmaSnapCapabilities? _omaSnap;
-    private volatile bool _omaSnapProbed;
-
-    private LinuxDesktopProfile(bool isOmarchy, bool isHyprland, bool isSandboxed, string? distroId, string? omarchyPath)
+    public static LinuxDesktopFacts Detect(Func<string, string?> getEnvironment, Func<string, bool> directoryExists, Func<string, bool> fileExists)
     {
-        IsOmarchy = isOmarchy;
-        IsHyprland = isHyprland;
-        IsSandboxed = isSandboxed;
-        DistroId = distroId;
-        OmarchyPath = omarchyPath;
+        bool isWayland =
+            string.Equals(getEnvironment("XDG_SESSION_TYPE"), "wayland", StringComparison.OrdinalIgnoreCase) ||
+            !string.IsNullOrEmpty(getEnvironment("WAYLAND_DISPLAY"));
+        bool isHyprland = !string.IsNullOrWhiteSpace(getEnvironment("HYPRLAND_INSTANCE_SIGNATURE"));
+        bool isOmarchy = !string.IsNullOrWhiteSpace(getEnvironment("OMARCHY_PATH")) || directoryExists("/usr/share/omarchy");
+        bool isSandboxed =
+            !string.IsNullOrEmpty(getEnvironment("FLATPAK_ID")) || fileExists("/.flatpak-info") ||
+            !string.IsNullOrEmpty(getEnvironment("SNAP"));
+        string? desktop = getEnvironment("XDG_CURRENT_DESKTOP");
+        return new LinuxDesktopFacts(isWayland, isHyprland, isOmarchy, isSandboxed, desktop);
     }
 
-    /// <summary>Profile of the running session, detected once.</summary>
+    public static LinuxDesktopFacts DetectCurrent() =>
+        Detect(Environment.GetEnvironmentVariable, Directory.Exists, File.Exists);
+}
+
+/// <summary>
+/// Single source of truth for Omarchy, Hyprland and OmaSnap availability on Linux (XIP0088).
+/// Distro names never decide OmaSnap use: the capability probe does. The probe runs at most once
+/// per profile, off the UI thread, and only on non-sandboxed Hyprland Wayland sessions with an
+/// OmaSnap binary present, so every other system never starts a process for it.
+/// </summary>
+public sealed class LinuxDesktopProfile : IDesktopEnvironmentProfile
+{
+    private static readonly Lazy<LinuxDesktopProfile> CurrentProfile = new(() => new LinuxDesktopProfile(
+        LinuxDesktopFacts.DetectCurrent(),
+        OmaSnapLocator.Resolve,
+        (path, token) => new OmaSnapClient(path).ProbeAsync(token)));
+
+    private readonly Func<string?> _locateOmaSnap;
+    private readonly Func<string, CancellationToken, Task<OmaSnapCapabilities>> _probe;
+    private readonly object _probeLock = new();
+    private Task<OmaSnapCapabilities>? _probeTask;
+
+    internal LinuxDesktopProfile(
+        LinuxDesktopFacts facts,
+        Func<string?> locateOmaSnap,
+        Func<string, CancellationToken, Task<OmaSnapCapabilities>> probe)
+    {
+        Facts = facts;
+        _locateOmaSnap = locateOmaSnap;
+        _probe = probe;
+    }
+
     public static LinuxDesktopProfile Current => CurrentProfile.Value;
 
-    /// <summary>Omarchy is installed: <c>OMARCHY_PATH</c> is set or <c>/usr/share/omarchy</c> exists.</summary>
-    public bool IsOmarchy { get; }
-
-    /// <summary>A live Hyprland session (<c>HYPRLAND_INSTANCE_SIGNATURE</c>).</summary>
-    public bool IsHyprland { get; }
-
-    /// <summary>Flatpak, Snap or another container: OmaSnap is never used there.</summary>
-    public bool IsSandboxed { get; }
-
-    public string? DistroId { get; }
-
-    /// <summary>Omarchy's install folder, when known. Read only; XerahS never writes there.</summary>
-    public string? OmarchyPath { get; }
-
-    /// <summary>The probe result, or null before the probe finished or when OmaSnap is absent.</summary>
-    public OmaSnapCapabilities? OmaSnap => _omaSnap;
-
-    public bool OmaSnapProbed => _omaSnapProbed;
-
-    /// <summary>Hyprland plus a passing OmaSnap probe (whether or not Omarchy is installed).</summary>
-    public bool IsOmarchyLike => IsHyprland && !IsSandboxed && _omaSnap?.IsUsable == true;
-
-    public void SetOmaSnapProbeResult(OmaSnapCapabilities? capabilities)
+    /// <summary>
+    /// Applies the development override for the OmaSnap binary from settings. Call before platform
+    /// initialization; a changed value drops the cached probe so the next capture re-probes.
+    /// </summary>
+    public static void ConfigureOmaSnapPathOverride(string? path)
     {
-        _omaSnap = capabilities;
-        _omaSnapProbed = true;
-    }
-
-    public static LinuxDesktopProfile Detect()
-    {
-        var environment = LinuxRuntimeEnvironment.Detect();
-        return Detect(Environment.GetEnvironmentVariable, Directory.Exists, LinuxOsRelease.DistroId, environment.IsSandboxed);
-    }
-
-    internal static LinuxDesktopProfile Detect(
-        Func<string, string?> getEnvironmentVariable,
-        Func<string, bool> directoryExists,
-        string? distroId,
-        bool isSandboxed)
-    {
-        string? omarchyPath = getEnvironmentVariable("OMARCHY_PATH");
-        if (string.IsNullOrWhiteSpace(omarchyPath))
+        string? normalized = string.IsNullOrWhiteSpace(path) ? null : path.Trim();
+        if (string.Equals(OmaSnapLocator.SettingsOverridePath, normalized, StringComparison.Ordinal))
         {
-            omarchyPath = SafeDirectoryExists(directoryExists, "/usr/share/omarchy") ? "/usr/share/omarchy" : null;
+            return;
         }
 
-        bool isOmarchy = !string.IsNullOrWhiteSpace(omarchyPath) ||
-                         string.Equals(distroId, "omarchy", StringComparison.OrdinalIgnoreCase);
-
-        bool isHyprland = !string.IsNullOrWhiteSpace(getEnvironmentVariable("HYPRLAND_INSTANCE_SIGNATURE"));
-
-        return new LinuxDesktopProfile(isOmarchy, isHyprland, isSandboxed, distroId, omarchyPath);
+        OmaSnapLocator.SettingsOverridePath = normalized;
+        if (CurrentProfile.IsValueCreated)
+        {
+            CurrentProfile.Value.ResetOmaSnapProbe();
+        }
     }
 
-    /// <summary>Test factory with explicit values.</summary>
-    internal static LinuxDesktopProfile Create(bool isOmarchy, bool isHyprland, bool isSandboxed = false, OmaSnapCapabilities? omaSnap = null)
-    {
-        var profile = new LinuxDesktopProfile(isOmarchy, isHyprland, isSandboxed, null, isOmarchy ? "/usr/share/omarchy" : null);
-        if (omaSnap != null)
-        {
-            profile.SetOmaSnapProbeResult(omaSnap);
-        }
+    internal LinuxDesktopFacts Facts { get; }
 
-        return profile;
+    public bool IsOmarchy => Facts.IsOmarchy;
+    public bool IsHyprland => Facts.IsHyprland;
+    public bool IsWayland => Facts.IsWayland;
+    public bool IsSandboxed => Facts.IsSandboxed;
+
+    /// <summary>Probe result, or null while the probe has not completed.</summary>
+    internal OmaSnapCapabilities? OmaSnapCapabilities { get; private set; }
+
+    /// <summary>The binary the probe accepted or rejected, or null when none was found.</summary>
+    internal string? OmaSnapPath { get; private set; }
+
+    /// <summary>Hyprland and a usable OmaSnap with host mode. False until the probe completes.</summary>
+    public bool IsOmarchyLike => IsHyprland && OmaSnapCapabilities?.IsUsable == true;
+
+    /// <summary>Runs the probe once (single flight) and caches the result.</summary>
+    internal Task<OmaSnapCapabilities> EnsureOmaSnapProbedAsync(CancellationToken cancellationToken = default)
+    {
+        lock (_probeLock)
+        {
+            _probeTask ??= ProbeCoreAsync(cancellationToken);
+            return _probeTask;
+        }
     }
 
-    public string ToDiagnosticString()
+    /// <summary>Completes the probe if needed and reports whether OmaSnap host mode is usable.</summary>
+    public async Task<bool> IsOmaSnapUsableAsync(CancellationToken cancellationToken = default)
     {
-        string omaSnap = !_omaSnapProbed
-            ? "not probed"
-            : _omaSnap == null ? "absent" : _omaSnap.Summary;
-        return $"Omarchy={IsOmarchy}, Hyprland={IsHyprland}, Sandboxed={IsSandboxed}, OmarchyLike={IsOmarchyLike}, OmaSnap={omaSnap}";
+        OmaSnapCapabilities capabilities = await EnsureOmaSnapProbedAsync(cancellationToken).ConfigureAwait(false);
+        return IsHyprland && capabilities.IsUsable;
     }
 
-    private static bool SafeDirectoryExists(Func<string, bool> directoryExists, string path)
+    /// <summary>Probe JSON and summary for diagnostics.</summary>
+    public async Task<(string Summary, string? ProbeJson)> DescribeOmaSnapAsync(CancellationToken cancellationToken = default)
     {
-        try
+        OmaSnapCapabilities capabilities = await EnsureOmaSnapProbedAsync(cancellationToken).ConfigureAwait(false);
+        return (capabilities.Describe(), capabilities.RawJson);
+    }
+
+    /// <summary>Forgets the cached probe, e.g. after the OmaSnap path override changed.</summary>
+    internal void ResetOmaSnapProbe()
+    {
+        lock (_probeLock)
         {
-            return directoryExists(path);
+            _probeTask = null;
+            OmaSnapCapabilities = null;
+            OmaSnapPath = null;
         }
-        catch
+    }
+
+    /// <summary>Starts the probe in the background so capture-time decisions are instant.</summary>
+    public void StartBackgroundProbe()
+    {
+        _ = Task.Run(async () =>
         {
-            return false;
+            try
+            {
+                await EnsureOmaSnapProbedAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"LinuxDesktopProfile: OmaSnap probe failed ({ex.Message}).");
+            }
+        });
+    }
+
+    public string Describe()
+    {
+        string omaSnap = OmaSnapCapabilities?.Describe() ?? (_probeTask == null ? "OmaSnap not probed" : "OmaSnap probe pending");
+        return $"Wayland={IsWayland}, Hyprland={IsHyprland}, Omarchy={IsOmarchy}, Sandboxed={IsSandboxed}, " +
+            $"OmarchyLike={IsOmarchyLike}, {omaSnap}{(OmaSnapPath != null ? $" ({OmaSnapPath})" : string.Empty)}";
+    }
+
+    private async Task<OmaSnapCapabilities> ProbeCoreAsync(CancellationToken cancellationToken)
+    {
+        OmaSnapCapabilities result;
+        string? path = null;
+
+        if (IsSandboxed)
+        {
+            result = OmaSnapCapabilities.Unusable("sandboxed session (Flatpak/Snap)");
         }
+        else if (!IsWayland)
+        {
+            result = OmaSnapCapabilities.Unusable("not a Wayland session");
+        }
+        else if (!IsHyprland)
+        {
+            result = OmaSnapCapabilities.Unusable("not a Hyprland session");
+        }
+        else
+        {
+            path = _locateOmaSnap();
+            result = path == null
+                ? OmaSnapCapabilities.Unusable("OmaSnap is not installed")
+                : await _probe(path, cancellationToken).ConfigureAwait(false);
+        }
+
+        OmaSnapPath = path;
+        OmaSnapCapabilities = result;
+
+        // A failed probe is a silent fallback plus one diagnostic line, never an error-log entry.
+        DebugHelper.WriteLine($"LinuxDesktopProfile: {result.Describe()}{(path != null ? $" [{path}]" : string.Empty)}.");
+        return result;
     }
 }

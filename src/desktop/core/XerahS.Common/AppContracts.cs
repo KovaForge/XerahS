@@ -74,17 +74,14 @@ public static class AppContracts
         }
 
         /// <summary>
-        /// Relayed by <c>omaxerahs workflow run</c> (and the Hyprland keybindings that call it) to run
-        /// one workflow by id or name. Handled without surfacing the main window.
+        /// Relayed by "omaxerahs workflow run" (Hyprland keybindings, XIP0088) as
+        /// <c>--run-workflow &lt;id&gt;</c>. Runs the workflow like a hotkey without surfacing the main window.
         /// </summary>
         public const string RunWorkflowFlag = "--run-workflow";
 
-        /// <summary>
-        /// True when <paramref name="args"/> is exactly <c>--run-workflow &lt;id|name&gt;</c>.
-        /// </summary>
-        public static bool TryGetRunWorkflowTarget(IReadOnlyList<string>? args, out string target)
+        public static bool TryGetRunWorkflowId(IReadOnlyList<string>? args, out string workflowId)
         {
-            target = string.Empty;
+            workflowId = string.Empty;
             if (args is not { Count: 2 } ||
                 !args[0].Equals(RunWorkflowFlag, StringComparison.OrdinalIgnoreCase) ||
                 string.IsNullOrWhiteSpace(args[1]))
@@ -92,38 +89,7 @@ public static class AppContracts
                 return false;
             }
 
-            target = args[1].Trim();
-            return true;
-        }
-
-        /// <summary>
-        /// Relayed by <c>omaxerahs capture &lt;target&gt;</c> to run a capture of one kind
-        /// (region, window, fullscreen or scroll) through the normal workflow pipeline.
-        /// </summary>
-        public const string CaptureFlag = "--capture";
-
-        /// <summary>Capture kinds accepted after <see cref="CaptureFlag"/>.</summary>
-        public static readonly IReadOnlyList<string> CaptureTargets = ["region", "window", "fullscreen", "scroll"];
-
-        /// <summary>
-        /// True when <paramref name="args"/> is exactly <c>--capture &lt;target&gt;</c> with a known target.
-        /// </summary>
-        public static bool TryGetCaptureTarget(IReadOnlyList<string>? args, out string target)
-        {
-            target = string.Empty;
-            if (args is not { Count: 2 } ||
-                !args[0].Equals(CaptureFlag, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            string candidate = args[1].Trim().ToLowerInvariant();
-            if (!CaptureTargets.Contains(candidate))
-            {
-                return false;
-            }
-
-            target = candidate;
+            workflowId = args[1].Trim();
             return true;
         }
 

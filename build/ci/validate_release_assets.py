@@ -102,6 +102,7 @@ def ensure_tar_has_daemon(path: Path, os_name: str) -> None:
             raise RuntimeError(
                 f"Missing omaxerahs runtimeconfig '{expected_omaxerahs_runtimeconfig}' in Linux archive: {path}"
             )
+        ensure_optional_omasnap(names, path)
         return
 
     if os_name == "mac":
@@ -114,35 +115,34 @@ def ensure_tar_has_daemon(path: Path, os_name: str) -> None:
             )
 
 
-OMASNAP_BINARY = "omasnap/omasnap"
-OMASNAP_LICENSES = (
-    "omasnap/licenses/LICENSE-MIT.txt",
-    "omasnap/licenses/Neucha-OFL.txt",
-    "omasnap/licenses/JetBrainsMono-OFL.txt",
-    "omasnap/licenses/Inter-OFL.txt",
-    "omasnap/licenses/Lucide-ISC.txt",
+OMASNAP_REQUIRED_FILES = (
+    "omasnap/omasnap",
+    "omasnap/licenses/LICENSE-MIT",
+    "omasnap/licenses/LICENSE-OFL",
+    "omasnap/licenses/LICENSE-ISC",
 )
 
 
-def check_optional_omasnap(path: Path) -> bool:
-    """OmaSnap (XIP0088) is optional in Linux archives: absent is fine, but when any of it is
-    present the executable and every MIT/OFL/ISC notice must be there. Returns whether it is present."""
-    with tarfile.open(path, "r:gz") as archive:
-        members = {normalize_tar_name(member.name): member for member in archive.getmembers()}
+def ensure_optional_omasnap(names: set[str], path: Path) -> None:
+    """OmaSnap (XIP0088) is optional. Check it only when the archive contains it.
 
-    if not any(name == "omasnap" or name.startswith("omasnap/") for name in members):
-        return False
+    When any omasnap/ entry is present, the binary and all three license notices
+    (MIT, OFL, ISC) must be present too; a partial copy is an error.
+    """
+    stripped = set()
+    for name in names:
+        index = name.find("omasnap/")
+        if index >= 0 and (index == 0 or name[index - 1] == "/"):
+            stripped.add(name[index:])
 
-    binary = members.get(OMASNAP_BINARY)
-    if binary is None or not binary.isfile() or binary.size == 0:
-        raise RuntimeError(f"OmaSnap is partly present but '{OMASNAP_BINARY}' is missing or empty in {path}")
-    if not binary.mode & 0o111:
-        raise RuntimeError(f"'{OMASNAP_BINARY}' is not executable in {path}")
+    if not any(entry.startswith("omasnap/") and entry != "omasnap/" for entry in stripped):
+        return
 
-    missing = [name for name in OMASNAP_LICENSES if name not in members or members[name].size == 0]
+    missing = [entry for entry in OMASNAP_REQUIRED_FILES if entry not in stripped]
     if missing:
-        raise RuntimeError(f"OmaSnap license notices missing in {path}: {', '.join(missing)}")
-    return True
+        raise RuntimeError(
+            f"Incomplete optional OmaSnap bundle in {path}; missing: {', '.join(missing)}"
+        )
 
 
 def build_file_name(version: str, os_name: str, arch: str, extension: str) -> str:
@@ -214,11 +214,8 @@ def main() -> int:
         if not file_path.is_file():
             raise RuntimeError(f"Missing release asset: {file_path}")
 
-        optional_components = []
         if extension == "tar.gz":
             ensure_tar_has_daemon(file_path, os_name)
-            if os_name == "linux" and check_optional_omasnap(file_path):
-                optional_components.append("omasnap")
         elif extension == "portable.zip":
             ensure_portable_zip_payload(file_path)
 
@@ -231,10 +228,8 @@ def main() -> int:
             "size_bytes": file_path.stat().st_size,
             "sha256": compute_sha256(file_path),
         }
-        if optional_components:
-            asset_metadata["optional_components"] = optional_components
         metadata["assets"].append(asset_metadata)
-        print(f"validated {file_name}" + (f" (with {', '.join(optional_components)})" if optional_components else ""))
+        print(f"validated {file_name}")
 
     metadata_path.parent.mkdir(parents=True, exist_ok=True)
     metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")

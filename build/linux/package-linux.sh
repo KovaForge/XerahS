@@ -233,20 +233,88 @@ validate_omaxerahs_bundle() {
         exit 1
     fi
 
-    # The single-file omaxerahs must carry its own native SQLite provider (upload history);
-    # the main app embeds its copy, so nothing sits beside the binary to fall back on.
-    # Only runnable when the publish RID matches this machine.
-    local host_rid="linux-x64"
-    if [ "$(uname -m)" = "aarch64" ]; then
-        host_rid="linux-arm64"
+    smoke_test_omaxerahs_history "$omaxerahs_path" "${2:-}"
+}
+
+# Add the optional OmaSnap capture engine (XIP0088) to the portable tarball only.
+# deb, rpm and AppImage stay unchanged. Sources, in order:
+#   XERAHS_OMASNAP_STAGE_DIR  folder that already contains omasnap/ (CI Arch container job)
+#   XERAHS_BUILD_OMASNAP=1    build it now with build-omasnap.sh (needs Qt6 + LayerShellQt)
+# Only linux-x64 is supported; OmaSnap links against the host's Qt at runtime and XerahS
+# probes it before use, so it is inert on systems that cannot run it.
+append_optional_omasnap() {
+    local tarball="$1"
+    local arch="$2"
+    local stage_dir="${XERAHS_OMASNAP_STAGE_DIR:-}"
+    local temp_stage=""
+
+    if [ "$arch" != "linux-x64" ] || [ ! -f "$tarball" ]; then
+        return 0
     fi
-    if [ "${ARCH:-}" = "$host_rid" ]; then
-        if ! "$omaxerahs_path" selftest >/dev/null; then
-            echo "Error: omaxerahs selftest failed (native SQLite provider did not load): $omaxerahs_path"
-            "$omaxerahs_path" selftest || true
+
+    if [ -z "$stage_dir" ] && [ "${XERAHS_BUILD_OMASNAP:-0}" = "1" ]; then
+        temp_stage="$(mktemp -d)"
+        "$ROOT/build/linux/build-omasnap.sh" "$temp_stage"
+        stage_dir="$temp_stage"
+    fi
+
+    if [ -z "$stage_dir" ] || [ ! -x "$stage_dir/omasnap/omasnap" ]; then
+        echo "  OmaSnap not staged; portable tarball ships without it."
+        [ -n "$temp_stage" ] && rm -rf "$temp_stage"
+        return 0
+    fi
+
+    local notice
+    for notice in LICENSE-MIT LICENSE-OFL LICENSE-ISC; do
+        if [ ! -f "$stage_dir/omasnap/licenses/$notice" ]; then
+            echo "Error: OmaSnap stage is missing licenses/$notice; refusing to ship it without notices."
             exit 1
         fi
+    done
+
+    echo "  Adding OmaSnap to $(basename "$tarball")..."
+    local uncompressed="${tarball%.gz}"
+    gzip -d -f "$tarball"
+    tar --owner=0 --group=0 -rf "$uncompressed" -C "$stage_dir" ./omasnap
+    gzip -9 -f "$uncompressed"
+    [ -n "$temp_stage" ] && rm -rf "$temp_stage"
+    return 0
+}
+
+# Run the published single-file omaxerahs on its own (no native libraries beside it) and
+# check that it can open SQLite. Guards against the e_sqlite3 provider being left outside
+# the bundle, which made uploads from omaxerahs fail to write history (XIP0088 Phase 0).
+smoke_test_omaxerahs_history() {
+    local omaxerahs_path="$1"
+    local arch="$2"
+    local host_arch
+    case "$(uname -m)" in
+        x86_64) host_arch="linux-x64" ;;
+        aarch64|arm64) host_arch="linux-arm64" ;;
+        *) host_arch="" ;;
+    esac
+
+    if [ -n "$arch" ] && [ "$arch" != "$host_arch" ]; then
+        echo "  Skipping omaxerahs SQLite smoke test for $arch on $host_arch host."
+        return 0
     fi
+
+    local smoke_dir
+    smoke_dir="$(mktemp -d)"
+    mkdir -p "$smoke_dir/home"
+    cp "$omaxerahs_path" "$smoke_dir/omaxerahs"
+    local output
+    output="$(cd "$smoke_dir" && HOME="$smoke_dir/home" XDG_CONFIG_HOME="$smoke_dir/config" \
+        XDG_DATA_HOME="$smoke_dir/data" XDG_STATE_HOME="$smoke_dir/state" XDG_CACHE_HOME="$smoke_dir/cache" \
+        XERAHS_NO_APP_NOTIFY=1 ./omaxerahs doctor --json 2>/dev/null || true)"
+    rm -rf "$smoke_dir"
+
+    if ! printf '%s' "$output" | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(0 if d.get("history",{}).get("ok") else 1)'; then
+        echo "Error: published omaxerahs cannot open SQLite on its own. doctor output: $output"
+        exit 1
+    fi
+
+    echo "  omaxerahs SQLite smoke test passed."
 }
 
 # Rewrite every runtime/native/resources asset path inside the plugin's deps.json
@@ -437,11 +505,6 @@ fi
 restore_scoped_intermediate_assets
 restore_project_assets_for_os "$PACKAGING_TOOL" "Linux"
 
-host_rid_for_omasnap="linux-x64"
-if [ "$(uname -m)" = "aarch64" ]; then
-    host_rid_for_omasnap="linux-arm64"
-fi
-
 for ARCH in "${ARCHITECTURES[@]}"; do
     echo ""
     echo "=========================================="
@@ -471,7 +534,7 @@ for ARCH in "${ARCHITECTURES[@]}"; do
         -p:SkipBundlePlugins=true
 
     validate_daemon_bundle "$PUBLISH_DIR"
-    validate_omaxerahs_bundle "$PUBLISH_DIR"
+    validate_omaxerahs_bundle "$PUBLISH_DIR" "$ARCH"
 
     # 1.5 Publish Plugins
     echo "Publishing Plugins ($ARCH)..."
@@ -518,27 +581,13 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     find "$PUBLISH_DIR" \( -name '*.pdb' -o -name 'DirectML*.dll' -o -name 'DirectML*.pdb' -o -name 'onnxruntime.dll' -o -name 'onnxruntime_providers_shared.dll' -o -name 'libe_sqlite3.a' \) -delete
     dotnet build-server shutdown >/dev/null 2>&1 || true
 
-    # 1.6 Optional OmaSnap (XIP0088), portable tarball only.
-    # OMASNAP_PREBUILT_DIR/<arch> holds a stage built elsewhere (the release workflow builds
-    # OmaSnap in an Arch container because Ubuntu's Qt is too old); XERAHS_BUILD_OMASNAP=1
-    # builds it here instead (AUR). Either way it is optional and never fails the package.
-    OMASNAP_STAGE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/xerahs-omasnap-stage.XXXXXX")"
-    if [ -n "${OMASNAP_PREBUILT_DIR:-}" ] && [ -x "$OMASNAP_PREBUILT_DIR/$ARCH/omasnap/omasnap" ]; then
-        cp -a "$OMASNAP_PREBUILT_DIR/$ARCH/omasnap" "$OMASNAP_STAGE_DIR/"
-        echo "Including prebuilt OmaSnap for $ARCH from $OMASNAP_PREBUILT_DIR/$ARCH"
-    elif [ "${XERAHS_BUILD_OMASNAP:-0}" = "1" ] && [ "$ARCH" = "$host_rid_for_omasnap" ]; then
-        "$SCRIPT_DIR/build-omasnap.sh" "$OMASNAP_STAGE_DIR"
-    else
-        echo "OmaSnap not included for $ARCH (optional)."
-    fi
-
     # 2. Package
     echo "Packaging ($ARCH)..."
     echo "Note: rpmbuild is required to produce RPM packages."
     echo "Note: squashfs-tools is required to produce AppImage packages."
-    XERAHS_TARBALL_EXTRA_DIR="$OMASNAP_STAGE_DIR" \
-        dotnet run --no-restore --project "$PACKAGING_TOOL" -- "$PUBLISH_DIR" "$OUTPUT_DIR" "$VERSION" "$ARCH"
-    rm -rf "$OMASNAP_STAGE_DIR"
+    dotnet run --no-restore --project "$PACKAGING_TOOL" -- "$PUBLISH_DIR" "$OUTPUT_DIR" "$VERSION" "$ARCH"
+
+    append_optional_omasnap "$OUTPUT_DIR/XerahS-${VERSION}-${ARCH}.tar.gz" "$ARCH"
 done
 
 echo ""

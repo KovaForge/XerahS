@@ -108,7 +108,7 @@ class Program
         // 1. Create .tar.gz (Portable)
         string tarballName = $"XerahS-{version}-{arch}.tar.gz";
         string tarballPath = Path.Combine(outputDir, tarballName);
-        CreateTarball(publishDir, tarballPath, Environment.GetEnvironmentVariable("XERAHS_TARBALL_EXTRA_DIR"));
+        CreateTarball(publishDir, tarballPath);
         Console.WriteLine($"Created portable tarball: {tarballName}");
 
         // 2. Create .deb
@@ -237,23 +237,13 @@ class Program
         }
     }
 
-    /// <param name="extraDir">
-    /// Optional folder merged into the portable tarball only (not deb, rpm or AppImage). Used for
-    /// the optional OmaSnap component (XIP0088), staged by build/linux/build-omasnap.sh.
-    /// </param>
-    static void CreateTarball(string sourceDir, string outputPath, string? extraDir = null)
+    static void CreateTarball(string sourceDir, string outputPath)
     {
         using var fileStream = File.Create(outputPath);
         using var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal);
         using var tarWriter = new TarWriter(gzipStream, TarEntryFormat.Ustar);
         // Preserve symlinks for all tarball uses (portable archive and RPM Source0 staging tarball).
         AddDirectoryToTar(tarWriter, sourceDir, sourceDir, prependDotPrefix: false);
-        if (!string.IsNullOrWhiteSpace(extraDir) && Directory.Exists(extraDir) &&
-            Directory.EnumerateFileSystemEntries(extraDir).Any())
-        {
-            AddDirectoryToTar(tarWriter, extraDir, extraDir, prependDotPrefix: false);
-            Console.WriteLine($"Added optional tarball content from {extraDir}");
-        }
     }
 
     static void CreateDeb(string sourceDir, string outputPath, string version, string arch)

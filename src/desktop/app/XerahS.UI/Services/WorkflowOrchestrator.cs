@@ -280,10 +280,10 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
         try
         {
-            // XIP0088: on Hyprland, workflow hotkeys may be Hyprland keybindings instead of portal/evdev shortcuts.
-            var hotkeyService = HyprlandKeybindingCoordinator.Attach(PlatformServices.Hotkey);
+            var hotkeyService = PlatformServices.Hotkey;
             _workflowManager = new Core.Hotkeys.WorkflowManager(hotkeyService);
             _workflowManager.HotkeyTriggered += HotkeyManager_HotkeyTriggered;
+            _workflowManager.WorkflowsChanged += (_, _) => RefreshHyprlandKeybindings();
 
             var hotkeys = Core.SettingsManager.WorkflowsConfig.Hotkeys;
 
@@ -294,13 +294,34 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             }
 
             _workflowManager.UpdateHotkeys(hotkeys);
-            HyprlandKeybindingCoordinator.Track(_workflowManager);
             DebugHelper.WriteLine($"Initialized hotkey manager with {hotkeys.Count} hotkeys from configuration");
         }
         catch (Exception ex)
         {
             DebugHelper.WriteException(ex, "Failed to initialize hotkeys");
         }
+    }
+
+    /// <summary>Keeps ~/.config/hypr/xerahs.lua in sync with hotkeys when Hyprland keybindings are on (XIP0088).</summary>
+    private void RefreshHyprlandKeybindings()
+    {
+        var workflows = _workflowManager?.Workflows.ToList();
+        if (workflows == null || SettingsManager.Settings?.LinuxHyprlandKeybindings != true)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await new Core.Hotkeys.HyprlandKeybindingCoordinator().RefreshAsync(workflows).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"Hyprland keybindings: refresh failed ({ex.Message}).");
+            }
+        });
     }
 
     private void OnTaskCompleted(object? sender, EventArgs e)
@@ -339,52 +360,10 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         await ExecuteWorkflowFromTriggerAsync(settings);
     }
 
-    public async Task<bool> RunWorkflowAsync(string idOrName)
+    public Task RunWorkflowAsync(Core.Hotkeys.WorkflowSettings workflow)
     {
-        Core.Hotkeys.WorkflowSettings settings;
-        try
-        {
-            settings = Core.Automation.WorkflowAutomation.FindWorkflow(idOrName);
-        }
-        catch (Core.Automation.AutomationException ex)
-        {
-            DebugHelper.WriteLine($"Run workflow request ignored: {ex.Message}");
-            return false;
-        }
-
-        DebugHelper.WriteLine($"Run workflow requested: {settings} (ID: {settings.Id})");
-        await ExecuteWorkflowFromTriggerAsync(settings);
-        return true;
-    }
-
-    public async Task<bool> RunCaptureAsync(string target)
-    {
-        bool omaSnapActive = OperatingSystem.IsLinux() &&
-            PlatformServices.OmaSnap?.ShouldHandle(LinuxInteractiveRegionSelectorPreference.Automatic) == true;
-        WorkflowType? job = Core.Capture.OmaSnapWorkflowRouter.JobForCaptureTarget(target, omaSnapActive);
-        if (job is not { } captureJob)
-        {
-            DebugHelper.WriteLine($"Capture request ignored: unknown target '{target}'.");
-            return false;
-        }
-
-        // A configured workflow keeps the user's after-capture tasks and destinations. A window
-        // pick through OmaSnap needs a CustomWindow job without a target name, so it runs bare.
-        Core.Hotkeys.WorkflowSettings? workflow = captureJob == WorkflowType.CustomWindow
-            ? null
-            : SettingsManager.GetFirstWorkflow(captureJob);
-        DebugHelper.WriteLine($"Capture requested: {target} -> {captureJob} ({workflow?.Id ?? "default task settings"})");
-
-        if (workflow != null)
-        {
-            await ExecuteWorkflowFromTriggerAsync(workflow);
-        }
-        else
-        {
-            await Core.Helpers.TaskHelpers.ExecuteJob(captureJob, new TaskSettings { Job = captureJob });
-        }
-
-        return true;
+        DebugHelper.WriteLine($"Workflow run requested by an automation client: {workflow} (ID: {workflow.Id})");
+        return ExecuteWorkflowFromTriggerAsync(workflow);
     }
 
     private async Task ExecuteWorkflowFromPaletteAsync(Core.Hotkeys.WorkflowSettings settings)

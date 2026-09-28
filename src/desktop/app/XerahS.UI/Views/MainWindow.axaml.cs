@@ -481,9 +481,18 @@ namespace XerahS.UI.Views
             // still initialising — in debug builds startup can take 40+ seconds) and received
             // parentWindow="" which caused a response=2 failure, this triggers a portal retry so
             // hotkeys work globally without needing an app restart.
-            // The window can open before platform bootstrap completes; wait for it rather than
-            // throwing "Platform services not initialized" into the error log.
-            _ = NotifyHotkeyWindowReadyAsync();
+            // The window can open before bootstrap has initialized platform services; defer until ready.
+            XerahS.Platform.Abstractions.PlatformServices.RunWhenInitialized(() =>
+            {
+                try
+                {
+                    XerahS.Platform.Abstractions.PlatformServices.Hotkey.NotifyWindowReady();
+                }
+                catch (Exception ex)
+                {
+                    XerahS.Common.DebugHelper.WriteException(ex, "MainWindow: NotifyWindowReady failed");
+                }
+            });
 
             UpdateNavigationItems();
 
@@ -503,7 +512,9 @@ namespace XerahS.UI.Views
             }
 
             // Pre-warm settings pages so first open and settings search indexing stay off the hot path.
-            Dispatcher.UIThread.Post(() => _ = PreWarmSettingsSearchIndexAsync(), DispatcherPriority.Background);
+            // Settings views need the UI view model factory, which bootstrap may not have configured yet.
+            UiViewModelFactoryAccessor.RunWhenAvailable(() =>
+                Dispatcher.UIThread.Post(() => _ = PreWarmSettingsSearchIndexAsync(), DispatcherPriority.Background));
 
             // Show onboarding wizard once on first run — guard prevents double-fire on repeated OnWindowOpened calls.
             // Skip when SilentRun hid the window: ShowDialog would re-show the owner.
@@ -530,35 +541,8 @@ namespace XerahS.UI.Views
             }
         }
 
-        private static async Task NotifyHotkeyWindowReadyAsync()
-        {
-            if (!await XerahS.UI.Helpers.StartupReadiness.WaitUntilAsync(
-                    () => XerahS.Platform.Abstractions.PlatformServices.IsInitialized))
-            {
-                XerahS.Common.DebugHelper.WriteLine("MainWindow: platform services never became ready; skipped hotkey window-ready notification.");
-                return;
-            }
-
-            try
-            {
-                XerahS.Platform.Abstractions.PlatformServices.Hotkey.NotifyWindowReady();
-            }
-            catch (Exception ex)
-            {
-                XerahS.Common.DebugHelper.WriteException(ex, "MainWindow: NotifyWindowReady failed");
-            }
-        }
-
         private async Task PreWarmSettingsSearchIndexAsync()
         {
-            // Settings views need the UI view model factory, which bootstrap configures after the
-            // main window can already be open.
-            if (!await XerahS.UI.Helpers.StartupReadiness.WaitUntilAsync(() => UiViewModelFactoryAccessor.IsConfigured))
-            {
-                XerahS.Common.DebugHelper.WriteLine("MainWindow: UI view model factory never became available; skipped settings search pre-warm.");
-                return;
-            }
-
             try
             {
                 _applicationSettingsView ??= CreateApplicationSettingsView();

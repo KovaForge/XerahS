@@ -13,7 +13,7 @@
         <vm:HotkeySettingsViewModel/>
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="24">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="24">
         <!-- Header -->
         <TextBlock Grid.Row="0" Text="Hotkey Settings" Theme="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,24"/>
 
@@ -36,51 +36,8 @@
             </StackPanel>
         </Border>
 
-        <!-- XIP0088: Hyprland-managed keybindings (Hyprland sessions only) -->
-        <Border Grid.Row="2"
-                Margin="0,0,0,16"
-                Padding="16"
-                CornerRadius="8"
-                IsVisible="{Binding IsHyprlandKeybindingsAvailable}"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1">
-            <StackPanel Spacing="8">
-                <TextBlock Text="Use Hyprland keybindings (recommended on Omarchy)"
-                           Theme="{StaticResource BodyStrongTextBlockStyle}"/>
-                <TextBlock Text="{Binding HyprlandConsentText}"
-                           TextWrapping="Wrap"
-                           Opacity="0.8"/>
-                <TextBlock Text="{Binding HyprlandKeybindingsStatus}"
-                           TextWrapping="Wrap"/>
-                <ItemsControl ItemsSource="{Binding HyprlandConflicts}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:HyprlandConflictItemViewModel">
-                            <CheckBox Content="{Binding Text}"
-                                      IsChecked="{Binding IsApproved}"
-                                      AutomationProperties.Name="Let XerahS take over this key"/>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Content="Check conflicts"
-                            Command="{Binding CheckHyprlandKeybindingsCommand}"
-                            AutomationProperties.Name="Check Hyprland keybinding conflicts"/>
-                    <Button Content="Turn on"
-                            Classes="accent"
-                            IsVisible="{Binding IsHyprlandKeybindingsOff}"
-                            Command="{Binding EnableHyprlandKeybindingsCommand}"
-                            AutomationProperties.Name="Turn on Hyprland keybindings"/>
-                    <Button Content="Turn off"
-                            IsVisible="{Binding IsHyprlandKeybindingsEnabled}"
-                            Command="{Binding DisableHyprlandKeybindingsCommand}"
-                            AutomationProperties.Name="Turn off Hyprland keybindings"/>
-                </StackPanel>
-            </StackPanel>
-        </Border>
-
         <!-- Main Content -->
-        <Grid Grid.Row="3" RowDefinitions="Auto,*">
+        <Grid Grid.Row="2" RowDefinitions="Auto,*">
             <!-- Toolbar -->
             <Border Grid.Row="0" Padding="16" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" 
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,0,16">
@@ -124,7 +81,7 @@
         </Grid>
         
         <!-- Debug Section -->
-        <StackPanel Grid.Row="4" Margin="0,16,0,0">
+        <StackPanel Grid.Row="3" Margin="0,16,0,0">
              <CheckBox x:Name="ShowDebugCheckBox"
                        Content="View Debug Info" 
                        Margin="0,0,0,8"

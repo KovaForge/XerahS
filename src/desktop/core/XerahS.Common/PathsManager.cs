@@ -172,20 +172,20 @@ namespace XerahS.Common
         public static string FrameDumpsFolder => Path.Combine(ScreencastsFolder, "FrameDumps");
 
         /// <summary>
-        /// Environment variable that redirects every log file (main and error log) to another
-        /// folder. Test runs set it so they never write into the user's real logs.
+        /// Environment variable that redirects all log files (main and error logs) to another folder.
+        /// Test runs set it so they never write into the user's real error log.
         /// </summary>
-        public const string LogsFolderOverrideEnvironmentVariable = "XERAHS_LOGS_DIR";
+        public const string LogsFolderOverrideVariable = "XERAHS_LOGS_DIR";
 
         /// <summary>Base folder for all log files (e.g. PersonalFolder/Logs).</summary>
         public static string LogsFolderBase
         {
             get
             {
-                string? overrideFolder = Environment.GetEnvironmentVariable(LogsFolderOverrideEnvironmentVariable);
-                if (!string.IsNullOrWhiteSpace(overrideFolder))
+                string? overridePath = Environment.GetEnvironmentVariable(LogsFolderOverrideVariable);
+                if (!string.IsNullOrWhiteSpace(overridePath))
                 {
-                    return overrideFolder;
+                    return overridePath;
                 }
 
                 return UseLinuxXdgLayout

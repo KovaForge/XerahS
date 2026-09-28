@@ -52,11 +52,17 @@ internal static class UploadCommand
             Arity = ArgumentArity.ZeroOrOne
         };
         var jsonOption = JsonStdout.CreateJsonOption();
+        var urlOnlyOption = new Option<bool>("--url-only")
+        {
+            Description = "Print only the uploaded URL (for hosts such as OmaSnap pins); errors go to stderr."
+        };
         command.Add(pathArgument);
         command.Add(jsonOption);
+        command.Add(urlOnlyOption);
         command.SetAction(parseResult =>
         {
-            JsonStdout.Enabled = parseResult.GetValue(jsonOption);
+            JsonStdout.UrlOnly = parseResult.GetValue(urlOnlyOption);
+            JsonStdout.Enabled = !JsonStdout.UrlOnly && parseResult.GetValue(jsonOption);
             return UploadAsync(parseResult.GetValue(pathArgument)).GetAwaiter().GetResult();
         });
         return command;
@@ -139,16 +145,6 @@ internal static class UploadCommand
 
     internal static async Task<int> UploadAsync(string? path)
     {
-        if (!string.IsNullOrWhiteSpace(path))
-        {
-            // A screenshot tool may hand over its path a moment before the PNG is complete.
-            var check = await HandoffFileGate.WaitForReadyAsync(path);
-            if (check.State is HandoffFileState.Empty or HandoffFileState.StillWriting)
-            {
-                return JsonStdout.WriteFailureAndExit(CliErrorCodes.InvalidPath, check.Describe());
-            }
-        }
-
         if (!TryValidateImagePath(path, out string canonicalPath, out string errorCode, out string errorMessage))
         {
             return JsonStdout.WriteFailureAndExit(errorCode, errorMessage);

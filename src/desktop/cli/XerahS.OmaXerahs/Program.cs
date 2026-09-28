@@ -37,12 +37,6 @@ internal static class Program
     {
         JsonStdout.Enabled = JsonStdout.ShouldEnable(args);
 
-        // Hyprland key presses run "workflow run <id>": skip building the full command tree.
-        if (CaptureCommand.TryRunFastPath(args, out int fastExitCode))
-        {
-            return fastExitCode;
-        }
-
         try
         {
             var rootCommand = BuildRootCommand();
@@ -88,7 +82,7 @@ internal static class Program
         rootCommand.Add(DoctorCommand.Create());
         rootCommand.Add(UploadCommand.Create());
         rootCommand.Add(WorkflowCommand.Create());
-        rootCommand.Add(CaptureCommand.Create());
+        rootCommand.Add(RunCommands.CreateCapture());
         rootCommand.Add(EffectsCommand.Create());
         rootCommand.Add(ImageCommand.Create());
         rootCommand.Add(SkillCommand.Create());
@@ -98,7 +92,7 @@ internal static class Program
             JsonStdout.Enabled = JsonStdout.ShouldEnable(Environment.GetCommandLineArgs());
             return JsonStdout.WriteFailureAndExit(
                 CliErrorCodes.Usage,
-                "No command specified. Use capabilities, doctor, upload, workflow, capture, effects, image, or skill. See --help.");
+                "No command specified. Use capabilities, doctor, upload, workflow, effects, image, or skill. See --help.");
         });
         return rootCommand;
     }

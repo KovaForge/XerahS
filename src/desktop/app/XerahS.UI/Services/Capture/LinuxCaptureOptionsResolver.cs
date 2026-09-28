@@ -138,8 +138,7 @@ namespace XerahS.UI.Services.Capture
                 LinuxInteractiveRegionSelectorPreference.XerahSOverlay => !canUseLinuxOverlayFallback && supportsNativeRegionCapture,
                 LinuxInteractiveRegionSelectorPreference.PortalDialog or
                     LinuxInteractiveRegionSelectorPreference.DesktopNative or
-                    LinuxInteractiveRegionSelectorPreference.Slurp or
-                    LinuxInteractiveRegionSelectorPreference.OmaSnap => true,
+                    LinuxInteractiveRegionSelectorPreference.Slurp => true,
                 _ => supportsNativeRegionCapture
             };
         }
@@ -172,6 +171,7 @@ namespace XerahS.UI.Services.Capture
                 MacOSPlayCaptureSound = options?.MacOSPlayCaptureSound ?? true,
                 LinuxForceLegacyCapturePath = linuxForceLegacyCapturePath ?? options?.LinuxForceLegacyCapturePath ?? false,
                 LinuxDisallowPortalAfterOverlaySelection = options?.LinuxDisallowPortalAfterOverlaySelection ?? false,
+                LinuxSkipHostedCaptureEngine = options?.LinuxSkipHostedCaptureEngine ?? false,
                 ShowCursor = options?.ShowCursor ?? true,
                 CaptureTransparent = options?.CaptureTransparent ?? false,
                 UseTransparentOverlay = options?.UseTransparentOverlay ?? false,

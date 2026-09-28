@@ -44,17 +44,16 @@ internal static class CapabilitiesCommand
         return command;
     }
 
-    /// <param name="omaSnapUsable">Adds <c>capture.omasnap</c>: captures run through OmaSnap's native overlay.</param>
-    internal static CapabilitiesResponse BuildResponse(bool omaSnapUsable = false)
+    internal static CapabilitiesResponse BuildResponse()
     {
-        var response = new CapabilitiesResponse
+        return new CapabilitiesResponse
         {
             SchemaVersion = 1,
             Name = "omaxerahs",
             Version = UploadHost.GetVersion(),
             MinPluginProtocol = 1,
-            Capabilities =
-            [
+            Capabilities = new[]
+            {
                 "doctor.image",
                 "upload.image",
                 "workflow.list",
@@ -71,41 +70,27 @@ internal static class CapabilitiesCommand
                 "image.watermark",
                 "image.gif",
                 "skill.install"
-            ]
-        };
-
-        return omaSnapUsable
-            ? new CapabilitiesResponse
-            {
-                SchemaVersion = response.SchemaVersion,
-                Name = response.Name,
-                Version = response.Version,
-                MinPluginProtocol = response.MinPluginProtocol,
-                Capabilities = [.. response.Capabilities, "capture.omasnap"]
             }
-            : response;
+            .Concat(HasOmaSnapCapture() ? new[] { "capture.omasnap" } : Array.Empty<string>())
+            .ToArray()
+        };
+    }
+
+    /// <summary>OmaSnap host mode passed its probe (Hyprland only; elsewhere no process is started).</summary>
+    internal static bool HasOmaSnapCapture()
+    {
+#if LINUX
+        if (OperatingSystem.IsLinux())
+        {
+            return XerahS.Platform.Linux.Services.LinuxDesktopProfile.Current.IsOmaSnapUsableAsync().GetAwaiter().GetResult();
+        }
+#endif
+        return false;
     }
 
     internal static int Run()
     {
-        JsonStdout.Write(BuildResponse(IsOmaSnapUsable()));
+        JsonStdout.Write(BuildResponse());
         return 0;
-    }
-
-    private static bool IsOmaSnapUsable()
-    {
-#if LINUX
-        try
-        {
-            return XerahS.Platform.Linux.Services.LinuxDesktopDiagnostics.IsOmaSnapUsableAsync().GetAwaiter().GetResult();
-        }
-        catch (Exception ex)
-        {
-            XerahS.Common.DebugHelper.WriteLine($"omaxerahs capabilities: OmaSnap probe failed: {ex.Message}");
-            return false;
-        }
-#else
-        return false;
-#endif
     }
 }

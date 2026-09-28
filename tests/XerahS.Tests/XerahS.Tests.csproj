@@ -41,22 +41,16 @@
     </PackageReference>
   </ItemGroup>
 
+  <!--
+    No AdditionalProperties here: AssembleProduct already defaults to false (Directory.Build.props), and
+    extra global properties on App/CLI made a second configuration of UI, Core and RegionCapture that
+    built into the same obj folders in parallel (AVLN9999 "file is being used by another process").
+  -->
   <ItemGroup>
-    <!-- Force the compile lane only when a caller set AssembleProduct=true globally. Passing the
-         defaults unconditionally creates a second global-property configuration of every shared
-         project (UI, Core, RegionCapture, ...) that races the first one in the same obj folder. -->
-    <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj"
-                      Condition="'$(AssembleProduct)' != 'true'" />
-    <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj"
-                      Condition="'$(AssembleProduct)' == 'true'"
-                      AdditionalProperties="AssembleProduct=false;EnableAppDrivenPluginBuild=false;SkipBundlePlugins=true" />
+    <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Assistant\XerahS.Assistant.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj" />
-    <ProjectReference Include="..\..\src\desktop\cli\XerahS.CLI\XerahS.CLI.csproj"
-                      Condition="'$(AssembleProduct)' != 'true'" />
-    <ProjectReference Include="..\..\src\desktop\cli\XerahS.CLI\XerahS.CLI.csproj"
-                      Condition="'$(AssembleProduct)' == 'true'"
-                      AdditionalProperties="AssembleProduct=false;EnableAppDrivenPluginBuild=false;SkipBundlePlugins=true" />
+    <ProjectReference Include="..\..\src\desktop\cli\XerahS.CLI\XerahS.CLI.csproj" />
     <ProjectReference Include="..\..\src\desktop\cli\XerahS.OmaXerahs\XerahS.OmaXerahs.csproj" />
     <ProjectReference Include="..\..\src\desktop\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj" />
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Core\XerahS.Core.csproj" />

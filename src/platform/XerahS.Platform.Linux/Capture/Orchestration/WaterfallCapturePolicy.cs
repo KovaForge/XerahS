@@ -81,40 +81,26 @@ internal sealed class WaterfallCapturePolicy : ILinuxCapturePolicy
         LinuxCaptureStage.WaylandProtocol
     };
 
-    private readonly Func<LinuxInteractiveRegionSelectorPreference, bool>? _omaSnapEligible;
-
-    public WaterfallCapturePolicy()
-        : this(null)
+    private static readonly LinuxCaptureStage[] OmaSnapFirstRegionOrder =
     {
-    }
-
-    /// <param name="omaSnapEligible">
-    /// XIP0088: true when OmaSnap should front interactive region captures for a preference
-    /// (probe passed, and the user chose OmaSnap or Automatic on an Omarchy-like session). Null or
-    /// false keeps every order below exactly as before.
-    /// </param>
-    public WaterfallCapturePolicy(Func<LinuxInteractiveRegionSelectorPreference, bool>? omaSnapEligible)
-    {
-        _omaSnapEligible = omaSnapEligible;
-    }
+        LinuxCaptureStage.OmaSnap,
+        LinuxCaptureStage.Portal,
+        LinuxCaptureStage.DesktopDbus,
+        LinuxCaptureStage.WaylandProtocol,
+        LinuxCaptureStage.X11
+    };
 
     public IReadOnlyList<LinuxCaptureStage> GetStageOrder(LinuxCaptureRequest request, ILinuxCaptureContext context)
     {
-        IReadOnlyList<LinuxCaptureStage> order = GetExistingStageOrder(request, context);
-        if (!context.IsSandboxed &&
-            request.Kind == LinuxCaptureKind.Region &&
-            _omaSnapEligible?.Invoke(request.SelectorPreference) == true)
+        // OmaSnap only when explicitly selected for a region capture (XIP0088). Automatic keeps the
+        // existing order here; workflow jobs reach OmaSnap through the capture pipeline instead.
+        // On OmaSnap failure the rest of the Wayland order still runs; a user cancel stays a cancel.
+        if (!context.IsSandboxed && context.IsWayland && request.Kind == LinuxCaptureKind.Region &&
+            request.SelectorPreference == LinuxInteractiveRegionSelectorPreference.OmaSnap)
         {
-            var withOmaSnap = new List<LinuxCaptureStage>(order.Count + 1) { LinuxCaptureStage.OmaSnap };
-            withOmaSnap.AddRange(order);
-            return withOmaSnap;
+            return OmaSnapFirstRegionOrder;
         }
 
-        return order;
-    }
-
-    private static IReadOnlyList<LinuxCaptureStage> GetExistingStageOrder(LinuxCaptureRequest request, ILinuxCaptureContext context)
-    {
         if (context.IsSandboxed)
         {
             return SandboxedOrder;

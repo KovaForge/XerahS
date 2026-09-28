@@ -34,13 +34,10 @@ namespace XerahS.App
     /// </summary>
     internal static class AgentSkillBootstrapper
     {
+        /// <summary>Omarchy detection comes from the platform desktop profile (XIP0088), the single source of truth.</summary>
         internal static bool IsOmarchy()
         {
-#if LINUX
-            return XerahS.Platform.Linux.Services.LinuxDesktopProfile.Current.IsOmarchy;
-#else
-            return false;
-#endif
+            return XerahS.Platform.Abstractions.PlatformServices.DesktopProfile?.IsOmarchy == true;
         }
 
         internal static void EnsureInstalled()

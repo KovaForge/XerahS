@@ -61,6 +61,14 @@ public class WorkflowManager : IDisposable
     /// </summary>
     public event EventHandler? WorkflowsChanged;
 
+    /// <summary>
+    /// True when Hyprland owns the workflow hotkeys (XIP0088 Phase 5). Then no portal, evdev or X11
+    /// registration happens; triggers arrive through "omaxerahs workflow run".
+    /// </summary>
+    public static Func<bool> CompositorManagesHotkeys { get; set; } = static () =>
+        SettingsManager.Settings?.LinuxHyprlandKeybindings == true &&
+        PlatformServices.CompositorKeybindings?.IsSupported == true;
+
     public WorkflowManager(IHotkeyService hotkeyService)
     {
         _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
@@ -144,9 +152,18 @@ public class WorkflowManager : IDisposable
             return false;
         }
 
-        bool result = _hotkeyService.RegisterHotkey(settings.HotkeyInfo);
+        // Hyprland-managed keybindings (XIP0088): the compositor owns the key; registering it through
+        // the portal or evdev as well would trigger the workflow twice.
+        bool compositorManaged = CompositorManagesHotkeys();
+        bool result = compositorManaged || _hotkeyService.RegisterHotkey(settings.HotkeyInfo);
 
-        if (result)
+        if (compositorManaged)
+        {
+            settings.HotkeyInfo.Status = HotkeyStatus.Registered;
+            settings.HotkeyInfo.NativeTriggerDescription =
+                $"Hyprland: {HyprlandKeybindingGenerator.ToHyprlandKeys(settings.HotkeyInfo) ?? settings.HotkeyInfo.ToString()}";
+        }
+        else if (result)
         {
             _hotkeyMap[settings.HotkeyInfo.Id] = settings;
             // Debug.WriteLine($"HotkeyManager: Registered {settings}");

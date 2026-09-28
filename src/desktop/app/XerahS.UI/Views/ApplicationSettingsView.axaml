@@ -1014,25 +1014,27 @@
                                                        Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                                        TextWrapping="Wrap"/>
                                         </StackPanel>
-                                        <Grid ColumnDefinitions="120, 16, *">
-                                            <TextBlock Grid.Column="0" Text="Annotation editor:" VerticalAlignment="Center"/>
-                                            <ComboBox Grid.Column="2"
-                                                      ItemsSource="{Binding LinuxAnnotationEditors}"
-                                                      SelectedItem="{Binding LinuxAnnotationEditor}"
-                                                      HorizontalAlignment="Stretch"
-                                                      MinWidth="240"
-                                                      AutomationProperties.Name="Linux Annotation Editor">
-                                                <ComboBox.ItemTemplate>
-                                                    <DataTemplate x:DataType="x:Object">
-                                                        <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
-                                                    </DataTemplate>
-                                                </ComboBox.ItemTemplate>
-                                            </ComboBox>
-                                        </Grid>
-                                        <TextBlock Text="The OmaSnap editor needs OmaSnap on Hyprland and falls back to the XerahS editor otherwise. Annotation sidecar files and re-editing from History need the XerahS editor."
-                                                   FontSize="12"
-                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                                   TextWrapping="Wrap"/>
+                                        <StackPanel Spacing="4" IsVisible="{Binding IsOmaSnapAvailable}">
+                                            <Grid ColumnDefinitions="120, 16, *">
+                                                <TextBlock Grid.Column="0" Text="Annotation editor:" VerticalAlignment="Center"/>
+                                                <ComboBox Grid.Column="2"
+                                                          ItemsSource="{Binding LinuxAnnotationEditors}"
+                                                          SelectedItem="{Binding LinuxAnnotationEditor}"
+                                                          HorizontalAlignment="Stretch"
+                                                          MinWidth="240"
+                                                          AutomationProperties.Name="Linux Annotation Editor">
+                                                    <ComboBox.ItemTemplate>
+                                                        <DataTemplate x:DataType="x:Object">
+                                                            <TextBlock Text="{Binding ., Converter={StaticResource EnumToDescriptionConverter}}"/>
+                                                        </DataTemplate>
+                                                    </ComboBox.ItemTemplate>
+                                                </ComboBox>
+                                            </Grid>
+                                            <TextBlock Text="The OmaSnap editor is the native Hyprland overlay. Sidecar annotation files and re-editing from History stay with the XerahS editor."
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -1097,6 +1099,41 @@
                                                    FontSize="12"
                                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                                    TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel controls:SettingsSearch.IsAvailabilityContainer="True" IsVisible="{Binding IsHyprlandKeybindingsSupported}">
+                            <StackPanel Spacing="8" controls:SettingsSearch.IsPanel="True">
+                                <TextBlock Text="Hyprland Keybindings" FontWeight="SemiBold"/>
+                                <Border BorderThickness="1"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        CornerRadius="4" Padding="16">
+                                    <StackPanel Spacing="12">
+                                        <TextBlock Text="Let Hyprland own XerahS hotkeys (recommended on Omarchy). Hyprland runs &quot;omaxerahs workflow run&quot; for each workflow hotkey, so portal shortcuts no longer take keys such as PRINT or F1."
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="Hyprland keybindings are on." IsVisible="{Binding IsHyprlandKeybindingsEnabled}" FontWeight="SemiBold"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button Content="Review changes…" Command="{Binding ReviewHyprlandKeybindingsCommand}"
+                                                    AutomationProperties.Name="Review Hyprland Keybinding Changes"/>
+                                            <Button Content="Turn off" Command="{Binding DisableHyprlandKeybindingsCommand}"
+                                                    IsVisible="{Binding IsHyprlandKeybindingsEnabled}"
+                                                    AutomationProperties.Name="Turn Off Hyprland Keybindings"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding HyprlandKeybindingPlanText}"
+                                                   FontFamily="monospace" FontSize="12" TextWrapping="Wrap"/>
+                                        <StackPanel Spacing="8" IsVisible="{Binding HasHyprlandKeybindingPlan}">
+                                            <CheckBox IsChecked="{Binding UnbindConflictingHyprlandKeys}"
+                                                      IsVisible="{Binding HasHyprlandKeybindingConflicts}"
+                                                      Content="Unbind the conflicting keys listed above so XerahS can use them"
+                                                      AutomationProperties.Name="Unbind Conflicting Hyprland Keys"/>
+                                            <Button Content="Apply to my Hyprland config" Command="{Binding ApplyHyprlandKeybindingsCommand}"
+                                                    AutomationProperties.Name="Apply Hyprland Keybindings"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding HyprlandKeybindingStatusText}" FontSize="12" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>

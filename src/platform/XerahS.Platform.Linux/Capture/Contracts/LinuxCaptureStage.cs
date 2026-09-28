@@ -31,6 +31,8 @@ internal enum LinuxCaptureStage
     DesktopDbus = 2,
     WaylandProtocol = 3,
     X11 = 4,
+
+    /// <summary>OmaSnap host mode on Hyprland (XIP0088).</summary>
     OmaSnap = 5
 }
 

@@ -137,7 +137,6 @@
 
     <!-- Use Exec so we control the exact dotnet publish invocation without outer properties leaking in. -->
     <PropertyGroup>
-      <!-- IncludeNativeLibrariesForSelfExtract: only the executable is copied out, so native libraries (e_sqlite3) must be inside it. -->
       <_WatchFolderDaemonArgs>publish "$(MSBuildThisFileDirectory)..\..\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj" -c "$(Configuration)" -r "$(RuntimeIdentifier)" -o "$(_WatchFolderDaemonPublishDir)" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true</_WatchFolderDaemonArgs>
     </PropertyGroup>
     <Message Text="Publishing watch folder daemon: dotnet $(_WatchFolderDaemonArgs)" Importance="High" />
@@ -226,7 +225,6 @@
 
     <!-- Use Exec so we control the exact dotnet publish invocation without outer properties leaking in. -->
     <PropertyGroup>
-      <!-- IncludeNativeLibrariesForSelfExtract: only the executable is copied out, so native libraries (e_sqlite3) must be inside it. -->
       <_OmaXerahsArgs>publish "$(MSBuildThisFileDirectory)..\..\cli\XerahS.OmaXerahs\XerahS.OmaXerahs.csproj" -c "$(Configuration)" -r "$(RuntimeIdentifier)" -o "$(_OmaXerahsPublishDir)" -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true</_OmaXerahsArgs>
     </PropertyGroup>
     <Message Text="Publishing omaxerahs: dotnet $(_OmaXerahsArgs)" Importance="High" />

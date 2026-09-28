@@ -1,108 +1,108 @@
-#!/bin/bash
-# Builds the vendored OmaSnap (native/omasnap) and stages it for the Linux x64/arm64
-# tarball and the AUR package (XIP0088):
+#!/usr/bin/env bash
+# Build the vendored OmaSnap capture engine (XIP0088) and stage it into a XerahS
+# publish folder as:
+#   <publish>/omasnap/omasnap
+#   <publish>/omasnap/licenses/LICENSE-MIT   (OmaSnap, MIT)
+#   <publish>/omasnap/licenses/LICENSE-OFL   (bundled fonts, SIL OFL 1.1)
+#   <publish>/omasnap/licenses/LICENSE-ISC   (Lucide icons, ISC)
 #
-#   <stage-dir>/omasnap/omasnap
-#   <stage-dir>/omasnap/licenses/{LICENSE-MIT.txt,Neucha-OFL.txt,JetBrainsMono-OFL.txt,Inter-OFL.txt,Lucide-ISC.txt}
+# OmaSnap is optional. When its sources, CMake/Ninja, Qt6 or LayerShellQt are missing,
+# or any license notice cannot be found, this script prints a warning and exits 0
+# without staging anything; XerahS then reports OmaSnap as absent at runtime and uses
+# its existing capture chain.
 #
-# OmaSnap is optional. When its toolchain (CMake, Ninja, Qt 6 with LayerShellQt, Wayland
-# protocols, libdeflate) is missing this prints a warning and exits 0 without staging
-# anything, so XerahS still packages; at runtime the capability probe then reports OmaSnap
-# absent and XerahS uses its existing capture chain. Pass --strict to fail instead (the Arch
-# CI job does, so a broken OmaSnap build is noticed).
-#
-# Usage: build/linux/build-omasnap.sh <stage-dir> [--strict]
+# Usage: build-omasnap.sh <publish-dir> [omasnap-source-dir]
+# Env:   OMASNAP_SOURCE_DIR   overrides the source folder (default: native/omasnap)
+#        OMASNAP_REQUIRED=1   turn every soft failure into an error (CI jobs that must ship it)
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-SOURCE_DIR="$ROOT/native/omasnap"
 
-STAGE_DIR=""
-STRICT=0
-for arg in "$@"; do
-  case "$arg" in
-    --strict) STRICT=1 ;;
-    *) STAGE_DIR="$arg" ;;
-  esac
-done
+PUBLISH_DIR="${1:-}"
+SOURCE_DIR="${2:-${OMASNAP_SOURCE_DIR:-$ROOT/native/omasnap}}"
+REQUIRED="${OMASNAP_REQUIRED:-0}"
 
-if [[ -z $STAGE_DIR ]]; then
-  echo "Usage: $0 <stage-dir> [--strict]" >&2
-  exit 2
+if [ -z "$PUBLISH_DIR" ]; then
+    echo "Usage: $0 <publish-dir> [omasnap-source-dir]" >&2
+    exit 2
 fi
 
 skip() {
-  if (( STRICT )); then
-    echo "Error: OmaSnap build failed: $1" >&2
-    exit 1
-  fi
-  echo "Warning: skipping OmaSnap ($1). XerahS will package without it and fall back to its existing capture chain." >&2
-  exit 0
+    if [ "$REQUIRED" = "1" ]; then
+        echo "Error: OmaSnap is required but cannot be built: $1" >&2
+        exit 1
+    fi
+
+    echo "Warning: skipping OmaSnap: $1" >&2
+    echo "         XerahS will be packaged without the OmaSnap capture engine." >&2
+    exit 0
 }
 
-if [[ ! -f "$SOURCE_DIR/CMakeLists.txt" ]]; then
-  skip "native/omasnap is not checked out; run git submodule update --init native/omasnap"
-fi
+[ -f "$SOURCE_DIR/CMakeLists.txt" ] || skip "no OmaSnap sources at $SOURCE_DIR (run: git submodule update --init native/omasnap)"
+command -v cmake >/dev/null 2>&1 || skip "cmake is not installed"
+command -v ninja >/dev/null 2>&1 || skip "ninja is not installed"
+command -v pkg-config >/dev/null 2>&1 || skip "pkg-config is not installed"
+pkg-config --exists Qt6Core Qt6Gui Qt6Widgets 2>/dev/null || skip "Qt6 development files (qt6-base) are not installed"
+pkg-config --exists wayland-client 2>/dev/null || skip "wayland-client development files are not installed"
+pkg-config --exists LayerShellQtInterface 2>/dev/null \
+    || [ -d /usr/lib/cmake/LayerShellQt ] || [ -d /usr/lib64/cmake/LayerShellQt ] \
+    || skip "LayerShellQt (layer-shell-qt) is not installed"
 
-for tool in cmake ninja pkg-config; do
-  if ! command -v "$tool" >/dev/null 2>&1; then
-    skip "$tool is not installed"
-  fi
-done
+# Locate the three notices before building so a missing one never ships a binary alone.
+find_notice() {
+    local pattern
+    for pattern in "$@"; do
+        local match
+        match="$(find "$SOURCE_DIR" -path "$SOURCE_DIR/build" -prune -o -type f -iname "$pattern" -print 2>/dev/null | sort | head -n 1)"
+        if [ -n "$match" ]; then
+            printf '%s' "$match"
+            return 0
+        fi
+    done
+    return 1
+}
 
-# Qt 6.8+ and LayerShellQt are found by CMake itself (configure failure below skips).
-for module in wayland-client wayland-protocols libdeflate; do
-  if ! pkg-config --exists "$module" 2>/dev/null; then
-    skip "pkg-config module $module is missing"
-  fi
-done
+MIT_NOTICE="$(find_notice 'LICENSE' 'LICENSE.md' 'LICENSE.txt' 'COPYING')" || skip "OmaSnap MIT license file not found"
+OFL_NOTICE="$(find_notice 'OFL.txt' 'OFL*.txt' '*OFL*' )" || skip "font OFL license not found"
+ISC_NOTICE="$(find_notice 'LICENSE-lucide*' '*lucide*LICENSE*' 'lucide*.txt' 'ISC*')" || skip "Lucide ISC license not found"
 
-BUILD_DIR="$(mktemp -d "${TMPDIR:-/tmp}/xerahs-omasnap-build.XXXXXX")"
-INSTALL_DIR="$BUILD_DIR/install"
-trap 'rm -rf "$BUILD_DIR"' EXIT
+BUILD_DIR="$(mktemp -d)"
+STAGING_DIR="$(mktemp -d)"
+trap 'rm -rf "$BUILD_DIR" "$STAGING_DIR"' EXIT
 
 echo "Building OmaSnap from $SOURCE_DIR..."
-if ! cmake -S "$SOURCE_DIR" -B "$BUILD_DIR/build" -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
-    -DBUILD_TESTING=OFF; then
-  skip "CMake configure failed (Qt 6 too old or a dependency missing)"
+if ! cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="$STAGING_DIR"; then
+    skip "CMake configure failed"
 fi
 
-if ! cmake --build "$BUILD_DIR/build" --target omasnap; then
-  skip "compilation failed"
+if ! cmake --build "$BUILD_DIR"; then
+    skip "OmaSnap build failed"
 fi
 
-if ! cmake --install "$BUILD_DIR/build" >/dev/null; then
-  skip "install step failed"
+if ! cmake --install "$BUILD_DIR"; then
+    skip "OmaSnap install step failed"
 fi
 
-BINARY="$INSTALL_DIR/bin/omasnap"
-if [[ ! -x $BINARY ]]; then
-  skip "the build produced no omasnap binary"
+BINARY="$(find "$STAGING_DIR" -type f -name omasnap -perm -u+x | head -n 1)"
+[ -n "$BINARY" ] || BINARY="$(find "$BUILD_DIR" -maxdepth 2 -type f -name omasnap -perm -u+x | head -n 1)"
+[ -n "$BINARY" ] || skip "build produced no omasnap executable"
+
+TARGET_DIR="$PUBLISH_DIR/omasnap"
+rm -rf "$TARGET_DIR"
+install -d "$TARGET_DIR/licenses"
+install -m 755 "$BINARY" "$TARGET_DIR/omasnap"
+install -m 644 "$MIT_NOTICE" "$TARGET_DIR/licenses/LICENSE-MIT"
+install -m 644 "$OFL_NOTICE" "$TARGET_DIR/licenses/LICENSE-OFL"
+install -m 644 "$ISC_NOTICE" "$TARGET_DIR/licenses/LICENSE-ISC"
+
+# Shared data (fonts, icons) installed next to the binary by CMake, if any.
+if [ -d "$STAGING_DIR/share/omasnap" ]; then
+    cp -a "$STAGING_DIR/share/omasnap" "$TARGET_DIR/share"
 fi
 
-# A binary that cannot report host mode is useless to XerahS.
-# --host-capabilities needs no display; it exits 1 on a build host without Hyprland, which is fine.
-if ! { "$BINARY" --host-capabilities 2>/dev/null || true; } | grep -q '"hostMode"'; then
-  skip "the built omasnap has no host mode (needs omasnap 1.22.0 or newer)"
-fi
-
-DEST="$STAGE_DIR/omasnap"
-rm -rf "$DEST"
-mkdir -p "$DEST/licenses"
-install -m 755 "$BINARY" "$DEST/omasnap"
-install -m 644 "$SOURCE_DIR/LICENSE" "$DEST/licenses/LICENSE-MIT.txt"
-for license in "$INSTALL_DIR"/share/licenses/omasnap/*; do
-  install -m 644 "$license" "$DEST/licenses/$(basename "$license")"
-done
-
-for required in LICENSE-MIT.txt Neucha-OFL.txt JetBrainsMono-OFL.txt Inter-OFL.txt Lucide-ISC.txt; do
-  if [[ ! -f "$DEST/licenses/$required" ]]; then
-    echo "Error: OmaSnap license notice $required was not staged." >&2
-    exit 1
-  fi
-done
-
-echo "Staged OmaSnap in $DEST"
+echo "OmaSnap staged at $TARGET_DIR"
+"$TARGET_DIR/omasnap" --version 2>/dev/null || true

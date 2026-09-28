@@ -32,9 +32,6 @@ public interface IWorkflowOrchestrator
     Core.Hotkeys.WorkflowManager? WorkflowManager { get; }
     void Start(IClassicDesktopStyleApplicationLifetime desktop, string baseTitle);
 
-    /// <summary>Runs a workflow by id, id prefix or name as if its hotkey was pressed.</summary>
-    Task<bool> RunWorkflowAsync(string idOrName);
-
-    /// <summary>Runs a region, window, fullscreen or scroll capture through the workflow pipeline.</summary>
-    Task<bool> RunCaptureAsync(string target);
+    /// <summary>Runs a workflow exactly as its hotkey would (XIP0088 "omaxerahs workflow run").</summary>
+    Task RunWorkflowAsync(Core.Hotkeys.WorkflowSettings workflow);
 }
