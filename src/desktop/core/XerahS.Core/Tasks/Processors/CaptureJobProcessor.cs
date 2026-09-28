@@ -122,7 +122,19 @@ namespace XerahS.Core.Tasks.Processors
             // Annotation should happen BEFORE save, so the saved file includes annotations
             if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnnotateMedia))
             {
-                if (info.Metadata?.Image != null && PlatformServices.UI != null)
+                // OmaSnap editor on Hyprland when selected in settings (XIP0088); otherwise the XerahS editor.
+                var hostedAnnotation = info.Metadata?.Image != null
+                    ? await HostedEditorAndPinService.TryAnnotateAsync(info.Metadata.Image, token)
+                    : (Handled: false, Annotated: null);
+                if (hostedAnnotation.Handled)
+                {
+                    if (hostedAnnotation.Annotated != null)
+                    {
+                        info.Metadata!.Image!.Dispose();
+                        info.Metadata.Image = hostedAnnotation.Annotated;
+                    }
+                }
+                else if (info.Metadata?.Image != null && PlatformServices.UI != null)
                 {
                     editorResult = await PlatformServices.UI.ShowEditorSessionAsync(info.Metadata.Image, taskMode: true);
                     if (editorResult?.RenderedImage != null)
@@ -224,9 +236,16 @@ namespace XerahS.Core.Tasks.Processors
                 {
                     try
                     {
-                        var options = SettingsManager.DefaultTaskSettings?.ToolsSettings?.PinToScreenOptions ?? new PinToScreenOptions();
-                        await PinToScreenCallback(info.Metadata.Image, null, options);
-                        DebugHelper.WriteLine("PinToScreen: image pinned to desktop.");
+                        if (await HostedEditorAndPinService.TryPinAsync(info.Metadata.Image, token))
+                        {
+                            DebugHelper.WriteLine("PinToScreen: image pinned with OmaSnap.");
+                        }
+                        else
+                        {
+                            var options = SettingsManager.DefaultTaskSettings?.ToolsSettings?.PinToScreenOptions ?? new PinToScreenOptions();
+                            await PinToScreenCallback(info.Metadata.Image, null, options);
+                            DebugHelper.WriteLine("PinToScreen: image pinned to desktop.");
+                        }
                     }
                     catch (Exception ex)
                     {

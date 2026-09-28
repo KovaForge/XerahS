@@ -34,10 +34,10 @@ namespace XerahS.App
     /// </summary>
     internal static class AgentSkillBootstrapper
     {
+        /// <summary>Omarchy detection comes from the platform desktop profile (XIP0088), the single source of truth.</summary>
         internal static bool IsOmarchy()
         {
-            return !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OMARCHY_PATH")) ||
-                Directory.Exists("/usr/share/omarchy");
+            return XerahS.Platform.Abstractions.PlatformServices.DesktopProfile?.IsOmarchy == true;
         }
 
         internal static void EnsureInstalled()

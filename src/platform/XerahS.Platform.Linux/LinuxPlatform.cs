@@ -41,10 +41,18 @@ namespace XerahS.Platform.Linux
                 ? new UnsupportedClipboardMonitorService()
                 : new LinuxClipboardMonitorService();
 
+            // One source of truth for Omarchy/Hyprland/OmaSnap (XIP0088). The OmaSnap probe runs in the
+            // background and only on non-sandboxed Hyprland sessions with an OmaSnap binary present.
+            var desktopProfile = LinuxDesktopProfile.Current;
+            var hostedCaptureEngine = new Capture.OmaSnap.OmaSnapCaptureEngine(desktopProfile);
+            PlatformServices.DesktopProfile = desktopProfile;
+            PlatformServices.HostedCaptureEngine = hostedCaptureEngine;
+            desktopProfile.StartBackgroundProbe();
+
             // Use LinuxScreenCaptureService if none provided
             if (screenCaptureService == null)
             {
-                screenCaptureService = new LinuxScreenCaptureService();
+                screenCaptureService = new LinuxScreenCaptureService(hostedCaptureEngine);
                 DebugHelper.WriteLine(environment.IsWayland || environment.IsSandboxed
                     ? "Linux: Using LinuxScreenCaptureService with portal-aware capture routing."
                     : "Linux: Using LinuxScreenCaptureService with native X11/CLI fallbacks.");

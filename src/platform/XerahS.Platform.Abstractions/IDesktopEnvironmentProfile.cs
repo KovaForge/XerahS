@@ -23,28 +23,25 @@
 
 #endregion License Information (GPL v3)
 
-using System.ComponentModel;
-
 namespace XerahS.Platform.Abstractions;
 
-public enum LinuxInteractiveRegionSelectorPreference
+/// <summary>
+/// Desktop facts platform-neutral code needs (XIP0088). The Linux implementation is the single
+/// source of truth for Omarchy and Hyprland detection.
+/// </summary>
+public interface IDesktopEnvironmentProfile
 {
-    [Description("Automatic (recommended)")]
-    Automatic = 0,
+    /// <summary>Omarchy is installed: <c>OMARCHY_PATH</c> is set or <c>/usr/share/omarchy</c> exists.</summary>
+    bool IsOmarchy { get; }
 
-    [Description("XerahS overlay crosshair")]
-    XerahSOverlay = 1,
+    /// <summary>A Hyprland session: <c>HYPRLAND_INSTANCE_SIGNATURE</c> is set.</summary>
+    bool IsHyprland { get; }
 
-    [Description("Desktop native selector")]
-    DesktopNative = 2,
+    bool IsWayland { get; }
 
-    [Description("Portal dialog")]
-    PortalDialog = 3,
+    /// <summary>Hyprland and the OmaSnap host-mode probe succeeded.</summary>
+    bool IsOmarchyLike { get; }
 
-    [Description("slurp (wlroots)")]
-    Slurp = 4,
-
-    /// <summary>OmaSnap native Hyprland overlay (XIP0088). Only offered when the probe succeeds.</summary>
-    [Description("OmaSnap (native Hyprland overlay)")]
-    OmaSnap = 5
+    /// <summary>One line for diagnostics.</summary>
+    string Describe();
 }

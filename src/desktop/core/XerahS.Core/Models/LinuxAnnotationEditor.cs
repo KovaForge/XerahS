@@ -25,26 +25,14 @@
 
 using System.ComponentModel;
 
-namespace XerahS.Platform.Abstractions;
+namespace XerahS.Core;
 
-public enum LinuxInteractiveRegionSelectorPreference
+/// <summary>Annotation editor used by AnnotateImage on Linux (XIP0088).</summary>
+public enum LinuxAnnotationEditor
 {
-    [Description("Automatic (recommended)")]
-    Automatic = 0,
+    [Description("XerahS editor")]
+    XerahS = 0,
 
-    [Description("XerahS overlay crosshair")]
-    XerahSOverlay = 1,
-
-    [Description("Desktop native selector")]
-    DesktopNative = 2,
-
-    [Description("Portal dialog")]
-    PortalDialog = 3,
-
-    [Description("slurp (wlroots)")]
-    Slurp = 4,
-
-    /// <summary>OmaSnap native Hyprland overlay (XIP0088). Only offered when the probe succeeds.</summary>
-    [Description("OmaSnap (native Hyprland overlay)")]
-    OmaSnap = 5
+    [Description("OmaSnap editor (Hyprland)")]
+    OmaSnap = 1
 }

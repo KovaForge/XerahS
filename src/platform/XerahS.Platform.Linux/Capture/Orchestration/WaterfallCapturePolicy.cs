@@ -81,8 +81,26 @@ internal sealed class WaterfallCapturePolicy : ILinuxCapturePolicy
         LinuxCaptureStage.WaylandProtocol
     };
 
+    private static readonly LinuxCaptureStage[] OmaSnapFirstRegionOrder =
+    {
+        LinuxCaptureStage.OmaSnap,
+        LinuxCaptureStage.Portal,
+        LinuxCaptureStage.DesktopDbus,
+        LinuxCaptureStage.WaylandProtocol,
+        LinuxCaptureStage.X11
+    };
+
     public IReadOnlyList<LinuxCaptureStage> GetStageOrder(LinuxCaptureRequest request, ILinuxCaptureContext context)
     {
+        // OmaSnap only when explicitly selected for a region capture (XIP0088). Automatic keeps the
+        // existing order here; workflow jobs reach OmaSnap through the capture pipeline instead.
+        // On OmaSnap failure the rest of the Wayland order still runs; a user cancel stays a cancel.
+        if (!context.IsSandboxed && context.IsWayland && request.Kind == LinuxCaptureKind.Region &&
+            request.SelectorPreference == LinuxInteractiveRegionSelectorPreference.OmaSnap)
+        {
+            return OmaSnapFirstRegionOrder;
+        }
+
         if (context.IsSandboxed)
         {
             return SandboxedOrder;

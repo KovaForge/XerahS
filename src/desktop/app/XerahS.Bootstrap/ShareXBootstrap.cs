@@ -272,6 +272,7 @@ namespace XerahS.Bootstrap
         {
             bool useWaylandPortalServices = ResolveLinuxWaylandPortalServicesSetting();
             DebugHelper.WriteLine($"Linux: UseWaylandPortalServices={useWaylandPortalServices}");
+            Platform.Linux.Services.LinuxDesktopProfile.ConfigureOmaSnapPathOverride(SettingsManager.Settings?.LinuxOmaSnapPathOverride);
             Platform.Linux.LinuxPlatform.Initialize(useWaylandPortalServices: useWaylandPortalServices);
         }
 #endif
