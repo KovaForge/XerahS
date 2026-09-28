@@ -484,84 +484,9 @@ namespace XerahS.Platform.Windows
 
         private const int SRCCOPY = 0x00CC0020;
 
-        [DllImport("user32.dll")]
-        private static extern bool SetSystemCursor(IntPtr hcur, uint id);
+        private static bool HideSystemCursors() => SystemCursorGuard.TryHide();
 
-        [DllImport("user32.dll")]
-        private static extern IntPtr CopyIcon(IntPtr hIcon);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr CreateCursor(IntPtr hInst, int xHotSpot, int yHotSpot,
-            int nWidth, int nHeight, byte[] pvANDPlane, byte[] pvXORPlane);
-
-        [DllImport("user32.dll")]
-        private static extern bool DestroyCursor(IntPtr hCursor);
-
-        [DllImport("user32.dll")]
-        private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
-
-        private const uint SPI_SETCURSORS = 0x0057;
-
-        private static readonly uint[] AllCursorIds =
-        {
-            32512, // IDC_ARROW
-            32513, // IDC_IBEAM
-            32514, // IDC_WAIT
-            32515, // IDC_CROSS
-            32516, // IDC_UPARROW
-            32642, // IDC_SIZENWSE
-            32643, // IDC_SIZENESW
-            32644, // IDC_SIZEWE
-            32645, // IDC_SIZENS
-            32646, // IDC_SIZEALL
-            32648, // IDC_NO
-            32649, // IDC_HAND
-            32650, // IDC_APPSTARTING
-        };
-
-        private static bool HideSystemCursors()
-        {
-            try
-            {
-                // Create a 32x32 fully transparent cursor.
-                // AND mask all 1s = preserve screen (transparent), XOR mask all 0s = no inversion.
-                var andMask = new byte[128]; // 32x32 / 8
-                var xorMask = new byte[128];
-                for (int i = 0; i < andMask.Length; i++) andMask[i] = 0xFF;
-
-                IntPtr blankCursor = CreateCursor(IntPtr.Zero, 0, 0, 32, 32, andMask, xorMask);
-                if (blankCursor == IntPtr.Zero) return false;
-
-                try
-                {
-                    return CursorReplacementHelper.TryReplaceSystemCursors(
-                        AllCursorIds,
-                        () => CopyIcon(blankCursor),
-                        (copy, id) => SetSystemCursor(copy, id),
-                        copy => DestroyCursor(copy));
-                }
-                finally
-                {
-                    DestroyCursor(blankCursor);
-                }
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private static void RestoreSystemCursors()
-        {
-            try
-            {
-                SystemParametersInfo(SPI_SETCURSORS, 0, IntPtr.Zero, 0);
-            }
-            catch
-            {
-                // Ignore cursor restore errors
-            }
-        }
+        private static void RestoreSystemCursors() => SystemCursorGuard.Restore();
 
         #endregion
     }

@@ -38,6 +38,9 @@ namespace XerahS.Platform.Windows
         /// </summary>
         public static void Initialize(IScreenCaptureService? screenCaptureService = null)
         {
+            // A crash mid-capture in an earlier session can leave every system cursor blank (issue #288).
+            Capture.SystemCursorGuard.RecoverFromPreviousSession();
+
             var screenService = new WindowsScreenService();
             var clipboardService = new WindowsClipboardService();
             var clipboardMonitorService = new WindowsClipboardMonitorService(clipboardService);
