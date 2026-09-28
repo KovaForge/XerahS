@@ -86,6 +86,7 @@ internal static class Program
         rootCommand.Add(EffectsCommand.Create());
         rootCommand.Add(ImageCommand.Create());
         rootCommand.Add(SkillCommand.Create());
+        rootCommand.Add(SelfTestCommand.Create());
         rootCommand.SetAction(parseResult =>
         {
             JsonStdout.Enabled = JsonStdout.ShouldEnable(Environment.GetCommandLineArgs());
