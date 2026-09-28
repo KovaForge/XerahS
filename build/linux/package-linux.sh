@@ -232,6 +232,21 @@ validate_omaxerahs_bundle() {
         echo "Error: Missing omaxerahs runtimeconfig in publish output: $runtimeconfig_path"
         exit 1
     fi
+
+    # The single-file omaxerahs must carry its own native SQLite provider (upload history);
+    # the main app embeds its copy, so nothing sits beside the binary to fall back on.
+    # Only runnable when the publish RID matches this machine.
+    local host_rid="linux-x64"
+    if [ "$(uname -m)" = "aarch64" ]; then
+        host_rid="linux-arm64"
+    fi
+    if [ "${ARCH:-}" = "$host_rid" ]; then
+        if ! "$omaxerahs_path" selftest >/dev/null; then
+            echo "Error: omaxerahs selftest failed (native SQLite provider did not load): $omaxerahs_path"
+            "$omaxerahs_path" selftest || true
+            exit 1
+        fi
+    fi
 }
 
 # Rewrite every runtime/native/resources asset path inside the plugin's deps.json
