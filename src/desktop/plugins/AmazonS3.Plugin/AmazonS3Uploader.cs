@@ -119,8 +119,19 @@ public class AmazonS3Uploader : FileUploader
         }
     }
 
+    internal const string MissingBucketMessage =
+        "Amazon S3: no bucket is set for this destination. Set one in Destinations, or remove the destination.";
+
     public override UploadResult Upload(Stream stream, string fileName)
     {
+        // Without a bucket the SDK throws ArgumentException before any request; say why instead.
+        if (string.IsNullOrWhiteSpace(_config.BucketName))
+        {
+            DebugHelper.WriteLine(MissingBucketMessage);
+            Errors.Add(MissingBucketMessage);
+            return new UploadResult { Response = MissingBucketMessage };
+        }
+
         if (stream is FileStream fileStream && File.Exists(fileStream.Name) && ShouldUseMultipart(stream.Length))
         {
             return UploadMultipart(fileStream.Name, fileName);

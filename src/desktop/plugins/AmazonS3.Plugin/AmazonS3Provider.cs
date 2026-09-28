@@ -185,6 +185,21 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IUpload
         return jsonChanged;
     }
 
+    /// <summary>
+    /// Usable only with a bucket: without one the AWS SDK rejects every request
+    /// (ArgumentException), so an unconfigured destination is reported as such and skipped.
+    /// </summary>
+    public override bool ValidateSettings(string settingsJson)
+    {
+        if (!base.ValidateSettings(settingsJson))
+        {
+            return false;
+        }
+
+        S3ConfigModel? config = JsonConvert.DeserializeObject<S3ConfigModel>(settingsJson);
+        return config != null && !string.IsNullOrWhiteSpace(config.BucketName);
+    }
+
     public override Uploader CreateInstance(string settingsJson)
     {
         var config = JsonConvert.DeserializeObject<S3ConfigModel>(settingsJson);
