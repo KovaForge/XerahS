@@ -8,7 +8,8 @@ description: >
   After Capture window on or off, upload a file through their XerahS
   destination, or check whether uploads are set up. Triggers: XerahS, ShareX,
   omaxerahs, workflow, after capture, image effects, border/shadow/watermark
-  presets, .sxie, .xsie, upload screenshot, screenshot destination.
+  presets, .sxie, .xsie, upload screenshot, screenshot destination, take a
+  screenshot with XerahS, run a workflow, OmaSnap, Hyprland keybindings.
 ---
 
 # XerahS Skill
@@ -42,9 +43,14 @@ omaxerahs <group> --help          # e.g. omaxerahs effects --help
 
 A workflow is a capture job (region capture, full screen, recording, OCR, ...)
 plus the tasks that run after the capture (save, copy, upload, show the After
-Capture window, add image effects, annotate). Hotkeys for workflows on
-Wayland/Hyprland are registered through the desktop GlobalShortcuts portal, so
-`hotkey` is often `null` here even when the user presses a key such as F1.
+Capture window, add image effects, annotate). On Wayland, workflow hotkeys are
+registered through evdev or the desktop GlobalShortcuts portal, so `hotkey` is
+often `null` here even when the user presses a key such as F1. On Hyprland the
+user can instead let XerahS write `~/.config/hypr/xerahs.lua` (Settings >
+Hotkeys > Use Hyprland keybindings); each key there runs
+`omaxerahs workflow run <id>`. Never edit that file or the user's Hyprland
+config yourself: XerahS rewrites it, and turning it on needs the user's consent
+in the app.
 
 ```bash
 omaxerahs workflow list                      # all workflows: id, name, job, afterCapture, imageEffects
@@ -62,6 +68,27 @@ ask, or use the `id` from the list. Names are matched case-insensitively; an
 Common after-capture tasks: `ShowAfterCaptureWindow`, `AddImageEffects`,
 `AnnotateMedia` (open the annotation editor), `CopyImageToClipboard`, `SaveImageToFile`, `UploadImageToHost`,
 `PinToScreen`, `DoOCR`. Get the full list from `workflow task-names`.
+
+## Run a workflow or take a capture
+
+These hand the request to the running XerahS (or start it) and return at once;
+the capture, After Capture window and uploads happen in the app.
+
+```bash
+omaxerahs workflow run "Region capture"         # run a workflow by id, id prefix or name
+omaxerahs capture region                        # region | window | fullscreen | scroll
+omaxerahs capture region --workflow <id>        # same as workflow run <id>
+```
+
+The response is `{"ok":true,"action":"workflow.run","target":"...","delivery":"delivered"}`;
+`delivery` is `started` when XerahS had to be launched. `not_ready` means XerahS
+is not running and could not be started. An unknown workflow is reported in the
+XerahS log, not in the response, because the app resolves the name.
+
+When `omaxerahs capabilities` lists `capture.omasnap`, captures run through
+OmaSnap's native Hyprland overlay (Omarchy and Omarchy-like systems). The user
+picks the region, window or monitor there; XerahS then runs the workflow's
+after-capture tasks as usual.
 
 ## Image effects and ShareX presets
 
@@ -132,4 +159,6 @@ Read logs to diagnose problems. Change settings only through `omaxerahs`.
 
 - Uploader credentials and account sign-in: done by the user in the XerahS app.
 - Omarchy's own screenshot tool (`omarchy capture ...`) is separate from XerahS;
-  use the `omarchy` skill for it.
+  use the `omarchy` skill for it. XerahS bundles its own OmaSnap for captures.
+- Diagnosing the capture engine: `xerahs doctor --linux-desktop` prints the
+  desktop profile and the OmaSnap probe. It is read-only.
