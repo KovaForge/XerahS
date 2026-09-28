@@ -37,6 +37,12 @@ internal static class Program
     {
         JsonStdout.Enabled = JsonStdout.ShouldEnable(args);
 
+        // Hyprland key presses run "workflow run <id>": skip building the full command tree.
+        if (RunCommands.TryRunFastPath(args, out int fastExitCode))
+        {
+            return fastExitCode;
+        }
+
         try
         {
             var rootCommand = BuildRootCommand();
