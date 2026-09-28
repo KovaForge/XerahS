@@ -13,6 +13,7 @@ This directory documents the Linux desktop behavior needed for native packages, 
 ## Documents
 
 - [omaxerahs command line and agent skill](omaxerahs-cli.md)
+- [Omarchy and Hyprland integration (OmaSnap capture, Hyprland keybindings)](omarchy.md)
 - [XDG storage locations](xdg-storage.md)
 - [Flatpak VM validation runbook](flatpak-vm-validation.md)
 - [Flatpak permission review](flatpak-permissions.md)
