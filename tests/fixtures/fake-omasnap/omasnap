@@ -1,0 +1,83 @@
+#!/bin/bash
+# Fake omasnap for XerahS tests (XIP0088). Speaks the host-mode contract without a display.
+#
+# FAKE_OMASNAP_MODE:
+#   ok (default)  write a 1x1 PNG to --output and an ok result to --result-json, exit 0
+#   cancelled     write a cancelled result, exit 3
+#   error         write an error result, exit 1
+#   garbage       write a non-JSON result, exit 1
+#   crash         write nothing, exit 1
+#   usage         write nothing, print to stderr, exit 2
+#   timeout       sleep until killed (captures have no timeout; the caller cancels)
+# FAKE_OMASNAP_CAPS: ok (default), nohost, fail, slow (for --host-capabilities)
+# FAKE_OMASNAP_ARGV: file that receives one argument per line
+# FAKE_OMASNAP_ENV:  file that receives OMASNAP_HOST_UPLOAD_COMMAND (or <unset>)
+
+mode="${FAKE_OMASNAP_MODE:-ok}"
+
+if [[ -n $FAKE_OMASNAP_ARGV ]]; then
+  printf '%s\n' "$@" > "$FAKE_OMASNAP_ARGV"
+fi
+
+if [[ -n $FAKE_OMASNAP_ENV ]]; then
+  if [[ -v OMASNAP_HOST_UPLOAD_COMMAND ]]; then
+    printf '%s\n' "$OMASNAP_HOST_UPLOAD_COMMAND" > "$FAKE_OMASNAP_ENV"
+  else
+    printf '<unset>\n' > "$FAKE_OMASNAP_ENV"
+  fi
+fi
+
+if [[ $1 == "--host-capabilities" ]]; then
+  case "${FAKE_OMASNAP_CAPS:-ok}" in
+    ok) echo '{"schemaVersion":1,"ok":true,"version":"1.22.0","hyprland":true,"wayland":true,"extImageCopyCapture":true,"layerShell":true,"hostMode":1,"targets":["smart","region","windows","fullscreen","scroll"],"editor":["overlay","window"],"pin":true}' ;;
+    nohost) echo "omasnap: unknown option --host-capabilities" >&2; exit 2 ;;
+    fail) echo '{"schemaVersion":1,"ok":false,"version":"1.22.0","hyprland":false,"wayland":true,"extImageCopyCapture":true,"layerShell":true,"hostMode":1}'; exit 1 ;;
+    slow) sleep 30 ;;
+  esac
+  exit 0
+fi
+
+if [[ $1 == "--pin" ]]; then
+  exit 0
+fi
+
+output=""
+result="-"
+while (( $# > 0 )); do
+  case "$1" in
+    --output) output="$2"; shift ;;
+    --result-json) result="$2"; shift ;;
+  esac
+  shift
+done
+
+write_result() {
+  if [[ $result == "-" ]]; then
+    printf '%s\n' "$1"
+  else
+    printf '%s\n' "$1" > "$result"
+  fi
+}
+
+case "$mode" in
+  ok)
+    printf '%s' 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' | base64 -d > "$output"
+    write_result "{\"schemaVersion\":1,\"status\":\"ok\",\"target\":\"window\",\"omasnapVersion\":\"1.22.0\",\"path\":\"$output\",\"pixelWidth\":1,\"pixelHeight\":1,\"logicalWidth\":1,\"logicalHeight\":1,\"scale\":2,\"monitor\":\"eDP-1\",\"region\":{\"x\":10,\"y\":20,\"width\":1,\"height\":1},\"window\":{\"class\":\"firefox\",\"title\":\"XerahS - Mozilla Firefox\",\"address\":\"0x1\"},\"annotated\":false,\"documentPath\":null}"
+    exit 0 ;;
+  cancelled)
+    write_result '{"schemaVersion":1,"status":"cancelled","target":"smart","omasnapVersion":"1.22.0"}'
+    exit 3 ;;
+  error)
+    write_result '{"schemaVersion":1,"status":"error","target":"smart","omasnapVersion":"1.22.0","error":"Screen capture failed"}'
+    exit 1 ;;
+  garbage)
+    write_result 'this is not json'
+    exit 1 ;;
+  crash)
+    exit 1 ;;
+  usage)
+    echo "--region takes x,y,width,height" >&2
+    exit 2 ;;
+  timeout)
+    sleep 60 ;;
+esac

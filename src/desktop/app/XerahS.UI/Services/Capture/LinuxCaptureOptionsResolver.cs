@@ -138,7 +138,8 @@ namespace XerahS.UI.Services.Capture
                 LinuxInteractiveRegionSelectorPreference.XerahSOverlay => !canUseLinuxOverlayFallback && supportsNativeRegionCapture,
                 LinuxInteractiveRegionSelectorPreference.PortalDialog or
                     LinuxInteractiveRegionSelectorPreference.DesktopNative or
-                    LinuxInteractiveRegionSelectorPreference.Slurp => true,
+                    LinuxInteractiveRegionSelectorPreference.Slurp or
+                    LinuxInteractiveRegionSelectorPreference.OmaSnap => true,
                 _ => supportsNativeRegionCapture
             };
         }

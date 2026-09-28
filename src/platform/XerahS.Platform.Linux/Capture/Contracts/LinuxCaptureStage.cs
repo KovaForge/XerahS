@@ -30,6 +30,7 @@ internal enum LinuxCaptureStage
     Portal = 1,
     DesktopDbus = 2,
     WaylandProtocol = 3,
-    X11 = 4
+    X11 = 4,
+    OmaSnap = 5
 }
 

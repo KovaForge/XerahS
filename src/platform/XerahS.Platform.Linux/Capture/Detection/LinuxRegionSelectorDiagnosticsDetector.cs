@@ -36,13 +36,25 @@ internal static class LinuxRegionSelectorDiagnosticsDetector
         var context = LinuxRuntimeContextDetector.Detect();
         var support = LinuxRegionCaptureCapabilityDetector.ProbeSupportSnapshot(context);
         var capability = LinuxRegionCaptureCapabilityDetector.Detect(context, support);
-        return Detect(context, support, capability);
+        IOmaSnapService? omaSnap = PlatformServices.OmaSnap;
+        return Detect(
+            context,
+            support,
+            capability,
+            omaSnapAvailable: omaSnap?.ShouldHandle(LinuxInteractiveRegionSelectorPreference.OmaSnap) == true,
+            omaSnapPreferredByAutomatic: omaSnap?.ShouldHandle(LinuxInteractiveRegionSelectorPreference.Automatic) == true,
+            omaSnapSummary: omaSnap?.Status.Summary);
     }
 
+    /// <param name="omaSnapAvailable">OmaSnap passed its probe (XIP0088).</param>
+    /// <param name="omaSnapPreferredByAutomatic">The session is Omarchy-like, so Automatic uses OmaSnap first.</param>
     internal static LinuxRegionSelectorDiagnostics Detect(
         ILinuxCaptureContext context,
         LinuxRegionCaptureSupportSnapshot support,
-        LinuxRegionCaptureCapability capability)
+        LinuxRegionCaptureCapability capability,
+        bool omaSnapAvailable = false,
+        bool omaSnapPreferredByAutomatic = false,
+        string? omaSnapSummary = null)
     {
         List<LinuxInteractiveRegionSelectorPreference> availablePreferences =
         [
@@ -69,6 +81,11 @@ internal static class LinuxRegionSelectorDiagnosticsDetector
             availablePreferences.Add(LinuxInteractiveRegionSelectorPreference.Slurp);
         }
 
+        if (omaSnapAvailable)
+        {
+            availablePreferences.Add(LinuxInteractiveRegionSelectorPreference.OmaSnap);
+        }
+
         return new LinuxRegionSelectorDiagnostics(
             SessionType: context.IsWayland ? "Wayland" : "X11",
             Desktop: context.Desktop ?? "Unknown",
@@ -76,8 +93,13 @@ internal static class LinuxRegionSelectorDiagnosticsDetector
             PortalBackendSummary: context.HasScreenshotPortal
                 ? PortalBackendDetector.GetRunningBackendsSummary()
                 : "not available",
-            AutomaticPreference: ResolveAutomaticPreference(context, support, capability),
-            AvailablePreferences: availablePreferences);
+            AutomaticPreference: omaSnapAvailable && omaSnapPreferredByAutomatic
+                ? LinuxInteractiveRegionSelectorPreference.OmaSnap
+                : ResolveAutomaticPreference(context, support, capability),
+            AvailablePreferences: availablePreferences)
+        {
+            OmaSnapSummary = omaSnapSummary
+        };
     }
 
     private static LinuxInteractiveRegionSelectorPreference ResolveAutomaticPreference(

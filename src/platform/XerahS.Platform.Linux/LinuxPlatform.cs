@@ -106,6 +106,15 @@ namespace XerahS.Platform.Linux
                 clipboardMonitorService: clipboardMonitorService
             );
 
+            // XIP0088: OmaSnap front end on Omarchy-like Hyprland sessions. The probe runs in the
+            // background; until it passes nothing routes to OmaSnap.
+            var desktopProfile = LinuxDesktopProfile.Current;
+            var omaSnapService = new Capture.OmaSnap.OmaSnapService(desktopProfile);
+            PlatformServices.OmaSnap = omaSnapService;
+            _ = omaSnapService.EnsureProbedAsync().ContinueWith(
+                _ => DebugHelper.WriteLine($"Linux: Desktop profile: {desktopProfile.ToDiagnosticString()}"),
+                TaskScheduler.Default);
+
             // Register OCR service stub (Tesseract integration planned)
             PlatformServices.Ocr = new LinuxOcrService();
 

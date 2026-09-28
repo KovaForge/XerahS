@@ -33,6 +33,7 @@ using XerahS.Platform.Linux.Capture.Orchestration;
 using XerahS.Platform.Linux.Capture.Providers;
 using XerahS.Platform.Linux.Capture.Gnome;
 using XerahS.Platform.Linux.Capture.Kde;
+using XerahS.Platform.Linux.Capture.OmaSnap;
 using XerahS.Platform.Linux.Capture.Portal;
 using XerahS.Platform.Linux.Capture.Wayland;
 using XerahS.Platform.Linux.Capture.X11;
@@ -60,9 +61,10 @@ namespace XerahS.Platform.Linux
                     new GnomeDbusCaptureProvider(this),
                     new WlrootsCaptureProvider(this),
                     new X11CaptureProvider(this),
-                    new CliCaptureProvider(this)
+                    new CliCaptureProvider(this),
+                    new OmaSnapCaptureStrategy()
                 },
-                new WaterfallCapturePolicy());
+                new WaterfallCapturePolicy(preference => PlatformServices.OmaSnap?.ShouldHandle(preference) == true));
         }
 
         /// <summary>
@@ -548,6 +550,7 @@ namespace XerahS.Platform.Linux
                 "portal" => LinuxInteractiveRegionSelectorPreference.PortalDialog,
                 "kde-dbus" or "gnome-dbus" => LinuxInteractiveRegionSelectorPreference.DesktopNative,
                 "wlroots" => LinuxInteractiveRegionSelectorPreference.Slurp,
+                OmaSnapCaptureStrategy.Id => LinuxInteractiveRegionSelectorPreference.OmaSnap,
                 "xerahs-overlay" => LinuxInteractiveRegionSelectorPreference.XerahSOverlay,
                 _ => requestedPreference
             };
@@ -561,6 +564,7 @@ namespace XerahS.Platform.Linux
                 "kde-dbus" => "KDE desktop selector",
                 "gnome-dbus" => "GNOME desktop selector",
                 "wlroots" => "slurp",
+                OmaSnapCaptureStrategy.Id => "OmaSnap",
                 "xerahs-overlay" => "XerahS overlay crosshair",
                 "x11" => "X11 native capture",
                 "cli-tools" => "CLI capture tools",

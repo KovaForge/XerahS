@@ -222,6 +222,17 @@ namespace XerahS.Platform.Abstractions
             set => _ocrService = value;
         }
 
+        private static IOmaSnapService? _omaSnapService;
+
+        /// <summary>
+        /// Optional OmaSnap capture engine (XIP0088). Registered on Linux only; null elsewhere.
+        /// </summary>
+        public static IOmaSnapService? OmaSnap
+        {
+            get => _omaSnapService;
+            set => _omaSnapService = value;
+        }
+
         /// <summary>
         /// Initializes platform services with provided implementations
         /// </summary>
@@ -302,6 +313,7 @@ namespace XerahS.Platform.Abstractions
             _themeService = null;
             _scrollingCaptureService = null;
             _ocrService = null;
+            _omaSnapService = null;
             _uiService = null;
             _imageEncoderService = null;
             NativeWindowHandleProvider = null;
