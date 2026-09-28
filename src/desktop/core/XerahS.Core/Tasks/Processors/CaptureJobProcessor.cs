@@ -798,6 +798,14 @@ namespace XerahS.Core.Tasks.Processors
                     _ => null
                 };
             }
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+            {
+                // The file vanished between queueing and upload (moved or deleted by the program
+                // that handed it over): report it plainly instead of logging a stack trace.
+                string missingMessage = $"The file to upload no longer exists: {(ex as FileNotFoundException)?.FileName ?? ex.Message}";
+                DebugHelper.WriteLine($"Upload failed for {instance.DisplayName}: {missingMessage}");
+                return new UploadResult { IsSuccess = false, Response = missingMessage };
+            }
             catch (Exception ex)
             {
                 DebugHelper.WriteException(ex, $"Upload failed for {instance.DisplayName}");

@@ -1184,6 +1184,13 @@ namespace XerahS.App
 
                 foreach (string file in files)
                 {
+                    var check = await XerahS.Common.HandoffFileGate.WaitForReadyAsync(file).ConfigureAwait(false);
+                    if (!check.IsReady)
+                    {
+                        XerahS.Common.DebugHelper.WriteLine($"Shell integration: skipped upload. {check.Describe()}");
+                        continue;
+                    }
+
                     TaskSettings settings = CreateFileUploadTaskSettings();
                     settings.Job = WorkflowType.FileUpload;
                     await taskManager.StartFileTask(settings, file);

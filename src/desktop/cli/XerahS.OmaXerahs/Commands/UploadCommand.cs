@@ -139,6 +139,16 @@ internal static class UploadCommand
 
     internal static async Task<int> UploadAsync(string? path)
     {
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            // A screenshot tool may hand over its path a moment before the PNG is complete.
+            var check = await HandoffFileGate.WaitForReadyAsync(path);
+            if (check.State is HandoffFileState.Empty or HandoffFileState.StillWriting)
+            {
+                return JsonStdout.WriteFailureAndExit(CliErrorCodes.InvalidPath, check.Describe());
+            }
+        }
+
         if (!TryValidateImagePath(path, out string canonicalPath, out string errorCode, out string errorMessage))
         {
             return JsonStdout.WriteFailureAndExit(errorCode, errorMessage);
