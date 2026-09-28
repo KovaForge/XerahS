@@ -129,6 +129,10 @@ package() {
         chmod 755 "$pkgdir/usr/lib/xerahs/omasnap/omasnap"
         install -d "$pkgdir/usr/share/licenses/$pkgname/omasnap"
         cp -a "$pkgdir/usr/lib/xerahs/omasnap/licenses/." "$pkgdir/usr/share/licenses/$pkgname/omasnap/"
+    elif [[ "$CARCH" == "x86_64" ]]; then
+        # XIP0088: OmaSnap is XerahS's capture engine on Omarchy/Hyprland; never ship without it.
+        echo "==> package: the portable tarball has no omasnap/omasnap; refusing to package without OmaSnap" >&2
+        return 1
     fi
 
     install -d "$pkgdir/usr/bin"

@@ -189,14 +189,13 @@ jobs:
           if-no-files-found: warn
           path: build/logs/macos-build.log
 
-  # Optional OmaSnap capture engine (XIP0088). Ubuntu 24.04 ships Qt 6.4, so OmaSnap is
-  # built in an Arch container (its target platform: Omarchy/Hyprland). Soft-fails: when the
-  # native/omasnap submodule or its dependencies are missing, no artifact is uploaded and the
-  # Linux x64 tarball ships without OmaSnap. deb, rpm, AppImage and Flatpak never include it.
+  # OmaSnap capture engine (XIP0088), bundled in the Linux x64 tarball so XerahS works out of
+  # the box on Omarchy/Hyprland. Ubuntu 24.04 ships Qt 6.4, so OmaSnap is built in an Arch
+  # container (its target platform). Required: a missing submodule or dependency fails the
+  # release. deb, rpm, AppImage and Flatpak do not include it.
   build-omasnap:
     needs: validate-version
     runs-on: ubuntu-24.04
-    continue-on-error: true
     container: archlinux:latest
     steps:
       - name: Install OmaSnap build dependencies
@@ -215,13 +214,13 @@ jobs:
           set -euo pipefail
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           mkdir -p "$RUNNER_TEMP/omasnap-stage"
-          ./build/linux/build-omasnap.sh "$RUNNER_TEMP/omasnap-stage"
+          OMASNAP_REQUIRED=1 ./build/linux/build-omasnap.sh "$RUNNER_TEMP/omasnap-stage"
 
       - name: Upload OmaSnap stage
         uses: actions/upload-artifact@v4
         with:
           name: omasnap-linux-x64
-          if-no-files-found: ignore
+          if-no-files-found: error
           path: ${{ runner.temp }}/omasnap-stage
 
   build-linux:
@@ -286,8 +285,8 @@ jobs:
           tar -tzf "$ARCHIVE" > "$ARCHIVE_LIST"
           grep -Eq '(^|/)xerahs-watchfolder-daemon$' "$ARCHIVE_LIST"
           grep -Eq '(^|/)xerahs-watchfolder-daemon.runtimeconfig.json$' "$ARCHIVE_LIST"
-          # OmaSnap is optional (XIP0088): check it only when the archive contains it.
-          if grep -Eq '(^|/)omasnap/' "$ARCHIVE_LIST"; then
+          # OmaSnap is bundled in the linux-x64 tarball (XIP0088); other architectures ship without it.
+          if [ "${{ matrix.rid }}" = "linux-x64" ] || grep -Eq '(^|/)omasnap/' "$ARCHIVE_LIST"; then
             for entry in omasnap/omasnap omasnap/licenses/LICENSE-MIT omasnap/licenses/LICENSE-OFL omasnap/licenses/LICENSE-ISC; do
               grep -Eq "(^|/)${entry}\$" "$ARCHIVE_LIST" || { echo "::error::Incomplete OmaSnap bundle: missing ${entry}"; exit 1; }
             done

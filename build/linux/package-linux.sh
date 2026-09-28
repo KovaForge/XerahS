@@ -236,32 +236,45 @@ validate_omaxerahs_bundle() {
     smoke_test_omaxerahs_history "$omaxerahs_path" "${2:-}"
 }
 
-# Add the optional OmaSnap capture engine (XIP0088) to the portable tarball only.
-# deb, rpm and AppImage stay unchanged. Sources, in order:
-#   XERAHS_OMASNAP_STAGE_DIR  folder that already contains omasnap/ (CI Arch container job)
-#   XERAHS_BUILD_OMASNAP=1    build it now with build-omasnap.sh (needs Qt6 + LayerShellQt)
-# Only linux-x64 is supported; OmaSnap links against the host's Qt at runtime and XerahS
-# probes it before use, so it is inert on systems that cannot run it.
-append_optional_omasnap() {
+# Bundle the OmaSnap capture engine (XIP0088) in the linux-x64 portable tarball, so XerahS
+# captures through OmaSnap on Omarchy/Hyprland out of the box. deb, rpm and AppImage stay
+# unchanged. Sources, in order:
+#   XERAHS_OMASNAP_STAGE_DIR    folder that already contains omasnap/ (CI Arch container job)
+#   otherwise                   built now from native/omasnap with build-omasnap.sh
+# A linux-x64 tarball without OmaSnap is an error. XERAHS_ALLOW_NO_OMASNAP=1 lets a machine
+# without Qt6 + LayerShellQt still package XerahS (the capability probe then reports it absent).
+# OmaSnap links against the host's Qt at runtime and XerahS probes it before use, so it is
+# inert on systems that cannot run it.
+append_omasnap() {
     local tarball="$1"
     local arch="$2"
     local stage_dir="${XERAHS_OMASNAP_STAGE_DIR:-}"
     local temp_stage=""
+    local allow_missing="${XERAHS_ALLOW_NO_OMASNAP:-0}"
 
     if [ "$arch" != "linux-x64" ] || [ ! -f "$tarball" ]; then
         return 0
     fi
 
-    if [ -z "$stage_dir" ] && [ "${XERAHS_BUILD_OMASNAP:-0}" = "1" ]; then
+    if [ -z "$stage_dir" ]; then
         temp_stage="$(mktemp -d)"
-        "$ROOT/build/linux/build-omasnap.sh" "$temp_stage"
+        if [ "$allow_missing" = "1" ]; then
+            "$ROOT/build/linux/build-omasnap.sh" "$temp_stage"
+        else
+            OMASNAP_REQUIRED=1 "$ROOT/build/linux/build-omasnap.sh" "$temp_stage"
+        fi
         stage_dir="$temp_stage"
     fi
 
-    if [ -z "$stage_dir" ] || [ ! -x "$stage_dir/omasnap/omasnap" ]; then
-        echo "  OmaSnap not staged; portable tarball ships without it."
+    if [ ! -x "$stage_dir/omasnap/omasnap" ]; then
         [ -n "$temp_stage" ] && rm -rf "$temp_stage"
-        return 0
+        if [ "$allow_missing" = "1" ]; then
+            echo "  Warning: OmaSnap not staged; XERAHS_ALLOW_NO_OMASNAP=1, so the portable tarball ships without it."
+            return 0
+        fi
+        echo "Error: OmaSnap is not staged at $stage_dir/omasnap/omasnap; the linux-x64 tarball must bundle it."
+        echo "       Install Qt6 + LayerShellQt build deps, or set XERAHS_ALLOW_NO_OMASNAP=1 to package without it."
+        exit 1
     fi
 
     local notice
@@ -587,7 +600,7 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     echo "Note: squashfs-tools is required to produce AppImage packages."
     dotnet run --no-restore --project "$PACKAGING_TOOL" -- "$PUBLISH_DIR" "$OUTPUT_DIR" "$VERSION" "$ARCH"
 
-    append_optional_omasnap "$OUTPUT_DIR/XerahS-${VERSION}-${ARCH}.tar.gz" "$ARCH"
+    append_omasnap "$OUTPUT_DIR/XerahS-${VERSION}-${ARCH}.tar.gz" "$ARCH"
 done
 
 echo ""

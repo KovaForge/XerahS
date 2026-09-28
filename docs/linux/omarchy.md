@@ -20,8 +20,10 @@ XerahS runs `omasnap --host-capabilities` once, in the background, only when all
   `/usr/lib/xerahs/omasnap/omasnap`, then `omasnap` on `PATH`.
 
 The probe must report `ok`, Hyprland, `ext-image-copy-capture`, layer-shell and `hostMode >= 1`
-(OmaSnap 1.22.0 or newer). A standalone OmaSnap 1.21 in `~/.local/bin` has no host mode and is
-ignored. A failed probe writes one line to the normal log, never to the error log, and XerahS keeps
+(OmaSnap 1.22.0 or newer). The linux-x64 portable tarball and the `xerahs-git` AUR package bundle
+OmaSnap at `omasnap/omasnap` (built from the `native/omasnap` submodule), so it works out of the box
+and takes precedence over any standalone copy. A standalone OmaSnap 1.21 in `~/.local/bin` has no host
+mode and is ignored. A failed probe writes one line to the normal log, never to the error log, and XerahS keeps
 its existing capture chain.
 
 Check the result:

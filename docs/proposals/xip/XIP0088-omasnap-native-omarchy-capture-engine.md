@@ -1,6 +1,6 @@
 # XIP0088 OmaSnap Native Omarchy Capture Engine
 
-**Status**: Implemented in XerahS v0.31.0 (Phases 0, 2-7); Phase 1 (OmaSnap host mode in KovaForge/omasnap) and the `native/omasnap` submodule pin pending
+**Status**: Implemented in XerahS v0.31.0 (Phases 0-7). Phase 1 landed in KovaForge/omasnap `main` as 1.22.0 (`4ed75ec`, host mode plus a startup-exit crash fix), pinned as the `native/omasnap` submodule and bundled in the linux-x64 tarball and `xerahs-git`
 **Created**: 2026-09-28
 **Updated**: 2026-09-28
 **Target version**: v0.31.0 (feature; bump minor)
