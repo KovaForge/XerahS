@@ -130,6 +130,20 @@ public sealed class LinuxDesktopProfile : IDesktopEnvironmentProfile
         }
     }
 
+    /// <summary>Completes the probe if needed and reports whether OmaSnap host mode is usable.</summary>
+    public async Task<bool> IsOmaSnapUsableAsync(CancellationToken cancellationToken = default)
+    {
+        OmaSnapCapabilities capabilities = await EnsureOmaSnapProbedAsync(cancellationToken).ConfigureAwait(false);
+        return IsHyprland && capabilities.IsUsable;
+    }
+
+    /// <summary>Probe JSON and summary for diagnostics.</summary>
+    public async Task<(string Summary, string? ProbeJson)> DescribeOmaSnapAsync(CancellationToken cancellationToken = default)
+    {
+        OmaSnapCapabilities capabilities = await EnsureOmaSnapProbedAsync(cancellationToken).ConfigureAwait(false);
+        return (capabilities.Describe(), capabilities.RawJson);
+    }
+
     /// <summary>Forgets the cached probe, e.g. after the OmaSnap path override changed.</summary>
     internal void ResetOmaSnapProbe()
     {

@@ -165,6 +165,9 @@ namespace XerahS.Platform.Abstractions
         /// <summary>Optional desktop profile (Linux: Omarchy/Hyprland detection). Null elsewhere.</summary>
         public static IDesktopEnvironmentProfile? DesktopProfile { get; set; }
 
+        /// <summary>Optional compositor-managed keybindings (Hyprland, XIP0088). Null elsewhere.</summary>
+        public static ICompositorKeybindingService? CompositorKeybindings { get; set; }
+
         /// <summary>
         /// Checks if platform services have been initialized
         /// </summary>
@@ -352,6 +355,7 @@ namespace XerahS.Platform.Abstractions
 
             HostedCaptureEngine = null;
             DesktopProfile = null;
+            CompositorKeybindings = null;
             _platformInfo = null;
             _screenService = null;
             _clipboardService = null;

@@ -1,6 +1,6 @@
 # XIP0088 OmaSnap Native Omarchy Capture Engine
 
-**Status**: Draft
+**Status**: Implemented in XerahS v0.31.0 (Phases 0, 2-7); Phase 1 (OmaSnap host mode in KovaForge/omasnap) and the `native/omasnap` submodule pin pending
 **Created**: 2026-09-28
 **Updated**: 2026-09-28
 **Target version**: v0.31.0 (feature; bump minor)
@@ -282,6 +282,45 @@ omaxerahs workflow run <id> ──single-instance──▶ XerahS (running, tray
 5. Release tarball: ship the Arch-built OmaSnap in the generic `linux-x64` tarball (probe-gated), or only in the AUR package?
 
 ---
+
+## Implementation Notes (v0.31.0)
+
+- **Phase 1 not done here.** The implementing session had no access to `KovaForge/omasnap`. XerahS
+  implements the host contract exactly as specified above and is tested against
+  `tests/fixtures/fake-omasnap/omasnap`. Until OmaSnap 1.22.0 ships host mode, every probe fails
+  (`--host-capabilities` unknown) and XerahS behaves as before. Host-mode OmaSnap must accept
+  `--host`, `--output`, `--result-json`, `smart|--capture-region|--capture-window|--capture-fullscreen|--scroll`,
+  `--region x,y,w,h`, `--editor`, `--file`, `--no-recents`, `--pin`, and `OMASNAP_HOST_UPLOAD_COMMAND`
+  (XerahS sets it to `<omaxerahs> upload --url-only`; OmaSnap appends the PNG path).
+- **Submodule.** Add `native/omasnap` pinned to the 1.22.0 release commit; `build-omasnap.sh`, the CI
+  Arch job and the PKGBUILD already use it and skip cleanly while it is absent.
+- **Automatic.** Workflow jobs reach OmaSnap through `CaptureStage` (Automatic or OmaSnap selector,
+  engine available). The coordinator's own Automatic order and the Linux diagnostics'
+  `AutomaticPreference` are unchanged, so tools that call `CaptureRegionAsync` directly (QR, OCR)
+  keep their current selector. The explicit OmaSnap selector puts `stage=OmaSnap` first in the trace.
+- **CustomRegion** with a configured rectangle is captured as `--capture-region --region <rect>`
+  (non-interactive) instead of smart selection; without one it uses smart selection.
+- **ActiveWindow** keeps the existing non-interactive path (no measurement was possible here).
+- **Phase 0 item 9.** Root cause: the tests project passed `AssembleProduct=false;…` to App/CLI and
+  CLI/omaxerahs/daemon passed empty `RuntimeIdentifier` plus `CrossCompile=true` to Bootstrap. Each
+  created a second configuration of UI/Core/RegionCapture building into the same `obj` folder in
+  parallel. After the fix every project builds in one configuration.
+- **Phase 5 include form.** `require("xerahs")` is appended to `~/.config/hypr/bindings.lua`; the
+  Omarchy include form and `hl.bind`/`hl.unbind` names must be confirmed on the maintainer machine
+  (checklist item 4). Settings live in Settings > Application > Hyprland Keybindings.
+
+### Manual validation checklist (maintainer machine, Appendix A)
+
+1. Region, window, fullscreen, scroll captures through XerahS hotkeys: correct PNG, After Capture
+   window, upload, history (`%pn` = window class).
+2. Hotkey while the overlay is open dismisses it; no stray capture.
+3. OmaSnap editor round trip; pin Upload button puts the XerahS destination URL on the clipboard.
+4. Hyprland keybinding opt-in: backup created, `hyprctl configerrors` clean, portal shortcuts no
+   longer registered, Turn off restores them.
+5. Remove the OmaSnap binary: fallback to the old chain with one log line, no error-log entries.
+6. GNOME machine or VM: no visible change.
+7. `xerahs doctor --linux-desktop` and `omaxerahs capabilities` report the probe.
+8. `omaxerahs workflow run <id>` from a terminal returns in well under 50 ms with XerahS running.
 
 ## Appendix A: Maintainer machine facts (for sessions without local access)
 

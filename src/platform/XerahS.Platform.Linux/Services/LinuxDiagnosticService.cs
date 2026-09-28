@@ -177,6 +177,13 @@ namespace XerahS.Platform.Linux.Services
             sb.AppendLine($"RuntimeEnvironment: {environment.ToDiagnosticString()}");
             sb.AppendLine();
 
+            // XIP0088: one place for Omarchy/Hyprland/OmaSnap facts. Cached values only; never probes here.
+            var desktopProfile = LinuxDesktopProfile.Current;
+            sb.AppendLine("[DESKTOP PROFILE]");
+            sb.AppendLine($"Profile: {desktopProfile.Describe()}");
+            sb.AppendLine($"OmaSnapProbeJson: {desktopProfile.OmaSnapCapabilities?.RawJson?.Trim() ?? "<none>"}");
+            sb.AppendLine();
+
             sb.AppendLine("[XDG STORAGE]");
             sb.AppendLine($"ConfigHome: {xdg.ConfigHome}");
             sb.AppendLine($"DataHome: {xdg.DataHome}");

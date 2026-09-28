@@ -863,6 +863,13 @@ namespace XerahS.App
                 return;
             }
 
+            // Hyprland keybinding trigger (XIP0088): run like a hotkey, never raise the main window.
+            if (AppContracts.Cli.TryGetRunWorkflowId(args, out string runWorkflowId))
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => RunWorkflowFromAutomation(runWorkflowId));
+                return;
+            }
+
             // Process the arguments on the UI thread to handle any UI-related actions
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
@@ -927,10 +934,33 @@ namespace XerahS.App
             }
         }
 
+        private static void RunWorkflowFromAutomation(string workflowId)
+        {
+            try
+            {
+                XerahS.Core.Hotkeys.WorkflowSettings workflow = XerahS.Core.Automation.WorkflowAutomation.FindWorkflow(workflowId);
+                if (Avalonia.Application.Current is not XerahS.UI.App app || !app.TryRunWorkflow(workflow))
+                {
+                    XerahS.Common.DebugHelper.WriteLine($"Workflow run '{workflowId}' ignored: workflows are not initialized yet.");
+                }
+            }
+            catch (XerahS.Core.Automation.AutomationException ex)
+            {
+                XerahS.Common.DebugHelper.WriteLine($"Workflow run '{workflowId}' rejected: {ex.Message}");
+            }
+        }
+
         private static void ProcessIncomingArguments(string[]? args, string source)
         {
             if (args == null || args.Length == 0)
             {
+                return;
+            }
+
+            if (AppContracts.Cli.TryGetRunWorkflowId(args, out string runWorkflowId))
+            {
+                // XerahS was started by "omaxerahs workflow run" because it was not running.
+                RunWorkflowFromAutomation(runWorkflowId);
                 return;
             }
 

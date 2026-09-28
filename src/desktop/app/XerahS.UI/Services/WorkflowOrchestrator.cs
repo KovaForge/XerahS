@@ -283,6 +283,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             var hotkeyService = PlatformServices.Hotkey;
             _workflowManager = new Core.Hotkeys.WorkflowManager(hotkeyService);
             _workflowManager.HotkeyTriggered += HotkeyManager_HotkeyTriggered;
+            _workflowManager.WorkflowsChanged += (_, _) => RefreshHyprlandKeybindings();
 
             var hotkeys = Core.SettingsManager.WorkflowsConfig.Hotkeys;
 
@@ -299,6 +300,28 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         {
             DebugHelper.WriteException(ex, "Failed to initialize hotkeys");
         }
+    }
+
+    /// <summary>Keeps ~/.config/hypr/xerahs.lua in sync with hotkeys when Hyprland keybindings are on (XIP0088).</summary>
+    private void RefreshHyprlandKeybindings()
+    {
+        var workflows = _workflowManager?.Workflows.ToList();
+        if (workflows == null || SettingsManager.Settings?.LinuxHyprlandKeybindings != true)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await new Core.Hotkeys.HyprlandKeybindingCoordinator().RefreshAsync(workflows).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"Hyprland keybindings: refresh failed ({ex.Message}).");
+            }
+        });
     }
 
     private void OnTaskCompleted(object? sender, EventArgs e)
@@ -335,6 +358,12 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         }
 
         await ExecuteWorkflowFromTriggerAsync(settings);
+    }
+
+    public Task RunWorkflowAsync(Core.Hotkeys.WorkflowSettings workflow)
+    {
+        DebugHelper.WriteLine($"Workflow run requested by an automation client: {workflow} (ID: {workflow.Id})");
+        return ExecuteWorkflowFromTriggerAsync(workflow);
     }
 
     private async Task ExecuteWorkflowFromPaletteAsync(Core.Hotkeys.WorkflowSettings settings)

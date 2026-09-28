@@ -1,0 +1,9 @@
+[
+  {"locked":false,"mouse":false,"release":false,"repeat":false,"non_consuming":false,"has_description":true,"modmask":0,"submap":"","key":"Print","keycode":0,"catch_all":false,"description":"Screenshot","dispatcher":"exec","arg":"omarchy-capture-screenshot"},
+  {"locked":false,"mouse":false,"release":false,"repeat":false,"non_consuming":false,"has_description":true,"modmask":1,"submap":"","key":"F1","keycode":0,"catch_all":false,"description":"Screenshot","dispatcher":"exec","arg":"omarchy-capture-screenshot"},
+  {"locked":false,"mouse":false,"release":false,"repeat":false,"non_consuming":false,"has_description":true,"modmask":64,"submap":"","key":"Return","keycode":0,"catch_all":false,"description":"Terminal","dispatcher":"exec","arg":"uwsm app -- xdg-terminal-exec"},
+  {"locked":false,"mouse":false,"release":false,"repeat":false,"non_consuming":false,"has_description":true,"modmask":68,"submap":"","key":"S","keycode":0,"catch_all":false,"description":"Screenshot to clipboard","dispatcher":"exec","arg":"omarchy-cmd-screenshot copy"},
+  {"locked":false,"mouse":true,"release":false,"repeat":false,"non_consuming":false,"has_description":false,"modmask":64,"submap":"","key":"mouse:272","keycode":0,"catch_all":false,"description":"","dispatcher":"movewindow","arg":""},
+  {"locked":false,"mouse":false,"release":false,"repeat":false,"non_consuming":false,"has_description":true,"modmask":0,"submap":"resize","key":"F2","keycode":0,"catch_all":false,"description":"","dispatcher":"resizeactive","arg":"10 0"},
+  {"locked":false,"mouse":false,"release":false,"repeat":false,"non_consuming":false,"has_description":true,"modmask":4,"submap":"","key":"F1","keycode":0,"catch_all":false,"description":"XerahS: Region capture","dispatcher":"exec","arg":"/usr/lib/xerahs/omaxerahs workflow run bc904c7e-4edc-4726-b53e-4f6cf8646eee"}
+]

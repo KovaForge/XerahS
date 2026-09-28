@@ -452,6 +452,18 @@ public partial class App : Application
     public static Action? PostUIInitializationCallback { get; set; }
     public Core.Hotkeys.WorkflowManager? WorkflowManager => _workflowOrchestrator?.WorkflowManager;
 
+    /// <summary>Runs a workflow as its hotkey would; false when the orchestrator is not ready.</summary>
+    public bool TryRunWorkflow(Core.Hotkeys.WorkflowSettings workflow)
+    {
+        if (_workflowOrchestrator == null)
+        {
+            return false;
+        }
+
+        _ = _workflowOrchestrator.RunWorkflowAsync(workflow);
+        return true;
+    }
+
     private static void HideMainWindowToTray(Window? window)
     {
         if (window == null || IsExiting || !SettingsManager.Settings.SilentRun)

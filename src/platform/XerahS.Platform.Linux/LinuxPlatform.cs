@@ -47,6 +47,7 @@ namespace XerahS.Platform.Linux
             var hostedCaptureEngine = new Capture.OmaSnap.OmaSnapCaptureEngine(desktopProfile);
             PlatformServices.DesktopProfile = desktopProfile;
             PlatformServices.HostedCaptureEngine = hostedCaptureEngine;
+            PlatformServices.CompositorKeybindings = new HyprlandKeybindingService(desktopProfile);
             desktopProfile.StartBackgroundProbe();
 
             // Use LinuxScreenCaptureService if none provided
