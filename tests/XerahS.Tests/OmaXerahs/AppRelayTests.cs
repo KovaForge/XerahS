@@ -157,6 +157,29 @@ public class AppRelayTests
     }
 
     [Test]
+    public void FastPath_HandlesPlainRunAndCaptureOnly()
+    {
+        UseFakes(running: true);
+        var output = new StringWriter();
+        Console.SetOut(output);
+
+        Assert.That(CaptureCommand.TryRunFastPath(["workflow", "run", "Region capture", "--json"], out int exitCode), Is.True);
+        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.That(CaptureCommand.TryRunFastPath(["capture", "scroll"], out _), Is.True);
+        Assert.That(_sent, Is.EqualTo(new[]
+        {
+            new[] { AppContracts.Cli.RunWorkflowFlag, "Region capture" },
+            new[] { AppContracts.Cli.CaptureFlag, "scroll" }
+        }));
+
+        Assert.That(CaptureCommand.TryRunFastPath(["workflow", "run", "--help"], out _), Is.False);
+        Assert.That(CaptureCommand.TryRunFastPath(["capture", "region", "--workflow", "abc"], out _), Is.False);
+        Assert.That(CaptureCommand.TryRunFastPath(["capture", "selfie"], out _), Is.False);
+        Assert.That(CaptureCommand.TryRunFastPath(["workflow", "list"], out _), Is.False);
+        Assert.That(_sent, Has.Count.EqualTo(2));
+    }
+
+    [Test]
     public void Capture_UnknownTarget_IsAParseError()
     {
         ParseResult result = CaptureCommand.Create().Parse(["selfie"]);
