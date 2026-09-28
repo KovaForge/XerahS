@@ -314,6 +314,7 @@ public partial class App : Application
             TrayIconHelper.Instance.Initialize(screenRecordingCoordinator);
             _trayIconController.Initialize();
             InitializeClipboardMonitor(desktop.MainWindow);
+            IdleMemoryTrimmer.Initialize(desktop, taskManager);
 
             desktop.Exit += (sender, args) =>
             {

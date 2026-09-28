@@ -53,6 +53,14 @@
     <Exec Command="make -C &quot;$(RepoRoot)native/macos&quot;" />
   </Target>
 
+  <!--
+    Let the GC compact the Large Object Heap when it is fragmented. Capture buffers are LOH
+    allocations, and without this the heap keeps its post-capture peak while XerahS idles in the tray.
+  -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" />
   </ItemGroup>
