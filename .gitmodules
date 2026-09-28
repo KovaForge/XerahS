@@ -8,3 +8,7 @@
 	url = https://github.com/KovaForge/omacut.git
 	branch = develop
 	update = rebase
+[submodule "native/omasnap"]
+	path = native/omasnap
+	url = https://github.com/KovaForge/omasnap.git
+	branch = main
