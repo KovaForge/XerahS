@@ -171,10 +171,28 @@ namespace XerahS.Common
 
         public static string FrameDumpsFolder => Path.Combine(ScreencastsFolder, "FrameDumps");
 
+        /// <summary>
+        /// Environment variable that redirects every log file (main and error log) to another
+        /// folder. Test runs set it so they never write into the user's real logs.
+        /// </summary>
+        public const string LogsFolderOverrideEnvironmentVariable = "XERAHS_LOGS_DIR";
+
         /// <summary>Base folder for all log files (e.g. PersonalFolder/Logs).</summary>
-        public static string LogsFolderBase => UseLinuxXdgLayout
-            ? Path.Combine(LinuxXdgDirectories.Detect().StateDirectory, "Logs")
-            : Path.Combine(PersonalFolder, "Logs");
+        public static string LogsFolderBase
+        {
+            get
+            {
+                string? overrideFolder = Environment.GetEnvironmentVariable(LogsFolderOverrideEnvironmentVariable);
+                if (!string.IsNullOrWhiteSpace(overrideFolder))
+                {
+                    return overrideFolder;
+                }
+
+                return UseLinuxXdgLayout
+                    ? Path.Combine(LinuxXdgDirectories.Detect().StateDirectory, "Logs")
+                    : Path.Combine(PersonalFolder, "Logs");
+            }
+        }
 
         /// <summary>Logs subfolder for the given month (e.g. Logs/yyyy-MM). Uses current date if null.</summary>
         public static string GetLogsFolderForMonth(DateTime? date = null) =>
