@@ -81,7 +81,11 @@ public static class HyprlandKeybindingGenerator
         [Key.OemOpenBrackets] = "BRACKETLEFT",
         [Key.OemCloseBrackets] = "BRACKETRIGHT",
         [Key.OemPipe] = "BACKSLASH",
-        [Key.OemBackslash] = "BACKSLASH",
+        // OemBackslash (Oem102) is the ISO key between left Shift and Z, XKB "less"; not backslash.
+        [Key.OemBackslash] = "LESS",
+        [Key.CapsLock] = "CAPS_LOCK",
+        [Key.NumLock] = "NUM_LOCK",
+        [Key.Apps] = "MENU",
         [Key.OemTilde] = "GRAVE",
         [Key.Multiply] = "KP_MULTIPLY",
         [Key.Add] = "KP_ADD",
