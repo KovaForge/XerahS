@@ -70,6 +70,10 @@ public class HyprlandKeybindingTests
     [TestCase(Key.PageUp, KeyModifiers.None, "PAGE_UP")]
     [TestCase(Key.OemMinus, KeyModifiers.Control, "CTRL + MINUS")]
     [TestCase(Key.Enter, KeyModifiers.Meta, "SUPER + RETURN")]
+    [TestCase(Key.OemBackslash, KeyModifiers.Meta, "SUPER + LESS")]
+    [TestCase(Key.OemPipe, KeyModifiers.None, "BACKSLASH")]
+    [TestCase(Key.Apps, KeyModifiers.Control, "CTRL + MENU")]
+    [TestCase(Key.CapsLock, KeyModifiers.Meta, "SUPER + CAPS_LOCK")]
     public void KeyMappingTable(Key key, KeyModifiers modifiers, string expected)
     {
         Assert.That(HyprlandKeybindingGenerator.ToHyprlandKeys(new HotkeyInfo(key, modifiers)), Is.EqualTo(expected));

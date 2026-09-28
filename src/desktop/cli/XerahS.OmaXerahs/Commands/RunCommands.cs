@@ -53,8 +53,12 @@ internal sealed class WorkflowRunResponse
 internal static partial class RunCommands
 {
     /// <summary>Test seam: relays arguments to a running XerahS.</summary>
+    /// <summary>Overrides the XerahS executable started when no instance is running (dev builds, custom installs).</summary>
+    internal const string AppPathEnvironmentVariable = "XERAHS_APP_PATH";
+
+    // A key press waits on this, so give up on an unresponsive instance quickly and start a new one instead.
     internal static Func<string[], bool> SendToRunningInstance { get; set; } =
-        args => SingleInstanceManager.TrySendToRunningInstance(AppContracts.SingleInstance.PipeName, args);
+        args => SingleInstanceManager.TrySendToRunningInstance(AppContracts.SingleInstance.PipeName, args, timeoutMs: 500);
 
     /// <summary>Test seam: starts XerahS with arguments when it is not running.</summary>
     internal static Func<string[], bool> StartApp { get; set; } = StartXerahS;
@@ -178,19 +182,73 @@ internal static partial class RunCommands
 
     private static bool StartXerahS(string[] args)
     {
-        string app = Path.Combine(AppContext.BaseDirectory, OperatingSystem.IsWindows() ? "XerahS.exe" : "XerahS");
-        if (!File.Exists(app))
+        string? app = ResolveAppExecutable(AppContext.BaseDirectory, Environment.GetEnvironmentVariable(AppPathEnvironmentVariable));
+        if (app == null)
         {
             return false;
         }
 
-        var startInfo = new ProcessStartInfo(app) { UseShellExecute = false };
-        foreach (string arg in args)
+        try
         {
-            startInfo.ArgumentList.Add(arg);
+            var startInfo = new ProcessStartInfo(app)
+            {
+                UseShellExecute = false,
+                WorkingDirectory = Path.GetDirectoryName(app) ?? AppContext.BaseDirectory
+            };
+            foreach (string arg in args)
+            {
+                startInfo.ArgumentList.Add(arg);
+            }
+
+            using Process? process = Process.Start(startInfo);
+            return process != null;
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
+        {
+            DebugHelper.WriteLine($"omaxerahs: could not start XerahS at '{app}': {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>XerahS ships next to omaxerahs; the override wins when it points at a file.</summary>
+    internal static string? ResolveAppExecutable(string baseDirectory, string? overridePath)
+    {
+        if (!string.IsNullOrWhiteSpace(overridePath))
+        {
+            return File.Exists(overridePath) ? overridePath : null;
         }
 
-        using Process? process = Process.Start(startInfo);
-        return process != null;
+        string candidate = Path.Combine(baseDirectory, OperatingSystem.IsWindows() ? "XerahS.exe" : "XerahS");
+        return File.Exists(candidate) ? candidate : null;
+    }
+
+    /// <summary>
+    /// Hyprland key presses run <c>omaxerahs workflow run &lt;id&gt; [--json]</c>. That plain form with a
+    /// workflow id is handled here without building the System.CommandLine tree; anything else
+    /// (names, other options) returns false and takes the normal path.
+    /// </summary>
+    internal static bool TryRunFastPath(string[] args, out int exitCode)
+    {
+        exitCode = 0;
+        if (args.Length is < 3 or > 4 || args[0] != "workflow" || args[1] != "run")
+        {
+            return false;
+        }
+
+        bool json = args.Length == 4;
+        if (json && args[3] != "--json")
+        {
+            return false;
+        }
+
+        string id = args[2].Trim();
+        if (!WorkflowIdPattern().IsMatch(id))
+        {
+            return false;
+        }
+
+        JsonStdout.Enabled = json;
+        exitCode = Run(() => id);
+        return true;
     }
 }
