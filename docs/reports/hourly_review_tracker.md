@@ -7634,3 +7634,13 @@ M build/linux/aur/xerahs-git/PKGBUILD
 - Build/test: n/a (no code change this tick; upstream merges are infrastructure)
 - Commit: <filled at Step 7b commit time>
 - Follow-up: producer xerahs-review (nadia-daily) repopulates next_candidates on its 6h producer tick when clawpatch emits fresh findings. Preserved stashes (ModalOpenService teammate WIP + WaylandPortalHotkeyService app-id passthrough) are not in next_candidates and not auto-applied.
+
+### 2026-09-29 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero real-bug candidates and zero pivots; queue remains 0. Producer (xerahs-review) is up to date and recently_pivoted holds 48 entries.
+- Status: no-op (empty-queue audit, v1.1.9 contract)
+- Build/test: n/a (no code change)
+- Commit: see Step 7b commit below
+- Follow-up: next cron tick re-runs Step 5a against any new clawpatch ingest. Step 3 upstream merge non-negotiable: fetched upstream/develop (9712850d, v0.31.4 + v0.32.0 Linux hotkey) and fast-forwarded local; declan/develop had advanced in parallel (push rejection per v1.1.26), merged with --no-ff to preserve audit trail.
