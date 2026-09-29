@@ -391,7 +391,10 @@ jobs:
         run: |
           set -o pipefail
           chmod +x ./build/linux/package-linux.sh
-          XERAHS_SKIP_APPIMAGE=1 XERAHS_ARCHITECTURES="linux-x64" ./build/linux/package-linux.sh
+          # Flatpak does not bundle the OmaSnap Qt capture engine (see the
+          # build-omasnap comment block above). Allow package-linux.sh to
+          # skip OmaSnap instead of failing because Qt6 is absent here.
+          XERAHS_ALLOW_NO_OMASNAP=1 XERAHS_SKIP_APPIMAGE=1 XERAHS_ARCHITECTURES="linux-x64" ./build/linux/package-linux.sh
 
       - name: Extract tarball to Flatpak staging dir
         shell: bash
