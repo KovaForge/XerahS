@@ -1,6 +1,6 @@
 # Windows Screen Capture Architecture
 
-This is the authoritative description of how XerahS takes screenshots on Windows. It replaces the Windows sections of the older region capture backend documents, whose `IRegionCaptureBackend` path was never wired into the application.
+This is the authoritative description of how XerahS takes screenshots on Windows. It replaces the older region capture backend documents. Their `IRegionCaptureBackend` stack was never wired into the application and has been removed on every platform.
 
 ## Layers
 

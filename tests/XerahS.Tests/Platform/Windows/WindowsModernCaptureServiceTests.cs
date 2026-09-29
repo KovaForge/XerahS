@@ -166,7 +166,7 @@ public class WindowsModernCaptureServiceTests
     [Test]
     public void CreateDxgiCursorPlacement_MapsScreenCursorToCapturedBitmapCoordinates()
     {
-        var captureRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(100, 50, 200, 100);
+        var captureRegion = new Rectangle(100, 50, 200, 100);
 
         var placement = DxgiCursorCompositionHelper.CreatePlacement(
             includeCursor: true,
@@ -186,7 +186,7 @@ public class WindowsModernCaptureServiceTests
     [Test]
     public void CreateDxgiCursorPlacement_RejectsCursorOutsideCapturedBitmap()
     {
-        var captureRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(100, 50, 200, 100);
+        var captureRegion = new Rectangle(100, 50, 200, 100);
 
         var placement = DxgiCursorCompositionHelper.CreatePlacement(
             includeCursor: true,
@@ -202,7 +202,7 @@ public class WindowsModernCaptureServiceTests
     [Test]
     public void CreateDxgiCursorPlacement_UsesDefaultExtentForSystemSizedCursor()
     {
-        var captureRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(100, 50, 200, 100);
+        var captureRegion = new Rectangle(100, 50, 200, 100);
 
         var placement = DxgiCursorCompositionHelper.CreatePlacement(
             includeCursor: true,
@@ -218,7 +218,7 @@ public class WindowsModernCaptureServiceTests
     [Test]
     public void CreateDxgiCursorPlacement_MapsNegativeVirtualDesktopCursorToFullScreenBitmap()
     {
-        var captureRegion = new ShareX.Avalonia.Platform.Abstractions.Capture.PhysicalRectangle(-1920, -200, 3840, 1280);
+        var captureRegion = new Rectangle(-1920, -200, 3840, 1280);
 
         var placement = DxgiCursorCompositionHelper.CreatePlacement(
             includeCursor: true,
@@ -236,29 +236,19 @@ public class WindowsModernCaptureServiceTests
     }
 
     [Test]
-    public void CreateDxgiCursorCaptureRegion_UsesCapturedDxgiBounds()
+    public void CreateDxgiCursorPlacement_RejectsCaptureRegionWithoutArea()
     {
-        var captureRegion = DxgiCursorCompositionHelper.CreateCaptureRegion(
-            left: -1920,
-            top: -200,
-            right: 2560,
-            bottom: 1440);
-
+        // System.Drawing.Rectangle.IsEmpty is only true for an all-zero rectangle, so a zero-width region
+        // positioned away from the origin must still be rejected.
         var placement = DxgiCursorCompositionHelper.CreatePlacement(
             includeCursor: true,
             cursorVisible: true,
-            cursorPosition: new Point(-1900, -180),
-            hotspot: new Point(10, 8),
+            cursorPosition: new Point(110, 60),
+            hotspot: new Point(0, 0),
             cursorSize: new Size(32, 32),
-            captureRegion);
+            new Rectangle(100, 50, 0, 100));
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(captureRegion.X, Is.EqualTo(-1920));
-            Assert.That(captureRegion.Width, Is.EqualTo(4480));
-            Assert.That(placement.ShouldDraw, Is.True);
-            Assert.That(placement.DrawOffset, Is.EqualTo(new Point(10, 12)));
-        });
+        Assert.That(placement.ShouldDraw, Is.False);
     }
 
     [Test]

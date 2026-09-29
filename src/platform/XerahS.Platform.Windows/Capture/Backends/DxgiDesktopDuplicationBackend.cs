@@ -381,11 +381,6 @@ internal sealed class DxgiDesktopDuplicationBackend : IScreenCaptureBackend
     {
         try
         {
-            var captureRegion = DxgiCursorCompositionHelper.CreateCaptureRegion(
-                captureBounds.Left,
-                captureBounds.Top,
-                captureBounds.Right,
-                captureBounds.Bottom);
             var cursor = new CursorData();
             DxgiCursorCompositionHelper.TryCompositeCursor(
                 bitmap,
@@ -393,7 +388,7 @@ internal sealed class DxgiDesktopDuplicationBackend : IScreenCaptureBackend
                 cursor.Position,
                 cursor.Hotspot,
                 cursor.Size,
-                captureRegion,
+                captureBounds,
                 cursor.DrawCursor);
         }
         catch

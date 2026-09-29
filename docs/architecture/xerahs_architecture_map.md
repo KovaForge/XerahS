@@ -310,7 +310,6 @@ XerahS is a cross-platform screen capture and upload application built on Avalon
 - `IHotkeyService` - Global hotkey registration
 - `IClipboardService` - Clipboard operations
 - `IWindowService` - Window management (enumerate, focus)
-- `IRegionCaptureBackend` - Region selector UI contract
 
 **Models**: `HotkeyInfo`, `MonitorInfo`, `CaptureOptions`, `ToastConfig`
 

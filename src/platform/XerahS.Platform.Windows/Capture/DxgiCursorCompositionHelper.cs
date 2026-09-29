@@ -1,7 +1,6 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.Versioning;
-using ShareX.Avalonia.Platform.Abstractions.Capture;
 using SkiaSharp;
 
 namespace XerahS.Platform.Windows.Capture;
@@ -21,9 +20,9 @@ internal static class DxgiCursorCompositionHelper
         Point cursorPosition,
         Point hotspot,
         Size cursorSize,
-        PhysicalRectangle captureRegion)
+        Rectangle captureRegion)
     {
-        if (!includeCursor || !cursorVisible || captureRegion.IsEmpty)
+        if (!includeCursor || !cursorVisible || captureRegion.Width <= 0 || captureRegion.Height <= 0)
             return default;
 
         int width = cursorSize.Width > 0 ? cursorSize.Width : DefaultCursorExtent;
@@ -41,17 +40,6 @@ internal static class DxgiCursorCompositionHelper
         return new CursorOverlayPlacement(true, new Point(drawX, drawY));
     }
 
-    public static PhysicalRectangle CreateCaptureRegion(int left, int top, int right, int bottom)
-    {
-        int width = right - left;
-        int height = bottom - top;
-
-        if (width <= 0 || height <= 0)
-            return default;
-
-        return new PhysicalRectangle(left, top, width, height);
-    }
-
     [SupportedOSPlatform("windows")]
     public static bool TryCompositeCursor(
         SKBitmap bitmap,
@@ -59,7 +47,7 @@ internal static class DxgiCursorCompositionHelper
         Point cursorPosition,
         Point hotspot,
         Size cursorSize,
-        PhysicalRectangle captureRegion,
+        Rectangle captureRegion,
         Action<IntPtr, Point> drawCursor)
     {
         var placement = CreatePlacement(
