@@ -23,6 +23,7 @@
 
 #endregion License Information (GPL v3)
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using XerahS.UI.ViewModels;
 
@@ -39,6 +40,19 @@ namespace XerahS.UI.Views
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+        }
+
+        private async void OnShareLogsClick(object? sender, RoutedEventArgs e)
+        {
+            var window = new ShareLogsWindow();
+            if (TopLevel.GetTopLevel(this) is Window owner)
+            {
+                await window.ShowDialog(owner);
+            }
+            else
+            {
+                window.Show();
+            }
         }
     }
 }
