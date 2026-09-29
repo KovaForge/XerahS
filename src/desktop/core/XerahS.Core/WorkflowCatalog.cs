@@ -43,6 +43,7 @@ public static class WorkflowCatalog
         WorkflowType.OCR,
         WorkflowType.ImageEditor,
         WorkflowType.HashCheck,
+        WorkflowType.MediaBrowser,
         WorkflowType.PinToScreen,
         WorkflowType.PinToScreenFromScreen,
         WorkflowType.PinToScreenFromClipboard,
@@ -54,12 +55,18 @@ public static class WorkflowCatalog
         WorkflowType.ImageCombiner,
         WorkflowType.ImageSplitter,
         WorkflowType.ImageThumbnailer,
+        WorkflowType.ImageResizer,
+        WorkflowType.ImageConverter,
+        WorkflowType.ImageWatermark,
+        WorkflowType.AnimatedGifMaker,
         WorkflowType.VideoConverter,
+        WorkflowType.VideoTrimmer,
         WorkflowType.VideoThumbnailer,
         WorkflowType.AnalyzeImage,
         WorkflowType.ClipboardViewer,
         WorkflowType.ClipboardUploadWithContentViewer,
         WorkflowType.MonitorTest,
+        WorkflowType.NetworkMonitor,
         WorkflowType.Ruler
     ];
 

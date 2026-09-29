@@ -33,6 +33,10 @@
                                     <CheckBox IsChecked="{Binding UseModernCapture}"
                                               Content="Use modern screen capture (Direct3D11)"
                                               IsVisible="{Binding ShowUseModernCaptureSetting}"/>
+                                    <CheckBox IsChecked="{Binding HDRScreenshotColorCorrection}"
+                                              Content="Correct HDR display colors"
+                                              IsVisible="{Binding ShowUseModernCaptureSetting}"
+                                              AutomationProperties.Name="Correct HDR Display Colors"/>
                                     <StackPanel Spacing="10" IsVisible="{Binding IsLinuxPlatform}">
                                         <TextBlock Text="Preferred Linux region selector:" VerticalAlignment="Center"/>
                                         <ComboBox ItemsSource="{Binding LinuxRegionSelectorPreferences}"
@@ -46,10 +50,14 @@
                                                 </DataTemplate>
                                             </ComboBox.ItemTemplate>
                                         </ComboBox>
-                                        <TextBlock Text="Automatic keeps the current safe Linux fallback behavior and only prefers a specific native selector when requested."
+                                        <TextBlock Text="Automatic keeps the current safe Linux fallback behavior and only prefers a specific native selector when requested. On Hyprland with OmaSnap available, Automatic captures through OmaSnap."
                                                    FontSize="12"
                                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
                                                    TextWrapping="Wrap"/>
+                                        <CheckBox IsChecked="{Binding OmaSnapRegionOnly}"
+                                                  IsVisible="{Binding IsOmaSnapAvailable}"
+                                                  Content="OmaSnap: region only (skip smart window and monitor selection)"
+                                                  AutomationProperties.Name="OmaSnap Region Only"/>
                                     </StackPanel>
                                     <StackPanel Spacing="10" IsVisible="{Binding IsMacOSPlatform}">
                                         <TextBlock Text="Preferred macOS region selector:" VerticalAlignment="Center"/>
@@ -94,6 +102,36 @@
                                         <CheckBox IsChecked="{Binding CaptureClientArea}" Content="Capture client area (remove window chrome)"/>
                                         <CheckBox IsChecked="{Binding CaptureAutoHideTaskbar}" Content="Auto hide taskbar during capture"/>
                                     </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Region Capture Section -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Region capture" FontWeight="SemiBold"/>
+                            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" BorderThickness="1" CornerRadius="4" Padding="16">
+                                <StackPanel Spacing="10">
+                                    <CheckBox IsChecked="{Binding RegionCaptureShowMagnifier}" Content="Show magnifier near cursor"/>
+                                    <CheckBox IsChecked="{Binding RegionCaptureUseSquareMagnifier}" Content="Use square magnifier" IsEnabled="{Binding RegionCaptureShowMagnifier}" Margin="24,0,0,0"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="24,0,0,0" IsEnabled="{Binding RegionCaptureShowMagnifier}">
+                                        <TextBlock Text="Magnifier pixel count:" VerticalAlignment="Center"/>
+                                        <NumericUpDown Value="{Binding RegionCaptureMagnifierPixelCount}" Minimum="3" Maximum="35" Increment="2" FormatString="0" MinWidth="120" AutomationProperties.Name="Magnifier Pixel Count"/>
+                                    </StackPanel>
+                                    <CheckBox IsChecked="{Binding RegionCaptureShowInfo}" Content="Show position and color info"/>
+                                    <CheckBox IsChecked="{Binding RegionCaptureUseCustomInfoText}" Content="Use custom info text" IsEnabled="{Binding RegionCaptureShowInfo}" Margin="24,0,0,0"/>
+                                    <TextBox Text="{Binding RegionCaptureCustomInfoText}"
+                                             AcceptsReturn="True"
+                                             TextWrapping="Wrap"
+                                             MinHeight="64"
+                                             Margin="24,0,0,0"
+                                             IsEnabled="{Binding RegionCaptureUseCustomInfoText}"
+                                             AutomationProperties.Name="Custom Info Text"/>
+                                    <TextBlock Text="Tokens: $x $y $r $g $b $hex $HEX $name $c100 $m100 $y100 $k100 $r1 $g1 $b1"
+                                               FontSize="12"
+                                               Margin="24,0,0,0"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               TextWrapping="Wrap"/>
+                                    <CheckBox IsChecked="{Binding RegionCaptureShowScreenCrosshair}" Content="Show screen-wide crosshair"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -201,11 +239,11 @@
                             <StackPanel Spacing="16">
                                 <Grid ColumnDefinitions="Auto, 16, *">
                                     <TextBlock Grid.Column="0" Text="Name pattern:" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Column="2" Text="{Binding NameFormatPattern, Mode=TwoWay}" AutomationProperties.Name="Name Pattern"/>
+                                    <TextBox x:Name="NameFormatPatternTextBox" Grid.Column="2" Text="{Binding NameFormatPattern, Mode=TwoWay}" AutomationProperties.Name="Name Pattern"/>
                                 </Grid>
                                 <Grid ColumnDefinitions="Auto, 16, *">
                                     <TextBlock Grid.Column="0" Text="Active window name pattern:" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Column="2" Text="{Binding NameFormatPatternActiveWindow, Mode=TwoWay}" AutomationProperties.Name="Active Window Name Pattern"/>
+                                    <TextBox x:Name="NameFormatPatternActiveWindowTextBox" Grid.Column="2" Text="{Binding NameFormatPatternActiveWindow, Mode=TwoWay}" AutomationProperties.Name="Active Window Name Pattern"/>
                                 </Grid>
                                 
                                 <StackPanel Spacing="10">

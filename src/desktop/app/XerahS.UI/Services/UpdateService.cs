@@ -32,6 +32,7 @@ using System.Linq;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.UI.Views;
+using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Services;
 
@@ -241,11 +242,15 @@ public class UpdateService : IDisposable
         {
             return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                var dialog = new UpdateMessageBox(updateChecker);
                 bool? result;
                 try
                 {
-                    result = await ShowUpdateDialogWindowAsync(dialog);
+                    var viewModel = UpdateMessageBox.CreateViewModel(updateChecker);
+                    result = await ModalDialogHost.ShowAsync(
+                        viewModel,
+                        set => viewModel.RequestClose = r => set(r == true),
+                        dismissResult: false,
+                        debugSource: nameof(UpdateMessageBoxViewModel));
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -356,32 +361,10 @@ public class UpdateService : IDisposable
                owner.WindowState != Avalonia.Controls.WindowState.Minimized;
     }
 
-    private static async Task<bool?> ShowUpdateDialogWindowAsync(UpdateMessageBox dialog)
-    {
-        var owner = GetPreferredDialogOwner();
-        if (CanUseDialogOwner(owner))
-        {
-            return await dialog.ShowDialog<bool?>(owner!);
-        }
-
-        DebugHelper.WriteLine("Showing update dialog without a visible owner window.");
-        return await dialog.ShowDetachedAsync();
-    }
-
     private static async Task<bool?> ShowDownloaderWindowAsync(DownloaderWindow dialog, UpdateChecker updateChecker)
     {
-        var owner = GetPreferredDialogOwner();
-        if (CanUseDialogOwner(owner))
-        {
-            return await dialog.ShowDialog<bool?>(owner!);
-        }
-
-        DebugHelper.WriteLine("Showing updater downloader without a visible owner window.");
-        if (string.IsNullOrEmpty(updateChecker.DownloadURL))
-        {
-            return false;
-        }
-
+        // Progress UI stays a top-level window (non-modal Show). No Window.ShowDialog.
+        DebugHelper.WriteLine("Showing updater downloader as non-modal window.");
         return await dialog.ShowDetachedAsync();
     }
 

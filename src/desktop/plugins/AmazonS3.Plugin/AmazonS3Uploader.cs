@@ -25,10 +25,8 @@
 
 using Amazon.Runtime;
 using Amazon.S3;
+using Amazon.S3.Model;
 using ShareX.AmazonS3.Plugin.Multipart;
-using System.Collections.Specialized;
-using System.Globalization;
-using System.Security.Cryptography;
 using XerahS.Common;
 using XerahS.Uploaders;
 using XerahS.Uploaders.Multipart;
@@ -41,11 +39,13 @@ namespace ShareX.AmazonS3.Plugin;
 public class AmazonS3Uploader : FileUploader
 {
     private const string DefaultRegion = "us-east-1";
+    private const long MaximumSinglePutSizeBytes = 5L * 1024 * 1024 * 1024;
     private readonly S3ConfigModel _config;
     private readonly string _accessKeyId;
     private readonly string _secretAccessKey;
     private readonly string? _sessionToken;
-    private CancellationTokenSource? _multipartCancellationTokenSource;
+    private readonly Func<IAmazonS3> _s3ClientFactory;
+    private CancellationTokenSource? _sdkCancellationTokenSource;
 
     public static List<AmazonS3Endpoint> Endpoints { get; } = new List<AmazonS3Endpoint>
     {
@@ -78,11 +78,18 @@ public class AmazonS3Uploader : FileUploader
     };
 
     public AmazonS3Uploader(S3ConfigModel config, string accessKeyId, string secretAccessKey, string? sessionToken = null)
+        : this(config, accessKeyId, secretAccessKey, sessionToken, null)
+    {
+    }
+
+    internal AmazonS3Uploader(S3ConfigModel config, string accessKeyId, string secretAccessKey,
+        string? sessionToken, Func<IAmazonS3>? s3ClientFactory)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _accessKeyId = accessKeyId ?? throw new ArgumentNullException(nameof(accessKeyId));
         _secretAccessKey = secretAccessKey ?? throw new ArgumentNullException(nameof(secretAccessKey));
         _sessionToken = sessionToken;
+        _s3ClientFactory = s3ClientFactory ?? CreateConfiguredS3Client;
     }
 
     public override UploadResult? UploadFile(string filePath)
@@ -105,15 +112,26 @@ public class AmazonS3Uploader : FileUploader
 
         try
         {
-            _multipartCancellationTokenSource?.Cancel();
+            _sdkCancellationTokenSource?.Cancel();
         }
         catch (ObjectDisposedException)
         {
         }
     }
 
+    internal const string MissingBucketMessage =
+        "Amazon S3: no bucket is set for this destination. Set one in Destinations, or remove the destination.";
+
     public override UploadResult Upload(Stream stream, string fileName)
     {
+        // Without a bucket the SDK throws ArgumentException before any request; say why instead.
+        if (string.IsNullOrWhiteSpace(_config.BucketName))
+        {
+            DebugHelper.WriteLine(MissingBucketMessage);
+            Errors.Add(MissingBucketMessage);
+            return new UploadResult { Response = MissingBucketMessage };
+        }
+
         if (stream is FileStream fileStream && File.Exists(fileStream.Name) && ShouldUseMultipart(stream.Length))
         {
             return UploadMultipart(fileStream.Name, fileName);
@@ -124,67 +142,91 @@ public class AmazonS3Uploader : FileUploader
 
     private UploadResult UploadSinglePut(Stream stream, string fileName)
     {
-        bool isPathStyleRequest = _config.UsePathStyleUrl || _config.BucketName.Contains(".");
-
-        string scheme = _config.Endpoint.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? string.Empty : "https://";
-        string endpoint = _config.Endpoint;
-        string host = isPathStyleRequest ? endpoint : $"{_config.BucketName}.{endpoint}";
-        string region = GetRegion();
-        string contentType = MimeTypes.GetMimeTypeFromFileName(fileName);
-
-        string hashedPayload = _config.SignedPayload
-            ? ComputeSHA256Hash(stream)
-            : "UNSIGNED-PAYLOAD";
-
-        (string uploadPath, string resultUrl, _) = CreateUploadContext(fileName);
+        (string uploadPath, string resultUrl, string contentType) = CreateUploadContext(fileName);
         OnEarlyURLCopyRequested(resultUrl);
 
-        NameValueCollection headers = new NameValueCollection
+        IsUploading = true;
+        StopUploadRequested = false;
+
+        using CancellationTokenSource sdkCancellationTokenSource = new();
+        _sdkCancellationTokenSource = sdkCancellationTokenSource;
+        ProgressManager progressManager = new(stream.Length);
+
+        try
         {
-            ["Host"] = host,
-            ["Content-Length"] = stream.Length.ToString(CultureInfo.InvariantCulture),
-            ["Content-Type"] = contentType,
-            ["x-amz-storage-class"] = GetStorageClassHeaderValue(_config.StorageClass)
-        };
-
-        if (_config.SetPublicACL)
-        {
-            headers["x-amz-acl"] = "public-read";
-        }
-
-        string canonicalUri = uploadPath;
-        if (isPathStyleRequest)
-        {
-            canonicalUri = URLHelpers.CombineURL(_config.BucketName, canonicalUri);
-        }
-
-        canonicalUri = URLHelpers.AddSlash(canonicalUri, SlashType.Prefix);
-        canonicalUri = URLHelpers.URLEncode(canonicalUri, true);
-
-        AwsS3Signer.Sign(headers, "PUT", canonicalUri, string.Empty, region, _accessKeyId, _secretAccessKey, _sessionToken, hashedPayload);
-
-        headers.Remove("Host");
-        headers.Remove("Content-Type");
-
-        string url = URLHelpers.CombineURL(scheme + host, canonicalUri);
-        url = URLHelpers.FixPrefix(url);
-
-        SendRequest(XerahS.Uploaders.HttpMethod.PUT, url, stream, contentType, null, headers);
-
-        if (LastResponseInfo?.IsSuccess == true)
-        {
-            return new UploadResult
+            using IAmazonS3 client = CreateS3Client();
+            PutObjectRequest request = new()
             {
-                IsSuccess = true,
-                URL = resultUrl
+                BucketName = _config.BucketName,
+                Key = uploadPath,
+                InputStream = stream,
+                AutoCloseStream = false,
+                AutoResetStreamPosition = false,
+                ContentType = contentType,
+                StorageClass = MapStorageClass(_config.StorageClass),
+                DisablePayloadSigning = !_config.SignedPayload
             };
-        }
 
-        Errors.Add("Upload to Amazon S3 failed.");
-        return new UploadResult
+            if (_config.SetPublicACL)
+            {
+                request.CannedACL = S3CannedACL.PublicRead;
+            }
+
+            request.StreamTransferProgress += (_, args) =>
+            {
+                if (args.IncrementTransferred > 0 && AllowReportProgress && progressManager.UpdateProgress(args.IncrementTransferred))
+                {
+                    OnProgressChanged(progressManager);
+                }
+            };
+
+            PutObjectResponse response = Task.Run(
+                () => client.PutObjectAsync(request, sdkCancellationTokenSource.Token),
+                sdkCancellationTokenSource.Token).GetAwaiter().GetResult();
+
+            if ((int)response.HttpStatusCode is >= 200 and < 300)
+            {
+                var putResult = new UploadResult
+                {
+                    IsSuccess = true,
+                    Response = response.ETag,
+                    URL = resultUrl
+                };
+                AddObjectMetadata(putResult, uploadPath);
+                return putResult;
+            }
+
+            string responseMessage = $"Upload to Amazon S3 failed ({(int)response.HttpStatusCode}).";
+            Errors.Add(responseMessage);
+            return new UploadResult { Response = responseMessage };
+        }
+        catch (OperationCanceledException)
         {
-            IsSuccess = false
-        };
+            const string cancellationMessage = "Amazon S3 upload was canceled.";
+            DebugHelper.WriteLine(cancellationMessage);
+            return new UploadResult { Response = cancellationMessage };
+        }
+        catch (AmazonS3Exception ex)
+        {
+            string failureMessage = string.IsNullOrWhiteSpace(ex.ErrorCode)
+                ? $"Upload to Amazon S3 failed ({(int)ex.StatusCode})."
+                : $"Upload to Amazon S3 failed ({(int)ex.StatusCode}, {ex.ErrorCode}).";
+            DebugHelper.WriteLine(failureMessage);
+            Errors.Add(failureMessage);
+            return new UploadResult { Response = failureMessage };
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteLine($"Upload to Amazon S3 failed ({ex.GetType().Name}).");
+            const string failureMessage = "Upload to Amazon S3 failed.";
+            Errors.Add(failureMessage);
+            return new UploadResult { Response = failureMessage };
+        }
+        finally
+        {
+            _sdkCancellationTokenSource = null;
+            IsUploading = false;
+        }
     }
 
     private UploadResult UploadMultipart(string filePath, string fileName)
@@ -212,7 +254,7 @@ public class AmazonS3Uploader : FileUploader
         StopUploadRequested = false;
 
         using CancellationTokenSource multipartCancellationTokenSource = new CancellationTokenSource();
-        _multipartCancellationTokenSource = multipartCancellationTokenSource;
+        _sdkCancellationTokenSource = multipartCancellationTokenSource;
 
         ProgressManager progressManager = new ProgressManager(fileInfo.Length);
         long reportedBytes = 0;
@@ -237,7 +279,7 @@ public class AmazonS3Uploader : FileUploader
 
             options.Validate();
 
-            Progress<MultipartUploadProgress> progressReporter = new Progress<MultipartUploadProgress>(snapshot =>
+            InlineProgress<MultipartUploadProgress> progressReporter = new(snapshot =>
             {
                 long delta;
 
@@ -257,12 +299,18 @@ public class AmazonS3Uploader : FileUploader
                 () => new S3MultipartUploader(client).UploadAsync(filePath, options, progressReporter, multipartCancellationTokenSource.Token),
                 multipartCancellationTokenSource.Token).GetAwaiter().GetResult();
 
-            return new UploadResult
+            var multipartUploadResult = new UploadResult
             {
                 IsSuccess = multipartResult.IsSuccess,
                 Response = multipartResult.ETag,
                 URL = multipartResult.URL ?? resultUrl
             };
+            if (multipartResult.IsSuccess)
+            {
+                AddObjectMetadata(multipartUploadResult, uploadPath);
+            }
+
+            return multipartUploadResult;
         }
         catch (OperationCanceledException)
         {
@@ -272,21 +320,21 @@ public class AmazonS3Uploader : FileUploader
         }
         catch (MultipartUploadException ex)
         {
-            DebugHelper.WriteException(ex, "Amazon S3 multipart upload failed.");
+            DebugHelper.WriteLine("Amazon S3 multipart upload failed after retries.");
             Errors.Add(ex.Message);
             result.Response = ex.Message;
             return result;
         }
         catch (Exception ex)
         {
-            DebugHelper.WriteException(ex, "Amazon S3 multipart upload failed.");
+            DebugHelper.WriteLine($"Amazon S3 multipart upload failed ({ex.GetType().Name}).");
             Errors.Add(ex.Message);
             result.Response = ex.Message;
             return result;
         }
         finally
         {
-            _multipartCancellationTokenSource = null;
+            _sdkCancellationTokenSource = null;
             IsUploading = false;
         }
     }
@@ -353,6 +401,47 @@ public class AmazonS3Uploader : FileUploader
         return (uploadPath, GenerateURL(uploadPath), MimeTypes.GetMimeTypeFromFileName(fileName));
     }
 
+    /// <summary>Upload result metadata key holding the S3 object key (used by "Delete from host").</summary>
+    internal const string ObjectKeyMetadata = "S3Key";
+    internal const string BucketMetadata = "S3Bucket";
+
+    private void AddObjectMetadata(UploadResult result, string objectKey)
+    {
+        result.Metadata[ObjectKeyMetadata] = objectKey;
+        result.Metadata[BucketMetadata] = _config.BucketName;
+    }
+
+    /// <summary>
+    /// Recovers the object key from a URL this uploader generated (endpoint/bucket or custom domain form).
+    /// </summary>
+    internal bool TryGetObjectKey(string url, out string objectKey)
+    {
+        objectKey = string.Empty;
+        const string marker = "xerahs-object-key-marker";
+        string template = GenerateURL(marker);
+        int markerIndex = template.IndexOf(marker, StringComparison.Ordinal);
+        if (string.IsNullOrWhiteSpace(url) || markerIndex < 0)
+        {
+            return false;
+        }
+
+        string prefix = template[..markerIndex];
+        if (!url.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) || url.Length == prefix.Length)
+        {
+            return false;
+        }
+
+        string encodedKey = url[prefix.Length..];
+        int query = encodedKey.IndexOfAny(['?', '#']);
+        if (query >= 0)
+        {
+            encodedKey = encodedKey[..query];
+        }
+
+        objectKey = Uri.UnescapeDataString(encodedKey);
+        return objectKey.Length > 0;
+    }
+
     private string GenerateURL(string uploadPath)
     {
         if (!string.IsNullOrEmpty(_config.Endpoint) && !string.IsNullOrEmpty(_config.BucketName))
@@ -396,12 +485,22 @@ public class AmazonS3Uploader : FileUploader
         return new[] { ".txt", ".log", ".json", ".xml", ".md", ".html", ".css", ".js" }.Contains(ext);
     }
 
-    private bool ShouldUseMultipart(long streamLength)
+    internal bool ShouldUseMultipart(long streamLength)
     {
-        return streamLength > 0 && streamLength >= _config.MultipartThresholdBytes;
+        long threshold = Math.Max(0, _config.MultipartThresholdBytes);
+        return streamLength > 0 &&
+            (streamLength > MaximumSinglePutSizeBytes || streamLength >= threshold);
     }
 
     private IAmazonS3 CreateS3Client()
+    {
+        return _s3ClientFactory();
+    }
+
+    /// <summary>A client configured like the uploader's, for Media Browser operations.</summary>
+    internal IAmazonS3 CreateClient() => CreateS3Client();
+
+    private IAmazonS3 CreateConfiguredS3Client()
     {
         AWSCredentials credentials = string.IsNullOrWhiteSpace(_sessionToken)
             ? new BasicAWSCredentials(_accessKeyId, _secretAccessKey)
@@ -431,31 +530,32 @@ public class AmazonS3Uploader : FileUploader
         return "https://" + endpoint;
     }
 
-    private string ComputeSHA256Hash(Stream stream)
-    {
-        long position = stream.Position;
-        stream.Seek(0, SeekOrigin.Begin);
-        byte[] hash = SHA256.HashData(stream);
-        stream.Seek(position, SeekOrigin.Begin);
-        return BytesToHex(hash);
-    }
-
-    private static string GetStorageClassHeaderValue(S3StorageClass storageClass)
+    internal static Amazon.S3.S3StorageClass MapStorageClass(S3StorageClass storageClass)
     {
         return storageClass switch
         {
-            S3StorageClass.Standard => "STANDARD",
-            S3StorageClass.StandardInfrequentAccess => "STANDARD_IA",
-            S3StorageClass.OneZoneInfrequentAccess => "ONEZONE_IA",
-            S3StorageClass.Glacier => "GLACIER",
-            S3StorageClass.DeepArchive => "DEEP_ARCHIVE",
-            _ => "STANDARD"
+            S3StorageClass.Standard => Amazon.S3.S3StorageClass.Standard,
+            S3StorageClass.StandardInfrequentAccess => Amazon.S3.S3StorageClass.StandardInfrequentAccess,
+            S3StorageClass.OneZoneInfrequentAccess => Amazon.S3.S3StorageClass.OneZoneInfrequentAccess,
+            S3StorageClass.Glacier => Amazon.S3.S3StorageClass.Glacier,
+            S3StorageClass.DeepArchive => Amazon.S3.S3StorageClass.DeepArchive,
+            _ => Amazon.S3.S3StorageClass.Standard
         };
     }
 
-    private static string BytesToHex(byte[] bytes)
+    private sealed class InlineProgress<T> : IProgress<T>
     {
-        return Convert.ToHexStringLower(bytes);
+        private readonly Action<T> _handler;
+
+        public InlineProgress(Action<T> handler)
+        {
+            _handler = handler ?? throw new ArgumentNullException(nameof(handler));
+        }
+
+        public void Report(T value)
+        {
+            _handler(value);
+        }
     }
 }
 

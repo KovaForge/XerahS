@@ -126,5 +126,13 @@ internal static class NativeMonitorService
 
         return PixelPoint.Origin;
     }
+
+    /// <summary>
+    /// Moves the OS cursor to a physical (device-pixel) screen position.
+    /// </summary>
+    public static bool SetPhysicalCursorPosition(PixelPoint point)
+    {
+        return PInvoke.SetCursorPos((int)Math.Round(point.X), (int)Math.Round(point.Y));
+    }
 }
 #endif

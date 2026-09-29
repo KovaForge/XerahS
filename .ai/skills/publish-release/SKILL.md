@@ -67,10 +67,10 @@ Step 6 performs:
 
 Optional Step 8 performs:
 - Runs `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh --tag vX.Y.Z --repo owner/name --lint`.
-- Generates `dist/flathub/com.xerahs.XerahS.yml` from the GitHub release tag plus pinned `ShareX.ImageEditor` and `ShareX.VideoEditor` submodule commits.
+- Generates `dist/flathub/com.xerahs.XerahS.yml` from the GitHub release tag plus pinned `ShareX.ImageEditor` and `Omacut` submodule commits.
 - Adds the Freedesktop SDK `dotnet10` and `node24` extensions needed to run the Linux publish script inside the Flatpak build sandbox.
 - Verifies the generated manifest does not use local `dist/xerahs-flatpak-staging` sources.
-- Flags missing offline dependency source artifacts for NuGet/.NET and npm. A release is not Flathub-ready until these generated dependency sources are present and a network-disabled Flatpak source build passes.
+- Flags missing offline NuGet/.NET dependency source artifacts. A release is not Flathub-ready until the generated dependency sources are present and a network-disabled Flatpak source build passes. The video editor is native .NET (Omacut), so there are no npm sources.
 - Keeps this as a pre-release validation path. Do not mark a release stable for Flathub until the source-build manifest, dependency sources, manifest lint, repo lint, and manual smoke tests pass.
 
 Optional Step 9 performs:
@@ -237,7 +237,7 @@ On environments where `bash` is not in PATH, execute the sequence manually:
    - Prefer keeping ShareX validation releases as pre-release while Flathub work is ongoing.
    - Run `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh --tag v<new-version> --repo owner/name --lint`.
    - Confirm the generated manifest uses `type: git` sources pinned by tag/commit for the main repository and submodules.
-   - Generate and add offline dependency sources for NuGet/.NET packages and `ShareX.VideoEditor/frontend` npm packages before attempting a network-disabled Flathub build.
+   - Generate and add offline dependency sources for NuGet/.NET packages before attempting a network-disabled Flathub build.
    - Build and lint the generated manifest locally before a human maintainer manually opens the Flathub PR.
 
 9. Optional PPA / COPR / OBS
@@ -304,6 +304,24 @@ When executing this skill:
 
 Default release-channel policy: `ShareX/XerahS` = pre-release; `KovaForge/XerahS` = full latest release. Use `--set-prerelease` / `--no-prerelease` only for intentional overrides.
 
+## Known iteration foot-guns
+
+One line per failed release iteration. Read before tagging; append a line for every new failure.
+
+- **Removing a shipped artifact leaves stale checks in several layers.** When a failed run names a missing file, grep the exact string across `build/` (including `build/ci/*.py` and the `.ps1` test fixtures), `src/desktop/app/XerahS.App/XerahS.App.csproj`, and `.github/workflows/`, then fix every hit in one `[Fix]` commit. Each run only reveals the first failing layer.
+- v0.30.4: `build/windows/package-portable.ps1` still required `frontend/dist/index.html` from the removed ShareX.VideoEditor frontend.
+- v0.30.5: `build/windows/test-package-portable.ps1` fixture held a second `frontend/dist/index.html` reference.
+- v0.30.6: `XerahS.App.csproj` `<Error>` validators required the watch folder daemon/omaxerahs `.runtimeconfig.json` sidecar on macOS; .NET 10 single-file publish embeds it.
+- v0.30.7: `build/macos/package-mac.sh` bundle validation required the same macOS runtimeconfig sidecar.
+- v0.30.8: `.github/workflows/release-build-all-platforms.yml` post-build archive `grep -q` required the macOS runtimeconfig sidecar.
+- v0.30.9: `build/ci/validate_release_assets.py` (the `release` job, after every build job passed) required `frontend/dist/index.html` in the portable ZIP and the macOS runtimeconfig sidecar; `build/ci/test_validate_release_assets.py` needed the same edit.
+- v0.30.10: both RPM specs copied `usr/*` into `/usr/lib/xerahs/` (since 09-06). XerahS.Packaging's staged source already has a `usr/` layout, so it needs `cp -a usr/. %{buildroot}/usr/`; `repo-staging/xerahs.spec` consumes the flat release tarball, so it needs `cp -a . %{buildroot}/usr/lib/xerahs/`. The packager only logs "Skipped RPM package", so the Linux jobs passed and the `release` job failed on the missing `.rpm`. `Validate Linux archive` now fails the build job when the `.deb` or `.rpm` is missing.
+- v0.31.0 (XIP0088, preventive): OmaSnap is an **optional** payload of the linux-x64 tarball only (`build-omasnap` Arch container job, `continue-on-error`). Every check of `omasnap/` files (`build/ci/validate_release_assets.py` `ensure_optional_omasnap`, the `Validate Linux archive` grep, `package-linux.sh` `append_optional_omasnap`) must stay conditional on the folder being present; never make it mandatory, and never add it to deb, rpm, AppImage or Flatpak without updating all of those layers together. When present, the binary and `licenses/LICENSE-MIT`, `LICENSE-OFL`, `LICENSE-ISC` are all required.
+- A green build job does not mean every package was produced. Check the "Skipped ... package" lines in the Linux build log whenever the `release` job reports a missing asset.
+- `run-release-sequence.sh` used to wait only 90 x 10 s (15 min) for the GitHub release, while a full run takes ~18-20 min (v0.30.10 and v0.30.11 both timed out with `Error: release vX.Y.Z was not found`). The wait is now 30 min by default (`--release-wait <minutes>` to change it). If it still times out, that message is not a CI failure: poll the run with `gh run view <id> --repo KovaForge/XerahS` until it completes, then apply Steps 6-7 manually.
+- `--no-bump` skips syncing `build/windows/chocolatey/xerahs.nuspec` and the Flatpak metainfo `<release>` entry. When `Directory.Build.props` was already bumped by a feature commit, sync those two files yourself before tagging.
+- Several agents may share one checkout. Maintenance auto-commits whatever is uncommitted, so check `git status` and `git log` before a run to avoid releasing, or sweeping up, another agent's half-finished work.
+
 ## Notes (lessons learnt)
 
 - Windows/PowerShell: bash may be unavailable; manual fallback must be first-class.
@@ -322,7 +340,7 @@ Default release-channel policy: `ShareX/XerahS` = pre-release; `KovaForge/XerahS
 - Flatpak manifest source paths are resolved relative to the manifest directory, so staging paths outside `flatpak/` need a `../` prefix.
 - Flathub submission manifests must not depend on local `dist/xerahs-flatpak-staging`; generate a tag-pinned source-build candidate with `.ai/skills/publish-release/scripts/prepare-flathub-source-build.sh`.
 - Flathub source-build candidates must include pinned submodule commits; GitHub source archives do not automatically include submodule contents.
-- Flathub source-build candidates are not ready until NuGet/.NET and npm dependency sources are generated and a network-disabled Flatpak build passes.
+- Flathub source-build candidates are not ready until NuGet/.NET dependency sources are generated and a network-disabled Flatpak build passes.
 - Distro-repo candidates (PPA / COPR / OBS) wrap the existing GitHub linux tarball. They are not a second package format. `publish-distro-repos.sh` uploads when secrets are present and skips a backend when they are not.
 - Flatpak build commands install into `/app`, not `/usr`; expose launchers through `/app/bin`.
 - Flatpak build commands run from the module build directory, not the repository root; add icons, desktop files, metainfo, or other repository assets as explicit manifest sources before installing them.

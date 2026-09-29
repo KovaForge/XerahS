@@ -34,7 +34,7 @@ namespace ShareX.Ftp.Plugin;
 /// FTP / FTPS / SFTP file uploader provider. Supports File, Image, and Text categories.
 /// Uses FluentFTP (FTP/FTPS) and SSH.NET (SFTP) for robust, modern transfers.
 /// </summary>
-public class FtpProvider : UploaderProviderBase
+public partial class FtpProvider : UploaderProviderBase, IUploaderExplorer
 {
     public override string ProviderId => "ftp";
     public override string Name => "FTP / FTPS / SFTP";
@@ -73,7 +73,7 @@ public class FtpProvider : UploaderProviderBase
         return new ViewModels.FtpConfigViewModel();
     }
 
-    private static FTPAccount ToFtpAccount(FtpConfigModel c)
+    internal static FTPAccount ToFtpAccount(FtpConfigModel c)
     {
         FTPProtocol protocol = NormalizeEnum(c.Protocol, FTPProtocol.FTP);
         BrowserProtocol browserProtocol = NormalizeEnum(c.BrowserProtocol, BrowserProtocol.http);

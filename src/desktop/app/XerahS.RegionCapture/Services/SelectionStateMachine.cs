@@ -54,6 +54,9 @@ public sealed class SelectionStateMachine
     private double _aspectRatio = 1.0;
     private InteractionKind _interaction = InteractionKind.None;
     private SelectionHandle _resizeHandle = SelectionHandle.None;
+    private bool _isMovingSelectionDuringCreation;
+    private bool _controlHeldAtCreationStart;
+    private PixelPoint _lastCreationPoint;
 
     public SelectionStateMachine()
         : this(quickCrop: true, snapSizes: CaptureSnapSize.DefaultPresets, snapDistance: 30)
@@ -162,8 +165,11 @@ public sealed class SelectionStateMachine
 
         _startPoint = startPoint;
         _currentPoint = startPoint;
+        _lastCreationPoint = startPoint;
         _interaction = InteractionKind.Creating;
         _resizeHandle = SelectionHandle.None;
+        _isMovingSelectionDuringCreation = false;
+        _controlHeldAtCreationStart = _modifiers.HasFlag(SelectionModifier.PixelNudge);
         SetSelectionRect(new PixelRect(startPoint.X, startPoint.Y, 0, 0));
         _aspectRatio = 1.0;
 
@@ -222,12 +228,14 @@ public sealed class SelectionStateMachine
             SetSelectionRect(_selectionRect.Normalize());
             _interaction = InteractionKind.None;
             _resizeHandle = SelectionHandle.None;
+            ResetCreationModifiers();
             FinishSelection(confirmImmediately: _quickCrop);
             return;
         }
 
         SetSelectionRect(_selectionRect.Normalize());
         _interaction = InteractionKind.None;
+        ResetCreationModifiers();
 
         // Check if selection is large enough to be considered a drag
         if (_selectionRect.Width > 3 && _selectionRect.Height > 3)
@@ -344,6 +352,11 @@ public sealed class SelectionStateMachine
             return;
         }
 
+        if (TryMoveSelectionDuringCreation())
+        {
+            return;
+        }
+
         PixelRect newRect;
         var endPoint = _currentPoint;
 
@@ -375,6 +388,46 @@ public sealed class SelectionStateMachine
         }
 
         SetSelectionRect(newRect);
+        _lastCreationPoint = _currentPoint;
+        _controlHeldAtCreationStart = _modifiers.HasFlag(SelectionModifier.PixelNudge);
+    }
+
+    private bool TryMoveSelectionDuringCreation()
+    {
+        bool controlHeld = _modifiers.HasFlag(SelectionModifier.PixelNudge);
+        if (!controlHeld)
+        {
+            _isMovingSelectionDuringCreation = false;
+            return false;
+        }
+
+        var current = _selectionRect.Normalize();
+        if (current.Width <= 0 || current.Height <= 0)
+        {
+            return false;
+        }
+
+        // If Ctrl was already down when the drag started, keep resizing until it is
+        // released and pressed again (ShareX region-creation move gesture).
+        if (!_isMovingSelectionDuringCreation && _controlHeldAtCreationStart)
+        {
+            return false;
+        }
+
+        var dx = _currentPoint.X - _lastCreationPoint.X;
+        var dy = _currentPoint.Y - _lastCreationPoint.Y;
+        SetSelectionRect(current.Offset(dx, dy));
+        _startPoint = _startPoint.Offset(dx, dy);
+        _isMovingSelectionDuringCreation = true;
+        _controlHeldAtCreationStart = true;
+        _lastCreationPoint = _currentPoint;
+        return true;
+    }
+
+    private void ResetCreationModifiers()
+    {
+        _isMovingSelectionDuringCreation = false;
+        _controlHeldAtCreationStart = false;
     }
 
     internal static PixelRect ResizeFromHandle(PixelRect original, SelectionHandle handle, PixelPoint current)

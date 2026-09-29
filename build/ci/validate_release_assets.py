@@ -102,24 +102,47 @@ def ensure_tar_has_daemon(path: Path, os_name: str) -> None:
             raise RuntimeError(
                 f"Missing omaxerahs runtimeconfig '{expected_omaxerahs_runtimeconfig}' in Linux archive: {path}"
             )
+        ensure_optional_omasnap(names, path)
         return
 
     if os_name == "mac":
+        # .NET 10 single-file publish embeds the runtimeconfig on macOS; no sidecar to check.
         expected_binary = "XerahS.app/Contents/MacOS/xerahs-watchfolder-daemon"
-        expected_runtimeconfig = (
-            "XerahS.app/Contents/MacOS/xerahs-watchfolder-daemon.runtimeconfig.json"
-        )
         has_binary = any(name.endswith(expected_binary) for name in names)
-        has_runtimeconfig = any(name.endswith(expected_runtimeconfig) for name in names)
         if not has_binary:
             raise RuntimeError(
                 f"Missing daemon executable '{expected_binary}' in macOS archive: {path}"
             )
 
-        if not has_runtimeconfig:
-            raise RuntimeError(
-                f"Missing daemon runtimeconfig '{expected_runtimeconfig}' in macOS archive: {path}"
-            )
+
+OMASNAP_REQUIRED_FILES = (
+    "omasnap/omasnap",
+    "omasnap/licenses/LICENSE-MIT",
+    "omasnap/licenses/LICENSE-OFL",
+    "omasnap/licenses/LICENSE-ISC",
+)
+
+
+def ensure_optional_omasnap(names: set[str], path: Path) -> None:
+    """OmaSnap (XIP0088) is optional. Check it only when the archive contains it.
+
+    When any omasnap/ entry is present, the binary and all three license notices
+    (MIT, OFL, ISC) must be present too; a partial copy is an error.
+    """
+    stripped = set()
+    for name in names:
+        index = name.find("omasnap/")
+        if index >= 0 and (index == 0 or name[index - 1] == "/"):
+            stripped.add(name[index:])
+
+    if not any(entry.startswith("omasnap/") and entry != "omasnap/" for entry in stripped):
+        return
+
+    missing = [entry for entry in OMASNAP_REQUIRED_FILES if entry not in stripped]
+    if missing:
+        raise RuntimeError(
+            f"Incomplete optional OmaSnap bundle in {path}; missing: {', '.join(missing)}"
+        )
 
 
 def build_file_name(version: str, os_name: str, arch: str, extension: str) -> str:
@@ -136,7 +159,6 @@ def ensure_portable_zip_payload(path: Path) -> None:
         "portable.txt",
         "coreclr.dll",
         "LICENSE.txt",
-        "frontend/dist/index.html",
     }
     with zipfile.ZipFile(path) as archive:
         files = {item.filename: item for item in archive.infolist() if not item.is_dir()}

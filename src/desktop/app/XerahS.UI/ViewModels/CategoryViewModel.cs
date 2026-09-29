@@ -66,7 +66,7 @@ public partial class CategoryViewModel : ViewModelBase
         {
             DebugHelper.WriteLine($"[CategoryViewModel] AddFromCatalog called for category: {Category}");
             var viewModel = new ProviderCatalogViewModel(Category);
-            var mainVm = MainViewModel.Current;
+            var mainVm = ModalOpenService.ResolveHostViewModel();
 
             if (mainVm != null)
             {
@@ -89,7 +89,7 @@ public partial class CategoryViewModel : ViewModelBase
             }
             else
             {
-                DebugHelper.WriteLine("[CategoryViewModel] ERROR: MainViewModel.Current is null — cannot open catalog modal");
+                DebugHelper.WriteLine("[CategoryViewModel] ERROR: host MainViewModel is null — cannot open catalog modal");
             }
         }
         catch (Exception ex)
@@ -172,7 +172,16 @@ public partial class CategoryViewModel : ViewModelBase
             .OrderByDescending(instance => defaultInstance != null && instance.InstanceId == defaultInstance.InstanceId)
             .ThenByDescending(instance => instance.CreatedAt))
         {
-            var vm = new UploaderInstanceViewModel(instance);
+            UploaderInstanceViewModel vm;
+            try
+            {
+                vm = new UploaderInstanceViewModel(instance);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, $"Failed to load destination instance {instance.DisplayName} ({instance.ProviderId})");
+                continue;
+            }
 
             if (defaultInstance != null && instance.InstanceId == defaultInstance.InstanceId)
             {

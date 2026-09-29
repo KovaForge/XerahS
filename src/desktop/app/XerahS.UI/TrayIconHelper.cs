@@ -66,6 +66,7 @@ public class TrayIconHelper : INotifyPropertyChanged
     public ICommand PauseResumeRecordingCommand { get; }
     public ICommand StopRecordingCommand { get; }
     public ICommand AbortRecordingCommand { get; }
+    public ICommand RestartRecordingCommand { get; }
 
     private bool _showTray;
     public bool ShowTray
@@ -183,6 +184,7 @@ public class TrayIconHelper : INotifyPropertyChanged
         PauseResumeRecordingCommand = new AsyncRelayCommand(PauseResumeRecordingAsync);
         StopRecordingCommand = new AsyncRelayCommand(StopRecordingAsync);
         AbortRecordingCommand = new AsyncRelayCommand(AbortRecordingAsync);
+        RestartRecordingCommand = new RelayCommand(() => _screenRecordingCoordinator?.RequestRestart());
 
         // Initialize from settings
         _showTray = SettingsManager.Settings.ShowTray;
@@ -563,6 +565,11 @@ public class TrayIconHelper : INotifyPropertyChanged
             {
                 Header = "Stop Recording",
                 Command = StopRecordingCommand
+            });
+            TrayMenu.Items.Add(new NativeMenuItem
+            {
+                Header = "Restart Recording",
+                Command = RestartRecordingCommand
             });
         }
 

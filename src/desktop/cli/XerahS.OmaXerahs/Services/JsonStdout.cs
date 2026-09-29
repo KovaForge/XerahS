@@ -37,10 +37,18 @@ internal static class JsonStdout
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-        WriteIndented = false
+        WriteIndented = false,
+        // Output is read by scripts and agents, not embedded in HTML: keep '+', quotes and non-ASCII readable.
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
     internal static bool Enabled { get; set; }
+
+    /// <summary>
+    /// Plain-URL mode for hosts that read one URL from stdout (OmaSnap pins, XIP0088):
+    /// success prints only the URL; failures print the message to stderr and nothing to stdout.
+    /// </summary>
+    internal static bool UrlOnly { get; set; }
 
     internal static Option<bool> CreateJsonOption()
     {
@@ -123,11 +131,27 @@ internal static class JsonStdout
 
     internal static void Write(object value)
     {
+        if (UrlOnly)
+        {
+            if (value is UploadSuccessResponse success)
+            {
+                Console.Out.WriteLine(success.Url);
+            }
+
+            return;
+        }
+
         Console.Out.WriteLine(Serialize(value));
     }
 
     internal static void WriteFailure(string code, string message)
     {
+        if (UrlOnly)
+        {
+            Console.Error.WriteLine(message);
+            return;
+        }
+
         Write(CliFailureResponse.Create(code, message));
         if (!Enabled)
         {

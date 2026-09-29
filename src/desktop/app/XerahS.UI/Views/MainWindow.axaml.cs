@@ -49,6 +49,7 @@ using ShareX.ImageEditor.Core.Annotations;
 using ShareX.ImageEditor.Presentation.ViewModels;
 using ShareX.ImageEditor.Presentation.Views;
 using XerahS.UI.Views.Dialogs;
+using XerahS.UI.Services;
 using XerahS.UI.Helpers;
 using XerahS.UI.Services.SettingsSearch;
 
@@ -302,8 +303,8 @@ namespace XerahS.UI.Views
         {
             try
             {
-                var dialog = new OpenImageChoiceDialog();
-                return await dialog.ShowDialog<OpenImageChoice>(this);
+                var dialogs = UiViewModelFactoryAccessor.GetRequired().ViewDialogService;
+                return await dialogs.ShowOpenImageChoiceAsync();
             }
             catch (Exception ex)
             {
@@ -480,14 +481,18 @@ namespace XerahS.UI.Views
             // still initialising — in debug builds startup can take 40+ seconds) and received
             // parentWindow="" which caused a response=2 failure, this triggers a portal retry so
             // hotkeys work globally without needing an app restart.
-            try
+            // The window can open before bootstrap has initialized platform services; defer until ready.
+            XerahS.Platform.Abstractions.PlatformServices.RunWhenInitialized(() =>
             {
-                XerahS.Platform.Abstractions.PlatformServices.Hotkey.NotifyWindowReady();
-            }
-            catch (Exception ex)
-            {
-                XerahS.Common.DebugHelper.WriteException(ex, "MainWindow: NotifyWindowReady failed");
-            }
+                try
+                {
+                    XerahS.Platform.Abstractions.PlatformServices.Hotkey.NotifyWindowReady();
+                }
+                catch (Exception ex)
+                {
+                    XerahS.Common.DebugHelper.WriteException(ex, "MainWindow: NotifyWindowReady failed");
+                }
+            });
 
             UpdateNavigationItems();
 
@@ -507,7 +512,9 @@ namespace XerahS.UI.Views
             }
 
             // Pre-warm settings pages so first open and settings search indexing stay off the hot path.
-            Dispatcher.UIThread.Post(() => _ = PreWarmSettingsSearchIndexAsync(), DispatcherPriority.Background);
+            // Settings views need the UI view model factory, which bootstrap may not have configured yet.
+            UiViewModelFactoryAccessor.RunWhenAvailable(() =>
+                Dispatcher.UIThread.Post(() => _ = PreWarmSettingsSearchIndexAsync(), DispatcherPriority.Background));
 
             // Show onboarding wizard once on first run — guard prevents double-fire on repeated OnWindowOpened calls.
             // Skip when SilentRun hid the window: ShowDialog would re-show the owner.

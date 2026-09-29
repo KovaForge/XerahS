@@ -1,18 +1,10 @@
-<Window xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:XerahS.UI.ViewModels"
         x:Class="XerahS.UI.Views.Dialogs.OpenImageChoiceDialog"
-        Classes="xerahs-surface"
-        Title="Open Image"
-        Width="460"
-        Height="200"
-        MinWidth="460"
-        MinHeight="200"
-        CanResize="False"
-        ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner">
+        x:DataType="vm:OpenImageChoiceViewModel"
+        MinWidth="420" MaxWidth="520">
     <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
-            BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
-            BorderThickness="1"
             Padding="16">
         <StackPanel Spacing="12">
             <TextBlock Text="An image is already open"
@@ -21,13 +13,10 @@
             <TextBlock Text="Do you want to replace the current image or add the new image as a shape?"
                        TextWrapping="Wrap"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                <Button Content="Add as Shape"
-                        Click="OnAddClick"/>
-                <Button Content="Replace Image"
-                        Click="OnReplaceClick"/>
-                <Button Content="Cancel"
-                        Click="OnCancelClick"/>
+                <Button Content="Add as Shape" Command="{Binding AddAsShapeCommand}"/>
+                <Button Content="Replace Image" Command="{Binding ReplaceCommand}" Classes="accent"/>
+                <Button Content="Cancel" Command="{Binding CancelCommand}" IsCancel="True"/>
             </StackPanel>
         </StackPanel>
     </Border>
-</Window>
+</UserControl>

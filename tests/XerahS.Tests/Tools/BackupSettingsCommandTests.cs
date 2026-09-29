@@ -25,6 +25,7 @@
 
 using NUnit.Framework;
 using XerahS.CLI.Commands;
+using XerahS.Core.Managers;
 
 namespace XerahS.Tests.Tools;
 
@@ -32,23 +33,72 @@ namespace XerahS.Tests.Tools;
 public class BackupSettingsCommandTests
 {
     [Test]
-    public void Execute_WhenBackupSucceeds_ReturnsZero()
+    public void Execute_WhenBackupSucceeds_ForwardsOutputPathAndReturnsZero()
     {
+        string? capturedPath = null;
         int exitCode = BackupSettingsCommand.Execute(
-            loadInitialSettings: () => { },
-            saveAllSettings: () => { },
-            getBackupFolder: () => "/tmp/xerahs-backups");
+            "portable.xsbak",
+            initializeProviders: () => { },
+            createBackup: path =>
+            {
+                capturedPath = path;
+                return new PortableSettingsBackupResult(path, 2, 5, Array.Empty<string>());
+            });
 
-        Assert.That(exitCode, Is.EqualTo(0));
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(capturedPath, Is.EqualTo(Path.GetFullPath("portable.xsbak")));
+        });
     }
 
     [Test]
-    public void Execute_WhenSettingsLoadFails_ReturnsNonZero()
+    public void Execute_WithoutOutputPath_UsesVersionedComputerSpecificDefaultFileName()
+    {
+        string? capturedPath = null;
+        int exitCode = BackupSettingsCommand.Execute(
+            initializeProviders: () => { },
+            createBackup: path =>
+            {
+                capturedPath = path;
+                return new PortableSettingsBackupResult(path, 0, 5, Array.Empty<string>());
+            });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(capturedPath, Is.EqualTo(Path.Combine(Environment.CurrentDirectory, PortableSettingsBackupService.DefaultFileName)));
+            Assert.That(Path.GetFileName(capturedPath), Does.Match(@"^xerahs-\d+\.\d+\.\d+-.+-backup\.xsbak$"));
+        });
+    }
+
+    [Test]
+    public void Execute_WhenOutputHasAnotherExtension_ReplacesItWithXsbak()
+    {
+        string? capturedPath = null;
+        int exitCode = BackupSettingsCommand.Execute(
+            "portable.zip",
+            initializeProviders: () => { },
+            createBackup: path =>
+            {
+                capturedPath = path;
+                return new PortableSettingsBackupResult(path, 0, 5, Array.Empty<string>());
+            });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exitCode, Is.EqualTo(0));
+            Assert.That(capturedPath, Is.EqualTo(Path.GetFullPath("portable.xsbak")));
+        });
+    }
+
+    [Test]
+    public void Execute_WhenProviderInitializationFails_ReturnsNonZero()
     {
         int exitCode = BackupSettingsCommand.Execute(
-            loadInitialSettings: () => throw new InvalidOperationException("settings unavailable"),
-            saveAllSettings: () => Assert.Fail("Backup should not run after settings load failure."),
-            getBackupFolder: () => "/tmp/xerahs-backups");
+            "portable.xsbak",
+            initializeProviders: () => throw new InvalidOperationException("plugins unavailable"),
+            createBackup: _ => AssertAndReturnUnexpected());
 
         Assert.That(exitCode, Is.EqualTo(1));
     }
@@ -57,10 +107,16 @@ public class BackupSettingsCommandTests
     public void Execute_WhenBackupFails_ReturnsNonZero()
     {
         int exitCode = BackupSettingsCommand.Execute(
-            loadInitialSettings: () => { },
-            saveAllSettings: () => throw new IOException("disk unavailable"),
-            getBackupFolder: () => "/tmp/xerahs-backups");
+            "portable.xsbak",
+            initializeProviders: () => { },
+            createBackup: _ => throw new IOException("disk unavailable"));
 
         Assert.That(exitCode, Is.EqualTo(1));
+    }
+
+    private static PortableSettingsBackupResult AssertAndReturnUnexpected()
+    {
+        Assert.Fail("Backup should not run after provider initialization failure.");
+        return null!;
     }
 }

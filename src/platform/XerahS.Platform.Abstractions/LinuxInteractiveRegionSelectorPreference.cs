@@ -42,5 +42,9 @@ public enum LinuxInteractiveRegionSelectorPreference
     PortalDialog = 3,
 
     [Description("slurp (wlroots)")]
-    Slurp = 4
+    Slurp = 4,
+
+    /// <summary>OmaSnap native Hyprland overlay (XIP0088). Only offered when the probe succeeds.</summary>
+    [Description("OmaSnap (native Hyprland overlay)")]
+    OmaSnap = 5
 }

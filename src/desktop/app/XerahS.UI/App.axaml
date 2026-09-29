@@ -3,6 +3,7 @@
              xmlns:local="using:XerahS.UI"
              xmlns:vm="using:XerahS.UI.ViewModels"
              xmlns:views="using:XerahS.UI.Views"
+             xmlns:dialogs="using:XerahS.UI.Views.Dialogs"
              xmlns:converters="clr-namespace:ShareX.ImageEditor.Presentation.Converters;assembly=ShareX.ImageEditor"
              xmlns:uiconverters="clr-namespace:XerahS.UI.Converters"
              xmlns:core="using:XerahS.Core"
@@ -33,6 +34,12 @@
                           Command="{Binding EditImageCommand}"
                           IsVisible="{Binding Item.HasExistingFile}"
                           InputGesture="Enter"/>
+                <MenuItem Header="Resize image..."
+                          Command="{Binding ResizeImageCommand}"
+                          IsVisible="{Binding Item.HasImageFile}"/>
+                <MenuItem Header="Trim video..."
+                          Command="{Binding TrimVideoCommand}"
+                          IsVisible="{Binding Item.HasVideoFile}"/>
                 <MenuItem Header="Edit Annotations"
                           Command="{Binding EditAnnotationsCommand}"
                           IsVisible="{Binding Item.HasEditableAnnotations}"
@@ -65,7 +72,16 @@
                 <MenuItem Header="Open URL"
                           Command="{Binding OpenURLCommand}"
                           IsVisible="{Binding Item.URL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <MenuItem Header="Publish"
+                          Command="{Binding PublishCommand}"
+                          IsVisible="{Binding Item.CanPublish}"/>
+                <MenuItem Header="Unpublish"
+                          Command="{Binding UnpublishCommand}"
+                          IsVisible="{Binding Item.CanUnpublish}"/>
                 <Separator/>
+                <MenuItem Header="Delete from host"
+                          Command="{Binding DeleteRemoteCommand}"
+                          IsVisible="{Binding Item.CanDeleteRemotely}"/>
                 <MenuItem Header="Delete"
                           Command="{Binding DeleteItemCommand}"
                           IsVisible="{Binding Item.HasExistingFile}"
@@ -97,11 +113,32 @@
         <DataTemplate DataType="vm:FFmpegOptionsViewModel" x:DataType="vm:FFmpegOptionsViewModel">
             <views:FFmpegOptionsWindow/>
         </DataTemplate>
-        <DataTemplate DataType="vm:ProviderExplorerViewModel" x:DataType="vm:ProviderExplorerViewModel">
-            <views:ProviderExplorerWindow/>
+        <DataTemplate DataType="vm:MediaBrowserViewModel" x:DataType="vm:MediaBrowserViewModel">
+            <views:MediaBrowserView/>
         </DataTemplate>
         <DataTemplate DataType="vm:QrCodeGeneratorViewModel" x:DataType="vm:QrCodeGeneratorViewModel">
             <views:QrCodeGeneratorDialog/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:WatchFolderEditViewModel" x:DataType="vm:WatchFolderEditViewModel">
+            <views:WatchFolderDialog/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:SimplePromptViewModel" x:DataType="vm:SimplePromptViewModel">
+            <views:SimplePromptView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:OpenImageChoiceViewModel" x:DataType="vm:OpenImageChoiceViewModel">
+            <dialogs:OpenImageChoiceDialog/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:WindowSelectorViewModel" x:DataType="vm:WindowSelectorViewModel">
+            <views:WindowSelectorDialog/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:UpdateMessageBoxViewModel" x:DataType="vm:UpdateMessageBoxViewModel">
+            <views:UpdateMessageBox/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:AfterCaptureViewModel" x:DataType="vm:AfterCaptureViewModel">
+            <views:AfterCaptureWindow/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:SendToPromptViewModel" x:DataType="vm:SendToPromptViewModel">
+            <views:SendToPromptWindow/>
         </DataTemplate>
     </Application.DataTemplates>
 
@@ -117,6 +154,7 @@
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
         <StyleInclude Source="avares://XerahS.UI/Themes/Typography.axaml" />
         <StyleInclude Source="avares://XerahS.UI/Themes/ThemeResources.axaml" />
         <StyleInclude Source="avares://XerahS.UI/Onboarding/Styles/OnboardingStyles.axaml" />

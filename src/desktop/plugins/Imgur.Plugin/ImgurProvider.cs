@@ -25,6 +25,7 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using XerahS.Common;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
 using SysHttpClient = System.Net.Http.HttpClient;
@@ -38,7 +39,7 @@ namespace ShareX.Imgur.Plugin;
 /// Also implements <see cref="IUploaderExplorer"/> — albums are treated as folders,
 /// images within albums as files.
 /// </summary>
-public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretMigrator
+public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretMigrator, IInstanceSecretBackupProvider
 {
     public override string ProviderId => "imgur";
     public override string Name => "Imgur";
@@ -46,6 +47,35 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
     public override Version Version => new Version(1, 0, 0);
     public override UploaderCategory[] SupportedCategories => new[] { UploaderCategory.Image };
     public override Type ConfigModelType => typeof(ImgurConfigModel);
+
+    public IReadOnlyList<InstanceSecretReference> GetSecretReferences(string settingsJson)
+    {
+        if (string.IsNullOrWhiteSpace(settingsJson))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        string? secretKey;
+        try
+        {
+            secretKey = JObject.Parse(settingsJson).Value<string>(nameof(ImgurConfigModel.SecretKey));
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        return
+        [
+            new(ProviderId, secretKey, "clientSecret"),
+            new(ProviderId, secretKey, "oauthToken")
+        ];
+    }
 
     public ImgurProvider()
     {
@@ -181,10 +211,14 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
     // ─── IUploaderExplorer ───────────────────────────────────────────────────
 
-    private static readonly SysHttpClient _explorerHttpClient = new();
+    private static SysHttpClient ExplorerHttpClient => HttpClientFactory.Create();
 
     /// <inheritdoc/>
     public bool SupportsFolders => true; // Albums are folders
+
+    /// <summary>Albums browse like folders but cannot be created, renamed or uploaded into here.</summary>
+    public ExplorerCapabilities BrowserCapabilities =>
+        ExplorerCapabilities.Download | ExplorerCapabilities.Delete | ExplorerCapabilities.Url | ExplorerCapabilities.Thumbnails;
 
     /// <inheritdoc/>
     public async Task<ExplorerPage> ListAsync(ExplorerQuery query, CancellationToken cancellation = default)
@@ -224,7 +258,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
         try
         {
-            return await _explorerHttpClient.GetByteArrayAsync(thumbUrl, cancellation);
+            return await ExplorerHttpClient.GetByteArrayAsync(thumbUrl, cancellation);
         }
         catch
         {
@@ -240,7 +274,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
         try
         {
-            var response = await _explorerHttpClient.GetAsync(url, cancellation);
+            var response = await ExplorerHttpClient.GetAsync(url, cancellation);
             return response.IsSuccessStatusCode ? await response.Content.ReadAsStreamAsync(cancellation) : null;
         }
         catch
@@ -264,7 +298,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
         request.Headers.TryAddWithoutValidation("Authorization", "Bearer " + authInfo.Token.access_token);
         try
         {
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             return response.IsSuccessStatusCode;
         }
         catch
@@ -295,7 +329,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
         try
         {
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             if (!response.IsSuccessStatusCode) return new ExplorerPage();
 
             string json = await response.Content.ReadAsStringAsync(cancellation);
@@ -336,7 +370,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
         try
         {
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             if (!response.IsSuccessStatusCode) return new ExplorerPage();
 
             string json = await response.Content.ReadAsStringAsync(cancellation);
@@ -383,7 +417,7 @@ public class ImgurProvider : UploaderProviderBase, IUploaderExplorer, IInstanceS
 
         try
         {
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             if (!response.IsSuccessStatusCode) return new ExplorerPage();
 
             string json = await response.Content.ReadAsStringAsync(cancellation);

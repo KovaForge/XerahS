@@ -28,4 +28,21 @@ import Foundation
 struct UploadQueueItem: Codable, Equatable {
     let filePath: String
     let enqueuedUtc: String  // ISO 8601
+    /// Stable Cloud idempotency key. Older queue snapshots derive one when decoded.
+    let clientItemId: UUID
+
+    init(filePath: String, enqueuedUtc: String, clientItemId: UUID = UUID()) {
+        self.filePath = filePath
+        self.enqueuedUtc = enqueuedUtc
+        self.clientItemId = clientItemId
+    }
+
+    private enum CodingKeys: String, CodingKey { case filePath, enqueuedUtc, clientItemId }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        filePath = try values.decode(String.self, forKey: .filePath)
+        enqueuedUtc = try values.decode(String.self, forKey: .enqueuedUtc)
+        clientItemId = try values.decodeIfPresent(UUID.self, forKey: .clientItemId) ?? UUID()
+    }
 }

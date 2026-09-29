@@ -36,13 +36,14 @@ internal static class LinuxRegionSelectorDiagnosticsDetector
         var context = LinuxRuntimeContextDetector.Detect();
         var support = LinuxRegionCaptureCapabilityDetector.ProbeSupportSnapshot(context);
         var capability = LinuxRegionCaptureCapabilityDetector.Detect(context, support);
-        return Detect(context, support, capability);
+        return Detect(context, support, capability, Services.LinuxDesktopProfile.Current.IsOmarchyLike);
     }
 
     internal static LinuxRegionSelectorDiagnostics Detect(
         ILinuxCaptureContext context,
         LinuxRegionCaptureSupportSnapshot support,
-        LinuxRegionCaptureCapability capability)
+        LinuxRegionCaptureCapability capability,
+        bool omaSnapAvailable = false)
     {
         List<LinuxInteractiveRegionSelectorPreference> availablePreferences =
         [
@@ -67,6 +68,14 @@ internal static class LinuxRegionSelectorDiagnosticsDetector
         if (support.HasSlurp)
         {
             availablePreferences.Add(LinuxInteractiveRegionSelectorPreference.Slurp);
+        }
+
+        // Offered only after the OmaSnap host-mode probe succeeded (XIP0088). The Automatic
+        // preference below is deliberately unchanged: workflow captures reach OmaSnap through
+        // the capture pipeline, and every other system keeps today's order.
+        if (omaSnapAvailable && context.IsWayland && !context.IsSandboxed)
+        {
+            availablePreferences.Add(LinuxInteractiveRegionSelectorPreference.OmaSnap);
         }
 
         return new LinuxRegionSelectorDiagnostics(

@@ -23,8 +23,6 @@
 
 #endregion License Information (GPL v3)
 
-using Avalonia.Headless.NUnit;
-using Avalonia.Threading;
 using NUnit.Framework;
 using XerahS.Common;
 using XerahS.UI.ViewModels;
@@ -32,68 +30,57 @@ using XerahS.UI.Views;
 
 namespace XerahS.Tests.Avalonia;
 
+/// <summary>
+/// UpdateMessageBox is a ModalContent UserControl; close contract lives on the view-model.
+/// </summary>
 [TestFixture]
-public class UpdateMessageBoxDetachedTests
+public class UpdateMessageBoxViewModelTests
 {
-    [AvaloniaTest]
-    public async Task ShowDetachedAsync_ReturnsTrue_WhenUserAccepts()
+    [Test]
+    public void CreateViewModel_MapsCheckerFields()
     {
-        var dialog = CreateDialog();
-
-        try
-        {
-            Task<bool?> showTask = dialog.ShowDetachedAsync();
-
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                ((UpdateMessageBoxViewModel)dialog.DataContext!).YesCommand.Execute(null);
-            });
-
-            Assert.That(await showTask, Is.True);
-        }
-        finally
-        {
-            if (dialog.IsVisible)
-            {
-                dialog.Close();
-            }
-        }
-    }
-
-    [AvaloniaTest]
-    public async Task ShowDetachedAsync_ReturnsFalse_WhenUserDeclines()
-    {
-        var dialog = CreateDialog();
-
-        try
-        {
-            Task<bool?> showTask = dialog.ShowDetachedAsync();
-
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                ((UpdateMessageBoxViewModel)dialog.DataContext!).NoCommand.Execute(null);
-            });
-
-            Assert.That(await showTask, Is.False);
-        }
-        finally
-        {
-            if (dialog.IsVisible)
-            {
-                dialog.Close();
-            }
-        }
-    }
-
-    private static UpdateMessageBox CreateDialog()
-    {
-        return new UpdateMessageBox(new TestUpdateChecker
+        UpdateMessageBoxViewModel vm = UpdateMessageBox.CreateViewModel(new TestUpdateChecker
         {
             CurrentVersion = new Version(0, 22, 170),
             LatestVersion = new Version(0, 23, 28),
             IsPortable = false
         });
+
+        Assert.That(vm.CurrentVersion, Is.EqualTo("0.22.170"));
+        Assert.That(vm.LatestVersion, Is.EqualTo("0.23.28"));
+        Assert.That(vm.IsPortable, Is.False);
     }
+
+    [Test]
+    public void YesCommand_RequestsCloseTrue()
+    {
+        UpdateMessageBoxViewModel vm = UpdateMessageBox.CreateViewModel(CreateChecker());
+        bool? result = null;
+        vm.RequestClose = value => result = value;
+
+        vm.YesCommand.Execute(null);
+
+        Assert.That(result, Is.True);
+    }
+
+    [Test]
+    public void NoCommand_RequestsCloseFalse()
+    {
+        UpdateMessageBoxViewModel vm = UpdateMessageBox.CreateViewModel(CreateChecker());
+        bool? result = null;
+        vm.RequestClose = value => result = value;
+
+        vm.NoCommand.Execute(null);
+
+        Assert.That(result, Is.False);
+    }
+
+    private static TestUpdateChecker CreateChecker() => new()
+    {
+        CurrentVersion = new Version(0, 22, 170),
+        LatestVersion = new Version(0, 23, 28),
+        IsPortable = false
+    };
 
     private sealed class TestUpdateChecker : UpdateChecker
     {

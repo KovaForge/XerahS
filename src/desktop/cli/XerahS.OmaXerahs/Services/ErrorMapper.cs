@@ -33,6 +33,11 @@ internal static class ErrorMapper
 {
     internal static (string Code, string Message) FromException(Exception ex, bool timeoutRequested = false)
     {
+        if (ex is XerahS.Core.Automation.AutomationException automation)
+        {
+            return (automation.Code, automation.Message);
+        }
+
         if (ex is TimeoutException)
         {
             return (CliErrorCodes.Timeout, ex.Message);

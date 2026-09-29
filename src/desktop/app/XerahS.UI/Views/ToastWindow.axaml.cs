@@ -32,6 +32,7 @@ using Avalonia.Platform.Storage;
 using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Platform.Abstractions;
+using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views;
@@ -48,6 +49,7 @@ public partial class ToastWindow : OverlayWindow
     private PointerPressedEventArgs? _dragStartEventArgs;
     private Border? _urlOverlay;
     private Border? _flyoutHost;
+    private Border? _actionsPanel;
 
     public ToastWindow()
     {
@@ -65,6 +67,7 @@ public partial class ToastWindow : OverlayWindow
         base.OnLoaded(e);
         _urlOverlay = this.FindControl<Border>("UrlOverlay");
         _flyoutHost = this.FindControl<Border>("FlyoutHost");
+        _actionsPanel = this.FindControl<Border>("ActionsPanel");
         if (_flyoutHost != null && _viewModel != null)
         {
             _flyoutHost.Tag = new ToastMenuContext(_viewModel);
@@ -91,8 +94,32 @@ public partial class ToastWindow : OverlayWindow
         // On multi-monitor setups the primary screen working area may not match the screen the toast lands on.
         AdjustPositionToScreenBounds();
 
+        // Bind Cloud actions to the exact durable history row. Never infer identity from a URL:
+        // the same destination may appear in multiple rows or accounts.
+        HistoryViewModel? historyViewModel = null;
+        XerahS.History.HistoryItem? historyItem = null;
+        if (config.HistoryItemId is > 0)
+        {
+            try
+            {
+                historyViewModel = UiViewModelFactoryAccessor.GetRequired().CreateHistoryViewModel(autoLoadHistory: false);
+                historyItem = historyViewModel.GetHistoryItem(config.HistoryItemId.Value);
+                if (historyItem == null)
+                {
+                    historyViewModel.Dispose();
+                    historyViewModel = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                historyViewModel?.Dispose();
+                historyViewModel = null;
+                DebugHelper.WriteException(ex, "Failed to bind toast to its history row");
+            }
+        }
+
         // Create and bind ViewModel
-        _viewModel = new ToastViewModel(config, taskManager);
+        _viewModel = new ToastViewModel(config, taskManager, historyViewModel, historyItem);
         DataContext = _viewModel;
 
         _viewModel.CloseRequested += OnCloseRequested;
@@ -268,7 +295,7 @@ public partial class ToastWindow : OverlayWindow
             }
 
             var storageFile = await storageProvider.TryGetFileFromPathAsync(_config.FilePath);
-            if (storageFile == null)
+            if (storageFile == null || _dragStartEventArgs == null)
             {
                 return;
             }
@@ -276,10 +303,16 @@ public partial class ToastWindow : OverlayWindow
             var dataTransfer = new DataTransfer();
             dataTransfer.Add(DataTransferItem.CreateFile(storageFile));
 
-            // Start drag operation
-            if (_dragStartEventArgs != null)
+            // Pointer leave during DoDragDrop would otherwise start the fade and
+            // close the toast mid-drag (ShareX #8562).
+            _viewModel?.OnFileDragStarted();
+            try
             {
                 await DragDrop.DoDragDropAsync(_dragStartEventArgs, dataTransfer, DragDropEffects.Copy | DragDropEffects.Move);
+            }
+            finally
+            {
+                _viewModel?.OnFileDragEnded(IsPointerOver);
             }
         }
     }
@@ -293,6 +326,8 @@ public partial class ToastWindow : OverlayWindow
         {
             _urlOverlay.Opacity = 1;
         }
+
+        SetActionsPanelVisible(true);
     }
 
     private void OnPointerExited(object? sender, PointerEventArgs e)
@@ -304,6 +339,19 @@ public partial class ToastWindow : OverlayWindow
         {
             _urlOverlay.Opacity = 0;
         }
+
+        SetActionsPanelVisible(false);
+    }
+
+    private void SetActionsPanelVisible(bool visible)
+    {
+        if (_actionsPanel == null)
+        {
+            return;
+        }
+
+        _actionsPanel.Opacity = visible ? 1 : 0;
+        _actionsPanel.IsHitTestVisible = visible;
     }
 
     private void OnFlyoutOpened(object? sender, EventArgs e)

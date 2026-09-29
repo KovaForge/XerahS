@@ -122,7 +122,19 @@ namespace XerahS.Core.Tasks.Processors
             // Annotation should happen BEFORE save, so the saved file includes annotations
             if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnnotateMedia))
             {
-                if (info.Metadata?.Image != null && PlatformServices.UI != null)
+                // OmaSnap editor on Hyprland when selected in settings (XIP0088); otherwise the XerahS editor.
+                var hostedAnnotation = info.Metadata?.Image != null
+                    ? await HostedEditorAndPinService.TryAnnotateAsync(info.Metadata.Image, token)
+                    : (Handled: false, Annotated: null);
+                if (hostedAnnotation.Handled)
+                {
+                    if (hostedAnnotation.Annotated != null)
+                    {
+                        info.Metadata!.Image!.Dispose();
+                        info.Metadata.Image = hostedAnnotation.Annotated;
+                    }
+                }
+                else if (info.Metadata?.Image != null && PlatformServices.UI != null)
                 {
                     editorResult = await PlatformServices.UI.ShowEditorSessionAsync(info.Metadata.Image, taskMode: true);
                     if (editorResult?.RenderedImage != null)
@@ -224,9 +236,16 @@ namespace XerahS.Core.Tasks.Processors
                 {
                     try
                     {
-                        var options = SettingsManager.DefaultTaskSettings?.ToolsSettings?.PinToScreenOptions ?? new PinToScreenOptions();
-                        await PinToScreenCallback(info.Metadata.Image, null, options);
-                        DebugHelper.WriteLine("PinToScreen: image pinned to desktop.");
+                        if (await HostedEditorAndPinService.TryPinAsync(info.Metadata.Image, token))
+                        {
+                            DebugHelper.WriteLine("PinToScreen: image pinned with OmaSnap.");
+                        }
+                        else
+                        {
+                            var options = SettingsManager.DefaultTaskSettings?.ToolsSettings?.PinToScreenOptions ?? new PinToScreenOptions();
+                            await PinToScreenCallback(info.Metadata.Image, null, options);
+                            DebugHelper.WriteLine("PinToScreen: image pinned to desktop.");
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -364,10 +383,18 @@ namespace XerahS.Core.Tasks.Processors
                         }
                     }
 
+                    // Screenshots uploaded by this workflow used to lose host, deletion URL and
+                    // upload metadata here; record them like upload jobs do.
+                    if (!string.IsNullOrWhiteSpace(historyItem.URL))
+                    {
+                        UploadJobProcessor.ApplyUploadResult(historyItem, info);
+                    }
+
                     bool appended = historyManager.AppendHistoryItem(historyItem);
                     DebugHelper.WriteLine($"Trace: History pipeline - AppendHistoryItem called for: {historyItem.FileName} (URL: {historyItem.URL})");
                     if (appended)
                     {
+                        info.HistoryItemId = historyItem.Id;
                         DebugHelper.WriteLine($"Added to history: {historyItem.FileName}");
 
                         if (!string.IsNullOrWhiteSpace(info.Metadata?.OcrText))

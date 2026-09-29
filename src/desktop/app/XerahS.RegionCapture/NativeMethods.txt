@@ -1,5 +1,6 @@
 GetPhysicalCursorPos
 GetCursorPos
+SetCursorPos
 GetDpiForMonitor
 MonitorFromPoint
 MonitorFromWindow

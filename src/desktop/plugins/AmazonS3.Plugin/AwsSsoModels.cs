@@ -76,6 +76,8 @@ internal sealed class AwsSsoStoredToken
 
 internal sealed class AwsSsoStoredRoleCredentials
 {
+    public string AccountId { get; set; } = string.Empty;
+    public string RoleName { get; set; } = string.Empty;
     public string AccessKeyId { get; set; } = string.Empty;
     public string SecretAccessKey { get; set; } = string.Empty;
     public string SessionToken { get; set; } = string.Empty;
@@ -85,6 +87,16 @@ internal sealed class AwsSsoStoredRoleCredentials
     {
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         return now >= ExpiresAt - bufferMilliseconds;
+    }
+
+    public bool IsUsableFor(string accountId, string roleName)
+    {
+        return !IsExpired() &&
+            string.Equals(AccountId, accountId, StringComparison.Ordinal) &&
+            string.Equals(RoleName, roleName, StringComparison.Ordinal) &&
+            !string.IsNullOrWhiteSpace(AccessKeyId) &&
+            !string.IsNullOrWhiteSpace(SecretAccessKey) &&
+            !string.IsNullOrWhiteSpace(SessionToken);
     }
 }
 
@@ -97,8 +109,7 @@ internal static class AwsSsoSecretStore
 
     public static AwsSsoStoredClient? LoadClient(ISecretStore secrets, string secretKey)
     {
-        string? json = secrets.GetSecret(ProviderId, secretKey, ClientSecretName);
-        return string.IsNullOrWhiteSpace(json) ? null : JsonConvert.DeserializeObject<AwsSsoStoredClient>(json);
+        return LoadSecret<AwsSsoStoredClient>(secrets, secretKey, ClientSecretName);
     }
 
     public static void SaveClient(ISecretStore secrets, string secretKey, AwsSsoStoredClient client)
@@ -109,8 +120,7 @@ internal static class AwsSsoSecretStore
 
     public static AwsSsoStoredToken? LoadToken(ISecretStore secrets, string secretKey)
     {
-        string? json = secrets.GetSecret(ProviderId, secretKey, TokenSecretName);
-        return string.IsNullOrWhiteSpace(json) ? null : JsonConvert.DeserializeObject<AwsSsoStoredToken>(json);
+        return LoadSecret<AwsSsoStoredToken>(secrets, secretKey, TokenSecretName);
     }
 
     public static void SaveToken(ISecretStore secrets, string secretKey, AwsSsoStoredToken token)
@@ -121,14 +131,37 @@ internal static class AwsSsoSecretStore
 
     public static AwsSsoStoredRoleCredentials? LoadRoleCredentials(ISecretStore secrets, string secretKey)
     {
-        string? json = secrets.GetSecret(ProviderId, secretKey, RoleCredentialsSecretName);
-        return string.IsNullOrWhiteSpace(json) ? null : JsonConvert.DeserializeObject<AwsSsoStoredRoleCredentials>(json);
+        return LoadSecret<AwsSsoStoredRoleCredentials>(secrets, secretKey, RoleCredentialsSecretName);
     }
 
     public static void SaveRoleCredentials(ISecretStore secrets, string secretKey, AwsSsoStoredRoleCredentials credentials)
     {
         string json = JsonConvert.SerializeObject(credentials, Formatting.None);
         secrets.SetSecret(ProviderId, secretKey, RoleCredentialsSecretName, json);
+    }
+
+    public static void DeleteRoleCredentials(ISecretStore secrets, string secretKey)
+    {
+        secrets.DeleteSecret(ProviderId, secretKey, RoleCredentialsSecretName);
+    }
+
+    private static T? LoadSecret<T>(ISecretStore secrets, string secretKey, string secretName) where T : class
+    {
+        string? json = secrets.GetSecret(ProviderId, secretKey, secretName);
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonConvert.DeserializeObject<T>(json);
+        }
+        catch (JsonException)
+        {
+            secrets.DeleteSecret(ProviderId, secretKey, secretName);
+            return null;
+        }
     }
 }
 

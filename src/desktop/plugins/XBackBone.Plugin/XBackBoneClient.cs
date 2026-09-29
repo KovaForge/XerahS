@@ -35,14 +35,12 @@ public sealed class XBackBoneClient
 {
     private const int MaximumResponseLength = 8192;
     private const int MaximumServerMessageLength = 512;
-    private static readonly HttpClient SharedHttpClient = HttpClientFactory.Create();
-
     private readonly string _serverUrl;
     private readonly string _apiToken;
-    private readonly HttpClient _httpClient;
+    private readonly HttpClient? _httpClient;
 
     public XBackBoneClient(string serverUrl, string apiToken)
-        : this(serverUrl, apiToken, SharedHttpClient)
+        : this(serverUrl, apiToken, httpClient: null)
     {
     }
 
@@ -51,12 +49,14 @@ public sealed class XBackBoneClient
     {
     }
 
-    private XBackBoneClient(string serverUrl, string apiToken, HttpClient httpClient)
+    private XBackBoneClient(string serverUrl, string apiToken, HttpClient? httpClient)
     {
         _serverUrl = NormalizeServerUrl(serverUrl);
         _apiToken = apiToken ?? string.Empty;
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClient = httpClient;
     }
+
+    private HttpClient Http => _httpClient ?? HttpClientFactory.Create(allowAutoRedirect: true, infiniteTimeout: true);
 
     public static string NormalizeServerUrl(string? serverUrl)
     {
@@ -122,7 +122,7 @@ public sealed class XBackBoneClient
         }
 
         request.Content = form;
-        using HttpResponseMessage response = await _httpClient.SendAsync(
+        using HttpResponseMessage response = await Http.SendAsync(
             request,
             HttpCompletionOption.ResponseHeadersRead,
             cancellation);

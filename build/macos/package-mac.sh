@@ -29,27 +29,6 @@ fi
 
 echo "Building XerahS version $VERSION for macOS..."
 
-prepare_video_editor_frontend() {
-    local frontend_dir="$ROOT/ShareX.VideoEditor/frontend"
-
-    if [ ! -f "$frontend_dir/package.json" ]; then
-        echo "Error: ShareX.VideoEditor frontend package.json not found: $frontend_dir"
-        exit 1
-    fi
-
-    echo "Building ShareX.VideoEditor frontend..."
-    (
-        cd "$frontend_dir"
-        npm ci
-        npm run build
-    )
-
-    if [ ! -d "$frontend_dir/dist" ]; then
-        echo "Error: ShareX.VideoEditor frontend dist missing after build: $frontend_dir/dist"
-        exit 1
-    fi
-}
-
 restore_project_assets_for_os() {
     local project_path="$1"
     local os_value="$2"
@@ -93,17 +72,15 @@ dotnet_publish_serial() {
 validate_daemon_bundle() {
     local app_bundle_path="$1"
     local daemon_path="$app_bundle_path/Contents/MacOS/xerahs-watchfolder-daemon"
-    local runtimeconfig_path="$app_bundle_path/Contents/MacOS/xerahs-watchfolder-daemon.runtimeconfig.json"
 
     if [ ! -f "$daemon_path" ]; then
         echo "Error: Missing daemon executable in app bundle: $daemon_path"
         exit 1
     fi
 
-    if [ ! -f "$runtimeconfig_path" ]; then
-        echo "Error: Missing daemon runtimeconfig in app bundle: $runtimeconfig_path"
-        exit 1
-    fi
+    # .NET 10+ single-file publish embeds runtimeconfig; no sidecar is written
+    # to the .app bundle. See XerahS.App.csproj PublishWatchFolderDaemon for the
+    # matching logic on the build side.
 }
 
 build_native_library() {
@@ -135,7 +112,6 @@ build_native_library() {
     echo "(To rebuild native library, run package-mac.sh on macOS)"
 }
 
-prepare_video_editor_frontend
 restore_scoped_intermediate_assets
 
 configure_macos_bundle_icon() {

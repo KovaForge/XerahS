@@ -223,6 +223,15 @@ public class TaskSettingsGeneral
     public ToastClickAction ToastWindowLeftClickAction = ToastClickAction.OpenUrl;
     public ToastClickAction ToastWindowRightClickAction = ToastClickAction.CloseNotification;
     public ToastClickAction ToastWindowMiddleClickAction = ToastClickAction.AnnotateMedia;
+    [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+    public List<ToastClickAction> ToastWindowButtons =
+    [
+        ToastClickAction.CopyImageToClipboard,
+        ToastClickAction.AnnotateMedia,
+        ToastClickAction.PinToScreen,
+        ToastClickAction.Upload
+    ];
+    public int ToastWindowButtonSize = 40;
     public bool ToastWindowAutoHide = true;
     public bool DisableNotificationsOnFullscreen = false;
     public bool UseCustomCaptureSound = false;
@@ -283,9 +292,15 @@ public class TaskSettingsCapture
     [Category("Capture"), DefaultValue(true), Description("Use modern screen capture (Direct3D11) if available.")]
     public bool UseModernCapture { get; set; } = true;
 
+    [Category("Capture"), DefaultValue(true), Description("Correct HDR display colors when capturing with GDI.")]
+    public bool HDRScreenshotColorCorrection { get; set; } = true;
+
     [Category("Capture"), DefaultValue(LinuxInteractiveRegionSelectorPreference.Automatic), Description("Preferred Linux interactive region selector.")]
     public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference { get; set; } =
         LinuxInteractiveRegionSelectorPreference.Automatic;
+
+    [Category("Capture"), DefaultValue(false), Description("On Hyprland with OmaSnap: start region captures in plain region mode instead of smart (region, window or monitor) selection.")]
+    public bool OmaSnapRegionOnly { get; set; } = false;
 
     [Category("Capture"), DefaultValue(MacOSInteractiveRegionSelectorPreference.Automatic), Description("Preferred macOS interactive region selector.")]
     public MacOSInteractiveRegionSelectorPreference MacOSRegionSelectorPreference { get; set; } =

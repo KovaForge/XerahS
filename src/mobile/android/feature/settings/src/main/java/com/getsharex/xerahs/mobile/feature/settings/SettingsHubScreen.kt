@@ -41,6 +41,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.getsharex.xerahs.mobile.core.data.SettingsRepository
+import com.getsharex.xerahs.mobile.core.data.cloud.CloudRepository
 import com.getsharex.xerahs.mobile.core.domain.ApplicationConfig
 import com.getsharex.xerahs.mobile.core.domain.selectableDestinations
 
@@ -58,17 +61,30 @@ fun SettingsHubScreen(
     onBack: (() -> Unit)?,
     onNavigateToS3: () -> Unit,
     onNavigateToCustomUploader: () -> Unit,
+    cloudRepository: CloudRepository? = null,
+    onStartCloudSignIn: (String) -> Unit = {},
+    onOpenCloudSettings: () -> Unit = {},
+    onNavigateCloudHistory: () -> Unit = {},
     onRefresh: () -> Unit = {}
 ) {
     val config = settingsRepository.load()
     val s3Configured = config.s3Config.isConfigured
     val customCount = config.customUploaders.size
     var convertHeicToPng by remember { mutableStateOf(config.convertHeicToPng) }
+    var cloudAutoPublish by remember { mutableStateOf(config.cloudAutoPublish) }
+    val cloudConnection by cloudRepository?.connection?.collectAsState()
+        ?: remember { mutableStateOf(com.getsharex.xerahs.mobile.core.domain.CloudConnectionState()) }
     var selectedDestinationId by remember(config.defaultDestinationInstanceId) {
         mutableStateOf(config.defaultDestinationInstanceId)
     }
     var showResetConfirm by remember { mutableStateOf(false) }
     var resetMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(cloudRepository) {
+        if (cloudRepository?.apiClient?.hasCredential == true && cloudConnection.account == null) {
+            cloudRepository.restore()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -96,6 +112,72 @@ fun SettingsHubScreen(
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
         ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("XerahS Cloud", style = MaterialTheme.typography.titleMedium)
+                    val account = cloudConnection.account
+                    Text(
+                        text = when {
+                            cloudConnection.restoring -> "Restoring your secure Cloud session..."
+                            account != null -> "Connected as @${account.slug}"
+                            else -> "Not connected"
+                        },
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    cloudConnection.error?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
+                    if (account == null) {
+                        Button(
+                            enabled = cloudRepository != null && !cloudConnection.restoring,
+                            onClick = {
+                                cloudRepository?.oauthManager?.begin()?.authorizationUrl?.let(onStartCloudSignIn)
+                            }
+                        ) { Text("Sign in to Cloud") }
+                    } else {
+                        Text(
+                            text = "Trial: ${account.trialStatus} · ${if (account.canPublish) "Publishing enabled" else "Publishing unavailable"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = cloudAutoPublish,
+                                enabled = account.canPublish,
+                                onCheckedChange = {
+                                    cloudAutoPublish = it
+                                    settingsRepository.setCloudAutoPublish(it)
+                                }
+                            )
+                            Text("Automatically publish image and video uploads")
+                        }
+                        Text(
+                            "Cloud publishing is online-only. Failed publishes stay in local history for manual retry.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = onNavigateCloudHistory) { Text("Cloud History") }
+                            OutlinedButton(onClick = onOpenCloudSettings) { Text("Account Settings") }
+                        }
+                        OutlinedButton(onClick = {
+                            cloudRepository?.signOut()
+                            cloudAutoPublish = false
+                            settingsRepository.setCloudAutoPublish(false)
+                        }) { Text("Sign out") }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors()

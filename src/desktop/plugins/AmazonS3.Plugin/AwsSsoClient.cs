@@ -124,6 +124,8 @@ internal sealed class AwsSsoClient : AwsApiClientBase
 
         return new AwsSsoStoredRoleCredentials
         {
+            AccountId = accountId,
+            RoleName = roleName,
             AccessKeyId = creds.AccessKeyId,
             SecretAccessKey = creds.SecretAccessKey,
             SessionToken = creds.SessionToken,

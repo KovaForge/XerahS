@@ -31,8 +31,20 @@ using ShareX.ImageEditor.Presentation.Rendering;
 
 namespace XerahS.UI.ViewModels;
 
+public enum AfterCaptureGoal
+{
+    CopyImage,
+    CopyFilePath,
+    CopyUrl
+}
+
 public partial class AfterCaptureViewModel : ViewModelBase
 {
+    private const AfterCaptureTasks ExclusiveCaptureFlags =
+        AfterCaptureTasks.CopyImageToClipboard
+        | AfterCaptureTasks.CopyFilePathToClipboard
+        | AfterCaptureTasks.UploadImageToHost;
+
     [ObservableProperty]
     private Bitmap _previewImage;
 
@@ -42,28 +54,86 @@ public partial class AfterCaptureViewModel : ViewModelBase
     [ObservableProperty]
     private AfterUploadTasks _afterUploadTasks;
 
+    [ObservableProperty]
+    private AfterCaptureGoal _selectedGoal;
+
     public bool Cancelled { get; private set; } = true;
 
     public AfterCaptureQuickAction QuickAction { get; private set; }
 
     public event Action? RequestClose;
 
+    public AfterCaptureViewModel()
+    {
+        using var image = new SkiaSharp.SKBitmap(2, 2);
+        PreviewImage = BitmapConversionHelpers.ToAvaloniBitmap(image);
+        AfterCaptureTasks = AfterCaptureTasks.ShowAfterCaptureWindow | AfterCaptureTasks.UploadImageToHost;
+        AfterUploadTasks = AfterUploadTasks.CopyURLToClipboard;
+        _selectedGoal = AfterCaptureGoal.CopyUrl;
+        ApplyGoalFlags();
+    }
+
     public AfterCaptureViewModel(SkiaSharp.SKBitmap image, AfterCaptureTasks afterCapture, AfterUploadTasks afterUpload)
     {
         if (image == null) throw new ArgumentNullException(nameof(image));
 
         PreviewImage = BitmapConversionHelpers.ToAvaloniBitmap(image);
-        // Keep the full flag set so the workflow setting is not implicitly cleared
-        // after this dialog returns.
         AfterCaptureTasks = afterCapture;
         AfterUploadTasks = afterUpload;
+        _selectedGoal = InferGoal(afterCapture, afterUpload);
+        ApplyGoalFlags();
     }
+
+    public bool IsCopyImageGoal
+    {
+        get => SelectedGoal == AfterCaptureGoal.CopyImage;
+        set
+        {
+            if (value)
+            {
+                SelectedGoal = AfterCaptureGoal.CopyImage;
+            }
+        }
+    }
+
+    public bool IsCopyFilePathGoal
+    {
+        get => SelectedGoal == AfterCaptureGoal.CopyFilePath;
+        set
+        {
+            if (value)
+            {
+                SelectedGoal = AfterCaptureGoal.CopyFilePath;
+            }
+        }
+    }
+
+    public bool IsCopyUrlGoal
+    {
+        get => SelectedGoal == AfterCaptureGoal.CopyUrl;
+        set
+        {
+            if (value)
+            {
+                SelectedGoal = AfterCaptureGoal.CopyUrl;
+            }
+        }
+    }
+
+    public bool ShowSaveImageOption => SelectedGoal != AfterCaptureGoal.CopyFilePath;
+
+    public bool ShowUrlOptions => SelectedGoal == AfterCaptureGoal.CopyUrl;
 
     public bool SaveImageToFile
     {
         get => AfterCaptureTasks.HasFlag(AfterCaptureTasks.SaveImageToFile);
         set
         {
+            if (SelectedGoal == AfterCaptureGoal.CopyFilePath && !value)
+            {
+                return;
+            }
+
             SetAfterCaptureFlag(AfterCaptureTasks.SaveImageToFile, value);
             OnPropertyChanged();
         }
@@ -74,6 +144,11 @@ public partial class AfterCaptureViewModel : ViewModelBase
         get => AfterCaptureTasks.HasFlag(AfterCaptureTasks.CopyImageToClipboard);
         set
         {
+            if (SelectedGoal == AfterCaptureGoal.CopyImage && !value)
+            {
+                return;
+            }
+
             SetAfterCaptureFlag(AfterCaptureTasks.CopyImageToClipboard, value);
             OnPropertyChanged();
         }
@@ -84,6 +159,11 @@ public partial class AfterCaptureViewModel : ViewModelBase
         get => AfterCaptureTasks.HasFlag(AfterCaptureTasks.CopyFilePathToClipboard);
         set
         {
+            if (SelectedGoal == AfterCaptureGoal.CopyFilePath && !value)
+            {
+                return;
+            }
+
             SetAfterCaptureFlag(AfterCaptureTasks.CopyFilePathToClipboard, value);
             OnPropertyChanged();
         }
@@ -104,6 +184,11 @@ public partial class AfterCaptureViewModel : ViewModelBase
         get => AfterCaptureTasks.HasFlag(AfterCaptureTasks.UploadImageToHost);
         set
         {
+            if (SelectedGoal == AfterCaptureGoal.CopyUrl && !value)
+            {
+                return;
+            }
+
             SetAfterCaptureFlag(AfterCaptureTasks.UploadImageToHost, value);
             OnPropertyChanged();
         }
@@ -124,6 +209,11 @@ public partial class AfterCaptureViewModel : ViewModelBase
         get => AfterUploadTasks.HasFlag(AfterUploadTasks.CopyURLToClipboard);
         set
         {
+            if (SelectedGoal == AfterCaptureGoal.CopyUrl && !value)
+            {
+                return;
+            }
+
             SetAfterUploadFlag(AfterUploadTasks.CopyURLToClipboard, value);
             OnPropertyChanged();
         }
@@ -162,21 +252,8 @@ public partial class AfterCaptureViewModel : ViewModelBase
     [RelayCommand]
     private void Continue()
     {
-        Complete();
-    }
-
-    [RelayCommand]
-    private void CopyImage()
-    {
-        Complete(AfterCaptureQuickAction.CopyImage, AfterCaptureTasks.CopyImageToClipboard);
-    }
-
-    [RelayCommand]
-    private void CopyFilePath()
-    {
-        Complete(
-            AfterCaptureQuickAction.CopyFilePath,
-            AfterCaptureTasks.SaveImageToFile | AfterCaptureTasks.CopyFilePathToClipboard);
+        Cancelled = false;
+        RequestClose?.Invoke();
     }
 
     [RelayCommand]
@@ -186,19 +263,35 @@ public partial class AfterCaptureViewModel : ViewModelBase
         RequestClose?.Invoke();
     }
 
-    private void Complete(
-        AfterCaptureQuickAction quickAction = AfterCaptureQuickAction.None,
-        AfterCaptureTasks? afterCaptureTasks = null)
+    internal static AfterCaptureGoal InferGoal(AfterCaptureTasks capture, AfterUploadTasks upload)
     {
-        QuickAction = quickAction;
-        if (afterCaptureTasks.HasValue)
+        if (capture.HasFlag(AfterCaptureTasks.UploadImageToHost) ||
+            upload.HasFlag(AfterUploadTasks.CopyURLToClipboard))
         {
-            AfterCaptureTasks = afterCaptureTasks.Value;
-            AfterUploadTasks = AfterUploadTasks.None;
+            return AfterCaptureGoal.CopyUrl;
         }
 
-        Cancelled = false;
-        RequestClose?.Invoke();
+        if (capture.HasFlag(AfterCaptureTasks.CopyFilePathToClipboard))
+        {
+            return AfterCaptureGoal.CopyFilePath;
+        }
+
+        if (capture.HasFlag(AfterCaptureTasks.CopyImageToClipboard))
+        {
+            return AfterCaptureGoal.CopyImage;
+        }
+
+        return AfterCaptureGoal.CopyUrl;
+    }
+
+    partial void OnSelectedGoalChanged(AfterCaptureGoal value)
+    {
+        ApplyGoalFlags();
+        OnPropertyChanged(nameof(IsCopyImageGoal));
+        OnPropertyChanged(nameof(IsCopyFilePathGoal));
+        OnPropertyChanged(nameof(IsCopyUrlGoal));
+        OnPropertyChanged(nameof(ShowSaveImageOption));
+        OnPropertyChanged(nameof(ShowUrlOptions));
     }
 
     partial void OnAfterCaptureTasksChanged(AfterCaptureTasks value)
@@ -217,6 +310,29 @@ public partial class AfterCaptureViewModel : ViewModelBase
         OnPropertyChanged(nameof(ShowAfterUploadWindow));
         OnPropertyChanged(nameof(UseURLShortener));
         OnPropertyChanged(nameof(ShareURL));
+    }
+
+    private void ApplyGoalFlags()
+    {
+        var capture = AfterCaptureTasks & ~ExclusiveCaptureFlags;
+        var upload = AfterUploadTasks & ~AfterUploadTasks.CopyURLToClipboard;
+
+        switch (SelectedGoal)
+        {
+            case AfterCaptureGoal.CopyImage:
+                capture |= AfterCaptureTasks.CopyImageToClipboard;
+                break;
+            case AfterCaptureGoal.CopyFilePath:
+                capture |= AfterCaptureTasks.SaveImageToFile | AfterCaptureTasks.CopyFilePathToClipboard;
+                break;
+            case AfterCaptureGoal.CopyUrl:
+                capture |= AfterCaptureTasks.UploadImageToHost;
+                upload |= AfterUploadTasks.CopyURLToClipboard;
+                break;
+        }
+
+        AfterCaptureTasks = capture;
+        AfterUploadTasks = upload;
     }
 
     private void SetAfterCaptureFlag(AfterCaptureTasks flag, bool enabled)

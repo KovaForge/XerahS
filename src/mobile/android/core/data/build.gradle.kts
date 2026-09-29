@@ -29,4 +29,5 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.okhttp)
     implementation("com.amazonaws:aws-android-sdk-s3:2.22.1")
+    testImplementation("junit:junit:4.13.2")
 }

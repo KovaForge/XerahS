@@ -50,6 +50,19 @@ namespace XerahS.UI.ViewModels
             }
         }
 
+        public bool HDRScreenshotColorCorrection
+        {
+            get => _settings.CaptureSettings.HDRScreenshotColorCorrection;
+            set
+            {
+                if (_settings.CaptureSettings.HDRScreenshotColorCorrection != value)
+                {
+                    _settings.CaptureSettings.HDRScreenshotColorCorrection = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference
         {
             get => LinuxRegionSelectorPreferenceSupport.NormalizeForCurrentSession(
@@ -66,6 +79,22 @@ namespace XerahS.UI.ViewModels
 
         public IReadOnlyList<LinuxInteractiveRegionSelectorPreference> LinuxRegionSelectorPreferences =>
             LinuxRegionSelectorPreferenceSupport.GetVisiblePreferences();
+
+        /// <summary>True when the OmaSnap engine passed its probe in this session (XIP0088).</summary>
+        public bool IsOmaSnapAvailable => PlatformServices.HostedCaptureEngine?.CurrentStatus.Available == true;
+
+        public bool OmaSnapRegionOnly
+        {
+            get => _settings.CaptureSettings.OmaSnapRegionOnly;
+            set
+            {
+                if (_settings.CaptureSettings.OmaSnapRegionOnly != value)
+                {
+                    _settings.CaptureSettings.OmaSnapRegionOnly = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         public MacOSInteractiveRegionSelectorPreference MacOSRegionSelectorPreference
         {
@@ -121,6 +150,100 @@ namespace XerahS.UI.ViewModels
                 if (_settings.CaptureSettings.ShowCursor != value)
                 {
                     _settings.CaptureSettings.ShowCursor = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool RegionCaptureShowMagnifier
+        {
+            get => _settings.CaptureSettings.RegionCaptureOptions.ShowMagnifier;
+            set
+            {
+                if (_settings.CaptureSettings.RegionCaptureOptions.ShowMagnifier != value)
+                {
+                    _settings.CaptureSettings.RegionCaptureOptions.ShowMagnifier = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool RegionCaptureUseSquareMagnifier
+        {
+            get => _settings.CaptureSettings.RegionCaptureOptions.UseSquareMagnifier;
+            set
+            {
+                if (_settings.CaptureSettings.RegionCaptureOptions.UseSquareMagnifier != value)
+                {
+                    _settings.CaptureSettings.RegionCaptureOptions.UseSquareMagnifier = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool RegionCaptureShowInfo
+        {
+            get => _settings.CaptureSettings.RegionCaptureOptions.ShowInfo;
+            set
+            {
+                if (_settings.CaptureSettings.RegionCaptureOptions.ShowInfo != value)
+                {
+                    _settings.CaptureSettings.RegionCaptureOptions.ShowInfo = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool RegionCaptureUseCustomInfoText
+        {
+            get => _settings.CaptureSettings.RegionCaptureOptions.UseCustomInfoText;
+            set
+            {
+                if (_settings.CaptureSettings.RegionCaptureOptions.UseCustomInfoText != value)
+                {
+                    _settings.CaptureSettings.RegionCaptureOptions.UseCustomInfoText = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public bool RegionCaptureShowScreenCrosshair
+        {
+            get => _settings.CaptureSettings.RegionCaptureOptions.ShowScreenCrosshair;
+            set
+            {
+                if (_settings.CaptureSettings.RegionCaptureOptions.ShowScreenCrosshair != value)
+                {
+                    _settings.CaptureSettings.RegionCaptureOptions.ShowScreenCrosshair = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>Custom HUD text; line breaks are stored as the $n token, as in ShareX.</summary>
+        public string RegionCaptureCustomInfoText
+        {
+            get => (_settings.CaptureSettings.RegionCaptureOptions.CustomInfoText ?? string.Empty).Replace("$n", Environment.NewLine);
+            set
+            {
+                string stored = (value ?? string.Empty).Replace("\r\n", "$n").Replace("\n", "$n");
+                if (_settings.CaptureSettings.RegionCaptureOptions.CustomInfoText != stored)
+                {
+                    _settings.CaptureSettings.RegionCaptureOptions.CustomInfoText = stored;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public int RegionCaptureMagnifierPixelCount
+        {
+            get => _settings.CaptureSettings.RegionCaptureOptions.MagnifierPixelCount;
+            set
+            {
+                int clamped = Math.Clamp(value, RegionCaptureOptions.MagnifierPixelCountMinimum, RegionCaptureOptions.MagnifierPixelCountMaximum) | 1;
+                if (_settings.CaptureSettings.RegionCaptureOptions.MagnifierPixelCount != clamped)
+                {
+                    _settings.CaptureSettings.RegionCaptureOptions.MagnifierPixelCount = clamped;
                     OnPropertyChanged();
                 }
             }

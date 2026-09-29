@@ -35,7 +35,7 @@ Create a `plugin.json` next to your plugin DLL (and include it in the project wi
 | `entryPoint` | Full .NET type name of the class implementing `IUploaderProvider` (e.g. `"ShareX.Paste2.Plugin.Paste2Provider"`). |
 | `supportedCategories` | Array of categories: `Image`, `Text`, `File`, `UrlShortener`, `UrlSharing`. |
 
-Optional: `version`, `author`, `description`, `assemblyFileName`, `configViewId`, `dependencies`, `homepageUrl`, `supportsExplorer`.
+Optional: `version`, `author`, `description`, `assemblyFileName`, `configViewId`, `dependencies`, `homepageUrl`, `supportsExplorer`, `supportsCancellation`, `supportsProgress`, `supportsResume`. These capability flags are additive and do not require an `apiVersion` major bump.
 
 Example:
 
@@ -57,10 +57,11 @@ Example:
 Implement the interface (or inherit **UploaderProviderBase** from XerahS.Uploaders):
 
 - **ProviderId**, **Name**, **Description**, **Version**, **SupportedCategories**, **ConfigModelType**.
-- **CreateInstance(string settingsJson)** — must return an instance the host can use to perform uploads. The SDK defines the return type as **object**; when using XerahS.Uploaders, the host casts to **Uploader** (or **GenericUploader**). So your implementation can return your concrete uploader type (which should inherit **Uploader** / **GenericUploader** if you use that library).
+- **CreateInstance(string settingsJson)** — return an object the host can upload with. Preferred: implement **IUploadHandler** (`UploadAsync(UploadRequest, CancellationToken)` → **UploadOutcome**). Legacy: inherit **GenericUploader**; the host adapts `Upload(Stream, fileName)` on a worker thread. Do not take a dependency on `HttpWebRequest` for new plugins; use `request.Host.CreateHttpClient(infiniteTimeout: true)` or `XerahS.Common.HttpClientFactory`.
 - **GetSupportedFileTypes()** — which file extensions (e.g. image types) each category supports.
 - **ValidateSettings**, **GetDefaultSettings** — validation and default JSON for new instances.
-- **CreateConfigView()** / **CreateConfigViewModel()** — optional; return `null` to use the default property-grid config UI.
+- **CreateConfigView()** / **CreateConfigViewModel()** — optional Avalonia UI. Prefer **GetConfigSchema()** so the host renders settings without loading plugin UserControls.
+- **Capabilities** — optional flags (cancellation, progress, explorer, resume).
 - **ConfigChanged** — optional event when provider config changes.
 
 If you use **UploaderProviderBase**, you only override **CreateInstance** (returning **Uploader**) and the abstract members; the base implements **IUploaderProvider** (including **CreateInstance** as **object** via explicit interface implementation).

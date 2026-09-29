@@ -42,7 +42,7 @@ public sealed class NextcloudClient
     private const string OcsHeaderValue = "true";
     private const int DefaultChunkSizeMiB = 10;
     private const int MinimumChunkSizeMiB = 5;
-    private static readonly HttpClient HttpClient = XerahS.Common.HttpClientFactory.Create();
+    private static HttpClient HttpClient => XerahS.Common.HttpClientFactory.Create(allowAutoRedirect: true, infiniteTimeout: true);
 
     private readonly string _serverUrl;
     private readonly string _loginName;
@@ -399,6 +399,30 @@ public sealed class NextcloudClient
         using HttpRequestMessage request = CreateDavRequest(SysHttpMethod.Delete, BuildDavItemUrl(safeUserId, safeRelativePath));
         using HttpResponseMessage response = await HttpClient.SendAsync(request, cancellation);
         return response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.NoContent;
+    }
+
+    /// <summary>Renames or moves a file or folder with WebDAV MOVE (never overwrites).</summary>
+    public async Task MoveAsync(string userId, string fromRelativePath, string toRelativePath, CancellationToken cancellation = default)
+    {
+        EnsureCredentials();
+
+        string safeUserId = ResolveUserId(userId);
+        string from = NormalizeRelativePath(fromRelativePath);
+        string to = NormalizeRelativePath(toRelativePath);
+        if (string.IsNullOrWhiteSpace(from) || string.IsNullOrWhiteSpace(to))
+        {
+            throw new ArgumentException("Cannot move the root folder.");
+        }
+
+        using HttpRequestMessage request = CreateDavRequest(new SysHttpMethod("MOVE"), BuildDavItemUrl(safeUserId, from));
+        request.Headers.TryAddWithoutValidation("Destination", BuildDavItemUrl(safeUserId, to));
+        request.Headers.TryAddWithoutValidation("Overwrite", "F");
+        using HttpResponseMessage response = await HttpClient.SendAsync(request, cancellation);
+        if (!response.IsSuccessStatusCode)
+        {
+            string body = await response.Content.ReadAsStringAsync(cancellation);
+            throw new InvalidOperationException(BuildHttpErrorMessage("Nextcloud WebDAV move", response, body));
+        }
     }
 
     public async Task<bool> CreateFolderAsync(string userId, string relativePath, CancellationToken cancellation = default)

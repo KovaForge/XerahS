@@ -10,6 +10,9 @@
   "supportedCategories": ["Image", "Text", "File"],
   "supportsExplorer": true,
   "configViewId": "amazons3",
-  "dependencies": [],
+  "dependencies": [
+    "AWSSDK.Core.dll",
+    "AWSSDK.S3.dll"
+  ],
   "homepageUrl": "https://aws.amazon.com/s3/"
 }

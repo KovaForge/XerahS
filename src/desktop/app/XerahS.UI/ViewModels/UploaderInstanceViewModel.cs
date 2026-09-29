@@ -218,8 +218,27 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         {
             Common.DebugHelper.WriteLine($"[UploaderInstanceVM] Provider found: {provider.Name}");
 
-            ConfigViewModel = provider.CreateConfigViewModel();
-            ConfigView = provider.CreateConfigView();
+            try
+            {
+                ConfigViewModel = provider.CreateConfigViewModel();
+                ConfigView = provider.CreateConfigView();
+            }
+            catch (Exception ex)
+            {
+                Common.DebugHelper.WriteException(ex, $"Failed to create config UI for {ProviderId}");
+                ConfigViewModel = null;
+                ConfigView = null;
+            }
+
+            if (ConfigViewModel == null && ConfigView == null)
+            {
+                UploaderConfigSchema? schema = provider.GetConfigSchema();
+                if (schema != null && schema.Fields.Count > 0)
+                {
+                    ConfigViewModel = new SchemaConfigViewModel(schema);
+                    ConfigView = new Views.SchemaConfigView();
+                }
+            }
 
             // Custom uploaders use the full editor form inline in the provider settings area.
             if (ConfigViewModel == null && ConfigView == null && ProviderId.StartsWith("custom_", StringComparison.OrdinalIgnoreCase))
@@ -241,7 +260,14 @@ public partial class UploaderInstanceViewModel : ViewModelBase
                 var context = ProviderCatalog.GetProviderContext();
                 if (context != null)
                 {
-                    contextAware.SetContext(context);
+                    try
+                    {
+                        contextAware.SetContext(context);
+                    }
+                    catch (Exception ex)
+                    {
+                        Common.DebugHelper.WriteException(ex, $"Failed to apply provider context for {ProviderId}");
+                    }
                 }
             }
         }
@@ -255,13 +281,20 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         {
             Common.DebugHelper.WriteLine($"[UploaderInstanceVM] Loading settings from JSON for {ProviderId}");
 
-            if (ConfigViewModel is CustomUploaderEditorViewModel customUploaderConfigViewModel)
+            try
             {
-                customUploaderConfigViewModel.SetFallbackName(provider?.Name);
-                customUploaderConfigViewModel.IsNameReadOnly = true;
-            }
+                if (ConfigViewModel is CustomUploaderEditorViewModel customUploaderConfigViewModel)
+                {
+                    customUploaderConfigViewModel.SetFallbackName(provider?.Name);
+                    customUploaderConfigViewModel.IsNameReadOnly = true;
+                }
 
-            SynchronizeConfigViewModel(() => ConfigViewModel.LoadFromJson(SettingsJson));
+                SynchronizeConfigViewModel(() => ConfigViewModel.LoadFromJson(SettingsJson));
+            }
+            catch (Exception ex)
+            {
+                Common.DebugHelper.WriteException(ex, $"Failed to load settings JSON for {ProviderId}");
+            }
 
             if (ConfigViewModel is ObservableObject obs)
             {
@@ -679,24 +712,9 @@ public partial class UploaderInstanceViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Opens the Media Explorer window for this provider instance.
-    /// The provider must implement <see cref="IUploaderExplorer"/>.
+    /// Opens the Media Browser on this instance's storage (other browsable destinations stay
+    /// one click away in its account switcher).
     /// </summary>
     [RelayCommand]
-    private async Task OpenExplorer()
-    {
-        var provider = ProviderCatalog.GetProvider(ProviderId);
-        if (provider is not IUploaderExplorer explorer) return;
-
-        try
-        {
-            var factory = UiViewModelFactoryAccessor.GetRequired();
-            var viewModel = factory.CreateProviderExplorerViewModel(Instance, explorer);
-            await factory.ViewDialogService.ShowProviderExplorerAsync(viewModel);
-        }
-        catch (Exception ex)
-        {
-            Common.DebugHelper.WriteException(ex, "Failed to open Media Explorer");
-        }
-    }
+    private Task OpenExplorer() => Services.MediaBrowserToolService.OpenAsync(Instance);
 }

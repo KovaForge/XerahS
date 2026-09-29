@@ -44,36 +44,6 @@ namespace XerahS.Platform.Windows
         private readonly IScreenService _screenService;
         private readonly WindowsScreenCaptureService _fallbackService;
 
-        [DllImport("user32.dll")]
-        private static extern bool SetSystemCursor(IntPtr hcur, uint id);
-        [DllImport("user32.dll")]
-        private static extern IntPtr CopyIcon(IntPtr hIcon);
-        [DllImport("user32.dll")]
-        private static extern IntPtr CreateCursor(IntPtr hInst, int xHotSpot, int yHotSpot,
-            int nWidth, int nHeight, byte[] pvANDPlane, byte[] pvXORPlane);
-        [DllImport("user32.dll")]
-        private static extern bool DestroyCursor(IntPtr hCursor);
-        [DllImport("user32.dll")]
-        private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
-
-        private const uint SPI_SETCURSORS = 0x0057;
-        private static readonly uint[] AllCursorIds =
-        {
-            32512, // IDC_ARROW
-            32513, // IDC_IBEAM
-            32514, // IDC_WAIT
-            32515, // IDC_CROSS
-            32516, // IDC_UPARROW
-            32642, // IDC_SIZENWSE
-            32643, // IDC_SIZENESW
-            32644, // IDC_SIZEWE
-            32645, // IDC_SIZENS
-            32646, // IDC_SIZEALL
-            32648, // IDC_NO
-            32649, // IDC_HAND
-            32650, // IDC_APPSTARTING
-        };
-
         /// <summary>
         /// Minimum Windows version for DXGI 1.2 OutputDuplication (Windows 8+)
         /// </summary>
@@ -102,7 +72,7 @@ namespace XerahS.Platform.Windows
         }
         public async Task<SKBitmap?> CaptureRectAsync(SKRect rect, CaptureOptions? options = null)
         {
-            bool useModern = ShouldUseModernCapture(options);
+            bool useModern = ModernCapturePolicy.ShouldUseModernCapture(options);
 
             if (!IsSupported || !useModern)
             {
@@ -149,7 +119,7 @@ namespace XerahS.Platform.Windows
 
         public async Task<SKBitmap?> CaptureFullScreenAsync(CaptureOptions? options = null)
         {
-            bool useModern = ShouldUseModernCapture(options);
+            bool useModern = ModernCapturePolicy.ShouldUseModernCapture(options);
 
             if (!IsSupported || !useModern)
             {
@@ -175,12 +145,6 @@ namespace XerahS.Platform.Windows
             }
             return fullResult;
         }
-
-        /// <summary>
-        /// Resolves the capture backend policy supplied by the application layer.
-        /// </summary>
-        internal static bool ShouldUseModernCapture(CaptureOptions? options) =>
-            options?.UseModernCapture ?? true;
 
         public async Task<SKBitmap?> CaptureActiveWindowAsync(IWindowService windowService, CaptureOptions? options = null)
         {
@@ -224,28 +188,7 @@ namespace XerahS.Platform.Windows
             {
                 try
                 {
-                    // Replace all system cursors with a transparent 32x32 cursor.
-                    // SetSystemCursor(IntPtr.Zero, ...) is unreliable (NULL handle may fail).
-                    var andMask = new byte[128]; // 32x32 / 8
-                    var xorMask = new byte[128];
-                    for (int i = 0; i < andMask.Length; i++) andMask[i] = 0xFF;
-
-                    IntPtr blankCursor = CreateCursor(IntPtr.Zero, 0, 0, 32, 32, andMask, xorMask);
-                    if (blankCursor != IntPtr.Zero)
-                    {
-                        try
-                        {
-                            cursorHidden = CursorReplacementHelper.TryReplaceSystemCursors(
-                                AllCursorIds,
-                                () => CopyIcon(blankCursor),
-                                (copy, id) => SetSystemCursor(copy, id),
-                                copy => DestroyCursor(copy));
-                        }
-                        finally
-                        {
-                            DestroyCursor(blankCursor);
-                        }
-                    }
+                    cursorHidden = SystemCursorGuard.TryHide();
 
                     // Small delay to ensure DWM updates composition
                     if (cursorHidden) Thread.Sleep(50);
@@ -300,7 +243,8 @@ namespace XerahS.Platform.Windows
                 System.Drawing.Rectangle Bounds,
                 ModeRotation Rotation,
                 string DeviceName,
-                ModeRotation DxgiRotation)>();
+                ModeRotation DxgiRotation,
+                HdrToneMapContext HdrContext)>();
             var devicesToDispose = new List<ID3D11Device>();
             int capturedOutputCount = 0;
 
@@ -326,7 +270,14 @@ namespace XerahS.Platform.Windows
                         try
                         {
                             var duplication = DxgiOutputDuplicationHelper.Create(output, device);
-                            activeDuplications.Add((duplication, device, bounds, rotation, deviceName, dxgiRotation));
+                            activeDuplications.Add((
+                                duplication,
+                                device,
+                                bounds,
+                                rotation,
+                                deviceName,
+                                dxgiRotation,
+                                HdrToneMapContext.FromOutput(output)));
                         }
                         catch (Exception ex)
                         {
@@ -344,14 +295,15 @@ namespace XerahS.Platform.Windows
                 }
 
                 // 3. Acquire & Process Frames
-                foreach (var (duplication, device, bounds, rotation, deviceName, dxgiRotation) in activeDuplications)
+                foreach (var (duplication, device, bounds, rotation, deviceName, dxgiRotation, hdrContext) in activeDuplications)
                 {
                     bool frameAcquired = false;
                     try
                     {
                         var acquireResult = duplication.AcquireNextFrame(250, out var frameInfo, out var desktopResource);
 
-                        if (DxgiFrameAcquisitionHelper.ShouldRetryFrameAcquisition(acquireResult.Success, desktopResource != null))
+                        if (DxgiFrameAcquisitionHelper.ShouldRetryFrameAcquisition(
+                            acquireResult.Success, desktopResource != null, frameInfo.LastPresentTime))
                         {
                             if (acquireResult.Success)
                             {
@@ -364,7 +316,8 @@ namespace XerahS.Platform.Windows
 
                         frameAcquired = acquireResult.Success;
 
-                        if (DxgiFrameAcquisitionHelper.IsUsableFrame(acquireResult.Success, desktopResource != null))
+                        if (DxgiFrameAcquisitionHelper.IsUsableFrame(
+                            acquireResult.Success, desktopResource != null, frameInfo.LastPresentTime))
                         {
                             using (var resource = desktopResource!)
                             {
@@ -398,7 +351,7 @@ namespace XerahS.Platform.Windows
                                 {
                                     if (DxgiHdrToneMapper.IsHdrFormat(sourceDesc.Format))
                                     {
-                                        using var toneMapped = DxgiHdrToneMapper.TryConvertToBgra(dataBox, sourceDesc);
+                                        using var toneMapped = DxgiHdrToneMapper.TryConvertToBgra(dataBox, sourceDesc, hdrContext);
                                         if (toneMapped == null)
                                         {
                                             XerahS.Common.DebugHelper.WriteLine(
@@ -508,10 +461,9 @@ namespace XerahS.Platform.Windows
         }
             finally
             {
-                // Restore cursors if we hid them using SetSystemCursor
                 if (cursorHidden)
                 {
-                    SystemParametersInfo(SPI_SETCURSORS, 0, IntPtr.Zero, 0);
+                    SystemCursorGuard.Restore();
                 }
             }
         }

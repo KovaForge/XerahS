@@ -25,7 +25,7 @@
 
 using ShareX.ImageEditor.Core.ImageEffects;
 using ShareX.ImageEditor.Core.ImageEffects.Drawings;
-using ShareX.VideoEditor.Hosting;
+using XerahS.Media;
 using XerahS.Core;
 
 namespace XerahS.UI.Services;
@@ -36,31 +36,31 @@ namespace XerahS.UI.Services;
 /// </summary>
 public static class VideoEditorWatermarkMapper
 {
-    public static WatermarkSettings? FromDefaultTaskSettings()
+    public static VideoWatermarkSettings? FromDefaultTaskSettings()
     {
         return FromTaskSettings(SettingsManager.DefaultTaskSettings);
     }
 
-    public static WatermarkSettings? FromTaskSettings(TaskSettings? settings)
+    public static VideoWatermarkSettings? FromTaskSettings(TaskSettings? settings)
     {
         return FromEffects(settings?.ImageSettings?.ImageEffectsPreset?.Effects);
     }
 
-    public static WatermarkSettings? FromEffects(IEnumerable<ImageEffect>? effects)
+    public static VideoWatermarkSettings? FromEffects(IEnumerable<ImageEffect>? effects)
     {
         if (effects == null)
         {
             return null;
         }
 
-        WatermarkSettings? result = null;
+        VideoWatermarkSettings? result = null;
 
         foreach (ImageEffect effect in effects)
         {
             switch (effect)
             {
                 case TextWatermarkEffect text when !string.IsNullOrWhiteSpace(text.Text):
-                    result ??= new WatermarkSettings();
+                    result ??= new VideoWatermarkSettings();
                     result.Enabled = true;
                     result.Text = text.Text;
                     result.FontSize = text.FontSize > 0 ? (int)Math.Round(text.FontSize) : 24;
@@ -69,7 +69,7 @@ public static class VideoEditorWatermarkMapper
                     break;
 
                 case DrawImageEffect image when !string.IsNullOrWhiteSpace(image.ImageLocation) && File.Exists(image.ImageLocation):
-                    result ??= new WatermarkSettings();
+                    result ??= new VideoWatermarkSettings();
                     result.Enabled = true;
                     result.ImagePath = image.ImageLocation;
                     result.Opacity = Math.Clamp(image.Opacity / 100.0, 0, 1);
@@ -81,7 +81,7 @@ public static class VideoEditorWatermarkMapper
         return result;
     }
 
-    internal static void ApplyPlacement(WatermarkSettings settings, DrawingPlacement placement)
+    internal static void ApplyPlacement(VideoWatermarkSettings settings, DrawingPlacement placement)
     {
         (double x, double y) = placement switch
         {

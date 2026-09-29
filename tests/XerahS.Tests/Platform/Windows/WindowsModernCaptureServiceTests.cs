@@ -40,13 +40,13 @@ public class WindowsModernCaptureServiceTests
     {
         var options = new CaptureOptions { UseModernCapture = configuredValue };
 
-        Assert.That(WindowsModernCaptureService.ShouldUseModernCapture(options), Is.EqualTo(expected));
+        Assert.That(ModernCapturePolicy.ShouldUseModernCapture(options), Is.EqualTo(expected));
     }
 
     [Test]
     public void ShouldUseModernCapture_WithoutOptions_PrefersDxgi()
     {
-        Assert.That(WindowsModernCaptureService.ShouldUseModernCapture(null), Is.True);
+        Assert.That(ModernCapturePolicy.ShouldUseModernCapture(null), Is.True);
     }
 
     [Test]
@@ -125,18 +125,21 @@ public class WindowsModernCaptureServiceTests
         Assert.That(capabilities.SupportsCursorCapture, Is.True);
     }
 
-    [TestCase(false, false, true)]
-    [TestCase(true, false, true)]
-    [TestCase(false, true, true)]
-    [TestCase(true, true, false)]
+    [TestCase(false, false, 1, true)]
+    [TestCase(true, false, 1, true)]
+    [TestCase(false, true, 1, true)]
+    [TestCase(true, true, 1, false)]
+    [TestCase(true, true, 0, true)]
     public void ShouldRetryFrameAcquisition_RetriesUntilResultAndDesktopResourceAreAvailable(
         bool acquireSucceeded,
         bool desktopResourceAvailable,
+        long lastPresentTime,
         bool expectedRetry)
     {
         bool shouldRetry = DxgiFrameAcquisitionHelper.ShouldRetryFrameAcquisition(
             acquireSucceeded,
-            desktopResourceAvailable);
+            desktopResourceAvailable,
+            lastPresentTime);
 
         Assert.That(shouldRetry, Is.EqualTo(expectedRetry));
     }

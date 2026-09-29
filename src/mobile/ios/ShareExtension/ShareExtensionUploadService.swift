@@ -30,6 +30,7 @@ struct ShareExtensionUploadResult {
     let filePath: String
     let url: String?
     let error: String?
+    let cloudError: String?
 
     var succeeded: Bool { url != nil }
 }
@@ -38,25 +39,51 @@ final class ShareExtensionUploadService {
     private let s3Uploader = S3Uploader()
     private let customUploader = CustomUploader()
     private let decoder = JSONDecoder()
+    private let cloudClient = XerahSCloudClient()
 
-    func uploadFiles(_ filePaths: [String]) -> [ShareExtensionUploadResult] {
+    func uploadFiles(_ filePaths: [String]) async -> [ShareExtensionUploadResult] {
         guard var config = loadConfig() else {
             return filePaths.map {
                 ShareExtensionUploadResult(
                     filePath: $0,
                     url: nil,
-                    error: "No upload destination configured. Open XerahS and configure S3 or a custom uploader in Settings."
+                    error: "No upload destination configured. Open XerahS and configure S3 or a custom uploader in Settings.",
+                    cloudError: nil
                 )
             }
         }
 
         config = hydrateSecrets(in: config)
-        return filePaths.map { uploadFile(filePath: $0, config: config) }
+        var results: [ShareExtensionUploadResult] = []
+        for path in filePaths {
+            let uploaded = uploadFile(filePath: path, config: config)
+            guard uploaded.succeeded,
+                  XerahSCloudSettings.automaticallyPublishesEligibleUploads,
+                  cloudClient.hasStoredCredential,
+                  let expectedOwner = cloudClient.currentOwnerSubject, !expectedOwner.isEmpty,
+                  let rawURL = uploaded.url, let url = URL(string: rawURL),
+                  XerahSCloudClient.eligibleMetadata(fileName: (path as NSString).lastPathComponent) != nil else {
+                results.append(uploaded)
+                continue
+            }
+            do {
+                try await cloudClient.publish(clientItemID: XerahSCloudClient.stableClientItemID(filePath: path), publicURL: url, fileName: (path as NSString).lastPathComponent, expectedOwnerSubject: expectedOwner)
+                results.append(uploaded)
+            } catch {
+                results.append(ShareExtensionUploadResult(
+                    filePath: uploaded.filePath,
+                    url: uploaded.url,
+                    error: uploaded.error,
+                    cloudError: "Upload succeeded, but Cloud publish failed: \(error.localizedDescription)"
+                ))
+            }
+        }
+        return results
     }
 
     private func uploadFile(filePath: String, config: ApplicationConfig) -> ShareExtensionUploadResult {
         guard FileManager.default.fileExists(atPath: filePath) else {
-            return ShareExtensionUploadResult(filePath: filePath, url: nil, error: "File not found.")
+            return ShareExtensionUploadResult(filePath: filePath, url: nil, error: "File not found.", cloudError: nil)
         }
 
         let pathToUpload = convertHeicToPngIfNeeded(filePath: filePath, convertEnabled: config.convertHeicToPng)
@@ -74,16 +101,17 @@ final class ShareExtensionUploadService {
         return ShareExtensionUploadResult(
             filePath: filePath,
             url: nil,
-            error: "No upload destination configured. Open XerahS and configure S3 or a custom uploader in Settings."
+            error: "No upload destination configured. Open XerahS and configure S3 or a custom uploader in Settings.",
+            cloudError: nil
         )
     }
 
     private func makeResult(filePath: String, outcome: UploadOutcome) -> ShareExtensionUploadResult {
         switch outcome {
         case .success(let url):
-            return ShareExtensionUploadResult(filePath: filePath, url: url, error: nil)
+            return ShareExtensionUploadResult(filePath: filePath, url: url, error: nil, cloudError: nil)
         case .failure(let failure):
-            return ShareExtensionUploadResult(filePath: filePath, url: nil, error: failure.message)
+            return ShareExtensionUploadResult(filePath: filePath, url: nil, error: failure.message, cloudError: nil)
         }
     }
 

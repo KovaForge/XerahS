@@ -24,10 +24,11 @@
 #endregion License Information (GPL v3)
 
 using XerahS.Uploaders;
+using XerahS.Uploaders.PluginSystem;
 
 namespace ShareX.XBackBone.Plugin;
 
-public sealed class XBackBoneUploader : FileUploader
+public sealed class XBackBoneUploader : FileUploader, IUploadHandler
 {
     private readonly XBackBoneConfigModel _config;
     private readonly string _apiToken;
@@ -40,55 +41,59 @@ public sealed class XBackBoneUploader : FileUploader
 
     public override UploadResult Upload(Stream stream, string fileName)
     {
-        UploadResult result = new();
+        return UploadAsync(new UploadRequest
+        {
+            Content = stream,
+            FileName = fileName,
+            Category = UploaderCategory.File
+        }, CancellationToken.None).GetAwaiter().GetResult().ToUploadResult();
+    }
+
+    public async Task<UploadOutcome> UploadAsync(UploadRequest request, CancellationToken cancellationToken = default)
+    {
         string normalizedServerUrl = XBackBoneClient.NormalizeServerUrl(_config.ServerUrl);
 
         if (!XBackBoneProvider.IsValidServerUrl(normalizedServerUrl))
         {
-            Errors.Add("XBackBone instance URL must be a valid http:// or https:// URL.");
-            return result;
+            return UploadOutcome.Failed("XBackBone instance URL must be a valid http:// or https:// URL.");
         }
 
         if (string.IsNullOrWhiteSpace(_apiToken))
         {
-            Errors.Add("XBackBone API token is required.");
-            return result;
+            return UploadOutcome.Failed("XBackBone API token is required.");
         }
 
         if (!Enum.IsDefined(_config.ApiGeneration))
         {
-            Errors.Add("The selected XBackBone API generation is not supported.");
-            return result;
+            return UploadOutcome.Failed("The selected XBackBone API generation is not supported.");
         }
 
         try
         {
-            long streamLength = stream.CanSeek ? stream.Length : 0;
-            ProgressManager? progress = streamLength > 0 ? new ProgressManager(streamLength) : null;
             XBackBoneClient client = new(normalizedServerUrl, _apiToken);
-            XBackBoneUploadResponse response = client.UploadAsync(
-                stream,
-                fileName,
+            XBackBoneUploadResponse response = await client.UploadAsync(
+                request.Content,
+                request.FileName,
                 _config.ApiGeneration,
-                bytesTransferred =>
-                {
-                    if (progress != null && AllowReportProgress && progress.UpdateProgress(bytesTransferred))
-                    {
-                        OnProgressChanged(progress);
-                    }
-                }).GetAwaiter().GetResult();
+                bytesTransferred => request.Progress?.Report(new UploadProgressReport(bytesTransferred, request.ContentLength)),
+                cancellationToken).ConfigureAwait(false);
 
-            result.URL = response.CanonicalUrl;
-            result.ThumbnailURL = response.RawUrl;
-            result.DeletionURL = response.DeletionUrl;
-            result.Response = "XBackBone upload completed.";
-            result.IsSuccess = true;
-            return result;
+            return new UploadOutcome
+            {
+                Succeeded = true,
+                Url = response.CanonicalUrl,
+                ThumbnailUrl = response.RawUrl,
+                DeletionUrl = response.DeletionUrl,
+                Response = "XBackBone upload completed."
+            };
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            Errors.Add(RedactToken(ex.Message));
-            return result;
+            return UploadOutcome.Failed(RedactToken(ex.Message));
         }
     }
 

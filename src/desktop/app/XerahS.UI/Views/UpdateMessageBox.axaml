@@ -1,15 +1,9 @@
-<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="using:XerahS.UI.Views"
         xmlns:vm="using:XerahS.UI.ViewModels"
         x:Class="XerahS.UI.Views.UpdateMessageBox"
-        x:DataType="vm:UpdateMessageBoxViewModel"
-        Title="Update Available"
-        Icon="/Assets/Logo.ico"
-        Width="420"
-        SizeToContent="Height"
-        CanResize="False"
-        WindowStartupLocation="CenterOwner">
+        x:DataType="vm:UpdateMessageBoxViewModel">
 
     <Grid Margin="24" RowDefinitions="Auto, Auto, Auto">
 
@@ -70,14 +64,12 @@
                 <Button Content="Yes"
                         Command="{Binding YesCommand}"
                         Classes="accent"
-                        MinWidth="80"
                         AutomationProperties.Name="Yes, download update"/>
                 <Button Content="No"
                         Command="{Binding NoCommand}"
-                        MinWidth="80"
                         AutomationProperties.Name="No, skip this update"/>
             </StackPanel>
         </StackPanel>
 
     </Grid>
-</ui:SurfaceWindow>
+</UserControl>

@@ -76,6 +76,10 @@ internal static class ToolWorkflowDispatcher
                 dispatchTask = HashCheckToolService.HandleWorkflowAsync(workflowType, owner);
                 return true;
 
+            case WorkflowType.MediaBrowser:
+                dispatchTask = MediaBrowserToolService.HandleWorkflowAsync(workflowType, owner);
+                return true;
+
             case WorkflowType.PinToScreen:
             case WorkflowType.PinToScreenFromScreen:
             case WorkflowType.PinToScreenFromClipboard:
@@ -86,6 +90,10 @@ internal static class ToolWorkflowDispatcher
 
             case WorkflowType.MonitorTest:
                 dispatchTask = MonitorTestToolService.HandleWorkflowAsync(workflowType, owner);
+                return true;
+
+            case WorkflowType.NetworkMonitor:
+                dispatchTask = NetworkMonitorToolService.HandleWorkflowAsync(workflowType, owner);
                 return true;
 
             case WorkflowType.Ruler:
@@ -106,7 +114,12 @@ internal static class ToolWorkflowDispatcher
             case WorkflowType.ImageCombiner:
             case WorkflowType.ImageSplitter:
             case WorkflowType.ImageThumbnailer:
+            case WorkflowType.ImageResizer:
+            case WorkflowType.ImageConverter:
+            case WorkflowType.ImageWatermark:
+            case WorkflowType.AnimatedGifMaker:
             case WorkflowType.VideoConverter:
+            case WorkflowType.VideoTrimmer:
             case WorkflowType.VideoThumbnailer:
             case WorkflowType.AnalyzeImage:
                 dispatchTask = MediaToolsToolService.HandleWorkflowAsync(workflowType, owner);

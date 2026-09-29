@@ -42,7 +42,11 @@ public static class AppContracts
         /// <summary>Named mutex ensuring only one instance acquires the primary lock.</summary>
         public const string MutexName = "XerahS-82E6AC09-0FFC-4992-B793-3F79E1F71E70";
 
-        /// <summary>Named pipe used to relay command-line arguments from subsequent instances to the primary instance.</summary>
+        /// <summary>
+        /// Logical named pipe used to relay command-line arguments from subsequent instances.
+        /// On Unix, <see cref="SingleInstanceManager.GetPlatformPipeName"/> remaps this to a
+        /// short rooted /tmp socket because AF_UNIX paths cannot exceed 104 bytes.
+        /// </summary>
         public const string PipeName = "XerahS-Pipe-1F42DA49-7B2A-4E6F-8A3C-D56F09E0C481";
     }
 
@@ -56,6 +60,38 @@ public static class AppContracts
         /// only this marker is passive and must not surface an already-running instance.
         /// </summary>
         public const string SilentStartupFlag = "-silent";
+
+        /// <summary>
+        /// Relayed by automation (omaxerahs, agents) after writing WorkflowsConfig so the running
+        /// instance reloads workflows from disk. Handled without surfacing the main window.
+        /// </summary>
+        public const string ReloadWorkflowsFlag = "--reload-workflows";
+
+        public static bool IsReloadWorkflowsInvocation(IReadOnlyCollection<string>? args)
+        {
+            return args is { Count: > 0 } &&
+                args.All(arg => arg.Equals(ReloadWorkflowsFlag, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Relayed by "omaxerahs workflow run" (Hyprland keybindings, XIP0088) as
+        /// <c>--run-workflow &lt;id&gt;</c>. Runs the workflow like a hotkey without surfacing the main window.
+        /// </summary>
+        public const string RunWorkflowFlag = "--run-workflow";
+
+        public static bool TryGetRunWorkflowId(IReadOnlyList<string>? args, out string workflowId)
+        {
+            workflowId = string.Empty;
+            if (args is not { Count: 2 } ||
+                !args[0].Equals(RunWorkflowFlag, StringComparison.OrdinalIgnoreCase) ||
+                string.IsNullOrWhiteSpace(args[1]))
+            {
+                return false;
+            }
+
+            workflowId = args[1].Trim();
+            return true;
+        }
 
         /// <summary>Flag used by helper processes (e.g. screen capture helpers) to forward a capture back to the running instance.</summary>
         public const string SendToFlag = "--send-to";

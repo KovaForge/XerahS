@@ -30,11 +30,19 @@ In SSO mode, the user selects the bucket location (Endpoint / Region) and provid
    - Use temporary role credentials (access key, secret key, session token).
 
 ## Key Files
-- `src/Plugins/ShareX.AmazonS3.Plugin/S3ConfigModel.cs`
-- `src/Plugins/ShareX.AmazonS3.Plugin/AmazonS3Uploader.cs`
-- `src/Plugins/ShareX.AmazonS3.Plugin/AmazonS3Provider.cs`
-- `src/Plugins/ShareX.AmazonS3.Plugin/ViewModels/AmazonS3ConfigViewModel.cs`
-- `src/Plugins/ShareX.AmazonS3.Plugin/Views/AmazonS3ConfigView.axaml`
+- `src/desktop/plugins/AmazonS3.Plugin/S3ConfigModel.cs`
+- `src/desktop/plugins/AmazonS3.Plugin/AmazonS3Uploader.cs`
+- `src/desktop/plugins/AmazonS3.Plugin/AmazonS3Provider.cs`
+- `src/desktop/plugins/AmazonS3.Plugin/AwsSsoClient.cs`
+- `src/desktop/plugins/AmazonS3.Plugin/AwsSsoModels.cs`
+- `src/desktop/plugins/AmazonS3.Plugin/AwsSsoOidcClient.cs`
+- `src/desktop/plugins/AmazonS3.Plugin/S3Provisioner.cs`
+- `src/desktop/plugins/AmazonS3.Plugin/ViewModels/AmazonS3ConfigViewModel.cs`
+- `src/desktop/plugins/AmazonS3.Plugin/Views/AmazonS3ConfigView.axaml`
+
+The SSO and provisioning implementation is present in the live tree. This XIP
+remains Open pending its real-account verification plan; the similarly named
+paths in the legacy sections below are retained as historical content.
 
 ## Verification Plan
 1. **Access Keys Regression**:

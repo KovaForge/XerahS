@@ -147,30 +147,7 @@ public sealed class FtpUploader : FileUploader, IDisposable
         }
     }
 
-    private FtpClient CreateFtpClient()
-    {
-        var client = new FtpClient
-        {
-            Host = NormalizeHost(_account.Host),
-            Port = _account.Port,
-            Credentials = new NetworkCredential(_account.Username ?? "", _account.Password ?? "")
-        };
-
-        client.Config.DataConnectionType = _account.IsActive ? FtpDataConnectionType.AutoActive : FtpDataConnectionType.AutoPassive;
-
-        if (_account.Protocol == FTPProtocol.FTPS)
-        {
-            client.Config.EncryptionMode = _account.FTPSEncryption == FTPSEncryption.Implicit ? FtpEncryptionMode.Implicit : FtpEncryptionMode.Explicit;
-            client.Config.DataConnectionEncryption = true;
-            client.ValidateCertificate += (_, e) =>
-            {
-                if (e.PolicyErrors != SslPolicyErrors.None)
-                    e.Accept = true;
-            };
-        }
-
-        return client;
-    }
+    private FtpClient CreateFtpClient() => FtpClientFactory.CreateFtp(_account);
 
     private bool ConnectFtp()
     {
@@ -237,48 +214,13 @@ public sealed class FtpUploader : FileUploader, IDisposable
 
     private SftpClient? CreateSftpClient()
     {
-        string keyPath = _account.Keypath?.Trim() ?? string.Empty;
-        bool hasPassword = !string.IsNullOrWhiteSpace(_account.Password);
-
-        if (!string.IsNullOrWhiteSpace(keyPath) && File.Exists(keyPath))
+        SftpClient? client = FtpClientFactory.CreateSftp(_account, out string? error);
+        if (client == null && error != null)
         {
-            try
-            {
-                PrivateKeyFile keyFile = string.IsNullOrEmpty(_account.Passphrase)
-                    ? new PrivateKeyFile(keyPath)
-                    : new PrivateKeyFile(keyPath, _account.Passphrase);
-                return new SftpClient(NormalizeHost(_account.Host), _account.Port, _account.Username ?? "", keyFile);
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.WriteException(ex);
-
-                if (hasPassword)
-                {
-                    return CreatePasswordSftpClient();
-                }
-
-                Errors.Add("SFTP key file could not be loaded: " + keyPath);
-                return null;
-            }
+            Errors.Add(error);
         }
 
-        if (hasPassword)
-            return CreatePasswordSftpClient();
-
-        if (!string.IsNullOrWhiteSpace(keyPath))
-        {
-            Errors.Add("SFTP key file not found: " + keyPath);
-            return null;
-        }
-
-        Errors.Add("SFTP requires either a key file or password.");
-        return null;
-    }
-
-    private SftpClient CreatePasswordSftpClient()
-    {
-        return new SftpClient(NormalizeHost(_account.Host), _account.Port, _account.Username ?? "", _account.Password);
+        return client;
     }
 
     private bool ConnectSftp()

@@ -1,0 +1,69 @@
+<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:XerahS.UI.Views"
+        xmlns:vm="using:XerahS.UI.ViewModels"
+        x:Class="XerahS.UI.Views.AnimatedGifMakerWindow"
+        x:DataType="vm:AnimatedGifMakerViewModel"
+        Title="Animated GIF Maker"
+        Width="860" Height="580"
+        MinWidth="680" MinHeight="460"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        DragDrop.AllowDrop="True">
+
+  <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" Padding="16">
+    <Grid ColumnDefinitions="320,16,*" RowDefinitions="*,Auto">
+      <StackPanel Grid.Column="0" Spacing="10">
+        <TextBlock Text="Frames (in order)" FontWeight="SemiBold" />
+        <ListBox ItemsSource="{Binding Frames}" SelectedItem="{Binding SelectedFrame}" Height="220" AutomationProperties.Name="Frames">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Text="{Binding}" TextTrimming="PathSegmentEllipsis" ToolTip.Tip="{Binding}" />
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <WrapPanel>
+          <Button Content="Add..." Command="{Binding AddFramesCommand}" Classes="accent" Margin="0,0,6,6" />
+          <Button Content="Up" Command="{Binding MoveUpCommand}" Margin="0,0,6,6" />
+          <Button Content="Down" Command="{Binding MoveDownCommand}" Margin="0,0,6,6" />
+          <Button Content="Remove" Command="{Binding RemoveFrameCommand}" Margin="0,0,6,6" />
+          <Button Content="Clear" Command="{Binding ClearFramesCommand}" Margin="0,0,6,6" />
+        </WrapPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="Delay (ms)" VerticalAlignment="Center" Width="90" />
+          <NumericUpDown Value="{Binding DelayMilliseconds}" Minimum="10" Maximum="655350" Increment="50" FormatString="0" Width="130" AutomationProperties.Name="Frame delay" />
+        </StackPanel>
+        <CheckBox Content="Loop forever" IsChecked="{Binding Loop}" />
+        <StackPanel Orientation="Horizontal" Spacing="8" IsEnabled="{Binding !Loop}">
+          <TextBlock Text="Repeat" VerticalAlignment="Center" Width="90" />
+          <NumericUpDown Value="{Binding RepeatCount}" Minimum="0" Maximum="65535" FormatString="0" Width="130" AutomationProperties.Name="Repeat count" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="Max size (px)" VerticalAlignment="Center" Width="90" />
+          <NumericUpDown Value="{Binding MaxDimension}" Minimum="0" Maximum="8000" Increment="100" FormatString="0" Width="130"
+                         ToolTip.Tip="0 keeps the first image's size" AutomationProperties.Name="Maximum size" />
+        </StackPanel>
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBox Text="{Binding OutputFilePath}" PlaceholderText="Output .gif" AutomationProperties.Name="Output file" />
+          <Button Grid.Column="1" Content="..." Command="{Binding BrowseOutputCommand}" Margin="6,0,0,0" />
+        </Grid>
+      </StackPanel>
+
+      <Border Grid.Column="2" Background="#20000000" CornerRadius="6" ClipToBounds="True">
+        <Image Source="{Binding SelectedPreview}" Stretch="Uniform" StretchDirection="DownOnly" Margin="8" />
+      </Border>
+
+      <Grid Grid.Row="1" Grid.ColumnSpan="3" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+        <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+          <ProgressBar Value="{Binding ProgressPercent}" Minimum="0" Maximum="100" IsVisible="{Binding IsCreating}" />
+          <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,4,0,0" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Content="Open folder" Command="{Binding OpenOutputFolderCommand}" />
+          <Button Content="Cancel" Command="{Binding CancelCommand}" IsVisible="{Binding IsCreating}" />
+          <Button Content="Create GIF" Command="{Binding CreateCommand}" Classes="accent" MinWidth="110" AutomationProperties.Name="Create GIF" />
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </Border>
+</ui:SurfaceWindow>

@@ -30,6 +30,7 @@ using SkiaSharp;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Services;
+using XerahS.Core.Tasks.Processors;
 using XerahS.Platform.Abstractions;
 using XerahS.UI.Views;
 
@@ -53,7 +54,7 @@ public static class PinToScreenToolService
                 await PinFromScreenAsync();
                 break;
             case WorkflowType.PinToScreenFromClipboard:
-                PinFromClipboard();
+                await PinFromClipboardAsync();
                 break;
             case WorkflowType.PinToScreenFromFile:
                 await PinFromFileAsync(owner);
@@ -66,7 +67,21 @@ public static class PinToScreenToolService
 
     public readonly record struct PinFilesResult(int PinnedCount, int SkippedCount);
 
-    public static Task<PinFilesResult> PinFilesAsync(IEnumerable<string>? filePaths, bool showToast = true)
+    /// <summary>
+    /// Pins with OmaSnap on Omarchy-like Hyprland sessions (its Upload button uses the XerahS
+    /// destination through omaxerahs), otherwise with the XerahS pin window (XIP0088).
+    /// </summary>
+    private static async Task PinAsync(SKBitmap bitmap, PixelPoint? location)
+    {
+        if (await HostedEditorAndPinService.TryPinAsync(bitmap))
+        {
+            return;
+        }
+
+        PinToScreenManager.PinImage(bitmap, location, GetOptions());
+    }
+
+    public static async Task<PinFilesResult> PinFilesAsync(IEnumerable<string>? filePaths, bool showToast = true)
     {
         int pinnedCount = 0;
         int skippedCount = 0;
@@ -88,7 +103,11 @@ public static class PinToScreenToolService
                     continue;
                 }
 
-                PinToScreenManager.PinImage(bitmap, null, GetOptions());
+                if (!await HostedEditorAndPinService.TryPinFileAsync(filePath))
+                {
+                    PinToScreenManager.PinImage(bitmap, null, GetOptions());
+                }
+
                 pinnedCount++;
             }
             catch (Exception ex)
@@ -110,24 +129,44 @@ public static class PinToScreenToolService
             }
         }
 
-        return Task.FromResult(new PinFilesResult(pinnedCount, skippedCount));
+        return new PinFilesResult(pinnedCount, skippedCount);
     }
 
     private static async Task PinToScreenAsync(Window? owner)
     {
-        // Show startup dialog to let user choose source
-        var dialog = new PinToScreenStartupDialog();
-
-        dialog.SelectRegionRequested = SelectRegionWithLocationAsync;
-        dialog.BrowseFileRequested = () => BrowseImageFileAsync(dialog, owner);
-
-        if (owner != null)
+        var dialog = new PinToScreenStartupDialog
         {
-            await dialog.ShowDialog(owner);
-        }
-        else
+            BrowseFileRequested = () => BrowseImageFileAsync(null, owner)
+        };
+
+        var fromScreen = false;
+        dialog.SelectRegionRequested = () =>
         {
-            await dialog.ShowDialog<object?>(dialog);
+            fromScreen = true;
+            return Task.FromResult<(SKBitmap? Bitmap, PixelPoint? Location)>((null, null));
+        };
+
+        await ModalDialogHost.ShowUntilClosedAsync(
+            dialog,
+            set => dialog.CloseRequested = () => set(),
+            debugSource: nameof(PinToScreenStartupDialog));
+
+        if (fromScreen)
+        {
+            var (bitmap, location) = await SelectRegionWithLocationAsync();
+            if (bitmap != null)
+            {
+                try
+                {
+                    await PinAsync(bitmap, location);
+                }
+                finally
+                {
+                    bitmap.Dispose();
+                }
+            }
+
+            return;
         }
 
         if (dialog.Result != null)
@@ -135,7 +174,7 @@ public static class PinToScreenToolService
             var bitmap = dialog.Result.Image;
             try
             {
-                PinToScreenManager.PinImage(bitmap, dialog.Result.Location, GetOptions());
+                await PinAsync(bitmap, dialog.Result.Location);
             }
             finally
             {
@@ -160,7 +199,7 @@ public static class PinToScreenToolService
         var location = new PixelPoint(rect.Left, rect.Top);
         try
         {
-            PinToScreenManager.PinImage(bitmap, location, GetOptions());
+            await PinAsync(bitmap, location);
         }
         finally
         {
@@ -168,7 +207,7 @@ public static class PinToScreenToolService
         }
     }
 
-    private static void PinFromClipboard()
+    private static async Task PinFromClipboardAsync()
     {
         if (!PlatformServices.IsInitialized) return;
 
@@ -182,7 +221,7 @@ public static class PinToScreenToolService
 
         try
         {
-            PinToScreenManager.PinImage(bitmap, null, GetOptions());
+            await PinAsync(bitmap, null);
         }
         finally
         {
@@ -194,6 +233,11 @@ public static class PinToScreenToolService
     {
         var path = await BrowseImageFileAsync(null, owner);
         if (string.IsNullOrEmpty(path)) return;
+
+        if (await HostedEditorAndPinService.TryPinFileAsync(path))
+        {
+            return;
+        }
 
         using var bitmap = SKBitmap.Decode(path);
         if (bitmap == null)

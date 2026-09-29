@@ -112,37 +112,6 @@ if ([string]::IsNullOrEmpty($version)) {
 
 Write-Host "Building XerahS version $version for Windows..."
 
-function Invoke-VideoEditorFrontendBuild {
-    $frontendDir = Join-Path (Join-Path $root "ShareX.VideoEditor") "frontend"
-    $packageJson = Join-Path $frontendDir "package.json"
-    $distDir = Join-Path $frontendDir "dist"
-
-    if (!(Test-Path $packageJson)) {
-        throw "ShareX.VideoEditor frontend package.json not found: $packageJson"
-    }
-
-    Write-Host "Building ShareX.VideoEditor frontend..."
-    Push-Location $frontendDir
-    try {
-        npm ci
-        if ($LASTEXITCODE -ne 0) {
-            throw "npm ci failed with exit code $LASTEXITCODE."
-        }
-
-        npm run build
-        if ($LASTEXITCODE -ne 0) {
-            throw "npm run build failed with exit code $LASTEXITCODE."
-        }
-    }
-    finally {
-        Pop-Location
-    }
-
-    if (!(Test-Path $distDir)) {
-        throw "ShareX.VideoEditor frontend dist missing after build: $distDir"
-    }
-}
-
 function Invoke-ProjectRestoreForOS {
     param(
         [Parameter(Mandatory = $true)]
@@ -173,7 +142,6 @@ function Invoke-ScopedIntermediateRestores {
     Invoke-ProjectRestoreForOS -ProjectPath $uiProject -OSValue "Windows_NT"
 }
 
-Invoke-VideoEditorFrontendBuild
 Invoke-ScopedIntermediateRestores
 
 $archs = @("win-x64", "win-arm64")

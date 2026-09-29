@@ -134,6 +134,27 @@ xerahscli reclip status --json
 
 The setting is stored at `ReClipConfig.json` under the normal XerahS settings folder shown by `xerahscli config path`.
 
+## Portable settings backup and restore
+
+```bash
+xerahscli backup-settings --output ./xerahs-0.29.0-SHAREX-NB1-backup.xsbak
+xerahscli restore-settings --input ./xerahs-0.29.0-SHAREX-NB1-backup.xsbak --force
+```
+
+When `--output` is omitted, the backup is named `xerahs-<version>-<computer-name>-backup.xsbak` in the current directory. A missing or different output extension is normalized to `.xsbak`. The portable file includes application settings, workflows, destination instances, custom uploader definitions, and destination credentials. It is intentionally unencrypted, so passwords, S3 access keys, and OAuth tokens are plaintext inside the archive. Protect it like a password vault. Restored credentials are written through the destination computer's secret store and encrypted locally. Restart XerahS after restore.
+
+## XerahS Cloud OAuth
+
+Use the CLI to sign in without driving the desktop UI. `cloud sign-in` opens the system browser, temporarily points `xerahs://` at this process, and waits for the authorization callback.
+
+```bash
+xerahscli cloud status --json
+xerahscli cloud sign-in --json
+xerahscli cloud sign-out --json
+```
+
+Authorize the desktop client in the browser (verified email + TOTP). The waiting command prints the account slug when the token exchange succeeds. `cloud complete` is invoked automatically by the protocol handler; do not paste access tokens on the command line.
+
 ## Useful commands for agents
 
 ```bash

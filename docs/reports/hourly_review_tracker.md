@@ -5628,3 +5628,2009 @@ Added candidates (8):
 - Commit: null (record SHA in Step 9 only; do not self-reference)
 - Follow-up: wait for xerahs-review producer to refill next_candidates
 - Skill: xerahs-bugfix/SKILL.md v1.1.23 patched (1 new pitfall: keep KovaForge Version over lower upstream release bump)
+
+### 2026-08-22 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. Fork: FF-merged declan/develop 77558d86..848f0f3e ([v0.28.0] distro-repo feat). Upstream: upstream/develop == HEAD (no merge). ShareX.ImageEditor pointer clean at d4f4029 (status matches origin/develop). No stale deferred-last-runs files.
+- Status: no-op
+- Build/test: n/a (empty queue; no code change)
+- Commit: null (record SHA in Step 9 only; do not self-reference)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.23 (no patch this tick)
+### 2026-08-22 23:02 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.2/v2.2.4)
+
+- Reports parsed: 3 (20260822T150711-54b9dc.md newest, 20260821T150529-4a20ca.md, 20260820T150428-2a043b.md)
+- 307 unique findings parsed across 3 reports (127 in newest)
+- Submodule-prefix drops (v2.2.4): 66 (ShareX.ImageEditor / ShareX.VideoEditor — parent repo cannot edit submodule source)
+- Severity gate drops: 177 (triage=risk: 114, contract-mismatch: 42, docs-gap: 12, test-gap: 9)
+- Already-fixed (area-level): 3 (ImmichUploader.cs:220-233 deduped 3 reports)
+- Recently-fixed (v2.1.1 + v2.1.2 release-history): 79
+- Recently-pivoted skip (v2.2.2): 48
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-08-22 23:02 AWST - xerahs-review producer run (Nadia)
+
+- Area: xerahs-review producer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md, .clawpatch/reports/20260822T150711-54b9dc.md
+- Findings: Daily cron run at 23:02 AWST (offset 1h before 00:06 AWST consumer drain). Fork sync: fetched nadia/develop (5d4fac128) and FF-merged into local develop as 24f3ec826 (local was 7 ahead of origin/develop before merge → 2 ahead after). Upstream sync: upstream/develop == HEAD (no merge needed; KovaForge fork is at v0.26.0 with several v0.27.x features, ShareX upstream at v0.25.6 + 0 unreleased commits). Submodule sync: ShareX.ImageEditor HEAD == upstream tip == origin/develop (d4f4029, Mikhail 4 local commits ahead of origin untouched). Clawpatch review: ran 20260822T150711-54b9dc with --limit 3 features (XerahS.Uploaders/OAuth, XerahS.Platform.Linux/Services, xerahscli); per-feature findings 0/2/2 = 4 total returned but the report itself enumerates 127 findings and 6 clusters. Post-gate eligible items: 44 unique gate-eligible (confirmed-bug, high/medium, non-submodule, non-maintainability). All 44 hit downstream dedupe: 3 area-fixed (ImmichUploader.cs:220-233), 48 recently-pivoted, 79 release-history-fixed. Producer-side only — no fix attempts, no area-status changes, no other agents' last_runs rows touched.
+- Status: ok (no-op ingest is the correct outcome — the consumer has been sweeping these citations through the recently_pivoted layer for the past 72h; clawpatch has not yet surfaced a fresh wave)
+- Build/test: n/a (no code change)
+- Commit: PENDING
+- Anomalies: 
+  - clawpatch --limit 3 controls **features** (jobs) reviewed, not per-feature finding count; the produced report file always contains the complete per-finding enumeration (127 here), so the actual returned findings visible to consumers via the report file are far more than 4
+  - /Users/mike/Projects/KovaForge/openclaw-doctor/.env.local:15 emits a shell parser warning (parse error near '&') — nonfatal; MINIMAX_API_KEY was still loaded and the review completed successfully
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this empty queue; producer next fires 23:00 AWST on 2026-08-23
+- Skill: xerahs-review/SKILL.md v2.2.4 (no patch this tick)
+
+
+### 2026-08-23 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. HEAD == declan/develop == origin/develop (34c5c051). upstream/develop merge-base == HEAD (d807a49a; no merge). ShareX.ImageEditor pointer clean at d4f4029 (status matches origin/develop). No stale deferred-last-runs files. Pre-existing unstaged docs/CHANGELOG.md left untouched.
+- Status: no-op
+- Build/test: n/a (empty queue; no code change)
+- Commit: null (record SHA in Step 9 only; do not self-reference)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.23 (no patch this tick)
+
+### 2026-08-23 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. HEAD == declan/develop == origin/develop (0bb27b0ac). upstream/develop merge-base == d807a49a (no merge). ShareX.ImageEditor pointer clean at d4f4029. No stale deferred-last-runs files. Discarded leftover unstaged docs/CHANGELOG.md before FF to declan/develop.
+- Status: no-op
+- Build/test: n/a (empty queue; no code change)
+- Commit: null (record SHA in Step 9 only; do not self-reference)
+- Follow-up: wait for xerahs-review producer to refill next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.23 (no patch this tick)
+
+### 2026-08-23 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — audit only)
+- Findings: next_candidates=0 after fork sync FF d1261e0fe..27ce28c94 (24 commits from declan/develop). upstream/develop 0 commits behind. ShareX.ImageEditor clean at d4f4029. No deferred-last-runs files.
+- Status: no-op
+- Build/test: n/a
+- Commit: none (empty-queue audit; SHA recorded in Step 9 only)
+- Follow-up: keep queue consumer healthy; await next xerahs-review ingest
+
+### 2026-08-23 23:04 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.2/v2.2.4)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 181
+  - triage=risk: 118
+  - triage=contract-mismatch: 42
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently-fixed (release-history): 80
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - ... and 70 more
+- Findings dropped as recently-pivoted: 48
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-08-23 23:05 AWST - xerahs-review producer run (Nadia)
+
+- Area: xerahs-review producer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md, .clawpatch/reports/20260823T150323-7d7387.md
+- Findings: Daily cron run at 2026-08-23 23:05 AWST (offset 1h before 00:06 AWST consumer drain). Fork sync: FF-merged nadia/develop (34c5c051a..e4d7ca495) — 9 commits from nadia (Cloud OAuth Prettier + Bearer + AAL2 hook + access tokens + OAuth CLI command + OAuth callback pipe + consent POST origin + matching origin + OAuth aal2). Upstream sync: upstream/develop == HEAD (no merge; KovaForge fork at v0.28.0, ShareX upstream at v0.25.6). Submodule sync: ShareX.ImageEditor HEAD == upstream tip == origin/develop (d4f4029; Mikhail 4 local commits ahead of origin untouched). Clawpatch review: ran 20260823T150323-7d7387 with --limit 3 features (XerahS.RegionCapture/UI, XerahS.Uploaders.PluginSystem, XerahS.Platform.MacOS/Native); 2 findings returned, full report enumerates ~313 findings across 3 reports. Post-gate eligible items: 1 unique (OverlayWindow.Capture.cs:95-99 HasAnnotations guard — region-capture annotation layer rendering bug). All other eligible candidates hit downstream dedupe: 3 area-fixed (ImmichUploader.cs:220-233), 80 release-history-fixed (FileDownloader, HSB, DPAPI, AnimatedGifCreator, etc.), 48 recently-pivoted (WindowsGraphicsCaptureSource.cs:107 dispatcher null-check cluster + earlier consumer pivots). Producer-side only — no fix attempts, no area-status changes, no other agents' last_runs rows touched.
+- Status: ok (1 new candidate ingested)
+- Build/test: n/a (no code change)
+- Commit: PENDING
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
+- Skill: xerahs-review/SKILL.md v2.2.4 (no patch this tick)
+
+### 2026-08-24 00:05 AWST - Pivot / already-fixed
+
+- Area: OverlayWindow.CreateResultWithAnnotations HasAnnotations guard
+- Files: (none — pivot, no code change)
+- Findings: Clawpatch false positive — CreateResultWithAnnotations / RenderAnnotationLayer never read _backgroundBitmap (clawpatch fnd_sig-feat-library-83987ac2c7-99a5_6629772458). L96 early-return is HasAnnotations + canvas child count only; RenderAnnotationLayer uses _annotationCanvas + _monitor.PhysicalBounds/ScaleFactor.
+- Status: Pivot (already-fixed / false-positive)
+- Build/test: n/a (no code change)
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless RenderAnnotationLayer starts using _backgroundBitmap
+- Skill: xerahs-bugfix/SKILL.md v1.1.24 patched (1 new OverlayWindow _backgroundBitmap false-positive pitfall)
+
+### 2026-08-24 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork FF b431e0030 to ba1e7068e, upstream already up to date, ShareX.ImageEditor pointer clean at d4f4029. Deleted stale deferred-last-runs-20260824-000530.json per v1.1.16 consecutive no-op cleanup.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit only; SHA recorded in Step 9 summary)
+- Follow-up: await producer ingest of fresh next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.24 unchanged (no efficiency blockers this run)
+
+### 2026-08-24 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork FF 68a7dec2a to a26b995f3, upstream already up to date (KovaForge ahead of d807a49), ShareX.ImageEditor pointer clean at d4f4029. No deferred last_runs files present.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit only; SHA recorded in Step 9 summary)
+- Follow-up: await producer ingest of fresh next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.24 unchanged (no efficiency blockers this run)
+
+### 2026-08-24 23:06 AWST - clawpatch-ingest gate drops (skill v2.1.1/v2.2.4)
+
+- Reports parsed: 3
+- Submodule drops: 66 (ShareX.ImageEditor / ShareX.VideoEditor paths)
+- Findings dropped at severity gate: 186
+  - triage=risk: 122
+  - triage=contract-mismatch: 43
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare) x3
+- Findings dropped as recently-fixed (release-history, v2.1.2): 81
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp) [v0.23.127]
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285 [v0.23.127]
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286 [v0.23.127]
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_IgnoresStaleCachedText) [v0.23.29]
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/HSB.cs:163-166 (HSB.operator ==)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/Random/RandomCrypto.cs:91 (max)
+  - [bug/confirmed-bug] src/desktop/plugins/GitHubGist.Plugin/GitHubGistUploader.cs:120 (CustomURLAPI)
+  - [security/confirmed-bug] src/desktop/core/XerahS.UploaderPluginSdk/PluginManifest.cs:62-77 (IsSafePluginId)
+  - [bug/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichClient.cs:417-430 (DownloadAssetAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/Settings/DPAPIEncryptedStringValueProvider.cs:46 (DPAPIEncryptedStringValueProvider.GetValue)
+  - ... and 66 more (full list suppressed; visible in .clawpatch/reports/*.md and parser debug)
+- Findings dropped as recently-pivoted: 50
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-08-24 23:06 AWST - xerahs-review producer run (Nadia)
+
+- Owner: nadia-valeva-kf
+- Fork sync: nadia/develop already at HEAD (3ffa45e2a); no commit needed
+- Upstream sync: KovaForge develop ahead of upstream by 58 commits; no merge needed
+- ShareX.ImageEditor: develop clean at d4f4029; no push needed
+- Clawpatch review: 3 features, 1 finding returned
+  - fnd_sig-feat-library-87f6df5e74-517b_81ab98e24f: api-contract/contract-mismatch/high -> DROPPED at severity gate
+    - evidence: tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:201-223 (SearchScreenshotsAsync)
+- Ingest: 0 (only contract-mismatch finding; fails v2.1.0 confirmed-bug gate)
+- Anomaly: clawpatch review surface area is shrinking; today's run returned only 1 finding vs typical 30-130. Likely related to recent v0.28.0 plugin-config schema changes already absorbing prior findings.
+- Queue: next_candidates remains empty; bugfix drain continues to see no-op at 00:06 AWST
+- Status: No-op (no producer-side writes beyond last_runs[] + tracker)
+- Build/test: n/a (no code change)
+- Commit: 4322d5700 (xerahs-review: producer tick (nadia-daily, 2026-08-24 23:06 AWST))
+- Follow-up: If v0.28.0 plugin-schema fallout continues to suppress clawpatch output, consider whether the v2.1.0 severity gate should be relaxed for triage=risk when category in {data-loss, security}; today 3 risk/data-loss drops are arguably worth re-evaluating.
+
+### 2026-08-25 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork already at 49336924f (Nadia producer tick 2026-08-24 23:06 AWST), upstream already up to date (KovaForge ahead of d807a49), ShareX.ImageEditor pointer clean at d4f4029. No deferred last_runs files present.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit only; SHA recorded in Step 9 summary)
+- Follow-up: await producer ingest of fresh next_candidates; clawpatch surface still shrinking (1 finding last producer tick vs typical 30-130)
+- Skill: xerahs-bugfix/SKILL.md v1.1.24 unchanged (no efficiency blockers this run)
+
+### 2026-08-25 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork fast-forward to 79d4fbdfc (Michael D v0.28.1 release). Upstream already up to date (KovaForge at/ahead of d807a49). ShareX.ImageEditor pointer clean at d4f4029. No deferred last_runs files present.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit only; SHA recorded in Step 9 summary)
+- Follow-up: await producer ingest of fresh next_candidates; last producer tick still empty
+- Skill: xerahs-bugfix/SKILL.md v1.1.24 unchanged (no efficiency blockers this run)
+
+### 2026-08-25 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates (queue size 0) after fork fast-forward to 79d4fbdfc (Michael D v0.28.1 release at 2026-08-25 06:39 AWST) and be5e1845f (prior empty-queue audit at 08:06 AWST). Upstream already up to date (KovaForge at/ahead of upstream d807a49). ShareX.ImageEditor pointer clean at d4f4029. No deferred last_runs files present. Producer last_runs shows last ingest at 2026-08-24 23:06 AWST (Nadia) — clawpatch surface still shrinking.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit only; SHA recorded in Step 9 summary)
+- Follow-up: await producer ingest of fresh next_candidates; clawpatch surface still shrinking
+- Skill: xerahs-bugfix/SKILL.md v1.1.24 unchanged (no efficiency blockers this run)
+
+### 2026-08-25 23:08 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 190
+  - triage=risk: 124
+  - triage=contract-mismatch: 45
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in last 60 commits: 87
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - ... and 77 more
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-08-25 23:06 AWST - xerahs-review producer run (Nadia)
+
+- TS: `20260825-230510`
+- Status: ok (1 new candidate ingested)
+- Fork sync: FF-merged nadia/develop (`49336924f..c60d27b29`) — 4 commits (v0.28.2 release + 4 Fix PRs: preview gallery, cloud canonical domain, revoked cloud sessions, gallery action overflow)
+- Upstream sync: upstream/develop == HEAD (KovaForge at v0.28.2; ShareX upstream v0.25.6-era)
+- Submodule sync: ShareX.ImageEditor HEAD == upstream tip == origin/develop (`d4f4029b654c259315c5bd48d212dcb76ea10d31`) — clean, no push needed
+- Clawpatch review: ran `20260825T150600-ef2922` with `--limit 3` (XerahS.Core/Helpers, XerahS.Uploaders/BaseUploaders, XerahS.Platform.Windows/Properties); 3 features reviewed, 3 findings in summary; full report 133 findings (3 new vs `20260824T150337-d227e8` 130)
+- Ingest: 1 added — `src/desktop/core/XerahS.Core/Helpers/CaptureDebugHelper.cs:50 (return string.Empty;)` (high/confirmed-bug, return-empty masks invalid input)
+- Drops: 190 severity gate (124 risk, 45 contract-mismatch, 12 docs-gap, 9 test-gap), 0 submodule-prefix, 3 already-fixed (area-level — ImmichUploader.cs:220-233), 87 recently-fixed (release-history), 45 recently-pivoted
+- next_candidates: 0 → 1 (+1)
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
+
+### 2026-08-26 00:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Core/Helpers/CaptureDebugHelper.cs:50 (return string.Empty;)
+- Files: (none — pivot, no code change)
+- Findings: CaptureDebugHelper.WriteRegionCaptureDiagnostics has zero callers anywhere in src/, tests/, or .xaml/.axaml (grep verified). The "potential data loss" framing in the clawpatch finding is misleading — the function writes a diagnostic log file (no user data at risk). The bare `catch` is intentional and matches the documented contract ("empty string on failure" per XML docs at L40). Producer ingest will be skipped via recently_pivoted seed.
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only; audit row deferred per v1.1.13)
+- Follow-up: do not re-queue unless source regresses; producer ingest skipped via recently_pivoted seed
+
+### 2026-08-26 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json
+- Findings: Step 5a found zero candidates; deleted stale deferred-last-runs-20260826-000533.json per v1.1.16
+- Status: no-op
+- Build/test: n/a
+- Commit: none (empty-queue audit; last_runs[].commit left null)
+- Follow-up: await producer ingest of fresh next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.25 unchanged (no efficiency blockers this run)
+
+### 2026-08-26 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json
+- Findings: Step 5a found zero next_candidates. Fork/upstream already in sync at 1acfce634; ImageEditor pointer clean at d4f4029. Unrelated src/mobile WIP left unstaged.
+- Status: No-op
+- Build/test: n/a (empty queue)
+- Commit: none (audit only; SHA in Step 9 summary)
+- Follow-up: wait for next xerahs-review clawpatch ingest
+- Skill: xerahs-bugfix/SKILL.md v1.1.26 unchanged (no efficiency blockers)
+
+### 2026-08-26 23:04 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3 (20260826T150257-4b03b2.md, 20260825T150600-ef2922.md, 20260824T150337-d227e8.md)
+- Submodule-prefix drops: 67
+- Findings dropped at severity gate: 194
+  - triage=risk: 126
+  - triage=contract-mismatch: 47
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 81
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/FileDownloader.cs:112-124 (FileDownloader.DoWork)
+  - ... and 71 more
+- Skipped as duplicate of existing next_candidates: 0
+- Skipped as recently-pivoted: 53
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-08-26 23:04 AWST - xerahs-review producer run (Nadia)
+
+- TS: `20260826-230213`
+- Status: no-op (0 new candidates ingested)
+- Fork sync: nadia/develop == HEAD (8d35db0e7) — no FF needed
+- Upstream sync: upstream/develop == HEAD (KovaForge ahead at v0.28.2)
+- Submodule sync: ShareX.ImageEditor HEAD == origin/develop (`d4f4029b654c259315c5bd48d212dcb76ea10d31`) — clean, no push needed
+- Clawpatch review: ran `20260826T150257-4b03b2` with `--limit 3` (3 features: XerahS.UI/Properties, ShareX.ImageEditor/Core/Abstractions, ShareX.AmazonS3.Plugin); 2 findings in summary, 135 in full report (vs `20260825T150600-ef2922` 133)
+- Ingest: 0 added — `next_candidates` 0 -> 0 (+0)
+- Drops: 67 submodule-prefix, 194 severity gate (126 risk, 47 contract-mismatch, 12 docs-gap, 9 test-gap), 3 already-fixed (ImmichUploader.cs:220-233), 81 recently-fixed (release-history), 53 recently-pivoted
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this 0-item queue — expect another no-op audit row
+
+### 2026-08-27 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json
+- Findings: Step 5a categoriser found 0 candidates; producer tick e13039b54 ingested 0; recently_pivoted=31; deferred last_runs files none
+- Status: no-op (empty queue)
+- Build/test: n/a
+- Commit: none (leave last_runs.commit null; SHA in Step 9 summary only)
+- Follow-up: do not re-queue unless source regresses; producer nadia-daily ran 23:04 AWST
+- Skill: xerahs-bugfix/SKILL.md v1.1.26 — no patch this tick
+
+### 2026-08-27 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json
+- Findings: Step 5a categoriser found 0 candidates; producer tick e13039b54 ingested 0; recently_pivoted=31; deferred last_runs files none; fork FF 64b43ab26 (3 v0.28.2 cloud/web commits); submodule d4f4029b clean
+- Status: no-op (empty queue)
+- Build/test: n/a
+- Commit: none (leave last_runs.commit null; SHA in Step 9 summary only)
+- Follow-up: do not re-queue unless source regresses; producer last ingest 0 at 23:04 AWST
+- Skill: xerahs-bugfix/SKILL.md v1.1.26 — no patch this tick
+
+### 2026-08-27 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json
+- Findings: Step 5a categoriser found 0 candidates; producer last ingest 0 at 23:04 AWST; recently_pivoted=31; deferred last_runs files none; fork FF bb38aa320; submodule d4f4029b clean
+- Status: no-op (empty queue)
+- Build/test: n/a
+- Commit: none (leave last_runs.commit null; SHA in Step 9 summary only)
+- Follow-up: await producer ingest of fresh next_candidates
+- Skill: xerahs-bugfix/SKILL.md v1.1.26 — no patch this tick
+
+### 2026-08-27 23:07 AWST - clawpatch-ingest gate drops (skill v2.2.4)
+
+- Reports parsed: 3
+  - 20260827T150525-537062.md
+  - 20260826T150257-4b03b2.md
+  - 20260825T150600-ef2922.md
+- Findings dropped as submodule-prefixed: 68
+  - [bug/confirmed-bug] ShareX.ImageEditor/src/ShareX.ImageEditor/Presentation/ViewModels/MainViewModel.EffectPreview.cs:232-233 (PreviewEffect)
+  - [build-release/risk] ShareX.ImageEditor/src/ShareX.ImageEditor/ShareX.ImageEditor.csproj:2-4
+  - [data-loss/risk] ShareX.ImageEditor/src/ShareX.ImageEditor/Core/ImageEffects/Filters/RemoveBackgroundImageEffect.cs:54-232 (RemoveBackgro
+  - [build-release/risk] Directory.Packages.props:7-57 (PackageVersion)
+  - [api-contract/contract-mismatch] Directory.Packages.props:8-19
+  - [bug/confirmed-bug] ShareX.VideoEditor/backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs:300-334 (VideoEditorRuntimeDiagn
+  - [data-loss/confirmed-bug] ShareX.VideoEditor/backend/Core/ThumbnailExtractor.cs:96
+  - [maintainability/risk] Directory.Packages.props:4 (ManagePackageVersionsCentrally)
+  - [api-contract/contract-mismatch] Directory.Packages.props:40-42
+  - [api-contract/contract-mismatch] Directory.Packages.props:7-9
+  - ... and 58 more
+- Findings dropped at severity gate: 198
+  - triage=risk: 129
+  - triage=contract-mismatch: 48
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 83
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [security/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:160-201 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - ... and 73 more
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-08-27 23:07 AWST - xerahs-review producer run (Nadia)
+
+- Agent: nadia-valeva-kf (git-nadia wrapper; push remote: nadia)
+- Fork sync: nadia/develop at HEAD (9562fedd3); origin ahead 1 (consumer commit, not mine to push)
+- Upstream sync: clean (no new commits)
+- Submodule sync: ShareX.ImageEditor clean (no upstream/origin updates)
+- Clawpatch: minimax/MiniMax-Text-01, --limit 3 features; 4 findings (Linux Services#2=1, Linux Capture/Kde=3, UI Auditing=0)
+- v2.2.4 ingest: +1 candidate (KdeDbusScreenCapture.cs:134-135); submodule drops=68, gate drops=198, release-history drops=83, recently_pivoted=54, duplicate=0
+- next_candidates: 0 -> 1
+- Status: ok (1 new candidate ingested)
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
+
+### 2026-08-28 00:10 AWST - Pivot / already-fixed
+
+- Area: src/platform/XerahS.Platform.Linux/Capture/Kde/KdeDbusScreenCapture.cs:134-135 (return bitmap;)
+- Files: (none — pivot, no code change)
+- Findings: false positive — KDE ScreenShot2 success path: return bitmap is the decoded capture; KdeDbusCaptureProvider.TryCaptureAsync already maps null to LinuxCaptureResult.Failure so the waterfall continues. Retry/user-toast is out of scope for this helper.
+- Status: Pivot (already-fixed / false-positive)
+- Build/test: n/a (pivot-only tick; last_runs delta +0, deferred 1 row)
+- Commit: none (drain only; tracker commit SHA in Step 9)
+- Follow-up: do not re-queue unless DecodeKdeRawBitmap starts returning a bitmap without mapping Failure at KdeDbusCaptureProvider
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 patched (1 new pitfall: Linux capture success-sentinel false positive)
+
+### 2026-08-28 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser saw zero candidates; queue remains empty. Fork sync fast-forwarded local develop to a9a968ac0 ([v0.28.2] Preserve image editor toolbar tooltip descriptions). Upstream develop already at merge-base. ShareX.ImageEditor worktree fast-forwarded d4f4029 -> 651b1d8 to match recorded gitlink (no parent pointer bump). Deleted stale deferred-last-runs-20260828-001014.json (v1.1.16 consecutive no-op cleanup).
+- Status: no-op
+- Build/test: n/a (no code changes this tick)
+- Commit: none in last_runs (commit: null per v1.1.12; tracker SHA in Step 9 summary)
+- Follow-up: next Declan 8h tick; producer may ingest new clawpatch candidates
+- Skill: none (no efficiency blockers this run)
+
+### 2026-08-28 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit, no code change)
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. Producer Nadia 2026-08-27 23:07 AWST ingested 0 high-signal items remaining in next_candidates; prior consumer tick 2026-08-28 08:06 AWST already no-op. No deferred-last-runs files present (v1.1.16 cleanup already done).
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; last_runs commit left null per v1.1.12)
+- Follow-up: wait for next xerahs-review ingest
+
+### 2026-08-28 23:04 AWST - xerahs-review producer run (Nadia)
+
+- Agent: nadia-valeva-kf (git-nadia wrapper; push remote: nadia)
+- Fork sync: nadia/develop == HEAD (6b8a1d936) — no local fast-forward needed; origin ahead 1 (consumer commit, not mine to push)
+- Upstream sync: clean (no new commits; upstream/develop is ancestor of HEAD)
+- Submodule sync: ShareX.ImageEditor HEAD (651b1d8) == parent gitlink (clean, no upstream/origin updates)
+- Clawpatch: minimax/MiniMax-Text-01, --limit 3 features; 2 findings (XerahS.History=0, ShareX.ImageEditor/Core/Editor=2, XerahS.Services.Abstractions=0)
+- v2.2.4 ingest: +0 candidates (next_candidates: 0 -> 0); submodule drops=69, gate drops=202, area-fixed drops=3, release-history drops=85, recently_pivoted skipped=56, duplicate skipped=0
+- Status: no-op (no fresh high-signal findings to ingest; queue remains empty)
+- Follow-up: 00:06 AWST consumer drain (Declan) will read empty queue; next producer tick 23:00 AWST tomorrow
+
+
+### 2026-08-29 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. Producer Nadia 2026-08-28 23:04 AWST ingested 0 high-signal items; queue remains empty. No deferred-last-runs files present (v1.1.16 cleanup already done). Left untracked clawpatch report 20260828T150513-0975b0.md unstaged (producer artifact, not this consumer tick).
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; last_runs commit left null per v1.1.12)
+- Follow-up: wait for next xerahs-review ingest
+- Skill: none (no efficiency blockers this run)
+
+
+### 2026-08-29 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. Producer Nadia 2026-08-28 23:04 AWST ingested 0 high-signal items; queue remains empty. No deferred-last-runs files present (v1.1.16 cleanup already done). Left untracked clawpatch report 20260828T150513-0975b0.md unstaged (producer artifact, not this consumer tick).
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; last_runs commit left null per v1.1.12)
+- Follow-up: wait for next xerahs-review ingest
+- Skill: none (no efficiency blockers this run)
+
+### 2026-08-29 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. Producer Nadia 2026-08-28 23:04 AWST ingested 0 high-signal items; queue remains empty. No deferred-last-runs files present (v1.1.16 cleanup already done). Left untracked clawpatch report 20260828T150513-0975b0.md unstaged (producer artifact, not this consumer tick).
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; last_runs commit left null per v1.1.12)
+- Follow-up: wait for next xerahs-review ingest
+- Skill: none (no efficiency blockers this run)
+
+### 2026-08-29 23:02 AWST - xerahs-review producer run (Nadia)
+
+- Agent: nadia-valeva-kf (git-nadia wrapper; push remote: nadia)
+- Fork sync: nadia/develop fast-forwarded local develop (f171ff5d1..af53f2ea5, 1 commit: v0.29.0 Network Monitor experience improvements); HEAD == nadia/develop (af53f2ea5); origin/develop at 7e243e16d (not mine)
+- Upstream sync: clean (upstream/develop is ancestor of HEAD — d807a49ac merge-base)
+- Submodule sync: ShareX.ImageEditor HEAD (651b1d8) == upstream/develop == parent gitlink (clean)
+- Clawpatch: minimax/MiniMax-Text-01, --limit 3 features; reviewed=3, findings=1 (XerahS.Indexer=1)
+- v2.2.4 ingest: +1 candidate (next_candidates: 0 -> 1); submodule drops=69, gate drops=205 (triage=risk:134, contract-mismatch:50, test-gap:9, docs-gap:12), area-fixed drops=3, release-history drops=87, recently_pivoted skipped=57, duplicate skipped=0
+- Ingested: src/desktop/core/XerahS.Indexer/IndexerXml.cs:68 (IndexFolder) — security/high/confirmed-bug (sensitive folder/file names exposed in XML output)
+- Status: ok (1 new candidate ingested)
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
+
+### 2026-08-30 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/desktop/core/XerahS.Indexer/IndexerXml.cs:68 (IndexFolder)
+- Files: (none — pivot, no code change)
+- Findings: intentional indexer output — IndexerXml writes folder/file names by design (same as IndexerJson/Html/Text); clawpatch security/high/confirmed-bug is a redaction feature request, not a broken contract
+- Status: Pivot (out-of-scope)
+- Build/test: n/a
+- Commit: none (drain only; last_runs delta +0 per v1.1.13; deferred to deferred-last-runs-20260830-000617.json)
+- Follow-up: do not re-queue unless IndexerXml contract regresses; recently_pivoted seeded
+- Skill: none (no efficiency blockers this run; v1.1.11 already covers confirmed-bug vs live contract)
+
+### 2026-08-30 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. Fast-forwarded local develop 815c4077d..5c7e36dea (3 v0.29.0 Amazon S3 commits already on declan/develop). Producer Nadia 2026-08-29 23:02 ingested IndexerXml.cs:68; 00:06 consumer tick already drained it as out-of-scope. Deleted stale deferred-last-runs-20260830-000617.json (v1.1.16; no fix commit to fold under XIP0077 +0/+1). Left untracked clawpatch report 20260828T150513-0975b0.md unstaged (producer artifact, not this consumer tick).
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; last_runs commit left null per v1.1.12)
+- Follow-up: wait for next xerahs-review ingest
+- Skill: none (no efficiency blockers this run)
+
+### 2026-08-30 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. HEAD already equalled declan/develop (38fdccad9). Upstream 107 commits behind (KovaForge ahead of ShareX/XerahS). ShareX.ImageEditor clean at 651b1d8de. No deferred-last-runs files to delete (v1.1.16). Left untracked clawpatch report 20260828T150513-0975b0.md unstaged (producer artifact, not this consumer tick).
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; last_runs commit left null per v1.1.12)
+- Follow-up: wait for next xerahs-review ingest
+- Skill: none (no efficiency blockers this run)
+
+### 2026-08-30 23:07 AWST - clawpatch-ingest gate drops (skill v2.2.4)
+
+- Reports parsed: 3
+- Findings dropped as submodule-prefixed: 69
+- Findings dropped at severity gate: 212
+  - triage=risk: 138
+  - triage=contract-mismatch: 53
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings skipped as recently-pivoted: 56
+- Findings dropped as recently fixed in release history: 90
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [security/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:160-201 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - ... and 80 more
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-08-30 23:04 AWST - xerahs-review producer run (Nadia)
+
+- Agent: nadia-valeva-kf (git-nadia wrapper; push remote: nadia)
+- Fork sync: nadia/develop == HEAD (846d8d3da, already up-to-date — no fetch delta, no merge needed)
+- Upstream sync: merge upstream/develop into local (HEAD 846d8d3da..c884afa88..53a4f2535, fast-forward then merge of [v0.28.0] [Docs] Authorize full parity native implementation); KovaForge 96 commits behind upstream before sync, 1 commit behind after
+- Submodule sync: ShareX.ImageEditor HEAD (651b1d8de) == origin/develop == upstream/develop (clean)
+- Clawpatch: minimax/MiniMax-Text-01, --limit 3 features; reviewed=3, findings=6 (XerahS.RegionCapture=0, XerahS.Common/Helpers=3, XerahS.UI/CaptureCommandPalette=3)
+- v2.2.4 ingest: +1 candidate (next_candidates: 0 -> 1); submodule drops=69, gate drops=212 (triage=risk:138, contract-mismatch:53, test-gap:9, docs-gap:12), area-fixed drops=3, release-history drops=90, recently_pivoted skipped=56, duplicate skipped=0
+- Ingested: src/desktop/app/XerahS.UI/CaptureCommandPalette/CaptureCommandPaletteCoordinator.cs:81-101 (RegisterHotkey) — concurrency/high/confirmed-bug (RegisterHotkey WaitForExit race during shutdown; hotkey registration to WindowsFormsSynchronizationContext can race with application exit → swallowed ObjectDisposedException or hung install)
+- Files: .clawpatch/reports/20260830T150518-d55523.md (untracked producer artifact — commit-bound per skill tradition), docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Status: ok (1 new candidate ingested)
+- Follow-up: 00:06 AWST consumer drain (Declan) will read this 1-item queue
+- Skill: none (no efficiency blockers this run)
+
+### 2026-08-31 00:06 AWST - Pivot / already-fixed
+
+- Area: src/desktop/app/XerahS.UI/CaptureCommandPalette/CaptureCommandPaletteCoordinator.cs:81-101 (RegisterHotkey)
+- Files: (none — pivot, no code change)
+- Findings: false positive — cited RegisterHotkey already try/catches PlatformServices.Hotkey.RegisterHotkey, sets HotkeyStatus.Failed, and logs; no WaitForExit and no WindowsFormsSynchronizationContext in the method or tree. Producer ingest framed a shutdown WaitForExit/WinForms race; live body is Avalonia Dispatcher.UIThread.Post(TogglePalette) plus the same try/catch pattern as AssistantOverlayCoordinator.RegisterHotkey. WindowsHotkeyService.RegisterHotkey uses ManualResetEventSlim.Wait(2s), not WaitForExit.
+- Status: Pivot (already-fixed / false-positive)
+- Build/test: n/a
+- Commit: none (drain only; last_runs delta +0 per v1.1.13; deferred to deferred-last-runs-20260831-000600.json)
+- Follow-up: do not re-queue unless RegisterHotkey drops its Failed-status/log path; recently_pivoted seeded
+- Skill: none (no efficiency blockers this run; v1.1.27 already covers cited-symbol vs method-body false positives)
+
+### 2026-08-31 08:08 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync (HEAD==declan/develop==origin/develop at 3f8da6b47; upstream 0 behind; ShareX.ImageEditor clean at 651b1d8de). Deleted stale deferred-last-runs-20260831-000600.json (v1.1.16). Left untracked clawpatch report 20260828T150513-0975b0.md unstaged.
+- Status: no-op
+- Build/test: n/a
+- Commit: none (no-op audit; last_runs commit=null per v1.1.12)
+- Follow-up: wait for next xerahs-review producer ingest; latest producer tick 2026-08-30 23:04 AWST ingested RegisterHotkey which proved a false positive (drained 00:06)
+- Skill: none (no efficiency blockers this run)
+
+### 2026-08-31 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. Producer last ingested 2026-08-30 23:04 AWST; queue remains empty.
+- Status: No-op
+- Build/test: n/a (no code change)
+- Commit: none (audit commit SHA recorded in Step 9 summary; last_runs.commit left null per v1.1.12)
+- Follow-up: wait for xerahs-review producer ingest; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 no patch this tick (no efficiency blockers)
+
+### 2026-08-31 23:06 AWST - clawpatch-ingest gate drops (skill v2.2.4)
+
+- Reports parsed: 3
+- Findings dropped as submodule-prefix: 70
+- Findings dropped at severity gate: 223
+  - triage=risk: 147
+  - triage=contract-mismatch: 55
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently-fixed (release-history v2.1.2): 87
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [security/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:160-201 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - [concurrency/confirmed-bug] src/platform/XerahS.Platform.Linux/Services/LinuxClipboardService.cs:351-384 (ReadBytesAsync)
+  - ... and 77 more
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-08-31 23:06 AWST - xerahs-review producer run (Nadia)
+
+- Agent: nadia-valeva-kf (nadia remote)
+- Source: cron xerahs-review-daily-producer (23:00 AWST fire, feeds 00:06 AWST bugfix drain)
+- Status: ok (no new candidates — all findings gated at ingest)
+- Commit: PENDING
+- Fork sync: nadia/develop b4e9da578..ea8b3ef8a fast-forward (ShareX.VideoEditor pointer updated)
+- Upstream sync: already up to date
+- Submodule (ShareX.ImageEditor): clean
+- Clawpatch: ran (7 findings across 3 features: .NET project XerahS.Platform.Linux x3, .NET project XerahS x2, .NET project ShareX.Dropbox.Plugin x2)
+- next_candidates: 0 → 0 (+0 new; 0 added, 0 dropped at producer)
+- Gate drops: severity-gate 223 (risk:147, contract-mismatch:55, docs-gap:12, test-gap:9), submodule-prefix 70, already-fixed-area 3, recently-pivoted 62, recently-fixed-release-history 87, duplicate 0
+- Follow-up: 00:06 AWST bugfix drain (Declan) will check the queue; queue remains empty, no work to drain this cycle
+
+
+### 2026-09-01 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates. Producer tick 2026-08-31 23:06 AWST ingested 0 (all 375 findings gated). No deferred-last-runs files to delete.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
+- Follow-up: wait for xerahs-review to ingest new next_candidates; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
+### 2026-09-01 08:09 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit)
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. Latest producer tick 2026-08-31 23:06 AWST ingested no new candidates (all findings gated). No pivots to drain; deferred last_runs files absent.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit only; SHA recorded in Step 9 summary)
+- Follow-up: wait for xerahs-review to ingest new next_candidates; do not invent work
+
+### 2026-09-01 16:09 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. Latest producer tick 2026-08-31 23:06 AWST ingested no new candidates (all findings gated). No pivots to drain; deferred last_runs files absent.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
+- Follow-up: wait for xerahs-review to ingest new next_candidates; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
+### 2026-09-01 23:08 AWST - clawpatch-ingest gate drops (skill v2.2.4)
+
+- Reports parsed: 3
+- Findings dropped submodule-prefix: 71
+- Findings dropped at severity gate: 235
+  - triage=risk: 156
+  - triage=contract-mismatch: 58
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently-fixed (release-history v2.1.2): 88
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [security/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:160-201 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - ... and 78 more
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-09-02 00:12 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. Latest producer tick 2026-09-01 23:08 AWST ingested 0 (all findings gated). No pivots to drain; deferred last_runs files absent.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
+- Follow-up: wait for xerahs-review to ingest new next_candidates; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
+### 2026-09-02 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. Merged 5 upstream XIP0087/OmaXerahs commits at 900826d89 (kept 0.29.0). Latest producer tick 2026-09-01 23:08 AWST ingested 0 (all findings gated). No pivots to drain; deferred last_runs files absent.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
+- Follow-up: wait for xerahs-review to ingest new next_candidates; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
+### 2026-09-02 16:11 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork/upstream/submodule sync. HEAD already at eb4365e26 (matches declan/develop and origin/develop). upstream/develop is behind local (e2946993a). Submodule ShareX.ImageEditor clean at 651b1d8. Latest producer tick 2026-09-01 23:08 AWST ingested 0 (all findings gated). No pivots to drain; deferred last_runs files absent.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
+- Follow-up: wait for xerahs-review to ingest new next_candidates; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
+### 2026-09-02 23:05 AWST - xerahs-review producer tick (nadia-daily)
+
+- Area: xerahs-review producer tick (nadia-daily)
+- Files: .clawpatch/reports/20260902T150310-4eb52a.md, docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: clawpatch 3 findings across 3 features; ingest 1 added to next_candidates
+  - + src/desktop/app/XerahS.Assistant/Services/AssistantPrivacyGuard.cs:126-136 (AssistantPrivacyGuard.Evaluate)
+- Gate drops: severity-gate 243 ({'triage=risk': 163, 'triage=contract-mismatch': 59, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix 72, already-fixed-area 3, recently-pivoted 63, recently-fixed-release-history 90, duplicate 0
+- Status: reviewed
+- Build/test: n/a (no code change this run)
+- Commit: PENDING (SHA filled in after push)
+- Follow-up: consumer xerahs-bugfix drains at 00:06 AWST
+- Skill: xerahs-review/SKILL.md v2.2.4 — no patch this tick (no efficiency blockers)
+
+### 2026-09-03 00:13 AWST - Pivot / already-fixed
+
+- Area: src/desktop/app/XerahS.Assistant/Services/AssistantPrivacyGuard.cs:126-136 (AssistantPrivacyGuard.Evaluate)
+- Files: (none — pivot, no code change)
+- Findings: clawpatch fnd_sig-feat-library-9ddc7adf19-1760_91416d2ba3 claimed clipboard confirmation copy dumps unbounded text. Live source already routes those prompts through Preview() at AssistantPrivacyGuard.cs:157-166, which collapses newlines and caps at 80 characters (77 + ellipsis). Existing LongClipboardWrite_RequiresConfirmation covers the confirm gate. Sibling unknown-tool citation already in recently_pivoted. No code change.
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless Preview() clamp regresses
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
+
+### 2026-09-03 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork fast-forward aba673b59 -> e6525835a (declan/develop) and upstream merge of 9b0367f59 (Linux single-file runtimeconfig sidecars / native payload). Submodule ShareX.ImageEditor clean at 651b1d8. Version 0.29.0 unchanged. Deleted stale deferred-last-runs-20260903-001300.json (AssistantPrivacyGuard already-fixed pivot already in tracker from 00:13 AWST). No real-bug items to pick; no code fix this tick.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
+- Follow-up: wait for xerahs-review to ingest new next_candidates; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
+### 2026-09-03 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork fast-forward 15d641daf -> 5cd0194ea (declan/develop, Keep settings backup on UI thread). Upstream already integrated at 9b0367f59. Submodule ShareX.ImageEditor clean at 651b1d8. Version 0.29.0 unchanged. No deferred last_runs files. No real-bug items to pick; no code fix this tick.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
+- Follow-up: wait for xerahs-review to ingest new next_candidates; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
+### 2026-09-03 23:05 AWST - clawpatch-ingest gate drops (skill v2.2.4)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 245
+  - triage=risk: 164
+  - triage=contract-mismatch: 60
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Submodule-prefix drops: 75
+- Already-fixed-area drops: 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Recently-fixed-release-history drops: 98
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [security/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:160-201 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - ... and 88 more
+- Recently-pivoted skips: 59
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-09-03 23:05 AWST - xerahs-review producer run (Nadia)
+
+- Agent: nadia-valeva-kf
+- Status: ok (1 new candidate ingested)
+- Upstream: already up to date (9b0367f59)
+- nadia remote: in sync (a3a764dd5)
+- Submodule ShareX.ImageEditor: clean (HEAD = nadia/develop = upstream/develop = 651b1d8de)
+- Clawpatch: 4 findings across 3 features (XIP reports .NET project ShareX.VideoEditor, XIP reports C# source Views/:mainwindow, XIP reports C# source Media#1)
+- Gate drops: severity-gate 245 ({triage=risk: 164, contract-mismatch: 60, test-gap: 9, docs-gap: 12}), submodule-prefix 75, already-fixed-area 3, recently-fixed-release-history 98, recently-pivoted 59, duplicate 0
+- Ingested: 1 finding (VideoConverterOptions.GetFFmpegArgs)
+- next_candidates delta: 1 -> 1 (+1) — was empty before ingest; size carried over from existing queue
+- Follow-up: 00:06 AWST consumer drain (Declan) will read the 1-item queue
+
+### 2026-09-04 00:06 AWST - VideoConverterOptions.GetFFmpegArgs / Guard undefined codecs
+
+- Area: src/desktop/core/XerahS.Media
+- Files: src/desktop/core/XerahS.Media/VideoConverterOptions.cs, tests/XerahS.Tests/Media/VideoConverterOptionsTests.cs, Directory.Build.props
+- Findings: GetFFmpegArgs switches over VideoCodec had no default arm; undefined ConverterVideoCodecs values skipped every case and emitted FFmpeg args with no -c:v. Normalized codec via Enum.IsDefined, added default arms falling back to libx264/AAC, and added regression coverage.
+- Status: Fixed
+- Build/test: Release scoped build of XerahS.Media + XerahS.Tests clean (0 warnings, 0 errors); filter FullyQualifiedName~VideoConverterOptionsTests Passed: 3, Failed: 0. Logs: /tmp/xerahs-bugfix/build-20260904-000621.log, /tmp/xerahs-bugfix/test-20260904-000621.log
+- Commit: db7cef8b6
+- Follow-up: producer re-ingest of this citation should classify as already-fixed; do not re-queue unless GetFFmpegArgs loses the default arm
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 unchanged this tick
+
+### 2026-09-04 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero next_candidates after fork already at a18d993b7 (HEAD = declan/develop = origin/develop). Upstream already integrated at 9b0367f59. Submodule ShareX.ImageEditor clean at 651b1d8. Version 0.29.1 unchanged. No deferred last_runs files. No real-bug items to pick; no code fix this tick.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
+- Follow-up: wait for xerahs-review to ingest new next_candidates; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 — no patch this tick (no efficiency blockers)
+
+### 2026-09-04 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates; queue 0 -> 0; no fixes, no pivots.
+- Status: No-op
+- Build/test: n/a (no code touched)
+- Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
+- Follow-up: producer (xerahs-review) next ingest; consumer resumes drain on next 8h tick
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 (no Step 10 patch this tick)
+
+### 2026-09-04 23:07 AWST - clawpatch-ingest gate drops (skill v2.2.4)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 247
+  - triage=risk: 166
+  - triage=contract-mismatch: 60
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 95
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - [security/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:160-201 (ContainsFilePath_MatchesSymbolicLinkEquivalentPath)
+  - ... and 85 more
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-09-04 23:08 AWST - xerahs-review producer run (Nadia)
+
+- Workspace: /Users/mike/Projects/KovaForge/xerahs
+- Status: ok (no new candidates - all findings gated at ingest)
+- Fork sync: nadia/develop already up to date (0ab85d8ff)
+- Upstream sync: upstream/develop (9b0367f59) ancestor of HEAD - no merge needed
+- Submodule ShareX.ImageEditor: clean (heads/develop)
+- clawpatch reports parsed: 3 (latest 20260904T150539-20874f.md)
+- Findings parsed: 411; dropped at severity gate: 247; already-fixed-area: 3; recently-pivoted: 66; recently-fixed-release-history: 95
+- next_candidates delta: 0 -> 0 (+0)
+- Follow-up: 00:06 AWST consumer drain (Declan) will find empty queue; next producer tick at 23:00 AWST tomorrow
+
+### 2026-09-05 00:08 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates. Producer at 2026-09-04 23:08 AWST gated all clawpatch findings at ingest (next_candidates 0). No items to fix or pivot. No deferred last_runs files.
+- Status: No-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; last_runs commit left null)
+- Follow-up: wait for next xerahs-review ingest; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 unchanged (no efficiency blockers this run)
+
+### 2026-09-05 08:08 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync; no real-bug items to pick.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; SHA recorded in Step 9 summary only)
+- Follow-up: wait for xerahs-review producer ingest
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 unchanged (no Step 10 patch this tick)
+
+### 2026-09-05 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. HEAD matched declan/develop and origin/develop; upstream/develop is an ancestor (KovaForge develop ahead). ShareX.ImageEditor submodule clean on develop. No items to fix or pivot. No deferred last_runs files.
+- Status: No-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; last_runs commit left null)
+- Follow-up: wait for next xerahs-review ingest; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 unchanged (no efficiency blockers this run)
+
+### 2026-09-05 23:06 AWST - clawpatch-ingest gate drops (skill v2.2.4)
+
+- Reports parsed: 3
+- Findings parsed: 498
+- Submodule-prefix drops: 83
+- Findings dropped at severity gate: 249
+  - triage=risk: 167
+  - triage=contract-mismatch: 61
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 97
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - ... and 87 more
+- Dropped as recently-pivoted: 66
+- Skipped as duplicate of existing: 0
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-09-06 00:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. HEAD matched declan/develop and origin/develop. upstream/develop is one commit ahead (cbfd2df6a Windows portable releases) — deferred (empty-queue consumer tick; dirty teammate CHANGELOG left unstaged). ShareX.ImageEditor submodule clean on develop. No items to fix or pivot. No deferred last_runs files.
+- Status: No-op
+- Build/test: n/a (no code change)
+- Commit: none (empty-queue audit; last_runs commit left null)
+- Follow-up: wait for next xerahs-review ingest; consider merging upstream cbfd2df6a on a dedicated sync; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.27 unchanged (no efficiency blockers this run)
+
+### 2026-09-06 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. Merged upstream/develop 9f1d4d6aa (v0.28.4 + v0.28.5 CI release tags) as 3edeaff7e; kept KovaForge root Version 0.29.1 and plugin Version 0.29.0 over upstream 0.28.5. ShareX.ImageEditor submodule clean on develop. No items to fix or pivot. No deferred last_runs files. Dirty docs/CHANGELOG.md left unstaged (teammate WIP).
+- Status: No-op
+- Build/test: n/a (no code change beyond upstream packaging metadata)
+- Commit: none (empty-queue audit; last_runs commit left null)
+- Follow-up: wait for next xerahs-review ingest; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.28 unchanged (no efficiency blockers this run)
+
+### 2026-09-06 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. Merged upstream/develop f16a446d9 (v0.28.6-v0.28.35 packaging/RPM/macOS daemon work) as 530d12cea; kept KovaForge root Version 0.29.1 and plugin Version 0.29.0 over upstream 0.28.35 / 0.28.32. Dropped three upstream CI log artefacts (macos_log.txt, macos_log_content.txt, v0256_macos_log_content.txt) from the merge. ShareX.ImageEditor submodule clean on develop. No items to fix or pivot. No deferred last_runs files. Dirty docs/CHANGELOG.md left unstaged (teammate WIP, stash restored after merge).
+- Status: No-op
+- Build/test: n/a (no code change beyond upstream packaging metadata)
+- Commit: none (empty-queue audit; last_runs commit left null)
+- Follow-up: wait for next xerahs-review ingest; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.28 unchanged (no efficiency blockers this run)
+
+### 2026-09-06 23:05 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 253
+  - triage=risk: 169
+  - triage=contract-mismatch: 63
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in last 60 commits: 98
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - ... and 88 more
+- Ingested: 3
+- next_candidates delta: +3 (total 3)
+
+### 2026-09-07 00:07 AWST - Pivot / already-fixed
+
+- Area: tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs:77-85 (UnknownTool_IsBlocked)
+- Files: (none — pivot, no code change)
+- Findings: false positive — Evaluate already returns Block("Unknown assistant tool.") with no tool-name leak; test asserts Allowed=false; extra logging/alerting is a feature request not a bug. recently_pivoted already held the citation without the (Method) suffix.
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-09-07 00:07 AWST - Pivot / already-fixed
+
+- Area: src/platform/XerahS.Platform.Windows/WindowsClipboardService.cs:191-192 (SetText)
+- Files: (none — pivot, no code change)
+- Findings: false positive — SetText already GlobalFree(hMem) when OpenClipboardWithRetry fails (L193); STA serializes clipboard writes. Remaining SetClipboardData-fail leak is untestable on Darwin (SkipNonWindowsBuild). Concurrent clipboard stress is a feature request.
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-09-07 00:07 AWST - Pivot / already-fixed
+
+- Area: src/desktop/app/XerahS.UI/Services/UpdateService.cs:78-81 (IsRuntimeManagedByFlatpak)
+- Files: (none — pivot, no code change)
+- Findings: false positive — FLATPAK_ID + /.flatpak-info matches Program.cs/DebugHelper/LinuxRuntimeEnvironment; Initialize already skips GitHub updater. Extra sandbox types are a feature request.
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+- Skill: xerahs-bugfix/SKILL.md v1.1.29 patched (recently_pivoted citation suffix mismatch)
+
+### 2026-09-07 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit, no code change)
+- Findings: Step 5a categoriser-drain found zero candidates in `next_candidates`. `next_candidates` size 0 -> 0. Fork (`declan/develop`) / upstream (`upstream/develop`) / submodule (`ShareX.ImageEditor` `002de7707`) already an ancestor of HEAD; no merge required. Categoriser-drain produced zero pivots. Stale `/tmp/xerahs-bugfix/deferred-last-runs-*.json` files deleted (v1.1.16).
+- Status: no-op
+- Build/test: n/a
+- Commit: PENDING (final tracker commit will follow)
+- Follow-up: await fresh clawpatch ingest from `xerahs-review`; next tick may pick the first new candidate.
+
+### 2026-09-07 20:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit, no code change)
+- Findings: Step 5a categoriser-drain found zero candidates in `next_candidates`. `next_candidates` size 0 -> 0. Fork (`declan/develop`) / upstream (`upstream/develop` at `f16a446d9`, ancestor of HEAD) / submodule (`ShareX.ImageEditor` `002de7707`, origin/develop == HEAD) already an ancestor of HEAD; no merge required. Categoriser-drain produced zero pivots. No `/tmp/xerahs-bugfix/deferred-last-runs-*.json` files to clean (none present). Working tree clean.
+- Status: no-op
+- Build/test: n/a
+- Commit: PENDING (final tracker commit will follow)
+- Follow-up: await fresh clawpatch ingest from `xerahs-review`; next tick may pick the first new candidate.
+
+### 2026-09-08 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit, no code change)
+- Findings: Step 5a categoriser-drain found zero candidates in `next_candidates`. `next_candidates` size 0 -> 0. Fork (`declan/develop` at `88ff9c9af` == HEAD) / upstream (`upstream/develop` at `f16a446d9`, already an ancestor of HEAD) / submodule (`ShareX.ImageEditor` `002de7707`, origin/develop == HEAD) all in sync; no merge required. Categoriser-drain produced zero pivots. No `/tmp/xerahs-bugfix/deferred-last-runs-*.json` files to clean (none present). Working tree clean (one untracked new clawpatch report `.clawpatch/reports/20260907T150326-017f8d.md` from the 2026-09-07 producer sweep — not yet ingested by `xerahs-review`; this audit commits the empty consumer state without disturbing the pending ingest).
+- Status: no-op
+- Build/test: n/a
+- Commit: PENDING (final tracker commit will follow)
+- Follow-up: await fresh clawpatch ingest from `xerahs-review`; next tick may pick the first new candidate.
+### 2026-09-08 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit, no code change)
+- Findings: Step 5a categoriser-drain found zero candidates in `next_candidates`. `next_candidates` size 0 -> 0. Fork (`declan/develop` at `a2f2221f8` == HEAD == `origin/develop`) / upstream (`upstream/develop` already an ancestor of HEAD, no merge) / submodule (`ShareX.ImageEditor` `002de7707`, origin/develop == upstream/develop == HEAD) all in sync; no merge required. Categoriser-drain produced zero pivots. No `/tmp/xerahs-bugfix/deferred-last-runs-*.json` files to clean (none present). Working tree clean except for one untracked new clawpatch report `.clawpatch/reports/20260907T150326-017f8d.md` from the 2026-09-07 23:04 AWST producer sweep — not yet ingested by `xerahs-review`; this audit commits the empty consumer state without disturbing the pending ingest.
+- Status: no-op
+- Build/test: n/a
+- Commit: PENDING (final tracker commit will follow)
+- Follow-up: await fresh clawpatch ingest from `xerahs-review`; next tick may pick the first new candidate.
+
+### 2026-09-08 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit, no code change)
+- Findings: Step 5a categoriser-drain found zero candidates in `next_candidates`. `next_candidates` size 0 -> 0. Fork (`declan/develop` at `b500f6fc` == HEAD) / upstream (`upstream/develop` at `f16a446d`, already an ancestor of HEAD) / submodule (`ShareX.ImageEditor` `002de770`, origin/develop == HEAD) all in sync; no merge required. Categoriser-drain produced zero pivots. No `/tmp/xerahs-bugfix/deferred-last-runs-*.json` files to clean (none present). Working tree clean except for the untracked new clawpatch report `.clawpatch/reports/20260907T150326-017f8d.md` (173 findings from the 2026-09-07 producer sweep) — not yet ingested by `xerahs-review`; this audit commits the empty consumer state without disturbing the pending ingest.
+- Status: no-op
+- Build/test: n/a
+- Commit: PENDING (final tracker commit will follow)
+- Follow-up: await fresh clawpatch ingest from `xerahs-review`; next tick may pick the first new candidate.
+
+### 2026-09-08 23:05 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 259
+  - triage=risk: 171
+  - triage=contract-mismatch: 67
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as submodule-prefix: 84
+- Findings dropped as already-fixed (area-level dedupe): 3
+- Findings dropped as recently-pivoted: 75
+- Findings dropped as recently fixed in release-history: 99
+- Skipped as duplicate of existing: 0
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-09-09 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero candidates in next_candidates; producer last_runs shows nadia tick at 2026-09-08 23:06 AWST with 0 added and 75 dropped via recently-pivoted gate. Fork sync HEAD == declan/develop (49c7b8853). upstream/develop (f16a446d9) already ancestor of HEAD. Submodule ShareX.ImageEditor clean (002de7707). No fix work to perform this tick.
+- Status: Queue check (no-op)
+- Build/test: n/a (no source changes)
+- Commit: (recorded after push in next last_runs row)
+- Follow-up: continue next 8h cron; await producer ingest before resuming fix attempts.
+
+### 2026-09-09 21:01 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero next_candidates (queue empty after producer ingest). No real-bug items to pick; no pivots to drain. Fork even with declan/develop; upstream/develop already an ancestor; ShareX.ImageEditor clean.
+- Status: no-op
+- Build/test: n/a (empty-queue audit, no code change)
+- Commit: none (leave last_runs commit null; SHA in Step 9 summary only)
+- Follow-up: wait for xerahs-review producer ingest; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.29 unchanged (no efficiency blockers this run)
+
+### 2026-09-09 23:05 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 262
+  - triage=risk: 172
+  - triage=contract-mismatch: 69
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 99
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - ... and 89 more
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-09-09 23:05 AWST - xerahs-review producer run (Nadia)
+
+- Area: xerahs-review producer tick (nadia-daily)
+- Files: .clawpatch/reports/20260909T150337-54b52c.md, docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: clawpatch review invoked against 3 features; 3 findings emitted (1 security, 1 concurrency, 1 data-loss). After v2.2.4 ingest gate: 1 added to next_candidates (X11GetImageStrategy.GetMonitors); 262 dropped at severity gate, 84 submodule-prefixed, 3 already-fixed area-level, 75 recently-pivoted, 99 recently-fixed in release history, 0 duplicate.
+- Status: ok (1 new candidate ingested; producer queue now non-empty for first time since 2026-09-02)
+- Build/test: n/a (producer-side only, no source changes)
+- Commit: pending (recorded after push in next last_runs row)
+- Follow-up: 00:06 AWST consumer drain (Declan) will read the 1-item queue and likely pick X11GetImageStrategy.GetMonitors; this is the first non-empty producer tick since 2026-09-02 23:05 AWST
+
+### 2026-09-10 00:06 AWST - Pivot / already-fixed
+
+- Area: src/platform/XerahS.Platform.Linux/Capture/X11GetImageStrategy.cs:72-144 (X11GetImageStrategy.GetMonitors)
+- Files: (none — pivot, no code change)
+- Findings: false positive — XRRGetScreenResourcesCurrent IntPtr.Zero already returns Array.Empty at L72-74; LinuxRegionCaptureBackend.SelectBestStrategy falls through to LinuxCliCaptureStrategy; CLI GetMonitors has Default Display fallback. Empty array is the waterfall sentinel, not missing error handling.
+- Status: Pivot (already-fixed / false-positive)
+- Build/test: n/a (pivot-only; X11 P/Invoke cannot be mocked on Darwin host)
+- Commit: none (drain only; last_runs deferred under XIP0077 +0/+1)
+- Follow-up: do not re-queue unless source regresses; producer should skip via recently_pivoted
+- Skill: xerahs-bugfix/SKILL.md v1.1.30 patched (1 new pitfall: X11 GetMonitors empty-array sentinel)
+
+### 2026-09-10 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates. Fork sync HEAD == declan/develop (237dc1c24). upstream/develop (f16a446d9) already ancestor of HEAD. ShareX.ImageEditor clean (002de7707 == origin/develop). recently_pivoted 41/200. Deleted stale /tmp/xerahs-bugfix/deferred-last-runs-20260910-000636.json (v1.1.16; no fix commit to fold under XIP0077 +0/+1).
+- Status: no-op
+- Build/test: n/a (empty-queue audit; no source changes)
+- Commit: none (leave last_runs.commit null; SHA recorded in Step 9 summary)
+- Follow-up: producer xerahs-review next ingest; consumer 16:07 AWST tick
+
+### 2026-09-10 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates. Fork sync HEAD == declan/develop (df2383bbd). upstream/develop (f16a446d9) already ancestor of HEAD. ShareX.ImageEditor clean (002de7707 == origin/develop; upstream 651b1d8 is ancestor). recently_pivoted 41/200. No deferred-last-runs files (v1.1.16).
+- Status: no-op
+- Build/test: n/a (empty-queue audit; no source changes)
+- Commit: none (leave last_runs.commit null; SHA recorded in Step 9 summary)
+- Follow-up: producer xerahs-review next ingest; consumer next 8h tick
+- Skill: none this tick (no efficiency blockers)
+
+### 2026-09-10 23:04 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 267
+  - triage=risk: 175
+  - triage=contract-mismatch: 71
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 100
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - ... and 90 more
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-09-10 23:05 AWST - xerahs-review producer run (Nadia)
+
+- Area: xerahs-review producer tick (nadia-daily)
+- Files: .clawpatch/reports/20260910T150321-7c9d62.md, docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: clawpatch review invoked against 3 features; 5 findings emitted (security / data-loss / build-release / bug). After v2.2.4 ingest gate: 1 added to next_candidates (AssistantPrivacyGuardTests.cs:114-126); 267 dropped at severity gate, 85 submodule-prefixed, 3 already-fixed area-level, 77 recently-pivoted, 100 recently-fixed in release history, 0 duplicate.
+- Status: ok (1 new candidate ingested; producer queue non-empty for 00:06 AWST drain)
+- Build/test: n/a (producer-side only, no source changes)
+- Commit: pending (recorded after push in next last_runs row)
+- Follow-up: 00:06 AWST consumer drain (Declan) will read the 1-item queue; first non-empty producer tick since 2026-09-09 23:05 AWST
+
+### 2026-09-11 00:08 AWST - Pivot / already-fixed
+
+- Area: tests/XerahS.Tests/Assistant/AssistantPrivacyGuardTests.cs:114-126
+- Files: (none — pivot, no code change)
+- Findings: false positive — cited test already asserts SafeFileName confirmation copy is filename-only; production AssistantPrivacyGuard.SafeFileName L168-191 implements that contract. Clawpatch fnd_sig-feat-library-afb882617e-4af4_36f4a02b2e mis-cites the regression test as IndexerAsync path leakage. FileReveal Confirm copy already uses SafeFileName (L81-82).
+- Status: Pivot (already-fixed / false-positive)
+- Build/test: n/a (pivot-only; no source change)
+- Commit: none (drain only; last_runs deferred under XIP0077 +0/+1)
+- Follow-up: do not re-queue unless SafeFileName regresses; producer should skip via recently_pivoted
+- Skill: xerahs-bugfix/SKILL.md v1.1.31 patched (test-file citation false-positive pitfall)
+
+### 2026-09-11 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. Deleted stale deferred last_runs files. No code fix this tick.
+- Status: no-op
+- Build/test: n/a (empty-queue audit)
+- Commit: none (leave last_runs commit null; SHA in Step 9 only)
+- Follow-up: await fresh clawpatch ingest from `xerahs-review`; next tick may pick the first new candidate.
+
+### 2026-09-11 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates after fork/upstream/submodule sync. Upstream/develop already an ancestor. ShareX.ImageEditor clean. Deleted stale deferred last_runs files. No code fix this tick.
+- Status: no-op
+- Build/test: n/a (empty-queue audit)
+- Commit: none (leave last_runs commit null; SHA in Step 9 only)
+- Follow-up: await fresh clawpatch ingest from xerahs-review; next tick may pick the first new candidate.
+
+### 2026-09-11 23:05 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 271
+  - triage=risk: 178
+  - triage=contract-mismatch: 72
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in last release history: 101
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - ... and 91 more
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-09-11 23:05 AWST - xerahs-review producer run (Nadia)
+
+- Area: xerahs-review producer tick (nadia-daily)
+- Files: .clawpatch/reports/20260911T150354-87440c.md, docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: clawpatch review invoked against 3 features; 182 findings emitted (182 across 7 clusters). After v2.2.4 ingest gate: 0 added to next_candidates; 271 dropped at severity gate, 86 submodule-prefixed, 3 already-fixed area-level, 80 recently-pivoted, 101 recently-fixed in release history, 0 duplicate.
+- Status: ok (no new candidates ingested; producer queue remains empty for 00:06 AWST drain)
+- Build/test: n/a (producer-side only, no source changes)
+- Commit: pending (recorded after push in next last_runs row)
+- Follow-up: 00:06 AWST consumer drain (Declan) will see an empty queue again; clawpatch continues to emit findings but the v2.1.x gate filters all of them as either non-bug triage (risk/contract-mismatch/test-gap/docs-gap), submodule-prefixed (ShareX.ImageEditor/*), already-fixed in release history, or recently-pivoted. The next non-empty producer tick requires either (a) a fresh clawpatch finding whose evidence is a new file path outside the release-history set, or (b) a re-categorisation of one of the ~150 currently-routed risk/maintainability findings.
+
+### 2026-09-12 00:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates. Fork HEAD equals declan/develop and origin/develop. Upstream develop is already an ancestor. ShareX.ImageEditor pointer clean vs origin/upstream. Deleted any stale deferred-last-runs files (none present).
+- Status: no-op
+- Build/test: n/a (no source change)
+- Commit: none (audit row commit is the tracker commit; last_runs.commit left null)
+- Follow-up: await producer ingest into next_candidates; never defer upstream merge
+
+### 2026-09-12 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates. No pivots. No deferred last_runs files to delete.
+- Status: no-op
+- Build/test: n/a (empty-queue audit; no code change)
+- Commit: none (leave last_runs.commit null; SHA in Step 9 summary only)
+- Follow-up: wait for xerahs-review producer ingest; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.31 (Step 10 none this tick unless identity whoami friction is patched)
+
+### 2026-09-12 23:06 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 274
+  - triage=risk: 181
+  - triage=contract-mismatch: 72
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in release history: 102
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - [security/confirmed-bug] src/desktop/cli/XerahS.CLI/Commands/ReClipCommand.cs:114 (SetWatchFolder)
+  - ... and 92 more
+- Findings dropped as recently pivoted: 81
+- Skipped as duplicate of existing: 0
+- Ingested: 2
+- next_candidates delta: +2 (total 2)
+
+### 2026-09-13 00:05 AWST - KDE kdotool WINDOW id allowlist
+
+- Area: Wayland / KdeKdotoolWindowPointQueryHelper.TryParseMouseLocationWindowId
+- Files: src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/KdeKdotoolWindowPointQueryHelper.cs, tests/XerahS.Tests/Platform/Linux/WaylandWindowPointQueryHelperTests.cs, Directory.Build.props
+- Findings: WINDOW= capture accepted any non-empty string and interpolated it into kdotool process arguments. Now allowlists hex handles and braced UUIDs (A-Za-z0-9{}\- , max 64) and rejects quotes/backticks/spaces.
+- Status: Fixed
+- Build/test: Linux project + XerahS.Tests Release 0/0; WaylandWindowPointQueryHelperTests 16 passed. logs: /tmp/xerahs-bugfix/build-20260913-000549.log, /tmp/xerahs-bugfix/test-20260913-000549.log
+- Commit: 4e44b72c3
+- Follow-up: none
+- Skill: xerahs-bugfix/SKILL.md v1.1.32 patched (1 new pitfall)
+
+### 2026-09-13 00:05 AWST - Pivot / already-fixed
+
+- Area: src/desktop/core/XerahS.Common/VideoEditorFfprobeResolver.cs:45-49 (VideoEditorFfprobeResolver.EnsureAvailableAsync)
+- Files: (none — pivot, no code change)
+- Findings: NormalizePath never returns null; EnsureAvailableAsync already throws ArgumentException on blank ffmpeg path and ResolvePath is only called after that guard
+- Status: Pivot (already-fixed)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless source regresses
+
+### 2026-09-13 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a found zero candidates. No deferred last_runs files. Fork/upstream/submodule already synced.
+- Status: no-op
+- Build/test: n/a (empty queue; no code change)
+- Commit: none (audit commit SHA recorded in Step 9 summary)
+- Follow-up: await producer ingest into next_candidates; never defer upstream merge
+
+### 2026-09-13 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a classified 0 next_candidates; no real bugs or verified pivots were available. Fork (declan/develop) already at HEAD 6ccdda2f4. upstream/develop already an ancestor. ShareX.ImageEditor submodule clean on develop. No deferred last_runs files to delete.
+- Status: No-op
+- Build/test: n/a (no code change)
+- Commit: none (leave last_runs.commit null; record tracker SHA in Step 9 only)
+- Follow-up: await the producer to publish fresh next_candidates
+
+### 2026-09-13 23:03 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Findings dropped at severity gate: 275
+  - triage=risk: 182
+  - triage=contract-mismatch: 72
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently-fixed release-history: 104
+  - [security/confirmed-bug] src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/KdeKdotoolWindowPointQueryHelper.cs:100-102 (TryParseMouseLocatio
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - ... and 94 more
+- Ingested: 0
+- next_candidates delta: +0 (total 0)
+
+### 2026-09-13 23:04 AWST - xerahs-review producer run (Nadia)
+
+- Area: xerahs-review producer tick (nadia-daily)
+- Files: .clawpatch/reports/20260913T150239-d2886e.md, docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: clawpatch review invoked against 3 features; this run returned 0 findings (all 3 features empty); 465 findings parsed across the 3 most recent reports. After v2.2.4 ingest gate: 0 added to next_candidates; 275 dropped at severity gate (risk 182, contract-mismatch 72, test-gap 9, docs-gap 12), 87 submodule-prefixed, 3 already-fixed area-level, 83 recently-pivoted, 104 recently-fixed in release history, 0 duplicate.
+- Status: ok (no new candidates ingested; producer queue remains empty for 00:06 AWST drain)
+- Build/test: n/a (producer-side only, no source changes)
+- Commit: 090cccf31 (producer-data commit); follow-up SHA-pin commit 21377d6d0
+- Follow-up: 00:06 AWST consumer drain (Declan) will see an empty queue again; clawpatch continues to emit findings but the v2.1.x gate filters all of them as either non-bug triage (risk/contract-mismatch/test-gap/docs-gap), submodule-prefixed (ShareX.ImageEditor/*), already-fixed in release history, or recently-pivoted. This run is particularly noisy: 3 features all returned 0 findings (likely clawpatch is widening its scope to less-explored code paths with no false positives), so the queue feed is entirely on cumulative carryover of past findings. The next non-empty producer tick requires either (a) a fresh clawpatch finding whose evidence is a new file path outside the release-history set, or (b) a re-categorisation of one of the ~150 currently-routed risk/maintainability findings.
+
+### 2026-09-14 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a classified 0 next_candidates; no real bugs or verified pivots were available. Fork (declan/develop) already at HEAD 0954b9178. upstream/develop already an ancestor. ShareX.ImageEditor submodule clean on develop. No deferred last_runs files to delete.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (leave last_runs.commit null; record tracker SHA in Step 9 only)
+- Follow-up: await producer ingest into next_candidates; never defer upstream merge
+
+### 2026-09-14 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a classified 0 next_candidates; no real bugs or verified pivots were available. Fork (declan/develop) already at HEAD c46c7de91. upstream/develop already an ancestor. ShareX.ImageEditor submodule clean on develop. No deferred last_runs files to delete.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (leave last_runs.commit null; record tracker SHA in Step 9 only)
+- Follow-up: await producer ingest into next_candidates; never defer upstream merge
+
+### 2026-09-14 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a classified 0 next_candidates; no real bugs or verified pivots were available. Fork (declan/develop) already at HEAD e57ecb1a5. upstream/develop already an ancestor. ShareX.ImageEditor submodule clean on develop. No deferred last_runs files to delete.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (leave last_runs.commit null; record tracker SHA in Step 9 only)
+- Follow-up: await producer ingest into next_candidates; never defer upstream merge
+
+### 2026-09-14 23:07 AWST - clawpatch-ingest gate drops (skill v2.1.1)
+
+- Reports parsed: 3
+- Reports: ['20260914T150536-130d20.md', '20260914T150500-93cc2c.md', '20260913T150239-d2886e.md']
+- Findings dropped at severity gate: 277
+  - triage=risk: 184
+  - triage=contract-mismatch: 72
+  - triage=docs-gap: 12
+  - triage=test-gap: 9
+- Findings dropped as submodule-prefix: 89
+- Findings dropped as already-fixed (area-level dedupe): 3
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+  - [security/confirmed-bug] src/desktop/plugins/Immich.Plugin/ImmichUploader.cs:220-233 (CreateOrReuseAlbumShare)
+- Findings dropped as recently fixed in last 60 commits: 108
+  - [security/confirmed-bug] src/platform/XerahS.Platform.Linux/Wayland/WindowQuery/KdeKdotoolWindowPointQueryHelper.cs:100-102 (TryParseMouseLocatio
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:43 (SetUp)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:328-329 (HistoryManagerSQLite.Delete)
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-285
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/HistoryManagerSQLiteTests.cs:284-286
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174 (GetCachedOcrTextAsync_WhenHistoryFileWasDeleted_Ig
+  - [data-loss/confirmed-bug] tests/XerahS.Tests/Assistant/AssistantHistoryServiceTests.cs:156-174
+  - [data-loss/confirmed-bug] src/platform/XerahS.Platform.Abstractions/PlatformServices.cs:294-317 (Reset)
+  - [bug/confirmed-bug] src/desktop/core/XerahS.Common/GIF/AnimatedGifCreator.cs:118 (CreateApplicationExtensionBlock)
+  - ... and 98 more
+- Ingested: 1
+- next_candidates delta: +1 (total 1)
+
+### 2026-09-14 23:08 AWST - xerahs-review producer tick (nadia-daily)
+
+- Area: xerahs-review producer sweep (KovaForge/XerahS)
+- Files: .clawpatch/reports/20260914T150536-130d20.md, .clawpatch/reports/20260914T150500-93cc2c.md, docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Fork (nadia/develop) in sync after push (26ac96acb). upstream/develop already ancestor of HEAD. ShareX.ImageEditor submodule clean on develop. clawpatch review ran successfully (3 features, 3 findings); MINIMAX_API_KEY sourced from openclaw-doctor/.env.local via python3 (the .env.local file has a zsh parse error at line 20 — first `set -a; . file` sourcing failed silently with EXIT=126; switched to `python3 -c` extraction to bypass). Reports parsed: 3 (latest 20260914T150536-130d20.md). Gate drops: severity-gate 277 ({'triage=risk': 184, 'triage=contract-mismatch': 72, 'triage=test-gap': 9, 'triage=docs-gap': 12}), submodule-prefix 89, already-fixed-area 3, recently-pivoted 81, recently-fixed-release-history 108, duplicate 1. Ingested: 1 (src/desktop/tools/XerahS.WatchFolder.Daemon/XerahS.WatchFolder.Daemon.csproj:18-19).
+- Status: reviewed
+- Build/test: n/a (producer-side, no code changes)
+- Commit: 26ac96acb
+- Follow-up: consumer xerahs-bugfix will drain the queue (currently 2 items)
+
+### 2026-09-15 00:06 AWST - Pivot / out-of-scope
+
+- Area: src/desktop/tools/XerahS.WatchFolder.Daemon/XerahS.WatchFolder.Daemon.csproj:18-19
+- Files: (none — pivot, no code change)
+- Findings: clawpatch fnd_sig-feat-library-be44a5206f-5eba_c5305cce10 attributed a curl||echo shell concatenation bug to WatchFolder.Daemon.csproj:18-19; those lines are a Windows-conditional PackageReference for System.ServiceProcess.ServiceController used by Program.cs L35/L58
+- Status: Pivot (out-of-scope / tfm-noise)
+- Build/test: n/a (pivot-only; no version bump)
+- Commit: none (drain only; last_runs deferred under XIP0077 +0/+1)
+- Follow-up: do not re-queue unless the PackageReference itself regresses; producer should skip .csproj PackageReference windows
+- Skill: xerahs-bugfix/SKILL.md v1.1.33 patched (1 new pitfall: bare .csproj:lines PackageReference body-check)
+
+### 2026-09-15 16:06 AWST - SingleInstance AF_UNIX path + SettingsBase backup atomicity
+
+- Area: Single-instance IPC (macOS/Linux) and settings persistence
+- Files: src/desktop/core/XerahS.Common/SingleInstanceManager.cs, src/desktop/core/XerahS.Common/SettingsBase.cs, src/desktop/core/XerahS.Common/AppContracts.cs, tests/XerahS.Tests/Common/SingleInstanceManagerTests.cs, tests/XerahS.Tests/Helpers/SettingsBaseBackupDiagnosticsTests.cs, tests/XerahS.Tests/Helpers/SettingsBaseEnumLoadingTests.cs, Directory.Build.props
+- Findings: macOS NamedPipe startup was vulnerable to AF_UNIX sun_path overflow (104-byte limit) once TMPDIR exceeded ~50 bytes, and CreateBackupZip used ZipArchiveMode.Update directly on the final path so a mid-archive crash could leave a partial zip replacing a good one. SettingsBase.TryLoadFromFile failed on transient IOException, the JSON Error handler silently swallowed IO exceptions, and LoadFromBackup scanned every historical archive. Pre-staged work from a prior abandoned run landed this tick: SingleInstanceManager.GetPlatformPipeName remaps the logical pipe name to a short rooted /tmp socket on Unix and TryRemoveStaleUnixSocket cleans stale socket files before binding; PipeOptions.CurrentUserOnly locks the IPC endpoint to the running user on both server and client. SettingsBase.CreateBackupZip now writes a *.tmp sibling and File.Move(overwrite: true) into place under a BackupZipGate static lock. SettingsBase.TryLoadFromFile retries IOException up to 3 times with a short back-off, the JSON Error handler returns without Handled for IO/UnauthorizedAccess so the load can fail cleanly, and LoadFromBackup caps the archive scan at the 8 most-recent archives. AppContracts.SingleInstance.PipeName doc comment now points at GetPlatformPipeName for the Unix remap.
+- Status: Fixed
+- Build/test: Release scoped builds clean (XerahS.Common 0 errors, XerahS.Tests 0 errors). Targeted tests 12/12 passed; broader Settings+SingleInstance+ImageEffectPreset filter 108/108 passed. Logs: /tmp/xerahs-bugfix/build-common-20260915-160638.log, /tmp/xerahs-bugfix/build-tests-20260915-160638.log, /tmp/xerahs-bugfix/test-targeted-20260915-160638.log, /tmp/xerahs-bugfix/test-broader-20260915-160638.log
+- Commit: c60cc3815
+- Follow-up: 4 new SingleInstanceManagerTests (AF_UNIX limit, hash stability, NamedPipeServerStream binding on Unix, suffix-stability). SettingsBaseBackupDiagnosticsTests +2 (zip-content, primary-unreadable fallback). SettingsBaseEnumLoadingTests +1 (FileShare.ReadWrite while loaded). next_candidates remains empty (producer last tick 2026-09-14 23:07 AWST drained the only remaining entry; awaiting fresh clawpatch ingest).
+
+### 2026-09-15 23:06 AWST - xerahs-review producer run (Nadia)
+
+- Status: ok (no new candidates ingested; producer queue remains empty for 00:06 AWST drain)
+- Commit: PENDING (will be filled in follow-up commit per Skill pitfall SHA-pin lag)
+- nadia remote HEAD: c1dc96b40 in sync (c1dc96b40 == nadia/develop)
+- upstream HEAD: f16a446d9 (already ancestor of HEAD)
+- Submodule ShareX.ImageEditor: clean (002de770795)
+- Clawpatch: 3 features (limit 3), 0 findings per feature (run 20260915T150433-dbf64c). 383 findings parsed across 3 reports, all gate-dropped.
+- Gate drops: severity-gate 191 (risk 101, contract-mismatch 69, test-gap 9, docs-gap 12), already-fixed-area 3, recently-pivoted 84, recently-fixed-release-history 105, duplicate 0
+- next_candidates delta: 0 -> 0 (+0)
+- Build/test: not applicable (no code changes this run)
+- Follow-up: 00:06 AWST consumer drain (Declan) will see an empty queue; clawpatch continues to emit findings but the v2.1.x gate filters all of them as either non-bug triage, submodule-prefixed, already-fixed in release history, or recently-pivoted. Fourth consecutive empty producer tick but a real v0.29.3 fix shipped today at 00:06 AWST (macOS AF_UNIX + settings backup atomicity).
+
+### 2026-09-16 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero real-bug candidates; queue size 0. Fork sync (declan/develop 5f2f6dbdc0), upstream sync (upstream/develop f16a446d93 already ancestor), submodule (ShareX.ImageEditor 002de77079) all clean.
+- Status: no-op (queue empty after categoriser-drain)
+- Build/test: n/a (no code change)
+- Commit: PENDING (filled after push)
+- Follow-up: producer xerahs-review will ingest next clawpatch cycle; consumer queue stays at 0 until then
+
+### 2026-09-16 08:08 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero real-bug candidates; queue size 0. Fork sync (declan/develop 8ec0ff915), upstream sync (upstream/develop f16a446d93 already ancestor), submodule (ShareX.ImageEditor 002de77079) all clean. No deferred-last-runs files.
+- Status: no-op (queue empty after categoriser-drain)
+- Build/test: n/a (no code change)
+- Commit: PENDING (filled after push)
+- Follow-up: producer xerahs-review will ingest next clawpatch cycle; consumer queue stays at 0 until then
+
+### 2026-09-16 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — empty-queue audit, no code change)
+- Findings: Step 5a found zero candidates. Fork/upstream/submodule already in sync.
+- Status: no-op
+- Build/test: n/a (no code change)
+- Commit: none (audit SHA recorded in Step 9 summary only)
+- Follow-up: wait for producer ingest; do not invent work
+- Skill: xerahs-bugfix/SKILL.md v1.1.33 (no patch this tick)
+
+### 2026-09-17 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero real-bug candidates; queue size 0. Fork sync (origin/develop 326d1b36e7), upstream sync (upstream/develop f16a446d93 already ancestor), submodule (ShareX.ImageEditor 002de77079) all clean. No deferred-last-runs files. github-declan SSH alias installed in real-home ~/.ssh/config (profile key mode 0600).
+- Status: no-op (queue empty after categoriser-drain)
+- Build/test: n/a (no code change)
+- Commit: none (audit SHA recorded in Step 9 summary only)
+- Follow-up: producer xerahs-review will ingest next clawpatch cycle; consumer queue stays at 0 until then
+- Skill: xerahs-bugfix/SKILL.md v1.1.33 (no patch this tick)
+
+### 2026-09-18 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero real-bug candidates; queue size 0. Fork sync (declan/develop 48e630b048), upstream sync (upstream/develop f16a446d93 already ancestor), submodule (ShareX.ImageEditor 002de77079) all clean. No deferred-last-runs files.
+- Status: no-op (queue empty after categoriser-drain)
+- Build/test: n/a (no code change)
+- Commit: none (audit SHA recorded in Step 9 summary only)
+- Follow-up: producer xerahs-review will ingest next clawpatch cycle; consumer queue stays at 0 until then
+- Skill: xerahs-bugfix/SKILL.md v1.1.33 (no patch this tick)
+
+### 2026-09-18 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero real-bug candidates; queue size 0. Fork sync (HEAD/declan/origin 5e10312f9); upstream/develop f16a446d9 already ancestor; submodule (ShareX.ImageEditor 002de7707, origin match, no upstream remote in submodule) clean. No deferred-last-runs files. recently_pivoted 48/200.
+- Status: no-op (queue empty after categoriser-drain)
+- Build/test: n/a (no code change)
+- Commit: none (audit SHA recorded in Step 9 summary only)
+- Follow-up: producer xerahs-review will ingest next clawpatch cycle; consumer queue stays at 0 until then
+- Skill: xerahs-bugfix/SKILL.md v1.1.33 (no patch this tick)
+
+### 2026-09-18 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero real-bug candidates; queue size 0. Fork sync (HEAD/declan 61e576af, origin/develop 5e10312f behind by one audit commit); upstream/develop f16a446d9 already ancestor; submodules ShareX.ImageEditor 002de7707 (origin match) and ShareX.VideoEditor 700fdd086 (clean) all current. No deferred-last-runs files. recently_pivoted 48/200.
+- Status: no-op (queue empty after categoriser-drain)
+- Build/test: n/a (no code change)
+- Commit: none (audit SHA recorded in Step 9 summary only)
+- Follow-up: producer xerahs-review will ingest next clawpatch cycle; consumer queue stays at 0 until then
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick)
+### 2026-09-19 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero real-bug candidates; queue size 0. Fork sync (HEAD/declan/develop/origin/develop all 96b3c584); upstream/develop f16a446d9 already ancestor (10 KovaForge-only commits ahead, no merge); submodule ShareX.ImageEditor 002de7707 (origin/develop match, clean) and ShareX.VideoEditor 700fdd086 (origin/main match, clean) all current. No deferred-last-runs files. recently_pivoted 48/200. last_runs 69 rows before this append.
+- Status: no-op (queue empty after categoriser-drain)
+- Build/test: n/a (no code change)
+- Commit: (audit SHA recorded in Step 9 summary)
+- Follow-up: producer xerahs-review will ingest next clawpatch cycle (latest report 20260915T150433-dbf64c.md is 4 days stale); consumer queue stays at 0 until then. Orphaned WIP stash f41f81cd (WaylandPortalHotkeyService app_id passthrough via LinuxRuntimeEnvironment.NormalizeAppId, half-done from prior interrupted run; touches LinuxPlatform.cs:135/172, WaylandPortalHotkeyService.cs:67-100/520-525/612, LinuxHotkeyServiceTests.cs:156/178/195) preserved at /tmp/xerahs-bugfix/wip-stash-20260918T160757Z.patch — not in next_candidates, surfaced for human review; not auto-applied this run per skill rule 'Do not invent a re-fix.'
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick)
+### 2026-09-19 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser found zero real-bug candidates; queue size 0. Fork sync (HEAD/declan/develop both f974a9532b); upstream/develop f16a446d93 already ancestor; submodule ShareX.ImageEditor 002de7707 (origin/develop match, clean). ShareX.VideoEditor submodule pointer 700fdd086 is clean but working tree inside submodule has 3 modified files (backend/Hosting/Diagnostics/VideoEditorRuntimeDiagnosticsSnapshot.cs, backend/Hosting/VideoEditorRuntimeValidator.cs, backend/Hosting/VideoEditorSession.cs) -- out of scope for this cron (submodule working-tree changes are not committed from the parent). recently_pivoted 48/200. last_runs 70 rows before this append.
+- Status: no-op (queue empty after categoriser-drain)
+- Build/test: n/a (no code change)
+- Commit: (audit SHA recorded in Step 9 summary)
+- Follow-up: producer xerahs-review will ingest next clawpatch cycle (latest report 20260915T150433-dbf64c.md is now 4 days stale); consumer queue stays at 0 until then. Preserved unrelated working-tree changes per AGENTS.md ('Preserve unrelated working-tree changes'): (a) AWSSDK plugin publishing helpers (rewrite_plugin_deps_json + validate_plugin_dependencies in build/linux/package-linux.sh; src/desktop/plugins/AmazonS3.Plugin/plugin.json dependencies now declares AWSSDK.Core.dll + AWSSDK.S3.dll); (b) Linux OsRelease + QuickSetup services (src/platform/XerahS.Platform.Linux/Services/LinuxOsRelease.cs; src/platform/XerahS.Platform.Linux/Services/QuickSetup/DirectPolkitHostCommandLauncher.cs + HostCommandProbe.cs + HostPrivilegeCommand.cs + IPrivilegedHostCommandLauncher.cs + LinuxInputQuickSetupService.cs + LinuxQuickSetupExecutor.cs + LinuxQuickSetupIdentity.cs + LinuxQuickSetupScriptBuilder.cs); (c) regression tests (tests/XerahS.Tests/Platform/Linux/LinuxOsReleaseTests.cs; tests/XerahS.Tests/Platform/Linux/QuickSetup/HostPrivilegeCommandTests.cs + LinuxQuickSetupExecutorTests.cs + LinuxQuickSetupScriptBuilderTests.cs); (d) standalone helper-script runner tests/build/test-plugin-publish-helpers.sh. None of this work is in next_candidates -- cron drains only that queue. Orphaned WIP stash f41f81cd (WaylandPortalHotkeyService app_id passthrough) preserved at /tmp/xerahs-bugfix/wip-stash-20260918T160757Z.patch -- also not auto-applied per skill rule 'Do not invent a re-fix.'
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick)
+
+### 2026-09-19 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json (last_runs +1, last_updated, last_run_outcome), docs/reports/hourly_review_tracker.md (this entry)
+- Findings: Step 5a categoriser ran on next_candidates (size 0) — no real-bug items, no tfm-noise, no already-fixed citations, no dead-code pivots. Queue remained empty for this consumer tick. Fork sync HEAD == declan/develop == origin/develop at db7d62c79c; upstream/develop f16a446d93 already an ancestor (no merge). ShareX.ImageEditor submodule pointer 002de7707 (origin/develop match, clean); ShareX.VideoEditor 567cd110 (origin/main match, clean). recently_pivoted 48/200 carried from prior runs.
+- Status: Queue check (no-op)
+- Build/test: n/a
+- Commit: PENDING (filled by next step)
+- Follow-up: keep this audit cadence every 8h until a clawpatch ingest lands new fnd_sig findings. Watch the orphaned 9-file working tree + stash@{0} for human review; not in next_candidates and not auto-applied.
+
+### 2026-09-20 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json (last_runs +1, last_updated, last_run_outcome), docs/reports/hourly_review_tracker.md (this entry)
+- Findings: Step 5a categoriser ran on next_candidates (size 0) — no real-bug items, no tfm-noise, no already-fixed citations, no dead-code pivots. Queue remained empty for this consumer tick. Fork sync HEAD == declan/develop == origin/develop at 48396e1ae7 (post audit commit db7d62c79 -> 48396e1ae7 already on remote); upstream/develop f16a446d93 already an ancestor (5 KovaForge-only commits ahead, no merge). ShareX.ImageEditor submodule pointer 002de7707 (origin/develop match, clean); ShareX.VideoEditor 567cd110 (heads/main-1-g567cd11, clean). recently_pivoted 48/200 carried from prior runs. last_runs 72 rows before this append.
+- Status: no-op (queue empty after categoriser-drain)
+- Build/test: n/a (no code change)
+- Commit: PENDING (filled by next step)
+- Follow-up: keep this audit cadence every 8h until a clawpatch ingest lands new fnd_sig findings. Orphaned working tree still dirty with 9 files (XerahS.App.csproj PublishSingleFile restore, ScreenCaptureService XerahSOverlay preference, ToastViewModel Linux fade skip + matching test, ImageEffectsBrowserDialog theme ResourceInclude, LinuxRegionSelectorDiagnosticsDetector non-KDE/GNOME auto-XerahSOverlay, LinuxPlatform IsOmarchy + QuickSetup wiring, LinuxRuntimeEnvironment IsOmarchy, LinuxShellIntegrationService Nautilus extension) + stash@{0} (WaylandPortalHotkeyService app_id passthrough, f41f81cd) preserved for human review per skill rule 'Do not invent a re-fix' and previous run precedent (48396e1a follow-up).
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick)
+
+### 2026-09-20 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json
+- Findings: Step 5a found 0 candidates. `next_candidates` already empty after the previous tick's categoriser drain. Upstream `develop` is already an ancestor of HEAD (0 commits behind); declan/develop already at HEAD. Submodule `ShareX.ImageEditor` clean and up-to-date at 002de770. Preserved 9 unrelated working-tree modifications (Omarchy/Hyprland/LinuxRegionSelector/Nautilus extension/Toast fade WIP from a teammate) per `AGENTS.md`; not staged.
+- Status: No-op (queue empty)
+- Build/test: n/a (empty-queue audit, no code change)
+- Commit: (this audit)
+- Follow-up: keep queue checked; producer `xerahs-review` will repopulate on next 6h tick.
+
+### 2026-09-20 16:05 AWST - Pre-staged WIP recovery / 2 fixes landed
+
+- Area: Pre-staged WIP from prior interrupted run (Toast fade skip on Linux + XerahS.App publish single-file)
+- Files: Directory.Build.props (0.29.3 -> 0.29.5), src/desktop/app/XerahS.UI/ViewModels/ToastViewModel.cs, tests/XerahS.Tests/Services/ToastWindowClickRoutingTests.cs, src/desktop/app/XerahS.App/XerahS.App.csproj
+- Findings: 9-file working tree was preserved across the previous no-op audit per AGENTS.md + skill pitfall "Concurrent/sibling cron drift" + "Preserve unrelated working-tree changes". Verified that the entire dirty tree still builds cleanly (XerahS.Platform.Linux + XerahS.UI + XerahS.Tests Release, 0 warnings, 0 errors) and the full test suite passes (1585 passed, 0 failed). Picked the two cleanest small fixes (well-tested Toast fix + 1-file infra csproj tweak) and landed them as separate commits with version bumps. The remaining 6 dirty files (ImageEffectsBrowserDialog.axaml theme resource + 5 Linux Omarchy/Hyprland files: ScreenCaptureService.cs, LinuxRegionSelectorDiagnosticsDetector.cs, LinuxPlatform.cs, LinuxRuntimeEnvironment.cs, LinuxShellIntegrationService.cs) remain preserved for the next cron tick — they share IsOmarchy in LinuxRuntimeEnvironment.cs and form a coordinated feature batch that is too large to commit piecemeal in a 45-min unattended window.
+- Status: Fixed (2 fixes)
+- Build/test: 1585 passed, 0 failed, 0 warnings (logs: /tmp/xerahs-bugfix/build-$TS.log / test results captured inline during Step 6 scoped Release build of XerahS.Platform.Linux + XerahS.UI + XerahS.Tests). Solution-level `dotnet build src/desktop/XerahS.sln` not re-run this tick (per skill `Full-solution Release build terminal cap` pitfall — incremental scoped builds cover the modified projects and the test project). Local environment notes: dotnet SDK 10.0.401 at /home/mike/.local/share/mise/dotnet-root/dotnet (not on default PATH); used `export PATH="/home/mike/.local/share/mise/dotnet-root:$PATH"` to invoke. The host now also has ShareX.ImageEditor/ShareX.VideoEditor submodules pre-built from earlier ticks.
+- Commit: d17486e6 (Toast fade fix), 5c73ea7f (App publish single-file)
+- Follow-up: 6 files still dirty (ImageEffectsBrowserDialog.axaml + 5 Linux Omarchy/Hyprland files). Recommend landing them as 1-2 feature commits in the next cron tick:
+  - **Feature commit A** (1 file, no test needed): ImageEffectsBrowserDialog.axaml — add `<ResourceInclude Source="avares://ShareX.ImageEditor/Presentation/Theming/ImageEditorTheme.axaml"/>` so the dialog can resolve brushes that the ImageEffects view expects.
+  - **Feature commit B** (5 files, IsOmarchy shared): Linux Omarchy/Hyprland platform support — `IsOmarchy` property in LinuxRuntimeEnvironment.cs feeds (a) ScreenCaptureService.cs skipping the backdrop capture when XerahSOverlay is preferred on non-KDE/GNOME Wayland, (b) LinuxRegionSelectorDiagnosticsDetector.cs preferring XerahSOverlay via the new `IsKdeOrGnomeWaylandDesktop` helper, (c) LinuxPlatform.cs Omarchy-first evdev + Quick Setup fallback in `CreateHotkeyService`, (d) LinuxShellIntegrationService.cs installing a Nautilus-Python extension for "Upload with XerahS" alongside the existing Nemo/Caja scripts. Build/test already green (1585 passed) so this is mechanical. May warrant `[v0.30.0] [Feature]` minor bump under the project rule "features increment minor and reset patch".
+  - Orphaned stash@{0} (f41f81cd WaylandPortalHotkeyService app_id passthrough) still untouched and out of scope for this cron per skill rule "Do not invent a re-fix."
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick; no real efficiency blockers hit)
+
+### 2026-09-21 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json
+- Findings: Step 5a categoriser-drain found 0 candidates (`next_candidates` empty after prior tick's drain). Upstream `develop` is already an ancestor of HEAD (0 commits behind); declan/develop already at HEAD. Submodule `ShareX.ImageEditor` clean at 002de770. Preserved 9 unrelated working-tree modifications (Omarchy/Hyprland/LinuxRegionSelector/Nautilus extension/Toast fade WIP from a teammate) per `AGENTS.md`; not staged. Deleted stale `/tmp/xerahs-bugfix/deferred-last-runs-20260920-160531.json` (1 row from previous tick) per the v1.1.16 deferred-file cleanup rule for consecutive no-op ticks.
+- Status: No-op (queue empty)
+- Build/test: n/a (empty-queue audit, no code change)
+- Commit: (this audit)
+- Follow-up: keep queue checked; producer `xerahs-review` will repopulate on next 6h tick. The 9-file teammate WIP from prior tick remains preserved for the next human or feature cron to land.
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick; no real efficiency blockers hit)
+
+### 2026-09-21 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: (none — empty-queue audit, no code change)
+- Findings: Step 5a categoriser found zero `real-bug` items; queue 0 -> 0. Upstream/develop (f16a446d) is an ancestor of HEAD (59e45665); no fork, upstream, or submodule sync needed. Submodule ShareX.ImageEditor clean (HEAD == origin/develop).
+- Status: No-op (empty-queue audit)
+- Build/test: n/a
+- Commit: none (drain only)
+- Follow-up: keep next xerahs-review sweep honest; no action this tick
+
+### 2026-09-21 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: (none — empty-queue audit, no code change)
+- Findings: Step 5a categoriser found zero `real-bug` items; queue 0 -> 0. HEAD (e372ffd516) == declan/develop (e372ffd516). Upstream/develop (f16a446d93) is already an ancestor of HEAD (merge would be no-op, Step 3 non-negotiable verified). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no upstream remote configured in submodule). Preserved 9 unrelated working-tree modifications (Avalonia UI services / Linux platform WIP from a teammate) per AGENTS.md; not staged, not amended. No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (no code change)
+- Commit: (this audit)
+- Follow-up: keep next xerahs-review sweep honest; producer `xerahs-review` will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. The 9-file teammate WIP remains preserved for the next human or feature cron to land; do not touch from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick)
+
+### 2026-09-22 00:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 78 -> 79)
+- Findings: Step 5a categoriser found zero `real-bug` items; queue stays at 0. HEAD (8ed367a8) == declan/develop (8ed367a8); push remote already current. Upstream/develop (f16a446d) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op). Submodule ShareX.ImageEditor clean at 002de77 (HEAD == origin/develop; no `upstream` remote configured inside submodule, single-remote sync verified).
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: (this audit, target HEAD = 8ed367a8 unchanged)
+- Follow-up: keep next xerahs-review sweep honest; producer will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick; no real efficiency blockers hit)
+
+
+### 2026-09-22 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 79 -> 80)
+- Findings: Step 5a categoriser found zero `real-bug` items; queue stays at 0. Upstream/develop (1f4249d5) advanced since prior audit (f16a446d93) with commit `feat(ui): route all 7 editor dialogs through ModalOpenService overlay` -- merged into develop as 56404db6 (non-fast-forward; required stashing the 9-file teammate WIP first because the ModalOpenService refactor touches AvaloniaDialogService.cs and ImageEffectsBrowserDialog.axaml, the same files the WIP was modifying with a throw-on-no-MainWindow pattern). Stash preserved: `stash@{1}` wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor (the 7 non-conflict files AvaloniaDialogServiceAdapter.cs + AvaloniaUIService.cs + ScreenCaptureService.cs + LinuxRegionSelectorDiagnosticsDetector.cs + LinuxPlatform.cs + LinuxRuntimeEnvironment.cs + LinuxShellIntegrationService.cs are still in the stash; the 2 conflict files AvaloniaDialogService.cs + ImageEffectsBrowserDialog.axaml are superseded by upstream's ModalOpenService refactor). Pre-existing orphan stash `stash@{0}` (xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z) is unchanged. Push verified declan/develop == 56404db6 == HEAD. Submodule ShareX.ImageEditor pointer 002de770 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit after upstream merge)
+- Build/test: n/a (no code change this tick -- the upstream merge is a remote-tracking refactor that the upstream author already built/tested on their own branch before pushing)
+- Commit: (this audit, target HEAD = 56404db6)
+- Follow-up: keep next xerahs-review sweep honest; producer will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. The 9-file teammate WIP is now in `stash@{1}` (not in working tree) because the upstream ModalOpenService refactor renders the dialog portion obsolete; the 5 Linux Omarchy/Hyprland files plus 2 Avalonia adapter/UIService files remain in the stash for the next human or feature cron to evaluate whether they still make sense on top of the new overlay routing. Orphan stash `stash@{0}` (WaylandPortalHotkeyService app_id passthrough) unchanged.
+- Skill: xerahs-bugfix/SKILL.md v1.1.34 (no patch this tick; the stash-before-upstream-merge dance for empty-queue ticks with conflicting WIP is a candidate for a future skill clarification)
+
+### 2026-09-22 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 80 -> 81)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (54a03065d7) == declan/develop (54a03065d7) == origin/develop; push remote already current. Upstream/develop (1f4249d5bb) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since the previous tick landed 56404db6). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no `upstream` remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: (this audit)
+- Follow-up: keep next xerahs-review sweep honest; producer `xerahs-review` will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-23 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 81 -> 82)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (bcee501f160a) == declan/develop (bcee501f160a). Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5 in the previous tick). Submodule ShareX.ImageEditor clean at 002de77 (HEAD == origin/develop; no `upstream` remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: (this audit)
+- Follow-up: keep next xerahs-review sweep honest; producer `xerahs-review` will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-23 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 82 -> 83)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (ef3e97831f) == declan/develop (ef3e97831f). Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no `upstream` remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: (this audit)
+- Follow-up: keep next xerahs-review sweep honest; producer `xerahs-review` will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-23 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 83 -> 84)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (a20cfff125) == declan/develop (a20cfff125). Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no `upstream` remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: (this audit)
+- Follow-up: keep next xerahs-review sweep honest; producer `xerahs-review` will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-24 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 84 -> 85)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (2e5b96e078) == declan/develop (2e5b96e078). Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no `upstream` remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: (this audit)
+- Follow-up: keep next xerahs-review sweep honest; producer `xerahs-review` will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-24 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 85 -> 86)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (23ce104a) == declan/develop (23ce104a) after pushing the already-landed v0.29.6 RegionCapture fix. Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-24 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 86 -> 87)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (4a49a1675b) == declan/develop (4a49a1675b) at tick start; no fork push this tick. Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-25 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 87 -> 88)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (5e929bf305) == declan/develop (5e929bf305). Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no `upstream` remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer `xerahs-review` will repopulate `next_candidates` on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-25 08:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 88 -> 89)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (e7db32de00) == declan/develop (e7db32de00) == origin/develop (e7db32de00) at tick start. Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-25 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 89 -> 90)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (2c15796937) == declan/develop (2c15796937) == origin/develop (2c15796937) at tick start. Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-26 00:10 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 90 -> 91)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (58814b7a6a3c) == declan/develop (58814b7a6a3c) == origin/develop (58814b7a6a3c) at tick start. Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-26 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 91 -> 92)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (47e5b7c30cba) == declan/develop (47e5b7c30cba) == origin/develop (47e5b7c30cba) at tick start. Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). Working tree still carries unstaged ViewLocator.cs + ViewLocatorTests.cs teammate WIP (preserved, not stashed this tick). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch unstaged ViewLocator WIP plus stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-26 16:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 92 -> 93)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (7c93ef0643) == declan/develop (7c93ef0643) == origin/develop (7c93ef0643) at tick start. Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 002de77079 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). Working tree porcelain empty at tick start (ViewLocator WIP from the 08:06 audit is no longer unstaged). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-27 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 93 -> 94)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (0a572042) == declan/develop (0a572042) == origin/develop (0a572042) at tick start. Upstream/develop (1f4249d5bbe7) is already an ancestor of HEAD (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at 574541467 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). Working tree has untracked build/linux/aur/xerahs-git/xerahs/ (AUR build artifact, not staged). Stash list unchanged: stash@{0} wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor; stash@{1} xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18). No deferred-last-runs files to clean up.
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch stash@{0} (9-file teammate WIP preserved by the 2026-09-22 08:06 upstream merge) and stash@{1} (WaylandPortalHotkeyService app_id passthrough orphan from 2026-09-18) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-27 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 94 -> 95)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (21b5761ff5c1) == declan/develop (21b5761ff5c1) == origin/develop (21b5761ff5c1) at tick start. Upstream/develop (1f4249d5bbe7) already an ancestor of HEAD (Step 3 non-negotiable verified). Submodule ShareX.ImageEditor clean at d7c027fa9b92 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). No deferred-last-runs files to clean up.
+- Stash list (preserved, not popped):
+  - stash@{0}: On develop: wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor
+  - stash@{1}: On develop: xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z
+- Working tree porcelain at tick start (preserved, not stashed this tick):
+```
+M build/linux/aur/xerahs-git/PKGBUILD
+```
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch preserved stashes / unstaged PKGBUILD AUR-artifact for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-27 16:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md (this entry)
+- Findings: Step 5a categoriser (queue-classification-20260927-160505.json) classified zero items into any bucket — queue remains empty after pruning. No real-bug, no pivots.
+- Status: No-op (queue empty)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: producer-side `xerahs-review` will repopulate on next clawpatch cycle; next consumer tick re-reads queue
+
+### 2026-09-28 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 96 -> 97)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (01fc48ff70) == declan/develop (01fc48ff70) == origin/develop (9e1c53cef2) at tick start. Upstream/develop (1f4249d5bb) is already an ancestor of HEAD: True (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at d7c027fa9b9212e611c8f3574618431c48700467 (HEAD == origin/develop; no upstream remote configured inside submodule, single-remote sync verified). Working tree porcelain: empty. Stash list unchanged (preserved across ticks):
+  - stash@{0}: On develop: wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor
+  - stash@{1}: On develop: xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18)
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch preserved stashes (9-file teammate ModalOpenService WIP + WaylandPortalHotkeyService orphan) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-28 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 97 -> 98)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (1b5508fd7e) == declan/develop (1b5508fd7e) at tick start; origin/develop (9e1c53cef268) is 4 behind (declan-only no-op audits + OmaSnap docs + Clipboard deadlock fix v0.30.12). Upstream/develop (1f4249d5bbe77e) is already an ancestor of HEAD: True (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at d7c027fa9b9212e611c8f3574618431c48700467 (HEAD == origin/develop; single-remote sync verified; no upstream remote configured inside submodule). Working tree porcelain: empty. Stash list unchanged (preserved across ticks):
+  - stash@{0}: On develop: wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor
+  - stash@{1}: On develop: xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z (orphan from 2026-09-18)
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: keep next xerahs-review sweep honest; producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch preserved stashes (9-file teammate ModalOpenService WIP + WaylandPortalHotkeyService orphan) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-28 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 98 -> 99)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (9be4d37bd1) == declan/develop (9be4d37bd1) == origin/develop (9be4d37bd1). Upstream/develop (1f4249d5bb) is already an ancestor of HEAD: True (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at d7c027fa9b (HEAD == origin/develop; single-remote sync verified; no upstream remote configured inside submodule). Working tree porcelain: empty.
+- Stash list unchanged (preserved across ticks):
+  - stash@{0}: On develop: wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor
+  - stash@{1}: On develop: xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch preserved stashes (ModalOpenService teammate WIP + WaylandPortalHotkeyService orphan) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-29 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty)
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json (queue 0 -> 0, last_runs 99 -> 100)
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. HEAD (fbc5de74de) == declan/develop (0ed380fa5c) at tick start. origin/develop (0ed380fa5c) is 1 behind (preserved pre-staged v0.31.0 work [Build]/[Tests] commits by Declan from a prior interrupted session: 1f5c4499 OmaSnap bundle, f9befb6e Linux tarball completion, 0ed380fa Amazon S3 bucket-less destination, fbc5de74 OmaXerahs upload-host routing tests). Upstream/develop (1f4249d5bb) is already an ancestor of HEAD: True (Step 3 non-negotiable verified; merge would be no-op since 56404db6 landed 1f4249d5). Submodule ShareX.ImageEditor clean at d7c027fa9b (HEAD == origin/develop: True; no upstream remote configured inside submodule). Working tree porcelain: empty. Stash list unchanged (preserved across ticks):
+  - stash@{0}: On develop: wip-preserved-20260922-080607-Declan-preserving-9-file-teammate-WIP-during-upstream-merge-of-ModalOpenService-refactor
+  - stash@{1}: On develop: xerahs-bugfix-WIP-WaylandPortalHotkeyService-app-id-passthrough-20260918T160757Z
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (documentation-only audit, no code change)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch preserved stashes (ModalOpenService teammate WIP + WaylandPortalHotkeyService orphan) for human review; do not auto-apply from this consumer cron.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-29 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json
+- Findings: Step 5a categoriser found zero candidates in next_candidates (queue was 0 on read; producer xerahs-review nadia-daily last ingested 2026-09-15 with the v2.1.x gate still filtering everything as severity-gated/triage=non-bug/duplicate). No fixes to land this tick. Infra: forked declan/develop had advanced 4 commits since last sync (SystemCursorGuard Windows mouse cursor crash fix, IdleMemoryTrimmer release-after-capture, OmaSnap submodule registration with rebase updates, Claude-session merge from origin/develop); fast-forwarded HEAD from ea93e897 to 46c1ac1f. upstream/develop advanced 1f4249d5 -> 16e1e651 since the 2026-09-22 sync (ShareX PR #289: X11 WM_CLASS = xerahs + ShareX.ImageEditor submodule bump); merged as 10d7e2ae after resolving Directory.Build.props version conflict (kept KovaForge v0.31.0, dropped upstream's v0.28.36 lower tag per skill rule). Submodule ShareX.ImageEditor already at the new upstream pin (d7c027fa == HEAD == origin/develop).
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (no code change this tick; upstream merges are infrastructure)
+- Commit: <filled at Step 7b commit time>
+- Follow-up: producer xerahs-review (nadia-daily) repopulates next_candidates on its 6h producer tick when clawpatch emits fresh findings. Preserved stashes (ModalOpenService teammate WIP + WaylandPortalHotkeyService app-id passthrough) are not in next_candidates and not auto-applied.

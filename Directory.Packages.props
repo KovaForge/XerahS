@@ -1,12 +1,12 @@
 <Project>
   <PropertyGroup>
     <!-- Disable CPM for submodules that manage their own package versions -->
-    <ManagePackageVersionsCentrally Condition="!$(MSBuildProjectDirectory.Contains('ShareX.ImageEditor')) And !$(MSBuildProjectDirectory.Contains('ShareX.VideoEditor'))">true</ManagePackageVersionsCentrally>
+    <ManagePackageVersionsCentrally Condition="!$(MSBuildProjectDirectory.Contains('ShareX.ImageEditor')) And !$(MSBuildProjectDirectory.Contains('Omacut'))">true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Avalonia" Version="12.1.1" />
-    <PackageVersion Include="AWSSDK.S3" Version="4.0.101.6" />
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.102.4" />
     <PackageVersion Include="Avalonia.Android" Version="12.1.1" />
     <PackageVersion Include="Avalonia.Controls.ColorPicker" Version="12.1.1" />
     <PackageVersion Include="Avalonia.Controls.DataGrid" Version="12.1.0" />

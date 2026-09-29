@@ -1,0 +1,125 @@
+<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:XerahS.UI.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:XerahS.UI.ViewModels"
+        mc:Ignorable="d"
+        x:Class="XerahS.UI.Views.ImageBatchToolWindow"
+        x:DataType="vm:ImageBatchToolViewModel"
+        Title="{Binding Title}"
+        Width="960" Height="640"
+        MinWidth="760" MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        DragDrop.AllowDrop="True">
+
+  <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" Padding="16">
+    <Grid ColumnDefinitions="300,16,*" RowDefinitions="*,Auto">
+
+      <!-- Left: files + options -->
+      <ScrollViewer Grid.Column="0" Grid.Row="0" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="12" Margin="0,0,8,0">
+          <TextBlock Text="Images" FontWeight="SemiBold" />
+          <ListBox ItemsSource="{Binding Files}" SelectedItem="{Binding SelectedFile}" Height="140"
+                   AutomationProperties.Name="Images">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Text="{Binding}" TextTrimming="PathSegmentEllipsis" ToolTip.Tip="{Binding}" />
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Add..." Command="{Binding AddFilesCommand}" Classes="accent" />
+            <Button Content="Remove" Command="{Binding RemoveSelectedCommand}" />
+            <Button Content="Clear" Command="{Binding ClearFilesCommand}" />
+          </StackPanel>
+
+          <!-- Resize -->
+          <StackPanel Spacing="8" IsVisible="{Binding IsResize}">
+            <TextBlock Text="Size" FontWeight="SemiBold" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <NumericUpDown Value="{Binding Width}" Minimum="1" Maximum="32000" FormatString="0" Width="120" AutomationProperties.Name="Width" />
+              <TextBlock Text="x" VerticalAlignment="Center" />
+              <NumericUpDown Value="{Binding Height}" Minimum="1" Maximum="32000" FormatString="0" Width="120" AutomationProperties.Name="Height" />
+            </StackPanel>
+            <ComboBox ItemsSource="{Binding ResizeModes}" SelectedItem="{Binding ResizeMode}" HorizontalAlignment="Stretch" AutomationProperties.Name="Resize mode" />
+            <TextBlock Text="Fill crops to cover, Fit pads to fit, Stretch ignores the aspect ratio." TextWrapping="Wrap" FontSize="12"
+                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+          </StackPanel>
+
+          <!-- Watermark -->
+          <StackPanel Spacing="8" IsVisible="{Binding IsWatermark}">
+            <TextBlock Text="Watermark" FontWeight="SemiBold" />
+            <ComboBox ItemsSource="{Binding WatermarkTypes}" SelectedItem="{Binding WatermarkType}" HorizontalAlignment="Stretch" AutomationProperties.Name="Watermark type" />
+            <TextBox Text="{Binding WatermarkText}" AcceptsReturn="True" IsVisible="{Binding IsTextWatermark}" AutomationProperties.Name="Watermark text" />
+            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsTextWatermark}">
+              <TextBlock Text="Size" VerticalAlignment="Center" Width="60" />
+              <NumericUpDown Value="{Binding WatermarkTextSize}" Minimum="4" Maximum="1000" FormatString="0" Width="110" />
+              <TextBox Text="{Binding WatermarkTextColor}" Width="90" AutomationProperties.Name="Watermark text color" />
+            </StackPanel>
+            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsImageWatermark}">
+              <TextBox Text="{Binding WatermarkImagePath}" PlaceholderText="Watermark image..." AutomationProperties.Name="Watermark image" />
+              <Button Grid.Column="1" Content="..." Command="{Binding BrowseWatermarkImageCommand}" Margin="6,0,0,0" />
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsImageWatermark}">
+              <TextBlock Text="Scale %" VerticalAlignment="Center" Width="60" />
+              <NumericUpDown Value="{Binding WatermarkImageScale}" Minimum="1" Maximum="100" FormatString="0" Width="110" />
+            </StackPanel>
+            <ComboBox ItemsSource="{Binding Positions}" SelectedItem="{Binding WatermarkPosition}" HorizontalAlignment="Stretch" AutomationProperties.Name="Watermark position" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Text="Opacity %" VerticalAlignment="Center" Width="60" />
+              <NumericUpDown Value="{Binding WatermarkOpacity}" Minimum="0" Maximum="100" FormatString="0" Width="110" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Text="Margin" VerticalAlignment="Center" Width="60" />
+              <NumericUpDown Value="{Binding WatermarkMargin}" Minimum="0" Maximum="5000" FormatString="0" Width="110" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Text="Rotation" VerticalAlignment="Center" Width="60" />
+              <NumericUpDown Value="{Binding WatermarkRotation}" Minimum="-360" Maximum="360" FormatString="0" Width="110" />
+            </StackPanel>
+          </StackPanel>
+
+          <!-- Output -->
+          <TextBlock Text="Output" FontWeight="SemiBold" />
+          <ComboBox ItemsSource="{Binding Formats}" SelectedItem="{Binding Format}" HorizontalAlignment="Stretch" AutomationProperties.Name="Output format" />
+          <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding UsesQuality}">
+            <TextBlock Text="Quality" VerticalAlignment="Center" Width="60" />
+            <NumericUpDown Value="{Binding Quality}" Minimum="1" Maximum="100" FormatString="0" Width="110" AutomationProperties.Name="Quality" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding UsesBackground}">
+            <TextBlock Text="Background" VerticalAlignment="Center" Width="70" />
+            <TextBox Text="{Binding BackgroundColor}" Width="100" ToolTip.Tip="Fill for transparent pixels, e.g. #FFFFFF" AutomationProperties.Name="JPEG background color" />
+          </StackPanel>
+          <TextBox Text="{Binding FileNamePattern}" ToolTip.Tip="$filename is the original name" AutomationProperties.Name="File name pattern" />
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBox Text="{Binding OutputFolder}" PlaceholderText="Next to each image" AutomationProperties.Name="Output folder" />
+            <Button Grid.Column="1" Content="..." Command="{Binding BrowseOutputFolderCommand}" Margin="6,0,0,0" />
+          </Grid>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Right: preview -->
+      <Grid Grid.Column="2" Grid.Row="0" RowDefinitions="*,Auto">
+        <Border Background="#20000000" CornerRadius="6" ClipToBounds="True">
+          <Image Source="{Binding Preview}" Stretch="Uniform" StretchDirection="DownOnly" Margin="8" />
+        </Border>
+        <TextBlock Grid.Row="1" Text="{Binding PreviewInfo}" Margin="0,6,0,0" FontSize="12" TextWrapping="Wrap"
+                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+      </Grid>
+
+      <!-- Bottom -->
+      <Grid Grid.Row="1" Grid.ColumnSpan="3" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+        <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+          <ProgressBar Value="{Binding ProgressPercent}" Minimum="0" Maximum="100" IsVisible="{Binding IsProcessing}" />
+          <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,4,0,0" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Content="Cancel" Command="{Binding CancelCommand}" IsVisible="{Binding IsProcessing}" />
+          <Button Content="Save all" Command="{Binding ProcessCommand}" Classes="accent" MinWidth="100" AutomationProperties.Name="Save all images" />
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </Border>
+</ui:SurfaceWindow>

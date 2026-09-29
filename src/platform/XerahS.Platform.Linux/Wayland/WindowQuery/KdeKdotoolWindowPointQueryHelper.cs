@@ -44,6 +44,12 @@ internal sealed class KdeKdotoolWindowPointQueryHelper : IWaylandWindowPointQuer
         @"Geometry:\s*(?<width>\d+)x(?<height>\d+)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+    // kdotool WINDOW ids are KWin hex handles (0x...) or braced UUIDs.
+    // Reject anything else before interpolating into process arguments.
+    private static readonly Regex ValidWindowIdRegex = new(
+        @"^[A-Za-z0-9{}\-]{1,64}$",
+        RegexOptions.Compiled);
+
     public WindowPointQueryCapability Capability { get; } =
         WaylandWindowPointQueryCommandRunner.CommandExists("kdotool")
             ? new WindowPointQueryCapability(WindowPointQuerySupportLevel.Full, null)
@@ -98,7 +104,13 @@ internal sealed class KdeKdotoolWindowPointQueryHelper : IWaylandWindowPointQuer
             return false;
 
         windowId = match.Groups["window"].Value.Trim();
-        return !string.IsNullOrWhiteSpace(windowId);
+        if (!ValidWindowIdRegex.IsMatch(windowId))
+        {
+            windowId = string.Empty;
+            return false;
+        }
+
+        return true;
     }
 
     internal static bool TryParseWindowGeometry(string output, out Rectangle bounds)

@@ -530,13 +530,19 @@ namespace XerahS.UI.Views
             toolsNode.AddChild(CreateNode("Image Combiner...", "Tools_ImageCombiner", null, NavigationNodeKind.Action));
             toolsNode.AddChild(CreateNode("Image Splitter...", "Tools_ImageSplitter", null, NavigationNodeKind.Action));
             toolsNode.AddChild(CreateNode("Image Thumbnailer...", "Tools_ImageThumbnailer", null, NavigationNodeKind.Action));
+            toolsNode.AddChild(CreateNode("Image Resizer...", "Tools_ImageResizer", null, NavigationNodeKind.Action));
+            toolsNode.AddChild(CreateNode("Image Converter...", "Tools_ImageConverter", null, NavigationNodeKind.Action));
+            toolsNode.AddChild(CreateNode("Image Watermark...", "Tools_ImageWatermark", null, NavigationNodeKind.Action));
+            toolsNode.AddChild(CreateNode("Animated GIF Maker...", "Tools_AnimatedGifMaker", null, NavigationNodeKind.Action));
 #if DEBUG
             toolsNode.AddChild(CreateNode("Video Editor...", "Tools_VideoEditor", null, NavigationNodeKind.Action));
 #endif
             toolsNode.AddChild(CreateNode("Video Converter...", "Tools_VideoConverter", null, NavigationNodeKind.Action));
+            toolsNode.AddChild(CreateNode("Video Trimmer...", "Tools_VideoTrimmer", null, NavigationNodeKind.Action));
             toolsNode.AddChild(CreateNode("Video Thumbnailer...", "Tools_VideoThumbnailer", null, NavigationNodeKind.Action));
             toolsNode.AddChild(CreateNode("Analyze Image...", "Tools_AnalyzeImage", null, NavigationNodeKind.Action));
             toolsNode.AddChild(CreateNode("Monitor Test", "Tools_MonitorTest", null, NavigationNodeKind.Action));
+            toolsNode.AddChild(CreateNode("Network Monitor...", "Tools_NetworkMonitor", null, NavigationNodeKind.Action));
 
             return toolsNode;
         }

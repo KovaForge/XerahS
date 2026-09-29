@@ -1,0 +1,333 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XerahS.UI.ViewModels"
+             xmlns:services="using:XerahS.UI.Services"
+             xmlns:icons="using:ShareX.ImageEditor.Presentation.Theming"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="XerahS.UI.Views.MediaBrowserView"
+             x:DataType="vm:MediaBrowserViewModel"
+             x:Name="Root"
+             Width="1140" Height="720"
+             Focusable="True"
+             AutomationProperties.Name="Media Browser">
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.glyph">
+            <Setter Property="FontFamily" Value="avares://ShareX.ImageEditor/Assets#lucide"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.icon">
+            <Setter Property="MinWidth" Value="34"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="8,0"/>
+        </Style>
+        <Style Selector="Button.column">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        </Style>
+        <Style Selector="ListBox.rows ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        </Style>
+        <Style Selector="ListBox.tiles ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="CornerRadius" Value="6"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+
+        <!-- ── Title and account ── -->
+        <Border Grid.Row="0" Padding="16,12,12,10"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+                <TextBlock Grid.Column="0" Classes="glyph" FontSize="18"
+                           Text="{x:Static icons:LucideIcons.cloud}"
+                           Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
+                <TextBlock Grid.Column="1" Text="Media Browser" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" Margin="2,0,10,0"/>
+                <ComboBox Grid.Column="2"
+                          MinWidth="280" MaxWidth="460"
+                          ItemsSource="{Binding Sources}"
+                          SelectedItem="{Binding SelectedSource}"
+                          IsEnabled="{Binding HasMultipleSources}"
+                          AutomationProperties.Name="Destination">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="services:MediaBrowserSource">
+                            <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Grid.Column="3" IsEnabled="{Binding CanCreateFolder}" Command="{Binding CreateFolderCommand}"
+                        ToolTip.Tip="New folder" AutomationProperties.Name="New folder">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.folder_plus}"/>
+                        <TextBlock Text="New folder"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="4" Classes="accent" IsEnabled="{Binding CanUpload}" Click="OnUploadClick"
+                        ToolTip.Tip="Upload files here (or drop files onto the list)" AutomationProperties.Name="Upload">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.upload}"/>
+                        <TextBlock Text="Upload"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="5" Classes="icon" Command="{Binding CloseCommand}" ToolTip.Tip="Close" AutomationProperties.Name="Close">
+                    <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.x}"/>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- ── Navigation, location, search ── -->
+        <Border Grid.Row="1" Padding="12,8"
+                Background="{DynamicResource LayerFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
+                <Button Grid.Column="0" Classes="icon" IsEnabled="{Binding CanGoBack}" Command="{Binding GoBackCommand}" ToolTip.Tip="Back (Alt+Left)" AutomationProperties.Name="Back">
+                    <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.arrow_left}"/>
+                </Button>
+                <Button Grid.Column="1" Classes="icon" IsEnabled="{Binding CanGoForward}" Command="{Binding GoForwardCommand}" ToolTip.Tip="Forward (Alt+Right)" AutomationProperties.Name="Forward">
+                    <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.arrow_right}"/>
+                </Button>
+                <Button Grid.Column="2" Classes="icon" IsEnabled="{Binding CanGoUp}" Command="{Binding GoUpCommand}" ToolTip.Tip="Up (Backspace)" AutomationProperties.Name="Up">
+                    <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.arrow_up}"/>
+                </Button>
+                <Button Grid.Column="3" Classes="icon" IsEnabled="{Binding !IsBusy}" Command="{Binding RefreshCommand}" ToolTip.Tip="Refresh (F5)" AutomationProperties.Name="Refresh">
+                    <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.refresh_cw}"/>
+                </Button>
+
+                <Border Grid.Column="4" Margin="4,0" Padding="6,0" CornerRadius="4" ClipToBounds="True"
+                        Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1">
+                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Breadcrumbs}" VerticalAlignment="Center">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:MediaBrowserCrumb">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Classes="column" Padding="4,5"
+                                                Content="{Binding Label}"
+                                                Command="{Binding #Root.((vm:MediaBrowserViewModel)DataContext).NavigateToCommand}"
+                                                CommandParameter="{Binding Path}"
+                                                AutomationProperties.Name="{Binding Label, StringFormat='Go to {0}'}"/>
+                                        <TextBlock Text="›" VerticalAlignment="Center" Margin="2,0"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+
+                <Grid Grid.Column="5" Width="220">
+                    <TextBox x:Name="SearchBox"
+                             Text="{Binding SearchText}"
+                             PlaceholderText="Search this folder (Ctrl+F)"
+                             Padding="30,5,8,5"
+                             VerticalContentAlignment="Center"
+                             AutomationProperties.Name="Search this folder"/>
+                    <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.search}" HorizontalAlignment="Left" Margin="10,0,0,0"
+                               IsHitTestVisible="False" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                </Grid>
+                <ComboBox Grid.Column="6" Width="120" ItemsSource="{Binding TypeFilters}" SelectedItem="{Binding TypeFilter}"
+                          ToolTip.Tip="Show only" AutomationProperties.Name="Type filter"/>
+                <Button Grid.Column="7" Classes="icon" Command="{Binding ToggleViewCommand}"
+                        ToolTip.Tip="Switch between list and thumbnails" AutomationProperties.Name="Toggle view">
+                    <Panel>
+                        <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.layout_grid}" IsVisible="{Binding !IsGridView}"/>
+                        <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.list}" IsVisible="{Binding IsGridView}"/>
+                    </Panel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- ── Content and preview ── -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+            <Grid Grid.Column="0" RowDefinitions="Auto,*"
+                  DragDrop.AllowDrop="True"
+                  x:Name="DropZone">
+
+                <!-- Sortable column headers (list view) -->
+                <Border Grid.Row="0" Padding="12,6" IsVisible="{Binding !IsGridView}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="36,*,110,170" ColumnSpacing="8">
+                        <Button Grid.Column="1" Classes="column" Command="{Binding SortByCommand}" CommandParameter="{x:Static vm:MediaBrowserSortColumn.Name}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="Name" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Classes="glyph" Text="{Binding SortGlyph}" IsVisible="{Binding IsNameSorted}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="2" Classes="column" Command="{Binding SortByCommand}" CommandParameter="{x:Static vm:MediaBrowserSortColumn.Size}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="Size" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Classes="glyph" Text="{Binding SortGlyph}" IsVisible="{Binding IsSizeSorted}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="3" Classes="column" Command="{Binding SortByCommand}" CommandParameter="{x:Static vm:MediaBrowserSortColumn.Modified}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="Modified" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Classes="glyph" Text="{Binding SortGlyph}" IsVisible="{Binding IsModifiedSorted}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- List view -->
+                <ListBox Grid.Row="1" x:Name="RowsList" Classes="rows"
+                         IsVisible="{Binding !IsGridView}"
+                         ItemsSource="{Binding Items}"
+                         SelectedItem="{Binding SelectedItem}"
+                         Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MediaBrowserItemViewModel">
+                            <Border Padding="12,6" Background="Transparent">
+                                <Grid ColumnDefinitions="36,*,110,170" ColumnSpacing="8">
+                                    <Border Width="28" Height="28" CornerRadius="4" ClipToBounds="True">
+                                        <Panel>
+                                            <TextBlock Classes="glyph" FontSize="17" Text="{Binding Icon}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" IsVisible="{Binding HasThumbnail}"/>
+                                        </Panel>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding SizeText}" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="3" Text="{Binding ModifiedText}" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Thumbnail grid -->
+                <ListBox Grid.Row="0" Grid.RowSpan="2" x:Name="TilesList" Classes="tiles"
+                         IsVisible="{Binding IsGridView}"
+                         ItemsSource="{Binding Items}"
+                         SelectedItem="{Binding SelectedItem}"
+                         Background="Transparent"
+                         Padding="8">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MediaBrowserItemViewModel">
+                            <StackPanel Width="150" Margin="6" Spacing="6">
+                                <Border Height="112" CornerRadius="6" ClipToBounds="True"
+                                        Background="{DynamicResource LayerFillColorDefaultBrush}">
+                                    <Panel>
+                                        <TextBlock Classes="glyph" FontSize="40" Text="{Binding Icon}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" IsVisible="{Binding HasThumbnail}"/>
+                                    </Panel>
+                                </Border>
+                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" FontSize="12"/>
+                                <TextBlock Text="{Binding SizeText}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Empty state -->
+                <StackPanel Grid.Row="1" IsVisible="{Binding IsEmpty}" IsHitTestVisible="False"
+                            HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+                    <TextBlock Classes="glyph" FontSize="46" Text="{x:Static icons:LucideIcons.folder_open}" Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                    <TextBlock Text="{Binding EmptyMessage}" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+
+                <!-- Drop to upload -->
+                <Border Grid.Row="0" Grid.RowSpan="2" Margin="8" CornerRadius="8" IsHitTestVisible="False"
+                        IsVisible="{Binding IsDragOver}"
+                        Background="{DynamicResource LayerFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource AccentFillColorDefaultBrush}" BorderThickness="2">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+                        <TextBlock Classes="glyph" FontSize="42" Text="{x:Static icons:LucideIcons.upload}" Foreground="{DynamicResource AccentFillColorDefaultBrush}"/>
+                        <TextBlock Text="Drop files to upload to this folder" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Busy -->
+                <Border Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding IsBusy}" Background="#55000000">
+                    <Border HorizontalAlignment="Center" VerticalAlignment="Center" Padding="22,18" CornerRadius="8"
+                            Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <StackPanel Spacing="12" Width="260">
+                            <ProgressBar IsIndeterminate="True"/>
+                            <TextBlock Text="{Binding BusyText}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                            <Button Content="Cancel" HorizontalAlignment="Center" Command="{Binding CancelOperationCommand}"/>
+                        </StackPanel>
+                    </Border>
+                </Border>
+            </Grid>
+
+            <!-- Preview pane -->
+            <Border Grid.Column="1" Width="360" IsVisible="{Binding IsPreviewOpen}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1,0,0,0"
+                    Background="{DynamicResource LayerFillColorDefaultBrush}">
+                <Grid RowDefinitions="Auto,*,Auto" Margin="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{Binding PreviewItem.Name, FallbackValue=''}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Classes="icon" Command="{Binding ClosePreviewCommand}" ToolTip.Tip="Close preview (Esc)">
+                            <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.x}"/>
+                        </Button>
+                    </Grid>
+                    <Panel Grid.Row="1" Margin="0,10">
+                        <Image Source="{Binding PreviewImage}" Stretch="Uniform"/>
+                        <ProgressBar IsIndeterminate="True" Width="120" VerticalAlignment="Bottom" IsVisible="{Binding IsPreviewLoading}"/>
+                    </Panel>
+                    <StackPanel Grid.Row="2" Spacing="8">
+                        <TextBlock Text="{Binding PreviewItem.SizeText, FallbackValue=''}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <WrapPanel>
+                            <Button Margin="0,0,6,6" IsEnabled="{Binding CanDownload}" Click="OnDownloadClick">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.download}"/>
+                                    <TextBlock Text="Download"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Margin="0,0,6,6" IsVisible="{Binding CanUseUrl}" Command="{Binding CopyUrlCommand}" CommandParameter="{x:Null}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.link}"/>
+                                    <TextBlock Text="Copy URL"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Margin="0,0,6,6" IsVisible="{Binding CanUseUrl}" Command="{Binding OpenUrlCommand}" CommandParameter="{x:Null}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.external_link}"/>
+                                    <TextBlock Text="Open URL"/>
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ── Error banner ── -->
+        <Border Grid.Row="3" Classes="status-warning" Padding="12,8" BorderThickness="0,1,0,0" IsVisible="{Binding HasError}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <SelectableTextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" FontSize="12" MaxHeight="90"/>
+                <Button Grid.Column="1" Classes="icon" Command="{Binding DismissErrorCommand}" ToolTip.Tip="Dismiss">
+                    <TextBlock Classes="glyph" Text="{x:Static icons:LucideIcons.x}"/>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- ── Status bar ── -->
+        <Border Grid.Row="4" Padding="16,6"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBlock Text="{Binding StatusText}" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                <Button Grid.Column="1" Content="Load more" IsVisible="{Binding HasMoreItems}" IsEnabled="{Binding !IsBusy}" Command="{Binding LoadMoreCommand}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

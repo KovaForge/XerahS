@@ -149,7 +149,14 @@ namespace XerahS.UI.Views
                         e.Handled = true;
                         break;
                     case Key.Escape:
-                        vm.SelectToolCommand.Execute(EditorTool.Select);
+                        if (vm.IsModalOpen)
+                        {
+                            vm.CloseModalCommand.Execute(null);
+                        }
+                        else
+                        {
+                            vm.SelectToolCommand.Execute(EditorTool.Select);
+                        }
                         e.Handled = true;
                         break;
                 }

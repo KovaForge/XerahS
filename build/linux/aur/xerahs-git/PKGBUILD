@@ -9,7 +9,9 @@ url='https://github.com/ShareX/XerahS'
 license=('GPL3')
 provides=('xerahs')
 conflicts=('xerahs')
-depends=('glibc' 'gcc-libs' 'hicolor-icon-theme')
+# qt6-base, layer-shell-qt, libdeflate and wl-clipboard are needed by the bundled OmaSnap
+# capture engine (XIP0088), used on Hyprland/Omarchy sessions and ignored elsewhere.
+depends=('glibc' 'gcc-libs' 'hicolor-icon-theme' 'qt6-base' 'layer-shell-qt' 'libdeflate' 'wl-clipboard')
 optdepends=(
     'gnome-shell-extension-appindicator: system tray icon on GNOME'
     'webkit2gtk-4.1: video editor webview support'
@@ -18,8 +20,10 @@ optdepends=(
     'xdotool: X11 window management'
     'grim: Wayland screenshot utility'
     'slurp: Wayland region selection for screenshots'
+    'tesseract: OCR in the OmaSnap editor'
+    'tesseract-data-eng: English OCR data for the OmaSnap editor'
 )
-makedepends=('git' 'dotnet-sdk')
+makedepends=('git' 'dotnet-sdk' 'cmake' 'ninja' 'pkgconf' 'qt6-base' 'layer-shell-qt' 'wayland-protocols' 'libdeflate')
 options=('!strip' '!debug')
 
 _xerahs_repo_root="${XERAHS_REPO_ROOT:?Set XERAHS_REPO_ROOT to the repository root before running makepkg.}"
@@ -27,7 +31,7 @@ source=("git+file://${_xerahs_repo_root}")
 sha256sums=('SKIP')
 
 pkgver() {
-    cd "$srcdir/XerahS"
+    cd "$srcdir/xerahs"
 
     local base_version
     local revision_count
@@ -41,27 +45,70 @@ pkgver() {
 }
 
 prepare() {
-    cd "$srcdir/XerahS"
-    git submodule update --init --recursive
+    cd "$srcdir/xerahs"
+
+    # This PKGBUILD builds from a local fork via XERAHS_REPO_ROOT. Submodules
+    # may have fork-only commits that aren't pushed to the upstream submodule
+    # remote URL, so `git submodule update --init --recursive` against the
+    # recorded .gitmodules URLs would fail with "not our ref". The parent
+    # working tree already has the submodules cloned at the recorded commits,
+    # so redirect each submodule URL to that local clone. Falls back to the
+    # upstream URL when the local clone isn't present (or doesn't contain the
+    # recorded commit), keeping the PKGBUILD usable for non-local sources.
+    while IFS= read -r name; do
+        local path recorded_sha
+        path=$(git config --file .gitmodules "submodule.$name.path")
+        recorded_sha=$(git ls-tree HEAD -- "$path" | awk '{print $3}' | head -n1)
+        if [ -n "$path" ] && [ -d "$_xerahs_repo_root/$path" ] \
+                && [ -n "$recorded_sha" ] \
+                && git -C "$_xerahs_repo_root/$path" cat-file -e "$recorded_sha" >/dev/null 2>&1; then
+            git config --file .gitmodules "submodule.$name.url" "$_xerahs_repo_root/$path"
+        fi
+    done < <(git config --file .gitmodules --get-regexp 'submodule\..*\.path' \
+            | awk '{print $1}' | sed -E 's/^submodule\.(.+)\.path$/\1/')
+    git submodule sync --recursive
+
+    # git >=2.38 disables the file:// transport for submodule clones by default
+    # (CVE-2022-39253). The redirected URLs above are local file paths so we
+    # must opt back in for this build context.
+    git -c protocol.file.allow=always submodule update --init --recursive
 }
 
 build() {
-    cd "$srcdir/XerahS"
+    cd "$srcdir/xerahs"
 
     export XERAHS_ARCHITECTURES='linux-x64'
+    # Build the vendored OmaSnap capture engine into the portable tarball (XIP0088).
+    export XERAHS_BUILD_OMASNAP=1
     export XERAHS_PLUGIN_JOBS="${XERAHS_PLUGIN_JOBS:-4}"
 
-    ./build/linux/package-linux.sh
+    # The packaging step exits non-zero when optional formats (AppImage, RPM)
+    # can't be produced because their host toolchain isn't installed
+    # (mksquashfs, rpmbuild). We only need the portable tarball and .deb for
+    # this PKGBUILD's package() step, so don't let those optional failures
+    # abort the build — but DO fail if the tarball itself wasn't produced.
+    local app_version
+    app_version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -n1 | tr -d ' ')
+
+    ./build/linux/package-linux.sh || {
+        local rc=$?
+        if [ -f "dist/XerahS-${app_version}-linux-x64.tar.gz" ]; then
+            echo "==> build: package-linux.sh failed (rc=$rc) but portable tarball was produced; continuing"
+            return 0
+        fi
+        echo "==> build: package-linux.sh failed and no portable tarball was produced"
+        return $rc
+    }
 }
 
 package() {
-    cd "$srcdir/XerahS"
+    cd "$srcdir/xerahs"
 
     local app_version
     local publish_tarball
 
     app_version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -n 1)
-    publish_tarball="$srcdir/XerahS/dist/XerahS-${app_version}-linux-x64.tar.gz"
+    publish_tarball="$srcdir/xerahs/dist/XerahS-${app_version}-linux-x64.tar.gz"
 
     install -d "$pkgdir/usr/lib/xerahs"
     bsdtar -xf "$publish_tarball" -C "$pkgdir/usr/lib/xerahs"
@@ -76,6 +123,16 @@ package() {
 
     if [[ -f "$pkgdir/usr/lib/xerahs/omaxerahs" ]]; then
         chmod 755 "$pkgdir/usr/lib/xerahs/omaxerahs"
+    fi
+
+    if [[ -f "$pkgdir/usr/lib/xerahs/omasnap/omasnap" ]]; then
+        chmod 755 "$pkgdir/usr/lib/xerahs/omasnap/omasnap"
+        install -d "$pkgdir/usr/share/licenses/$pkgname/omasnap"
+        cp -a "$pkgdir/usr/lib/xerahs/omasnap/licenses/." "$pkgdir/usr/share/licenses/$pkgname/omasnap/"
+    elif [[ "$CARCH" == "x86_64" ]]; then
+        # XIP0088: OmaSnap is XerahS's capture engine on Omarchy/Hyprland; never ship without it.
+        echo "==> package: the portable tarball has no omasnap/omasnap; refusing to package without OmaSnap" >&2
+        return 1
     fi
 
     install -d "$pkgdir/usr/bin"
@@ -93,6 +150,7 @@ Exec=/usr/bin/xerahs %U
 Icon=xerahs
 Terminal=false
 Type=Application
+MimeType=x-scheme-handler/xerahs;
 Categories=Utility;Graphics;GTK;
 Keywords=screenshot;screen;capture;share;upload;
 StartupWMClass=xerahs
@@ -100,6 +158,6 @@ X-GNOME-UsesNotifications=true
 X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2
 DESKTOP
 
-    install -Dm644 "$srcdir/XerahS/src/desktop/app/XerahS.UI/Assets/Logo.png" \
+    install -Dm644 "$srcdir/xerahs/src/desktop/app/XerahS.UI/Assets/Logo.png" \
         "$pkgdir/usr/share/icons/hicolor/256x256/apps/xerahs.png"
 }

@@ -38,22 +38,26 @@ final class UploadQueueWorker: ObservableObject {
     private let historyRepository: HistoryRepository
     private let s3Uploader: S3Uploader
     private let customUploader: CustomUploader
+    private let cloudClient: XerahSCloudClient
     private let queue = DispatchQueue(label: "UploadQueueWorker")
     private var processing = false
 
     let state = CurrentValueSubject<QueueState, Never>(QueueState(processing: false, pendingCount: 0))
     let itemCompleted = PassthroughSubject<UploadResultItem?, Never>()
+    let cloudPublishResult = PassthroughSubject<String, Never>()
 
     init(
         settingsRepository: SettingsRepository,
         queueRepository: QueueRepository,
         historyRepository: HistoryRepository,
+        cloudClient: XerahSCloudClient,
         s3Uploader: S3Uploader = S3Uploader(),
         customUploader: CustomUploader = CustomUploader()
     ) {
         self.settingsRepository = settingsRepository
         self.queueRepository = queueRepository
         self.historyRepository = historyRepository
+        self.cloudClient = cloudClient
         self.s3Uploader = s3Uploader
         self.customUploader = customUploader
     }
@@ -73,12 +77,72 @@ final class UploadQueueWorker: ObservableObject {
             let fileName = (item.filePath as NSString).lastPathComponent
             let result = uploadOne(filePath: item.filePath)
             if result.success, let url = result.url {
-                _ = historyRepository.insertEntry(fileName: fileName, filePath: item.filePath, type: "File", host: "upload", url: url)
+                var tags: [String: String?] = [:]
+                if XerahSCloudSettings.automaticallyPublishesEligibleUploads,
+                   XerahSCloudClient.eligibleMetadata(fileName: fileName) != nil,
+                   let publicURL = URL(string: url), publicURL.scheme?.lowercased() == "https" {
+                    if cloudClient.hasStoredCredential, let originalOwner = cloudClient.currentOwnerSubject, !originalOwner.isEmpty {
+                        tags["XerahSCloudClientItemId"] = item.clientItemId.uuidString.lowercased()
+                        tags["XerahSCloudOwnerSubject"] = originalOwner
+                        do {
+                            try waitForCloudPublish(clientItemID: item.clientItemId, url: publicURL, fileName: fileName, expectedOwnerSubject: originalOwner)
+                            tags["XerahSCloudPublishState"] = "published"
+                            cloudPublishResult.send("Published \(fileName) to XerahS Cloud.")
+                        } catch {
+                            tags["XerahSCloudPublishState"] = "failed"
+                            cloudPublishResult.send("Upload succeeded, but Cloud publish failed: \(error.localizedDescription) Retry from local history when signed in to the same account.")
+                        }
+                    } else {
+                        cloudPublishResult.send("Upload succeeded. Cloud publish was skipped because no secure Cloud session is available; sign in from Settings.")
+                    }
+                }
+                _ = historyRepository.insertEntry(fileName: fileName, filePath: item.filePath, type: "File", host: "upload", url: url, tags: tags)
             }
             itemCompleted.send(result)
             itemCompleted.send(nil)
         }
         updateState()
+    }
+
+    func retryCloudPublish(_ entry: HistoryEntry) {
+        guard entry.tags["XerahSCloudPublishState"] ?? nil == "failed",
+              let idValue = entry.tags["XerahSCloudClientItemId"] ?? nil,
+              let originalOwner = entry.tags["XerahSCloudOwnerSubject"] ?? nil,
+              !originalOwner.isEmpty,
+              let clientItemID = UUID(uuidString: idValue),
+              let publicURL = URL(string: entry.url) else { return }
+        guard cloudClient.currentOwnerSubject == originalOwner else {
+            cloudPublishResult.send("Cloud publish retry rejected: sign in to the original XerahS Cloud account for this history item.")
+            return
+        }
+        queue.async { [weak self] in
+            guard let self else { return }
+            guard self.cloudClient.currentOwnerSubject == originalOwner else {
+                self.cloudPublishResult.send("Cloud publish retry rejected: the active account changed before retry.")
+                return
+            }
+            do {
+                try self.waitForCloudPublish(clientItemID: clientItemID, url: publicURL, fileName: entry.fileName, expectedOwnerSubject: originalOwner)
+                var tags = entry.tags
+                tags["XerahSCloudPublishState"] = "published"
+                _ = self.historyRepository.updateTags(id: entry.id, tags: tags)
+                self.cloudPublishResult.send("Published \(entry.fileName) to XerahS Cloud.")
+            } catch {
+                self.cloudPublishResult.send("Cloud publish retry failed: \(error.localizedDescription) This operation is online-only.")
+            }
+        }
+    }
+
+    private func waitForCloudPublish(clientItemID: UUID, url: URL, fileName: String, expectedOwnerSubject: String) throws {
+        let semaphore = DispatchSemaphore(value: 0)
+        var failure: Error?
+        Task {
+            do { try await cloudClient.publish(clientItemID: clientItemID, publicURL: url, fileName: fileName, expectedOwnerSubject: expectedOwnerSubject) }
+            catch { failure = error }
+            semaphore.signal()
+        }
+        semaphore.wait()
+        if let failure { throw failure }
     }
 
     func updateState() {

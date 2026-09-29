@@ -129,6 +129,7 @@ namespace XerahS.Core.Tasks.Pipeline
             var captureOptions = new CaptureOptions
             {
                 UseModernCapture = captureSettings.UseModernCapture,
+                HDRScreenshotColorCorrection = captureSettings.HDRScreenshotColorCorrection,
                 LinuxRegionSelectorPreference = linuxRegionSelectorPreference,
                 MacOSRegionSelectorPreference = macOSRegionSelectorPreference,
                 MacOSPlayCaptureSound = captureSettings.MacOSPlayCaptureSound,
@@ -139,6 +140,16 @@ namespace XerahS.Core.Tasks.Pipeline
                 WorkflowId = taskSettings.WorkflowId,
                 WorkflowCategory = workflowCategory
             };
+
+            // OmaSnap native capture on Hyprland (XIP0088). Returns null when the job keeps its normal
+            // path; a failure falls through to the existing chain with the engine skipped.
+            PipelineStageResult? hostedResult = await TryHostedCaptureAsync(
+                context, taskSettings, captureSettings, captureOptions, linuxRegionSelectorPreference,
+                isScreenCaptureDelay, captureDelaySeconds, workflowCategory, captureStopwatch, token);
+            if (hostedResult.HasValue)
+            {
+                return hostedResult.Value;
+            }
 
             if (WorkflowCatalog.IsToolWorkflow(taskSettings.Job))
             {
@@ -418,6 +429,13 @@ namespace XerahS.Core.Tasks.Pipeline
                     return PipelineStageResult.Stop;
             }
 
+            return FinishCapture(context, image, captureStopwatch);
+        }
+
+        private static PipelineStageResult FinishCapture(PipelineContext context, SKBitmap? image, Stopwatch captureStopwatch)
+        {
+            var taskSettings = context.Info.TaskSettings;
+            var metadata = context.Info.Metadata!;
             captureStopwatch.Stop();
 
             bool hasClipboardPayload = taskSettings?.Job is WorkflowType.ClipboardUpload or WorkflowType.ClipboardUploadWithContentViewer
@@ -450,6 +468,107 @@ namespace XerahS.Core.Tasks.Pipeline
             }
 
             return PipelineStageResult.Continue;
+        }
+
+        /// <summary>
+        /// Runs the hosted capture engine for jobs it maps. Returns the stage result when the engine
+        /// handled the job (captured or cancelled), or null to continue with the normal capture path.
+        /// </summary>
+        private async Task<PipelineStageResult?> TryHostedCaptureAsync(
+            PipelineContext context,
+            TaskSettings taskSettings,
+            TaskSettingsCapture captureSettings,
+            CaptureOptions captureOptions,
+            LinuxInteractiveRegionSelectorPreference preference,
+            bool isScreenCaptureDelay,
+            double captureDelaySeconds,
+            string workflowCategory,
+            Stopwatch captureStopwatch,
+            CancellationToken token)
+        {
+            IHostedCaptureEngine? engine = PlatformServices.HostedCaptureEngine;
+            if (!OperatingSystem.IsLinux() || engine == null)
+            {
+                return null;
+            }
+
+            Rectangle? lastRegion = LastRegionStore.TryGet(out var last) ? last : null;
+            HostedCaptureRequest? request = HostedCaptureWorkflowMapper.Map(
+                taskSettings.Job,
+                captureSettings.OmaSnapRegionOnly,
+                captureSettings.CaptureCustomRegion,
+                captureSettings.CaptureCustomWindow,
+                lastRegion);
+            if (request == null)
+            {
+                return null;
+            }
+
+            HostedCaptureEngineStatus status = await engine.GetStatusAsync(token).ConfigureAwait(false);
+            if (!HostedCaptureWorkflowMapper.ShouldUseEngine(preference, status, captureOptions.LinuxSkipHostedCaptureEngine))
+            {
+                if (preference == LinuxInteractiveRegionSelectorPreference.OmaSnap)
+                {
+                    DebugHelper.WriteLine($"CaptureStage: OmaSnap selected but unavailable ({status.Summary}); using the existing capture chain.");
+                }
+
+                return null;
+            }
+
+            if (isScreenCaptureDelay && !await _workerTask.ApplyCaptureStartDelayAsync(taskSettings, workflowCategory, captureDelaySeconds, token))
+            {
+                return PipelineStageResult.Stop;
+            }
+
+            DebugHelper.WriteLine($"CaptureStage: {taskSettings.Job} via {engine.EngineId} (target={request.Target}).");
+            HostedCaptureResult result = await engine.CaptureAsync(request, token).ConfigureAwait(false);
+
+            if (result.Status == HostedCaptureStatus.Cancelled)
+            {
+                DebugHelper.WriteLine($"CaptureStage: {engine.EngineId} capture cancelled by the user.");
+                context.Status = TaskStatus.Stopped;
+                return PipelineStageResult.Stop;
+            }
+
+            SKBitmap? image = null;
+            try
+            {
+                if (result.IsOk)
+                {
+                    image = SKBitmap.Decode(result.ImagePath);
+                }
+            }
+            finally
+            {
+                engine.Release(result);
+            }
+
+            if (image == null)
+            {
+                // Failure (not cancel): fall through to the existing chain and keep the engine out of it.
+                DebugHelper.WriteLine($"CaptureStage: {engine.EngineId} {result.Status}: {result.Error ?? "no image"}; falling back to the existing capture chain.");
+                captureOptions.LinuxSkipHostedCaptureEngine = true;
+                return null;
+            }
+
+            var metadata = context.Info.Metadata!;
+            if (!string.IsNullOrWhiteSpace(result.WindowTitle))
+            {
+                metadata.WindowTitle = result.WindowTitle;
+            }
+
+            if (!string.IsNullOrWhiteSpace(result.WindowClass))
+            {
+                metadata.ProcessName = result.WindowClass;
+            }
+
+            if (result.Region is { Width: > 0, Height: > 0 } region &&
+                request.Target is HostedCaptureTarget.Smart or HostedCaptureTarget.Region or HostedCaptureTarget.Window)
+            {
+                LastRegionStore.Set(region);
+            }
+
+            return FinishCapture(context, image, captureStopwatch);
         }
 
         private async Task HandleScreenRecorderRegionAsync(PipelineContext context, CaptureOptions captureOptions, bool isDelay, double delay, string category, CancellationToken token)

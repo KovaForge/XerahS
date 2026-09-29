@@ -34,5 +34,6 @@ sealed class Screen(val route: String) {
     data object Settings : Screen("settings")
     data object S3Config : Screen("settings/s3")
     data object CustomUploaderConfig : Screen("settings/custom")
+    data object CloudHistory : Screen("settings/cloud-history")
     data object About : Screen("about")
 }

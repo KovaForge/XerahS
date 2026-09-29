@@ -29,11 +29,13 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ShareX.ImageEditor.Presentation.Theming;
 using SkiaSharp;
 using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Managers;
+using XerahS.History;
 using XerahS.Platform.Abstractions;
 
 namespace XerahS.UI.ViewModels;
@@ -45,6 +47,8 @@ public partial class ToastViewModel : ObservableObject, IDisposable
 {
     private readonly ToastConfig _config;
     private readonly IDesktopTaskManager? _taskManager;
+    private readonly HistoryViewModel? _historyViewModel;
+    private readonly HistoryItem? _historyItem;
     private readonly DispatcherTimer _durationTimer;
     private readonly DispatcherTimer _fadeTimer;
     private readonly int _fadeInterval = 50;
@@ -53,6 +57,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     private bool _isDurationEnd;
     private bool _isMouseInside;
     private bool _isMenuOpen;
+    private bool _isFileDragActive;
     private bool _disposed;
 
     public event EventHandler? CloseRequested;
@@ -88,6 +93,18 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _hasErrors;
 
+    /// <summary>
+    /// Buttons shown in the hover toolbar, filtered to actions that can run for this toast.
+    /// </summary>
+    public IReadOnlyList<ToastActionButtonViewModel> ActionButtons { get; }
+    public bool HasActionButtons => ActionButtons.Count > 0;
+    public double ActionButtonSize { get; }
+    public double ActionButtonIconSize => ActionButtonSize / 2d;
+    public Avalonia.CornerRadius ActionButtonCornerRadius => new(Math.Clamp(ActionButtonSize / 4d, 4, 16));
+    public Avalonia.Thickness TextContentMargin => HasActionButtons
+        ? new Avalonia.Thickness(12, 12, 12, ActionButtonSize + 20)
+        : new Avalonia.Thickness(12);
+
     // Commands for context menu (shared with History - same MenuFlyout)
     public ICommand EditImageCommand { get; }
     public ICommand CopyImageToClipboardCommand { get; }
@@ -99,15 +116,24 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     public ICommand CopyMarkdownImageCommand { get; }
     public ICommand CopyErrorsCommand { get; }
     public ICommand OpenURLCommand { get; }
+    public ICommand PublishCommand { get; }
+    public ICommand UnpublishCommand { get; }
     public ICommand DeleteItemCommand { get; }
+    public ICommand ResizeImageCommand { get; }
     public bool CanCopyImage => !string.IsNullOrWhiteSpace(_config.FilePath) && File.Exists(_config.FilePath) && FileHelpers.IsImageFile(_config.FilePath);
     internal string? FilePath => _config.FilePath;
     internal bool HasExistingFile => !string.IsNullOrWhiteSpace(_config.FilePath) && File.Exists(_config.FilePath);
 
-    public ToastViewModel(ToastConfig config, IDesktopTaskManager? taskManager = null)
+    public ToastViewModel(
+        ToastConfig config,
+        IDesktopTaskManager? taskManager = null,
+        HistoryViewModel? historyViewModel = null,
+        HistoryItem? historyItem = null)
     {
         _config = config;
         _taskManager = taskManager;
+        _historyViewModel = historyViewModel;
+        _historyItem = historyItem;
 
         // Try to load image from path
         if (!string.IsNullOrEmpty(config.ImagePath) && File.Exists(config.ImagePath))
@@ -140,11 +166,27 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         UploadItemCommand = new AsyncRelayCommand(UploadFileAsync);
         OpenFolderCommand = new RelayCommand(OpenFolder);
         CopyFilePathCommand = new RelayCommand(CopyFilePath);
+        ResizeImageCommand = new RelayCommand(() =>
+        {
+            if (CanCopyImage && FilePath != null)
+            {
+                XerahS.UI.Services.MediaToolsToolService.OpenImageBatchTool(XerahS.Media.ImageBatchOperation.Resize, [FilePath], owner: null);
+            }
+        });
         CopyUrlCommand = new RelayCommand(CopyUrl);
         CopyMarkdownImageCommand = new RelayCommand(CopyMarkdownImage);
         CopyErrorsCommand = new RelayCommand(CopyErrors);
         OpenURLCommand = new RelayCommand(OpenUrl);
+        PublishCommand = _historyViewModel != null && _historyItem != null
+            ? new AsyncRelayCommand(() => _historyViewModel.PublishItemCommand.ExecuteAsync(_historyItem))
+            : new AsyncRelayCommand(DisabledCloudActionAsync, () => false);
+        UnpublishCommand = _historyViewModel != null && _historyItem != null
+            ? new AsyncRelayCommand(() => _historyViewModel.UnpublishItemCommand.ExecuteAsync(_historyItem))
+            : new AsyncRelayCommand(DisabledCloudActionAsync, () => false);
         DeleteItemCommand = new RelayCommand(DeleteFile);
+
+        ActionButtonSize = Math.Clamp(config.ActionButtonSize, 16, 128);
+        ActionButtons = CreateActionButtons(config);
 
         // Calculate fade decrement
         if (config.FadeDuration > 0)
@@ -179,6 +221,81 @@ public partial class ToastViewModel : ObservableObject, IDisposable
                 break;
         }
     }
+
+    private List<ToastActionButtonViewModel> CreateActionButtons(ToastConfig config)
+    {
+        var buttons = new List<ToastActionButtonViewModel>();
+
+        foreach (var action in (config.ActionButtons ?? []).Distinct())
+        {
+            if (CanExecuteAction(action, config))
+            {
+                var command = new RelayCommand(() => ExecuteAction(action));
+                buttons.Add(new ToastActionButtonViewModel(action, GetActionLabel(action), GetActionIcon(action), command));
+            }
+        }
+
+        return buttons;
+    }
+
+    internal static bool CanExecuteAction(ToastClickAction action, ToastConfig config)
+    {
+        bool hasFile = !string.IsNullOrWhiteSpace(config.FilePath);
+        bool hasImageFile = hasFile && FileHelpers.IsImageFile(config.FilePath!);
+        bool hasMediaFile = hasImageFile || (hasFile && FileHelpers.IsVideoFile(config.FilePath!));
+        bool hasUrl = !string.IsNullOrWhiteSpace(config.URL);
+
+        return action switch
+        {
+            ToastClickAction.CopyImageToClipboard or ToastClickAction.PinToScreen => hasImageFile,
+            ToastClickAction.AnnotateMedia => hasMediaFile,
+            ToastClickAction.CopyFile or ToastClickAction.CopyFilePath or ToastClickAction.OpenFile or
+                ToastClickAction.OpenFolder or ToastClickAction.Upload or ToastClickAction.DeleteFile => hasFile,
+            ToastClickAction.CopyUrl or ToastClickAction.OpenUrl => hasUrl,
+            ToastClickAction.CloseNotification => true,
+            _ => false
+        };
+    }
+
+    internal static string GetActionLabel(ToastClickAction action) => action switch
+    {
+        ToastClickAction.AnnotateMedia => "Annotate",
+        ToastClickAction.CopyImageToClipboard => "Copy image",
+        ToastClickAction.CopyFile => "Copy file",
+        ToastClickAction.CopyFilePath => "Copy file path",
+        ToastClickAction.CopyUrl => "Copy URL",
+        ToastClickAction.OpenFile => "Open file",
+        ToastClickAction.OpenFolder => "Open folder",
+        ToastClickAction.OpenUrl => "Open URL",
+        ToastClickAction.Upload => "Upload",
+        ToastClickAction.PinToScreen => "Pin to screen",
+        ToastClickAction.DeleteFile => "Delete file",
+        _ => "Close"
+    };
+
+    internal static string GetActionIcon(ToastClickAction action) => action switch
+    {
+        ToastClickAction.AnnotateMedia => LucideIcons.pen_line,
+        ToastClickAction.CopyImageToClipboard => LucideIcons.copy,
+        ToastClickAction.CopyFile => LucideIcons.files,
+        ToastClickAction.CopyFilePath => LucideIcons.clipboard,
+        ToastClickAction.CopyUrl => LucideIcons.link,
+        ToastClickAction.OpenFile => LucideIcons.external_link,
+        ToastClickAction.OpenFolder => LucideIcons.folder_open,
+        ToastClickAction.OpenUrl => LucideIcons.external_link,
+        ToastClickAction.Upload => LucideIcons.upload,
+        ToastClickAction.PinToScreen => LucideIcons.pin,
+        ToastClickAction.DeleteFile => LucideIcons.trash_2,
+        _ => LucideIcons.x
+    };
+
+    private static Task DisabledCloudActionAsync() => Task.CompletedTask;
+
+    internal bool CanPublishHistoryItem =>
+        _historyItem != null && HistoryPublishMetadata.CanPublish(_historyItem, _historyViewModel?.CurrentCloudOwnerSubject);
+
+    internal bool CanUnpublishHistoryItem =>
+        _historyItem != null && HistoryPublishMetadata.CanUnpublish(_historyItem, _historyViewModel?.CurrentCloudOwnerSubject);
 
     internal static ToastAutoHideStartMode GetAutoHideStartMode(ToastConfig config)
     {
@@ -239,6 +356,23 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         CheckFade();
     }
 
+    public void OnFileDragStarted()
+    {
+        _isFileDragActive = true;
+        _fadeTimer.Stop();
+        _opacity = 1.0;
+        OpacityChanged?.Invoke(this, _opacity);
+    }
+
+    public void OnFileDragEnded(bool pointerInside)
+    {
+        _isFileDragActive = false;
+        _isMouseInside = pointerInside;
+        CheckFade();
+    }
+
+    internal bool IsFadeTimerRunning => _fadeTimer.IsEnabled;
+
     public void ExecuteLeftClick()
     {
         ExecuteAction(_config.LeftClickAction);
@@ -258,16 +392,12 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     {
         _durationTimer.Stop();
         _isDurationEnd = true;
-
-        if (!_isMouseInside)
-        {
-            CheckFade();
-        }
+        CheckFade();
     }
 
     private void CheckFade()
     {
-        if (_isDurationEnd && _config.AutoHide && !_isMouseInside && !_isMenuOpen)
+        if (_isDurationEnd && _config.AutoHide && !_isMouseInside && !_isMenuOpen && !_isFileDragActive)
         {
             StartFade();
         }
@@ -298,16 +428,25 @@ public partial class ToastViewModel : ObservableObject, IDisposable
 
     private void StartFade()
     {
-        if (_config.FadeDuration <= 0)
+        if (_isFileDragActive)
+        {
+            return;
+        }
+
+        // On Linux/Wayland the compositor's own fade animation (e.g. Hyprland's
+        // default-opacity tag) can override Avalonia's per-window Opacity, so the
+        // visual fade never happens and the toast sticks around even though the
+        // close request fires. Skip the fade on Linux and just close — the
+        // duration has already elapsed, so the user has seen the toast.
+        if (OperatingSystem.IsLinux() || _config.FadeDuration <= 0)
         {
             CloseRequested?.Invoke(this, EventArgs.Empty);
+            return;
         }
-        else
-        {
-            _opacity = 1.0;
-            OpacityChanged?.Invoke(this, _opacity);
-            _fadeTimer.Start();
-        }
+
+        _opacity = 1.0;
+        OpacityChanged?.Invoke(this, _opacity);
+        _fadeTimer.Start();
     }
 
     private void ExecuteAction(ToastClickAction action)
@@ -646,7 +785,19 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         {
             _durationTimer.Stop();
             _fadeTimer.Stop();
+            _historyViewModel?.Dispose();
             _disposed = true;
         }
     }
+}
+
+/// <summary>
+/// A single button in the toast's hover toolbar.
+/// </summary>
+public sealed class ToastActionButtonViewModel(ToastClickAction action, string label, string icon, ICommand command)
+{
+    public ToastClickAction Action { get; } = action;
+    public string Label { get; } = label;
+    public string Icon { get; } = icon;
+    public ICommand Command { get; } = command;
 }

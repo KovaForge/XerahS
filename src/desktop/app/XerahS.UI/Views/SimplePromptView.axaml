@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XerahS.UI.ViewModels"
+             x:Class="XerahS.UI.Views.SimplePromptView"
+             x:DataType="vm:SimplePromptViewModel"
+             MinWidth="360" MaxWidth="520">
+  <StackPanel Margin="24" Spacing="14">
+    <TextBlock Text="{Binding Title}" Theme="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap"/>
+    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="14" IsVisible="{Binding !!Message}"/>
+    <StackPanel Spacing="8" IsVisible="{Binding ShowInput}">
+      <TextBlock Text="{Binding Label}" Theme="{StaticResource BodyStrongTextBlockStyle}"/>
+      <TextBox Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+               PlaceholderText="{Binding Label}"
+               IsVisible="{Binding !IsPassword}"/>
+      <TextBox Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
+               PlaceholderText="{Binding Label}"
+               PasswordChar="*"
+               IsVisible="{Binding IsPassword}"/>
+    </StackPanel>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="{Binding CancelButtonText}"
+              Command="{Binding CancelCommand}"
+              IsVisible="{Binding ShowCancel}"
+              IsCancel="True"/>
+      <Button Content="{Binding PrimaryButtonText}"
+              Command="{Binding PrimaryCommand}"
+              Classes="accent"
+              IsDefault="True"/>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

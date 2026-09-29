@@ -100,19 +100,26 @@
                     <Separator/>
                     <MenuItem Header="_OCR" Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_OCR"/>
                     <MenuItem Header="_Hash Checker..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_HashCheck"/>
+                    <MenuItem Header="_Media Browser..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_MediaBrowser"/>
                     <MenuItem Header="_Index Folder..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_IndexFolder"/>
                     <Separator/>
                     <MenuItem Header="_Image Combiner..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageCombiner"/>
                     <MenuItem Header="Image _Splitter..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageSplitter"/>
                     <MenuItem Header="Image _Thumbnailer..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageThumbnailer"/>
+                    <MenuItem Header="Image Resizer..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageResizer"/>
+                    <MenuItem Header="Image Converter..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageConverter"/>
+                    <MenuItem Header="Image Watermark..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ImageWatermark"/>
+                    <MenuItem Header="Animated GIF Maker..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_AnimatedGifMaker"/>
                     <MenuItem Header="_Analyze Image..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_AnalyzeImage"/>
                     <Separator/>
                     <MenuItem Name="MenuItemVideoEditor" Header="_Video Editor..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_VideoEditor"/>
                     <MenuItem Header="_Video Converter..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_VideoConverter"/>
+                    <MenuItem Header="Video _Trimmer..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_VideoTrimmer"/>
                     <MenuItem Header="Video Thumb_nailer..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_VideoThumbnailer"/>
                     <Separator/>
                     <MenuItem Header="Clipboard _Viewer" Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_ClipboardViewer"/>
                     <MenuItem Header="_Monitor Test" Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_MonitorTest"/>
+                    <MenuItem Header="_Network Monitor..." Command="{Binding NavigateMenuCommand}" CommandParameter="Tools_NetworkMonitor"/>
                 </MenuItem>
                 
                 <!-- Settings Menu -->

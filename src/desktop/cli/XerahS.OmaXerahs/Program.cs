@@ -37,10 +37,27 @@ internal static class Program
     {
         JsonStdout.Enabled = JsonStdout.ShouldEnable(args);
 
+        // Hyprland key presses run "workflow run <id>": skip building the full command tree.
+        if (RunCommands.TryRunFastPath(args, out int fastExitCode))
+        {
+            return fastExitCode;
+        }
+
         try
         {
             var rootCommand = BuildRootCommand();
-            return await rootCommand.Parse(args).InvokeAsync();
+            ParseResult parseResult = rootCommand.Parse(args);
+
+            // Keep the one-JSON-object contract for bad arguments too; System.CommandLine would
+            // otherwise print its help text to stdout, which agents cannot parse.
+            if (parseResult.Errors.Count > 0)
+            {
+                string message = string.Join(" ", parseResult.Errors.Select(error => error.Message));
+                JsonStdout.WriteFailure(CliErrorCodes.Usage, $"{message} See: omaxerahs {string.Join(' ', args.TakeWhile(a => !a.StartsWith('-')).Take(2))} --help".Replace("  ", " "));
+                return 1;
+            }
+
+            return await parseResult.InvokeAsync();
         }
         catch (Exception ex)
         {
@@ -66,16 +83,22 @@ internal static class Program
 
     private static RootCommand BuildRootCommand()
     {
-        var rootCommand = new RootCommand("OmaXerahs — upload Omarchy screenshots through the configured XerahS image destination.");
+        var rootCommand = new RootCommand("OmaXerahs — the XerahS command line: uploads, workflows, image effects, and the agent skill. Every command prints one JSON object.");
         rootCommand.Add(CapabilitiesCommand.Create());
         rootCommand.Add(DoctorCommand.Create());
         rootCommand.Add(UploadCommand.Create());
+        rootCommand.Add(WorkflowCommand.Create());
+        rootCommand.Add(RunCommands.CreateCapture());
+        rootCommand.Add(EffectsCommand.Create());
+        rootCommand.Add(ImageCommand.Create());
+        rootCommand.Add(SkillCommand.Create());
+        rootCommand.Add(SelfTestCommand.Create());
         rootCommand.SetAction(parseResult =>
         {
             JsonStdout.Enabled = JsonStdout.ShouldEnable(Environment.GetCommandLineArgs());
             return JsonStdout.WriteFailureAndExit(
                 CliErrorCodes.Usage,
-                "No command specified. Use capabilities, doctor, or upload. See --help.");
+                "No command specified. Use capabilities, doctor, upload, workflow, effects, image, or skill. See --help.");
         });
         return rootCommand;
     }

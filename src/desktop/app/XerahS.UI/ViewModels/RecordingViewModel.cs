@@ -412,6 +412,14 @@ public partial class RecordingViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>Discards the current take and records again with the same settings (ShareX #7255).</summary>
+    [RelayCommand(CanExecute = nameof(CanStop))]
+    private void RestartRecording()
+    {
+        DebugHelper.WriteLine("Restarting recording...");
+        _screenRecordingCoordinator.RequestRestart();
+    }
+
     [RelayCommand(CanExecute = nameof(CanPauseResume))]
     private async Task PauseResumeAsync()
     {
@@ -485,6 +493,7 @@ public partial class RecordingViewModel : ViewModelBase, IDisposable
     partial void OnCanStopChanged(bool value)
     {
         StopRecordingCommand.NotifyCanExecuteChanged();
+        RestartRecordingCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnCanPauseResumeChanged(bool value)

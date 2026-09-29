@@ -50,6 +50,10 @@
 		F1000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F1000002 /* PrivacyInfo.xcprivacy */; };
 		F1000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = F1000004 /* PrivacyInfo.xcprivacy */; };
 		F1000005 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000006 /* KeychainStore.swift */; };
+		F2000001 /* XerahSCloudClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000002 /* XerahSCloudClient.swift */; };
+		F2000003 /* XerahSCloudClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000002 /* XerahSCloudClient.swift */; };
+		F2000005 /* XerahSCloudSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000006 /* XerahSCloudSettingsView.swift */; };
+		F2000007 /* XerahSCloudHistoryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2000008 /* XerahSCloudHistoryScreen.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -117,6 +121,9 @@
 		F1000002 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		F1000004 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		F1000006 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		F2000002 /* XerahSCloudClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XerahSCloudClient.swift; sourceTree = "<group>"; };
+		F2000006 /* XerahSCloudSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XerahSCloudSettingsView.swift; sourceTree = "<group>"; };
+		F2000008 /* XerahSCloudHistoryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XerahSCloudHistoryScreen.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -219,6 +226,7 @@
 			children = (
 				B10000A2 /* SettingsRepository.swift */,
 				F1000006 /* KeychainStore.swift */,
+				F2000002 /* XerahSCloudClient.swift */,
 				B10000A4 /* QueueRepository.swift */,
 				B10000A6 /* HistoryRepository.swift */,
 				B10000B4 /* UploadQueueWorker.swift */,
@@ -277,6 +285,7 @@
 			isa = PBXGroup;
 			children = (
 				C10000A0 /* HistoryScreen.swift */,
+				F2000008 /* XerahSCloudHistoryScreen.swift */,
 			);
 			path = History;
 			sourceTree = "<group>";
@@ -285,6 +294,7 @@
 			isa = PBXGroup;
 			children = (
 				C10000A2 /* SettingsHubScreen.swift */,
+				F2000006 /* XerahSCloudSettingsView.swift */,
 				C10000A4 /* S3ConfigScreen.swift */,
 				C10000A6 /* CustomUploaderConfigScreen.swift */,
 				C10000AA /* AboutScreen.swift */,
@@ -416,6 +426,7 @@
 				B1000009 /* Paths.swift in Sources */,
 				B10000A1 /* SettingsRepository.swift in Sources */,
 				F1000005 /* KeychainStore.swift in Sources */,
+				F2000001 /* XerahSCloudClient.swift in Sources */,
 				B10000A3 /* QueueRepository.swift in Sources */,
 				B10000A5 /* HistoryRepository.swift in Sources */,
 				B10000A7 /* UploadOutcome.swift in Sources */,
@@ -428,7 +439,9 @@
 				C1000005 /* LoadingScreen.swift in Sources */,
 				C1000007 /* UploadScreen.swift in Sources */,
 				C1000009 /* HistoryScreen.swift in Sources */,
+				F2000007 /* XerahSCloudHistoryScreen.swift in Sources */,
 				C10000A1 /* SettingsHubScreen.swift in Sources */,
+				F2000005 /* XerahSCloudSettingsView.swift in Sources */,
 				C10000A3 /* S3ConfigScreen.swift in Sources */,
 				C10000A5 /* CustomUploaderConfigScreen.swift in Sources */,
 				C10000A7 /* RootView.swift in Sources */,
@@ -447,6 +460,7 @@
 				D2000003 /* ApplicationConfig.swift in Sources */,
 				D2000004 /* Paths.swift in Sources */,
 				D2000005 /* KeychainStore.swift in Sources */,
+				F2000003 /* XerahSCloudClient.swift in Sources */,
 				D2000006 /* UploadOutcome.swift in Sources */,
 				D2000007 /* CustomUploader.swift in Sources */,
 				D2000008 /* S3Uploader.swift in Sources */,

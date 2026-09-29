@@ -166,6 +166,20 @@ class HistoryRepository(
         }
     }
 
+    fun updateTags(id: Long, tags: Map<String, String?>): Boolean {
+        val db = openDb() ?: return false
+        return try {
+            db.update(
+                "History",
+                android.content.ContentValues().apply { put("Tags", gson.toJson(tags)) },
+                "Id = ?",
+                arrayOf(id.toString())
+            ) > 0
+        } finally {
+            db.close()
+        }
+    }
+
     private fun parseTags(tagsJson: String?): Map<String, String?> {
         if (tagsJson.isNullOrBlank()) return emptyMap()
         return try {

@@ -1,0 +1,92 @@
+<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:XerahS.UI.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:XerahS.UI.ViewModels"
+        mc:Ignorable="d"
+        d:DesignWidth="720" d:DesignHeight="560"
+        x:Class="XerahS.UI.Views.VideoTrimmerWindow"
+        x:DataType="vm:VideoTrimmerViewModel"
+        Title="Video Trimmer"
+        Width="760" Height="600"
+        MinWidth="560" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        DragDrop.AllowDrop="True">
+
+  <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}" Padding="16">
+    <Grid RowDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto">
+
+      <!-- Input -->
+      <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+        <TextBox Grid.Column="0" Text="{Binding InputFilePath}" IsReadOnly="True"
+                 PlaceholderText="Select or drop a video file..." AutomationProperties.Name="Input video" />
+        <Button Grid.Column="1" Content="Browse..." Command="{Binding BrowseInputCommand}" Classes="accent"
+                Margin="8,0,0,0" MinWidth="90" AutomationProperties.Name="Browse input video" />
+      </Grid>
+
+      <!-- Boundary previews -->
+      <Grid Grid.Row="1" ColumnDefinitions="*,12,*" Margin="0,0,0,12" IsEnabled="{Binding HasInput}">
+        <Border Grid.Column="0" Background="#20000000" CornerRadius="6" ClipToBounds="True">
+          <Grid>
+            <Image Source="{Binding StartPreview}" Stretch="Uniform" />
+            <TextBlock Text="Start" Margin="8" FontWeight="SemiBold" VerticalAlignment="Top" HorizontalAlignment="Left" />
+          </Grid>
+        </Border>
+        <Border Grid.Column="2" Background="#20000000" CornerRadius="6" ClipToBounds="True">
+          <Grid>
+            <Image Source="{Binding EndPreview}" Stretch="Uniform" />
+            <TextBlock Text="End" Margin="8" FontWeight="SemiBold" VerticalAlignment="Top" HorizontalAlignment="Left" />
+          </Grid>
+        </Border>
+      </Grid>
+
+      <!-- Start / end -->
+      <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" Margin="0,0,0,8" IsEnabled="{Binding HasInput}">
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Start" VerticalAlignment="Center" Width="40" />
+        <Slider Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="{Binding Duration}" Value="{Binding StartSeconds}"
+                Margin="8,0" AutomationProperties.Name="Start position" />
+        <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding StartText}" Width="120" AutomationProperties.Name="Start timestamp" />
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="End" VerticalAlignment="Center" Width="40" />
+        <Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="{Binding Duration}" Value="{Binding EndSeconds}"
+                Margin="8,0" AutomationProperties.Name="End position" />
+        <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding EndText}" Width="120" Margin="0,6,0,0" AutomationProperties.Name="End timestamp" />
+      </Grid>
+
+      <TextBlock Grid.Row="3" Text="{Binding SelectionText}" Margin="0,0,0,12" FontWeight="SemiBold" />
+
+      <!-- Mode -->
+      <StackPanel Grid.Row="4" Spacing="6" Margin="0,0,0,12" IsEnabled="{Binding HasInput}">
+        <StackPanel Orientation="Horizontal" Spacing="16">
+          <RadioButton GroupName="TrimMode" Content="Fast (lossless)" IsChecked="{Binding !IsPrecise}" AutomationProperties.Name="Fast lossless trim" />
+          <RadioButton GroupName="TrimMode" Content="Precise (re-encode)" IsChecked="{Binding IsPrecise}" AutomationProperties.Name="Precise re-encode trim" />
+        </StackPanel>
+        <TextBlock Text="{Binding ModeHint}" TextWrapping="Wrap" FontSize="12"
+                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+      </StackPanel>
+
+      <!-- Output -->
+      <Grid Grid.Row="5" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12" IsEnabled="{Binding HasInput}">
+        <TextBlock Grid.Column="0" Text="Save as:" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <TextBox Grid.Column="1" Text="{Binding OutputFilePath}" AutomationProperties.Name="Output file" />
+        <Button Grid.Column="2" Content="Browse..." Command="{Binding BrowseOutputCommand}" Margin="8,0,0,0" MinWidth="90"
+                AutomationProperties.Name="Browse output file" />
+      </Grid>
+
+      <!-- Progress + actions -->
+      <Grid Grid.Row="6" ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+          <ProgressBar Value="{Binding ProgressPercent}" Minimum="0" Maximum="100" IsVisible="{Binding IsTrimming}" />
+          <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,4,0,0" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Content="Open folder" Command="{Binding OpenOutputFolderCommand}" AutomationProperties.Name="Open output folder" />
+          <Button Content="Cancel" Command="{Binding CancelCommand}" IsVisible="{Binding IsTrimming}" />
+          <Button Content="Trim" Command="{Binding TrimCommand}" Classes="accent" MinWidth="90"
+                  IsEnabled="{Binding HasInput}" IsVisible="{Binding !IsTrimming}" AutomationProperties.Name="Trim video" />
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </Border>
+</ui:SurfaceWindow>

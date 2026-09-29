@@ -36,6 +36,7 @@ using ShareX.ImageEditor.Presentation.Views;
 using XerahS.Bootstrap;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Cloud;
 using XerahS.Media.Encoders;
 using XerahS.Platform.Abstractions;
 #if WINDOWS
@@ -139,6 +140,11 @@ public partial class App : Application
 
             // Build DI container from platform and app services (single composition root)
             ServiceProvider = Services.CompositionRoot.BuildServiceProvider(uiService, toastService, imageEncoderService);
+
+            if (ApplicationLifetime is IActivatableLifetime activatableLifetime)
+            {
+                activatableLifetime.Activated += OnApplicationActivated;
+            }
 
             var taskManager = ServiceProvider.GetRequiredService<IDesktopTaskManager>();
             var screenRecordingCoordinator = ServiceProvider.GetRequiredService<IScreenRecordingCoordinator>();
@@ -308,6 +314,7 @@ public partial class App : Application
             TrayIconHelper.Instance.Initialize(screenRecordingCoordinator);
             _trayIconController.Initialize();
             InitializeClipboardMonitor(desktop.MainWindow);
+            IdleMemoryTrimmer.Initialize(desktop, taskManager);
 
             desktop.Exit += (sender, args) =>
             {
@@ -340,6 +347,40 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void OnApplicationActivated(object? sender, ActivatedEventArgs eventArgs)
+    {
+        if (eventArgs is not ProtocolActivatedEventArgs protocolActivation ||
+            !XerahSCloudOAuthCallbackParser.IsCallbackArgument(protocolActivation.Uri.AbsoluteUri))
+        {
+            return;
+        }
+
+        _ = CompleteCloudProtocolActivationAsync(protocolActivation.Uri);
+    }
+
+    private async Task CompleteCloudProtocolActivationAsync(Uri callbackUri)
+    {
+        try
+        {
+            IXerahSCloudOAuthCoordinator? coordinator =
+                ServiceProvider?.GetService<IXerahSCloudOAuthCoordinator>();
+            if (coordinator == null)
+            {
+                DebugHelper.WriteLine("XerahS Cloud OAuth protocol activation rejected: coordinator unavailable.");
+                return;
+            }
+
+            XerahSCloudOAuthCompletion result = await coordinator
+                .CompleteAsync(callbackUri)
+                .ConfigureAwait(false);
+            DebugHelper.WriteLine($"XerahS Cloud OAuth protocol activation result: {result}.");
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "XerahS Cloud OAuth protocol activation failed");
+        }
     }
 
     /// <summary>
@@ -411,6 +452,18 @@ public partial class App : Application
     /// </summary>
     public static Action? PostUIInitializationCallback { get; set; }
     public Core.Hotkeys.WorkflowManager? WorkflowManager => _workflowOrchestrator?.WorkflowManager;
+
+    /// <summary>Runs a workflow as its hotkey would; false when the orchestrator is not ready.</summary>
+    public bool TryRunWorkflow(Core.Hotkeys.WorkflowSettings workflow)
+    {
+        if (_workflowOrchestrator == null)
+        {
+            return false;
+        }
+
+        _ = _workflowOrchestrator.RunWorkflowAsync(workflow);
+        return true;
+    }
 
     private static void HideMainWindowToTray(Window? window)
     {

@@ -53,6 +53,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
     private int _segmentIndex;
     private bool _isPaused;
     private bool _abortRequested;
+    private bool _restartRequested;
     private bool _isFinalized;
     private string? _cachedFinalPath;
     private TimeSpan _lastDuration;
@@ -184,6 +185,36 @@ public class ScreenRecordingManager : IScreenRecordingManager
         lock (_lock)
         {
             _stopSignal?.TrySetResult(true);
+        }
+    }
+
+    /// <summary>
+    /// Restart (ShareX #7255): wake the recording workflow like Stop does, flagged so it discards
+    /// the current take and starts a new one with the same region and settings.
+    /// </summary>
+    public void RequestRestart()
+    {
+        lock (_lock)
+        {
+            if (_currentRecording == null)
+            {
+                return;
+            }
+
+            _restartRequested = true;
+            _stopSignal?.TrySetResult(true);
+        }
+
+        DebugHelper.WriteLine("ScreenRecordingManager: Restart requested.");
+    }
+
+    public bool ConsumeRestartRequest()
+    {
+        lock (_lock)
+        {
+            bool requested = _restartRequested;
+            _restartRequested = false;
+            return requested;
         }
     }
 
@@ -533,6 +564,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
                     _currentOptions = optionsToStart;
                     _currentCapabilities = capabilities;
                     _stopSignal = new TaskCompletionSource<bool>();
+                    _restartRequested = false;
                 }
                 catch
                 {

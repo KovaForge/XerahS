@@ -76,7 +76,7 @@ internal sealed class HttpAssistantModelProvider : IAssistantModelProvider
         try
         {
             using HttpRequestMessage message = BuildRequest(request);
-            HttpClient client = HttpClientFactory.Create();
+            HttpClient client = HttpClientFactory.Create(allowAutoRedirect: true, infiniteTimeout: true);
             using HttpResponseMessage response = await client.SendAsync(message, cancellationToken);
             string responseText = await response.Content.ReadAsStringAsync(cancellationToken);
 

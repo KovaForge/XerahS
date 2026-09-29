@@ -50,16 +50,21 @@ public sealed class RegionCaptureControl : UserControl
     private readonly WindowDetectionService _windowService;
     private readonly SelectionStateMachine _stateMachine;
     private readonly MagnifierControl _magnifier;
+    private readonly Canvas _hudCanvas;
     private readonly bool _enableKeyboardNudge;
     private readonly RegionCaptureMode _mode;
     private PixelRect _physicalViewportBounds;
+    private bool _enableMagnifier;
+    private readonly bool _useSquareMagnifier;
+    private readonly bool _showInfo;
+    private int _magnifierPixelCount;
 
     // Rendering configuration
     private readonly double _dimOpacity;
     private readonly uint _crosshairColor;
     private readonly uint _crosshairLineColor;
+    private readonly bool _showScreenCrosshair;
     private readonly bool _enableWindowSnapping;
-    private readonly bool _enableMagnifier;
     private readonly bool _useTransparentOverlay;
     private readonly bool _quickCrop;
     private readonly bool _useLightResizeNodes;
@@ -119,6 +124,22 @@ public sealed class RegionCaptureControl : UserControl
     private WindowInfo? _hoveredWindow => _stateMachine.HoveredWindow;
     internal PixelPoint CurrentPointForTests => _currentPoint;
 
+    internal void NudgeFromKeyboardForTests(int dx, int dy, bool shift)
+    {
+        int step = shift ? 10 : 1;
+        if (_state == CaptureState.Hovering)
+        {
+            NudgePhysicalCursor(dx * step, dy * step);
+            return;
+        }
+
+        _stateMachine.NudgeSelection(dx * step, dy * step);
+        InvalidateVisual();
+    }
+    internal int MagnifierPixelCountForTests => _magnifierPixelCount;
+    internal bool MagnifierUsesSquareForTests => _useSquareMagnifier;
+    internal MagnifierControl MagnifierForTests => _magnifier;
+
     public RegionCaptureControl(MonitorInfo monitor, RegionCaptureOptions? options = null, XerahS.Platform.Abstractions.CursorInfo? ghostCursor = null)
     {
         options ??= new RegionCaptureOptions();
@@ -145,11 +166,14 @@ public sealed class RegionCaptureControl : UserControl
         _windowPreselectionCapability = WindowDetectionService.GetWindowPreselectionCapability();
         _enableWindowSnapping = requestedWindowSnapping && _windowPreselectionCapability.IsEnabled;
         _enableMagnifier = options.EnableMagnifier;
+        _useSquareMagnifier = options.UseSquareMagnifier;
+        _showInfo = options.ShowInfo;
         _enableKeyboardNudge = options.EnableKeyboardNudge;
         _backgroundBitmap = options.BackgroundImage;
         _useTransparentOverlay = options.UseTransparentOverlay;
         _crosshairColor = options.CrosshairColor;
         _crosshairLineColor = options.CrosshairLineColor;
+        _showScreenCrosshair = options.ShowScreenCrosshair;
         _quickCrop = options.QuickCrop;
         _useLightResizeNodes = options.UseLightResizeNodes;
         _sessionStartUtc = options.SessionStartUtc;
@@ -168,9 +192,19 @@ public sealed class RegionCaptureControl : UserControl
             }
         }
 
-        // Create magnifier if enabled
-        _magnifier = new MagnifierControl(options.MagnifierZoom);
-        _magnifier.IsVisible = _enableMagnifier;
+        _magnifierPixelCount = MagnifierLayout.NormalizePixelCount(
+            options.MagnifierPixelCount,
+            Math.Max(1, monitor.ScaleFactor));
+        _magnifier = new MagnifierControl();
+        _magnifier.ApplyShape(_useSquareMagnifier);
+        _magnifier.SetAccentBrush(new SolidColorBrush(Color.FromUInt32(options.WindowSnapColor)));
+        _magnifier.SetPixelCount(_magnifierPixelCount);
+        _magnifier.SetInfoFormat(options.CustomInfoFormat);
+        _magnifier.SetHudVisibility(_enableMagnifier, _showInfo);
+
+        _hudCanvas = new Canvas { IsHitTestVisible = false };
+        _hudCanvas.Children.Add(_magnifier);
+        Content = _hudCanvas;
 
         Focusable = true;
         ClipToBounds = true;
@@ -351,6 +385,7 @@ public sealed class RegionCaptureControl : UserControl
             double elapsedMs = (DateTime.UtcNow - start).TotalMilliseconds;
             XerahS.Common.DebugHelper.WriteLine($"[RegionCapture] Milestone: overlay control attached to visual tree (+{elapsedMs:F0} ms)");
         }
+        UpdateMagnifierHud();
     }
 
     protected override void OnPointerMoved(PointerEventArgs e)
@@ -379,6 +414,8 @@ public sealed class RegionCaptureControl : UserControl
             var window = _windowService.GetWindowAtPoint(physicalPoint);
             _stateMachine.UpdateHoveredWindow(window);
         }
+
+        UpdateMagnifierHud();
 
         // Throttle redraws to ~60 FPS to avoid sluggish crosshair on Linux (Avalonia #19363, compositor load)
         long now = Stopwatch.GetTimestamp();
@@ -479,8 +516,14 @@ public sealed class RegionCaptureControl : UserControl
 
     private void HandleArrowKey(int dx, int dy, KeyEventArgs e)
     {
-        // Ctrl+Arrow resizes, plain Arrow moves
-        var step = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? 10 : 1;
+        int step = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? 10 : 1;
+
+        if (_state == CaptureState.Hovering)
+        {
+            NudgePhysicalCursor(dx * step, dy * step);
+            e.Handled = true;
+            return;
+        }
 
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
@@ -493,6 +536,64 @@ public sealed class RegionCaptureControl : UserControl
 
         e.Handled = true;
         InvalidateVisual();
+    }
+
+    private void NudgePhysicalCursor(int dx, int dy)
+    {
+        var next = new PixelPoint(_currentPoint.X + dx, _currentPoint.Y + dy);
+        _coordinateService.SetPhysicalCursorPosition(next);
+        _stateMachine.UpdateCursorPosition(next);
+
+        if (_state == CaptureState.Hovering && _enableWindowSnapping)
+        {
+            var window = _windowService.GetWindowAtPoint(next);
+            _stateMachine.UpdateHoveredWindow(window);
+        }
+
+        UpdateMagnifierHud();
+        InvalidateVisual();
+    }
+
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+        if (TryAdjustMagnifierFromWheel(e.Delta.Y))
+        {
+            e.Handled = true;
+        }
+    }
+
+    public bool TryAdjustMagnifierFromWheel(double deltaY)
+    {
+        double scale = GetMagnifierRenderScale();
+        int next = MagnifierLayout.PixelCountFromWheel(_magnifierPixelCount, deltaY, scale);
+        _enableMagnifier = true;
+        _magnifierPixelCount = next;
+        _magnifier.SetPixelCount(next);
+        _magnifier.SetHudVisibility(true, _showInfo);
+        UpdateMagnifierHud();
+        return true;
+    }
+
+    private void UpdateMagnifierHud()
+    {
+        if (!_enableMagnifier && !_showInfo)
+        {
+            _magnifier.IsVisible = false;
+            return;
+        }
+
+        var cursorLocal = PhysicalToLocal(_currentPoint);
+        var virtualBounds = _coordinateService.GetVirtualScreenBounds();
+        _magnifier.SetHudVisibility(_enableMagnifier, _showInfo);
+        _magnifier.UpdateFromBackground(_currentPoint, _backgroundBitmap, virtualBounds);
+        _magnifier.PositionNearPointer(cursorLocal, Bounds.Size, GetMagnifierRenderScale());
+    }
+
+    private double GetMagnifierRenderScale()
+    {
+        double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? _monitor.ScaleFactor;
+        return double.IsFinite(scale) && scale > 0 ? scale : 1;
     }
 
     private PixelPoint LocalToPhysical(Point local)
@@ -579,6 +680,7 @@ public sealed class RegionCaptureControl : UserControl
 
                 // Draw resize handles at corners
                 DrawResizeHandles(context, rect);
+                DrawSelectionCenterCrosshair(context, rect);
 
                 // Draw mode-specific overlays
                 if (_mode == RegionCaptureMode.Ruler)
@@ -615,12 +717,6 @@ public sealed class RegionCaptureControl : UserControl
 
         // Draw crosshair at cursor position
         DrawCrosshair(context, bounds);
-
-        // Draw magnifier near cursor
-        if (_enableMagnifier)
-        {
-            DrawMagnifierPosition(context);
-        }
 
         // Draw modifier hints (bottom-right)
         DrawModifierHints(context);
@@ -736,158 +832,57 @@ public sealed class RegionCaptureControl : UserControl
 
         // Cache pens to avoid per-frame allocations (Avalonia high-frequency rendering; issue #19363)
         _crosshairLinePen ??= new Pen(new SolidColorBrush(Color.FromUInt32(_crosshairLineColor)), 1);
-        _crosshairPen ??= new Pen(new SolidColorBrush(Color.FromUInt32(_crosshairColor)), 1.5);
+        _crosshairPen ??= new Pen(new SolidColorBrush(Color.FromUInt32(_crosshairColor)), 1);
 
-        const double crosshairLength = 32; // Length of the colored crosshair portion
+        int centerX = (int)Math.Floor(cursorLocal.X);
+        int centerY = (int)Math.Floor(cursorLocal.Y);
+        const double crosshairLength = 32;
 
-        // Vertical line - top portion (regular)
-        context.DrawLine(_crosshairLinePen,
-            new Point(cursorLocal.X, 0),
-            new Point(cursorLocal.X, Math.Max(0, cursorLocal.Y - crosshairLength)));
-
-        // Vertical line - crosshair portion (colored, 32px centered on cursor)
         context.DrawLine(_crosshairPen,
-            new Point(cursorLocal.X, Math.Max(0, cursorLocal.Y - crosshairLength)),
-            new Point(cursorLocal.X, Math.Min(bounds.Height, cursorLocal.Y + crosshairLength)));
-
-        // Vertical line - bottom portion (regular)
-        context.DrawLine(_crosshairLinePen,
-            new Point(cursorLocal.X, Math.Min(bounds.Height, cursorLocal.Y + crosshairLength)),
-            new Point(cursorLocal.X, bounds.Height));
-
-        // Horizontal line - left portion (regular)
-        context.DrawLine(_crosshairLinePen,
-            new Point(0, cursorLocal.Y),
-            new Point(Math.Max(0, cursorLocal.X - crosshairLength), cursorLocal.Y));
-
-        // Horizontal line - crosshair portion (colored, 32px centered on cursor)
+            new Point(centerX, Math.Max(0, centerY - crosshairLength)),
+            new Point(centerX, Math.Min(bounds.Height, centerY + crosshairLength)));
         context.DrawLine(_crosshairPen,
-            new Point(Math.Max(0, cursorLocal.X - crosshairLength), cursorLocal.Y),
-            new Point(Math.Min(bounds.Width, cursorLocal.X + crosshairLength), cursorLocal.Y));
+            new Point(Math.Max(0, centerX - crosshairLength), centerY),
+            new Point(Math.Min(bounds.Width, centerX + crosshairLength), centerY));
 
-        // Horizontal line - right portion (regular)
-        context.DrawLine(_crosshairLinePen,
-            new Point(Math.Min(bounds.Width, cursorLocal.X + crosshairLength), cursorLocal.Y),
-            new Point(bounds.Width, cursorLocal.Y));
-    }
-
-    private void DrawMagnifierPosition(DrawingContext context)
-    {
-        // Position magnifier near cursor but offset to not obstruct view
-        var cursorLocal = PhysicalToLocal(_currentPoint);
-        const double magnifierOffset = 20;
-        const double magnifierSize = 120;
-
-        var x = cursorLocal.X + magnifierOffset;
-        var y = cursorLocal.Y + magnifierOffset;
-
-        // Keep magnifier on screen
-        if (x + magnifierSize > Bounds.Width)
-            x = cursorLocal.X - magnifierOffset - magnifierSize;
-        if (y + magnifierSize + 25 > Bounds.Height)
-            y = cursorLocal.Y - magnifierOffset - magnifierSize - 25;
-
-        // Update magnifier position
-        _magnifier.UpdatePosition(_currentPoint);
-
-        // For now, draw a placeholder - actual pixel capture would require screen capture
-        DrawMagnifierPlaceholder(context, new Rect(x, y, magnifierSize, magnifierSize + 25));
-    }
-
-    private void DrawMagnifierPlaceholder(DrawingContext context, Rect rect)
-    {
-        // Draw magnifier background
-        context.DrawRectangle(InfoBackgroundBrush, new Pen(Brushes.White, 2), rect, 4, 4);
-
-        var centerX = rect.X + rect.Width / 2;
-        var centerY = rect.Y + (rect.Height - 25) / 2;
-        var gridPen = new Pen(new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)), 0.5);
-        var highlightPen = new Pen(Brushes.Red, 1.5);
-        
-        const int pixelGridCount = 15; // Number of pixels to show in grid
-        const int halfGrid = pixelGridCount / 2;
-        double pixelSize = (rect.Width - 8) / pixelGridCount; // Size of each magnified pixel
-        
-        // Draw actual pixels from background bitmap if available
-        if (_backgroundBitmap != null)
+        if (!_showScreenCrosshair)
         {
-            // Calculate the virtual screen bounds to map cursor to bitmap coordinates
-            var virtualBounds = _coordinateService.GetVirtualScreenBounds();
-            
-            // Get pixel coordinates in the background bitmap
-            int bitmapX = (int)(_currentPoint.X - virtualBounds.X);
-            int bitmapY = (int)(_currentPoint.Y - virtualBounds.Y);
-            
-            // Draw each pixel in the grid
-            for (int dy = -halfGrid; dy <= halfGrid; dy++)
-            {
-                for (int dx = -halfGrid; dx <= halfGrid; dx++)
-                {
-                    int srcX = bitmapX + dx;
-                    int srcY = bitmapY + dy;
-                    
-                    // Check bounds
-                    if (srcX >= 0 && srcX < _backgroundBitmap.Width && 
-                        srcY >= 0 && srcY < _backgroundBitmap.Height)
-                    {
-                        var skColor = _backgroundBitmap.GetPixel(srcX, srcY);
-                        var avColor = Color.FromArgb(skColor.Alpha, skColor.Red, skColor.Green, skColor.Blue);
-                        var brush = new SolidColorBrush(avColor);
-                        
-                        var pixelRect = new Rect(
-                            rect.X + 4 + (dx + halfGrid) * pixelSize,
-                            rect.Y + 4 + (dy + halfGrid) * pixelSize,
-                            pixelSize,
-                            pixelSize);
-                        
-                        context.DrawRectangle(brush, null, pixelRect);
-                    }
-                }
-            }
-            
-            // Draw grid lines on top of pixels
-            for (int i = 0; i <= pixelGridCount; i++)
-            {
-                var gridX = rect.X + 4 + i * pixelSize;
-                var gridY = rect.Y + 4 + i * pixelSize;
-                context.DrawLine(gridPen, new Point(gridX, rect.Y + 4), new Point(gridX, rect.Y + rect.Height - 29));
-                context.DrawLine(gridPen, new Point(rect.X + 4, gridY), new Point(rect.X + rect.Width - 4, gridY));
-            }
-        }
-        else
-        {
-            // Fallback: draw placeholder grid when no background image
-            for (int i = 0; i < pixelGridCount; i++)
-            {
-                var offset = (i - halfGrid) * 7;
-                context.DrawLine(gridPen,
-                    new Point(rect.X + 4, centerY + offset),
-                    new Point(rect.X + rect.Width - 4, centerY + offset));
-                context.DrawLine(gridPen,
-                    new Point(centerX + offset, rect.Y + 4),
-                    new Point(centerX + offset, rect.Y + rect.Height - 29));
-            }
+            return;
         }
 
-        // Center highlight (crosshair on center pixel)
-        var centerPixelRect = new Rect(
-            rect.X + 4 + halfGrid * pixelSize,
-            rect.Y + 4 + halfGrid * pixelSize,
-            pixelSize,
-            pixelSize);
-        context.DrawRectangle(null, highlightPen, centerPixelRect);
+        context.DrawLine(_crosshairLinePen,
+            new Point(centerX, 0),
+            new Point(centerX, Math.Max(0, centerY - crosshairLength)));
+        context.DrawLine(_crosshairLinePen,
+            new Point(centerX, Math.Min(bounds.Height, centerY + crosshairLength)),
+            new Point(centerX, bounds.Height));
+        context.DrawLine(_crosshairLinePen,
+            new Point(0, centerY),
+            new Point(Math.Max(0, centerX - crosshairLength), centerY));
+        context.DrawLine(_crosshairLinePen,
+            new Point(Math.Min(bounds.Width, centerX + crosshairLength), centerY),
+            new Point(bounds.Width, centerY));
+    }
 
-        // Draw coordinates text
-        var coordText = $"({_currentPoint.X:F0}, {_currentPoint.Y:F0})";
-        var formattedCoord = new FormattedText(
-            coordText,
-            System.Globalization.CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight,
-            new Typeface("Consolas", FontStyle.Normal, FontWeight.Normal),
-            10,
-            Brushes.White);
+    private static void DrawSelectionCenterCrosshair(DrawingContext context, Rect rectangle)
+    {
+        if (rectangle.Width < 2 || rectangle.Height < 2)
+        {
+            return;
+        }
 
-        context.DrawText(formattedCoord, new Point(rect.X + 4, rect.Bottom - 20));
+        int centerX = (int)Math.Floor(rectangle.Center.X);
+        int centerY = (int)Math.Floor(rectangle.Center.Y);
+        DrawPixelCross(context, Brushes.Black, centerX - 1, centerY - 1);
+        DrawPixelCross(context, Brushes.White, centerX, centerY);
+    }
+
+    private static void DrawPixelCross(DrawingContext context, IBrush brush, int centerX, int centerY)
+    {
+        const int radius = 10;
+        const int diameter = radius * 2 + 1;
+        context.DrawRectangle(brush, null, new Rect(centerX - radius, centerY, diameter, 1));
+        context.DrawRectangle(brush, null, new Rect(centerX, centerY - radius, 1, diameter));
     }
 
     private void DrawDimensionsText(DrawingContext context, Rect rect)
@@ -1083,7 +1078,7 @@ public sealed class RegionCaptureControl : UserControl
             hints.Add("Alt: Expand from center");
 
         if (_activeModifiers.HasFlag(SelectionModifier.PixelNudge))
-            hints.Add("Ctrl: Resize mode");
+            hints.Add(_state == CaptureState.Dragging ? "Ctrl: Move selection" : "Ctrl: Resize mode");
 
         if (hints.Count == 0)
             return;
@@ -1147,11 +1142,11 @@ public sealed class RegionCaptureControl : UserControl
         if (_enableWindowSnapping)
         {
             return _windowPreselectionCapability.Level == WindowPreselectionSupportLevel.Partial
-                ? $"Drag to select region | Click to snap supported windows | Ctrl: toggle mode | {confirmHint}"
-                : $"Drag to select region | Click to snap window | Ctrl: toggle mode | {confirmHint}";
+                ? $"Drag to select region | Click to snap supported windows | Ctrl: move while dragging | {confirmHint}"
+                : $"Drag to select region | Click to snap window | Ctrl: move while dragging | {confirmHint}";
         }
 
-        return $"Drag to select region | Ctrl: toggle mode | {confirmHint}";
+        return $"Drag to select region | Ctrl: move while dragging | {confirmHint}";
     }
 
     private string? GetCapabilityMessage()

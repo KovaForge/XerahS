@@ -31,6 +31,7 @@ using XerahS.History;
 using XerahS.Platform.Abstractions;
 using XerahS.Uploaders;
 using XerahS.Uploaders.PluginSystem;
+using XerahS.Core.Services;
 
 namespace XerahS.Core.Tasks.Processors
 {
@@ -56,8 +57,7 @@ namespace XerahS.Core.Tasks.Processors
             token.ThrowIfCancellationRequested();
 
             DebugHelper.WriteLine($"[UploadTrace {info.CorrelationId}] Starting upload; dataType={info.DataType}, filePath=\"{info.FilePath}\", fileName=\"{info.FileName}\"");
-            // Wrap upload in Task.Run
-            result = await Task.Run(() => Upload(info), token);
+            result = await UploadAsync(info, token).ConfigureAwait(false);
 
             if (result != null)
             {
@@ -111,26 +111,42 @@ namespace XerahS.Core.Tasks.Processors
             return true;
         }
 
-        private UploadResult? Upload(TaskInfo info)
+        private async Task<UploadResult?> UploadAsync(TaskInfo info, CancellationToken token)
+        {
+            if ((info.DataType is EDataType.Image or EDataType.File) && !string.IsNullOrEmpty(info.FilePath))
+            {
+                FileReadinessStatus readiness = await FileReadiness.WaitUntilReadyAsync(info.FilePath, cancellationToken: token).ConfigureAwait(false);
+                if (readiness != FileReadinessStatus.Ready)
+                {
+                    string message = FileReadiness.Describe(readiness, info.FilePath);
+                    DebugHelper.WriteLine($"[UploadTrace {info.CorrelationId}] Upload skipped: {message}");
+                    return new UploadResult { IsSuccess = false, Response = message };
+                }
+            }
+
+            return await StartUploadAsync(info, token).ConfigureAwait(false);
+        }
+
+        private Task<UploadResult?> StartUploadAsync(TaskInfo info, CancellationToken token)
         {
             try
             {
                 return info.DataType switch
                 {
-                    EDataType.Image => UploadWithPluginSystem(info, UploaderCategory.Image),
-                    EDataType.Text => UploadWithPluginSystem(info, UploaderCategory.Text),
-                    EDataType.File => UploadWithPluginSystem(info, UploaderCategory.File),
-                    _ => null
+                    EDataType.Image => UploadWithPluginSystemAsync(info, UploaderCategory.Image, token),
+                    EDataType.Text => UploadWithPluginSystemAsync(info, UploaderCategory.Text, token),
+                    EDataType.File => UploadWithPluginSystemAsync(info, UploaderCategory.File, token),
+                    _ => Task.FromResult<UploadResult?>(null)
                 };
             }
             catch (Exception ex)
             {
                 DebugHelper.WriteException(ex, "UploadJobProcessor");
-                return new UploadResult { IsSuccess = false, Response = ex.Message };
+                return Task.FromResult<UploadResult?>(new UploadResult { IsSuccess = false, Response = ex.Message });
             }
         }
 
-        private UploadResult? UploadWithPluginSystem(TaskInfo info, UploaderCategory category)
+        private async Task<UploadResult?> UploadWithPluginSystemAsync(TaskInfo info, UploaderCategory category, CancellationToken token)
         {
             EnsurePluginsLoaded();
 
@@ -165,7 +181,7 @@ namespace XerahS.Core.Tasks.Processors
             // Check if Auto destination is selected
             if (targetInstance != null && InstanceManager.IsAutoProvider(targetInstance.ProviderId))
             {
-                return TryUploadWithFallback(instanceManager, category, info, targetInstanceId);
+                return await TryUploadWithFallbackAsync(instanceManager, category, info, targetInstanceId, token).ConfigureAwait(false);
             }
 
             // Not Auto - use the configured instance directly
@@ -178,7 +194,7 @@ namespace XerahS.Core.Tasks.Processors
 
             if (targetInstance != null && InstanceManager.IsAutoProvider(targetInstance.ProviderId))
             {
-                return TryUploadWithFallback(instanceManager, category, info, null);
+                return await TryUploadWithFallbackAsync(instanceManager, category, info, null, token).ConfigureAwait(false);
             }
 
             if (targetInstance == null)
@@ -189,7 +205,7 @@ namespace XerahS.Core.Tasks.Processors
                 if (allowCrossCategoryFallback && category == UploaderCategory.Image)
                 {
                     DebugHelper.WriteLine("No Image uploader configured; falling back to File-category instances.");
-                    return TryUploadWithFallback(instanceManager, category, info, null);
+                    return await TryUploadWithFallbackAsync(instanceManager, category, info, null, token).ConfigureAwait(false);
                 }
 
                 var errorMsg = $"No uploader instance configured (plugin system) for category {category}.";
@@ -197,7 +213,7 @@ namespace XerahS.Core.Tasks.Processors
                 return new UploadResult { IsSuccess = false, Response = errorMsg };
             }
 
-            var primaryResult = TryUploadWithInstance(targetInstance, info);
+            var primaryResult = await TryUploadWithInstanceAsync(targetInstance, info, token).ConfigureAwait(false);
 
             if (IsSuccessfulUploadResult(primaryResult))
             {
@@ -214,12 +230,13 @@ namespace XerahS.Core.Tasks.Processors
                 targetInstance.InstanceId
             };
 
-            var fallbackResult = TryUploadWithFallback(
+            var fallbackResult = await TryUploadWithFallbackAsync(
                 instanceManager,
                 category,
                 info,
                 targetInstance.InstanceId,
-                attemptedInstanceIds);
+                token,
+                attemptedInstanceIds).ConfigureAwait(false);
 
             return IsSuccessfulUploadResult(fallbackResult) ? fallbackResult : fallbackResult ?? primaryResult;
         }
@@ -327,7 +344,7 @@ namespace XerahS.Core.Tasks.Processors
         /// When one instance fails, it tries the next available instance.
         /// Falls back to File category uploaders if the primary category fails.
         /// </summary>
-        private static UploadResult? TryUploadWithFallback(InstanceManager instanceManager, UploaderCategory category, TaskInfo info, string? excludeInstanceId, HashSet<string>? attemptedInstanceIds = null)
+        private static async Task<UploadResult?> TryUploadWithFallbackAsync(InstanceManager instanceManager, UploaderCategory category, TaskInfo info, string? excludeInstanceId, CancellationToken token, HashSet<string>? attemptedInstanceIds = null)
         {
             attemptedInstanceIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             
@@ -359,7 +376,7 @@ namespace XerahS.Core.Tasks.Processors
                     // Try the auto instance as a last resort
                     DebugHelper.WriteLine($"Trying auto destination: {targetInstance.InstanceId}");
                     attemptedInstanceIds.Add(targetInstance.InstanceId);
-                    var primaryResult = TryUploadWithInstance(targetInstance, info);
+                    var primaryResult = await TryUploadWithInstanceAsync(targetInstance, info, token).ConfigureAwait(false);
                     if (IsSuccessfulUploadResult(primaryResult))
                     {
                         return primaryResult;
@@ -382,7 +399,7 @@ namespace XerahS.Core.Tasks.Processors
                     
                     DebugHelper.WriteLine($"Trying uploader: {instance.DisplayName} ({instance.ProviderId})");
 
-                    var result = TryUploadWithInstance(instance, info);
+                    var result = await TryUploadWithInstanceAsync(instance, info, token).ConfigureAwait(false);
 
                     if (result != null && !result.IsError && !string.IsNullOrEmpty(result.URL))
                     {
@@ -406,7 +423,7 @@ namespace XerahS.Core.Tasks.Processors
             if (allowCrossCategoryFallback && category != UploaderCategory.File)
             {
                 DebugHelper.WriteLine($"Trying File category uploaders as fallback...");
-                var fileFallbackResult = TryUploadWithFallback(instanceManager, UploaderCategory.File, info, excludeInstanceId, attemptedInstanceIds);
+                var fileFallbackResult = await TryUploadWithFallbackAsync(instanceManager, UploaderCategory.File, info, excludeInstanceId, token, attemptedInstanceIds).ConfigureAwait(false);
                 if (fileFallbackResult != null && !fileFallbackResult.IsError && !string.IsNullOrEmpty(fileFallbackResult.URL))
                 {
                     return fileFallbackResult;
@@ -417,7 +434,7 @@ namespace XerahS.Core.Tasks.Processors
             if (allowCrossCategoryFallback && category == UploaderCategory.File && !string.IsNullOrEmpty(info.FileName) && FileHelpers.IsImageFile(info.FileName))
             {
                 DebugHelper.WriteLine("File is an image; trying Image category uploaders as fallback...");
-                var imageFallbackResult = TryUploadWithFallback(instanceManager, UploaderCategory.Image, info, excludeInstanceId, attemptedInstanceIds);
+                var imageFallbackResult = await TryUploadWithFallbackAsync(instanceManager, UploaderCategory.Image, info, excludeInstanceId, token, attemptedInstanceIds).ConfigureAwait(false);
                 if (imageFallbackResult != null && !imageFallbackResult.IsError && !string.IsNullOrEmpty(imageFallbackResult.URL))
                 {
                     return imageFallbackResult;
@@ -428,7 +445,7 @@ namespace XerahS.Core.Tasks.Processors
             if (allowCrossCategoryFallback && category == UploaderCategory.File && !string.IsNullOrEmpty(info.FileName) && FileHelpers.IsTextFile(info.FileName))
             {
                 DebugHelper.WriteLine("File is text-based; trying Text category uploaders as fallback...");
-                var textFallbackResult = TryUploadWithFallback(instanceManager, UploaderCategory.Text, info, excludeInstanceId, attemptedInstanceIds);
+                var textFallbackResult = await TryUploadWithFallbackAsync(instanceManager, UploaderCategory.Text, info, excludeInstanceId, token, attemptedInstanceIds).ConfigureAwait(false);
                 if (textFallbackResult != null && !textFallbackResult.IsError && !string.IsNullOrEmpty(textFallbackResult.URL))
                 {
                     return textFallbackResult;
@@ -486,9 +503,13 @@ namespace XerahS.Core.Tasks.Processors
         }
 
         /// <summary>
-        /// Attempts to upload using a specific instance. Returns null if creation or upload fails.
+        /// Attempts to upload using a specific instance. Prefers <see cref="IUploadHandler"/>;
+        /// otherwise adapts legacy <see cref="GenericUploader"/>.
         /// </summary>
-        private static UploadResult? TryUploadWithInstance(UploaderInstance instance, TaskInfo info)
+        private static async Task<UploadResult?> TryUploadWithInstanceAsync(
+            UploaderInstance instance,
+            TaskInfo info,
+            CancellationToken token)
         {
             var provider = ProviderCatalog.GetProvider(instance.ProviderId);
             if (provider == null)
@@ -497,10 +518,10 @@ namespace XerahS.Core.Tasks.Processors
                 return null;
             }
 
-            Uploader uploader;
+            object uploader;
             try
             {
-                uploader = (Uploader)provider.CreateInstance(instance.SettingsJson);
+                uploader = provider.CreateInstance(instance.SettingsJson);
             }
             catch (Exception ex)
             {
@@ -508,90 +529,102 @@ namespace XerahS.Core.Tasks.Processors
                 return new UploadResult { IsSuccess = false, Response = ex.Message };
             }
 
-            Uploader.ProgressEventHandler progressHandler = progress => info.ReportUploadProgress(progress);
-            uploader.ProgressChanged += progressHandler;
-
             try
             {
-                if (!string.IsNullOrEmpty(info.FilePath))
-                {
-                    var result = uploader switch
-                    {
-                        FileUploader fileUploader => UploadWithGenericUploader(fileUploader, info),
-                        GenericUploader genericUploader => UploadWithGenericUploader(genericUploader, info),
-                        _ => new UploadResult { IsSuccess = false, Response = "Uploader type not supported." }
-                    };
-
-                    ApplyResolvedUploaderHost(info, instance, result);
-                    return result;
-                }
-
-                if (info.DataType == EDataType.Text && !string.IsNullOrEmpty(info.TextContent))
-                {
-                    DebugHelper.WriteLine(
-                        $"[UploadContentDebug] Text upload dispatch: provider={instance.ProviderId}, " +
-                        $"textLength={info.TextContent.Length}, fileName=\"{info.FileName}\"");
-
-                    if (uploader is GenericUploader genericUploader)
-                    {
-                        string extension = info.TaskSettings.AdvancedSettings.TextFileExtension;
-                        string fileName = string.IsNullOrWhiteSpace(info.FileName)
-                            ? TaskHelpers.GetFileName(info.TaskSettings, extension, info.Metadata)
-                            : info.FileName;
-
-                        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(info.TextContent));
-                        ms.Position = 0;
-                        var result = genericUploader.Upload(ms, fileName);
-                        ApplyResolvedUploaderHost(info, instance, result);
-                        return result;
-                    }
-
-                    return new UploadResult
-                    {
-                        IsSuccess = false,
-                        Response = "Resolved uploader does not support text uploads."
-                    };
-                }
-
-                if (info.Metadata?.Image == null)
+                await using Stream? content = OpenUploadContent(info, out string fileName, out UploaderCategory category);
+                if (content == null)
                 {
                     return new UploadResult { IsSuccess = false, Response = "No content to upload." };
                 }
 
-                using (MemoryStream? ms = TaskHelpers.SaveImageAsStream(info.Metadata.Image, info.TaskSettings.ImageSettings.ImageFormat, info.TaskSettings))
+                long? length = content.CanSeek ? content.Length : null;
+                ProgressManager progressManager = new(length is > 0 ? length.Value : 1);
+                IProgress<UploadProgressReport> progress = new Progress<UploadProgressReport>(report =>
                 {
-                    if (ms == null) return new UploadResult { IsSuccess = false, Response = "Failed to create image stream." };
-                    ms.Position = 0;
-                    var result = uploader is GenericUploader genericUploader
-                        ? genericUploader.Upload(ms, info.FileName)
-                        : new UploadResult { IsSuccess = false, Response = "Uploader type not supported for images." };
+                    if (progressManager.UpdateProgress(report.BytesTransferred))
+                    {
+                        info.ReportUploadProgress(progressManager);
+                    }
+                });
 
-                    ApplyResolvedUploaderHost(info, instance, result);
-                    return result;
-                }
+                UploadRequest request = new()
+                {
+                    Content = content,
+                    FileName = fileName,
+                    ContentType = MimeTypes.GetMimeTypeFromFileName(fileName),
+                    ContentLength = length,
+                    Category = category,
+                    CorrelationId = info.CorrelationId,
+                    Progress = progress,
+                    Host = ProviderCatalog.GetProviderContext() as IDestinationHost
+                };
+
+                UploadOutcome outcome = await UploaderUploadAdapter.UploadAsync(uploader, request, token).ConfigureAwait(false);
+                UploadResult result = outcome.ToUploadResult();
+                ApplyResolvedUploaderHost(info, instance, result);
+                return result;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+            {
+                // The file vanished between queueing and upload (moved or deleted by the program
+                // that handed it over): report it plainly instead of logging a stack trace.
+                string missingMessage = $"The file to upload no longer exists: {(ex as FileNotFoundException)?.FileName ?? ex.Message}";
+                DebugHelper.WriteLine($"Upload failed for {instance.DisplayName}: {missingMessage}");
+                return new UploadResult { IsSuccess = false, Response = missingMessage };
             }
             catch (Exception ex)
             {
                 DebugHelper.WriteException(ex, $"Upload failed for {instance.DisplayName}");
                 return new UploadResult { IsSuccess = false, Response = ex.Message };
             }
-            finally
+        }
+
+        private static Stream? OpenUploadContent(TaskInfo info, out string fileName, out UploaderCategory category)
+        {
+            if (!string.IsNullOrEmpty(info.FilePath))
             {
-                uploader.ProgressChanged -= progressHandler;
+                fileName = string.IsNullOrWhiteSpace(info.FileName) ? Path.GetFileName(info.FilePath) : info.FileName;
+                category = info.DataType switch
+                {
+                    EDataType.Image => UploaderCategory.Image,
+                    EDataType.Text => UploaderCategory.Text,
+                    _ => UploaderCategory.File
+                };
+                return new FileStream(info.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.Asynchronous | FileOptions.SequentialScan);
             }
-        }
 
-        private static UploadResult UploadWithGenericUploader(GenericUploader uploader, string filePath)
-        {
-            using FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            return uploader.Upload(stream, Path.GetFileName(filePath));
-        }
+            if (info.DataType == EDataType.Text && !string.IsNullOrEmpty(info.TextContent))
+            {
+                string extension = info.TaskSettings.AdvancedSettings.TextFileExtension;
+                fileName = string.IsNullOrWhiteSpace(info.FileName)
+                    ? TaskHelpers.GetFileName(info.TaskSettings, extension, info.Metadata)
+                    : info.FileName;
+                category = UploaderCategory.Text;
+                DebugHelper.WriteLine(
+                    $"[UploadContentDebug] Text upload dispatch: textLength={info.TextContent.Length}, fileName=\"{fileName}\"");
+                return new MemoryStream(Encoding.UTF8.GetBytes(info.TextContent));
+            }
 
-        private static UploadResult UploadWithGenericUploader(GenericUploader uploader, TaskInfo info)
-        {
-            using FileStream stream = new FileStream(info.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            string fileName = string.IsNullOrWhiteSpace(info.FileName) ? Path.GetFileName(info.FilePath) : info.FileName;
-            return uploader.Upload(stream, fileName);
+            if (info.Metadata?.Image != null)
+            {
+                fileName = info.FileName;
+                category = UploaderCategory.Image;
+                MemoryStream? ms = TaskHelpers.SaveImageAsStream(info.Metadata.Image, info.TaskSettings.ImageSettings.ImageFormat, info.TaskSettings);
+                if (ms != null)
+                {
+                    ms.Position = 0;
+                }
+
+                return ms;
+            }
+
+            fileName = info.FileName ?? "upload";
+            category = UploaderCategory.File;
+            return null;
         }
 
         internal static void ApplyResolvedUploaderHost(TaskInfo info, UploaderInstance instance, UploadResult? result)
@@ -599,6 +632,7 @@ namespace XerahS.Core.Tasks.Processors
             if (IsSuccessfulUploadResult(result))
             {
                 info.ResolvedUploaderHost = instance.DisplayName;
+                info.ResolvedUploaderInstanceId = instance.InstanceId;
             }
         }
 
@@ -653,8 +687,11 @@ namespace XerahS.Core.Tasks.Processors
 
                 var historyItem = CreateHistoryItem(info, url);
 
-                historyManager.AppendHistoryItem(historyItem);
-                DebugHelper.WriteLine($"Added upload to history: {historyItem.FileName} (URL: {historyItem.URL})");
+                if (historyManager.AppendHistoryItem(historyItem))
+                {
+                    info.HistoryItemId = historyItem.Id;
+                    DebugHelper.WriteLine($"Added upload to history: {historyItem.FileName} (URL: {historyItem.URL})");
+                }
             }
             catch (Exception ex)
             {
@@ -664,18 +701,13 @@ namespace XerahS.Core.Tasks.Processors
 
         internal static HistoryItem CreateHistoryItem(TaskInfo info, string url)
         {
-            var uploadResult = info.Result;
             var historyItem = new HistoryItem
             {
                 FilePath = info.FilePath ?? string.Empty,
                 FileName = TaskHelpers.GetHistoryFileName(info.FileName, info.FilePath, url),
                 DateTime = DateTime.Now,
                 Type = GetHistoryType(info),
-                Host = info.UploaderHost ?? string.Empty,
-                URL = url,
-                ThumbnailURL = uploadResult?.ThumbnailURL ?? string.Empty,
-                DeletionURL = uploadResult?.DeletionURL ?? string.Empty,
-                ShortenedURL = uploadResult?.ShortenedURL ?? string.Empty
+                URL = url
             };
 
             var tags = info.GetTags();
@@ -688,15 +720,37 @@ namespace XerahS.Core.Tasks.Processors
                 }
             }
 
+            ApplyUploadResult(historyItem, info);
+            return historyItem;
+        }
+
+        /// <summary>
+        /// Copies upload details (host, thumbnail/deletion/shortened URLs, result metadata, uploader
+        /// instance, errors) onto a history item. Shared by upload jobs and capture-then-upload.
+        /// </summary>
+        internal static void ApplyUploadResult(HistoryItem historyItem, TaskInfo info)
+        {
+            var uploadResult = info.Result;
+            historyItem.Host = info.ResolvedUploaderHost ?? info.UploaderHost ?? string.Empty;
+            historyItem.ThumbnailURL = uploadResult?.ThumbnailURL ?? string.Empty;
+            historyItem.DeletionURL = uploadResult?.DeletionURL ?? string.Empty;
+            historyItem.ShortenedURL = uploadResult?.ShortenedURL ?? string.Empty;
+            historyItem.Tags ??= new Dictionary<string, string?>();
+
             if (uploadResult?.Metadata?.Count > 0)
             {
                 foreach (var pair in uploadResult.Metadata)
                 {
                     if (!string.IsNullOrWhiteSpace(pair.Key))
                     {
-                        historyItem.Tags[$"UploadResult.{pair.Key}"] = pair.Value;
+                        historyItem.Tags[UploadRemoteDeletionService.UploadResultTagPrefix + pair.Key] = pair.Value;
                     }
                 }
+            }
+
+            if (!string.IsNullOrWhiteSpace(info.ResolvedUploaderInstanceId))
+            {
+                historyItem.Tags[UploadRemoteDeletionService.UploaderInstanceIdTag] = info.ResolvedUploaderInstanceId;
             }
 
             // Store upload errors if any
@@ -704,8 +758,6 @@ namespace XerahS.Core.Tasks.Processors
             {
                 historyItem.Errors = uploadResult.Errors.ToString();
             }
-
-            return historyItem;
         }
 
         private static string GetHistoryType(TaskInfo info)

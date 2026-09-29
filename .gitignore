@@ -185,3 +185,14 @@ SwiftPackageManager.build/
 !.autoresearch/autoresearch.ps1
 !.autoresearch/missions/
 !.autoresearch/missions/*.md
+
+# XerahS Cloud web app local and generated state
+web/node_modules/
+web/.next/
+web/coverage/
+web/playwright-report/
+web/test-results/
+web/supabase/.temp/
+web/.env.local
+web/.env.*.local
+.vercel/

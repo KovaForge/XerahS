@@ -10,7 +10,7 @@ metadata:
     - submodule
     - avalonia
     - skia
-  last_updated: 2026-09-06
+  last_updated: 2026-09-26
 ---
 
 # Port ImageEditor: Local ShareX -> XerahS
@@ -38,6 +38,7 @@ succeeds.
 2. `C:\Users\Public\source\repos\ShareX Team\ShareX`
 3. `C:\Users\liveu\source\repos\ShareX Team\ShareX`
 4. `/Users/mike/Projects/ShareX Team/ShareX`
+5. `/home/mike/Projects/ShareX/ShareX` (Linux workstation)
 
 `$XerahSRoot` (the XerahS git root, the directory that contains the `ShareX.ImageEditor`
 submodule):
@@ -48,6 +49,7 @@ submodule):
 4. `C:\Users\Public\source\repos\ShareX Team\XerahS` (ShareX Team workstation)
 5. `C:\Users\liveu\source\repos\ShareX Team\XerahS`
 6. `/Users/mike/Projects/ShareX Team/XerahS`
+7. `/home/mike/Projects/KovaForge/xerahs` (Linux workstation; lowercase folder name)
 
 Both Public checkouts are first-class. Prefer the one the user named, otherwise the
 one that exists and is a git work tree. Do not assume XerahS is a sibling of ShareX.
@@ -63,10 +65,8 @@ rule does not apply. Instead:
 3. Use the current XerahS working tree as `$XerahSRoot`, and run
    `git submodule update --init ShareX.ImageEditor` first if the submodule directory is
    empty.
-4. Create a base worktree for divergence triage (see step 2e-triage):
-   `git -C "$ShareXRepo" worktree add <sharex-base> <last_synced_sharex_hash>`
-   Use `/tmp/sharex-base` on Linux/macOS, or a sibling of `$ShareXRepo` such as
-   `...\ShareX Team\sharex-base` on Windows (`$env:TEMP` is fine if the disk is local).
+4. No base worktree is needed: `scripts/triage.py` reads the base and head versions
+   straight from git objects (see step 2e-triage).
 
 Linux hosts build the ImageEditor project, the desktop solution, and the test suite fine
 (`EnableWindowsTargeting` is already configured), so all verification gates below apply
@@ -179,6 +179,17 @@ git -C "$ShareXRepo" pull --ff-only
 If ShareX has local uncommitted changes, do not overwrite them. Prefer:
 - If the changes are unrelated and the checkout is only needed for read-only upstream assessment, use `git pull --rebase --autostash` so the newest source is available locally.
 - If the changes conflict with the pull or look relevant to `ShareX.ImageEditor`, stop and report that the local ShareX checkout must be cleaned or reviewed before porting.
+
+Local checkouts may be **shallow** (the Linux workstation's is a depth-1 clone). Check
+before resolving the range; a shallow clone makes `<last_sync>..HEAD` fail with
+`bad revision`:
+
+```bash
+git -C "$ShareXRepo" rev-parse --is-shallow-repository
+# if true, deepen past the last sync date from PORT_STATUS.md (much cheaper than --unshallow)
+git -C "$ShareXRepo" fetch --shallow-since=<a date before the last sync> origin <branch>
+git -C "$ShareXRepo" cat-file -t <last_synced_sharex_hash>   # must print "commit"
+```
 
 After pulling, record the updated ShareX `HEAD` and use that local source for the rest of the assessment. This keeps the upstream code local and fast to inspect without cloning ShareX again.
 
@@ -344,29 +355,37 @@ If the target file does not exist, it is a net-new addition and therefore high r
 
 ### 2e-triage - Automate divergence triage for large ranges
 
-For ranges with dozens of changed files, do not eyeball each file. Check out the last
-synced upstream commit into a worktree:
+For ranges with dozens of changed files, do not eyeball each file. Run the bundled
+classifier (Python 3, no extra packages; works on Windows, macOS, and Linux):
 
-```powershell
-git -C "$ShareXRepo" worktree add <sharex-base> <last_sync>
+```bash
+python3 .ai/skills/port-imageeditor/scripts/triage.py "$ShareXRepo" "$XerahSRoot" <last_sync> \
+  --diff-dir <scratch>/triage
 ```
 
-Use `/tmp/sharex-base` on Linux/macOS, or a sibling of `$ShareXRepo` on Windows. Remove
-the worktree when the session finishes.
+It reads upstream base/head from git objects (no worktree), maps `Integration/` to
+`Hosting/`, applies the XerahS namespace rewrites (`REWRITES` in the script:
+`ShareX.AvaloniaUI.Theming` -> `Presentation.Theming`, the lucide `avares://` URI,
+`ImageEditorIntegration` -> `AvaloniaIntegration`), ignores header/BOM/EOL/blank-line and
+`using`-order noise, and writes `base-xerahs` / `base-head` diffs for every file that
+needs a human. Without the rewrites, the 2026-09-26 range reported 55 DIVERGED + 197
+namespace-only files; with them it was 18 real merges, 74 safe syncs, and 193 no-ops.
 
-Classify every upstream-changed file:
+Categories:
 
 - `NEW`: absent from the XerahS code root — sync it in as a new file, except
   `Integration/*` (map to `Hosting/`), `Localization/*` (skip, core rule 19), and files
   that exist only because ShareX extracted them into `ShareX.Avalonia`.
-- `SAFE_SYNC`: the XerahS file equals the upstream *base* version after normalizing the
-  license-header region, BOM, CRLF-vs-LF, and trailing whitespace — a raw sync from
-  upstream HEAD is safe because XerahS never diverged in content. Never `SAFE_SYNC`
-  `Localization/`.
-- `AVALONIA_NS`: the upstream `base -> head` delta is only a `using` move from
-  `ShareX.ImageEditor.Presentation.Theming` or `Hosting` to `ShareX.AvaloniaUI.*`.
-  Keep XerahS. Do not raw-sync. The 2026-08-18 range marked ~200 ImageEffects files
-  DIVERGED for this two-line change.
+- `SAFE_SYNC`: the XerahS file equals the upstream *base* version after normalization and
+  rewrites — syncing upstream HEAD is safe because XerahS never diverged in content.
+  Never `SAFE_SYNC` `Localization/`.
+- `NO_OP`: upstream base equals head after normalization and rewrites (for example a
+  `using` move to `ShareX.AvaloniaUI.Theming`). Nothing to port.
+- `ALREADY`: XerahS already matches upstream head.
+- `UP_DELETED`: upstream deleted the file; keeping or deleting it is a manifest decision.
+- `AVALONIA_NS`: the upstream delta only touches `using`/`xmlns` lines the rewrites do
+  not cover (usually removing a `using`). Keep XerahS; but see the `BitmapConversionHelpers`
+  note in 3b — a removed `using` can mean the type moved out of ImageEditor upstream.
 - `SKIP_I18N`: anything under `Localization/`. Skip; do not treat as NEW or SAFE_SYNC.
 - `DIVERGED`: real content differences — these carry XerahS adaptations and require a
   manual merge.
@@ -377,6 +396,41 @@ adaptation to preserve) and `base -> head` (the upstream change to port). Files 
 `SAFE_SYNC`. The 2026-07-11 port turned a 149-file range into 19 real merges; the
 2026-08-18 port was 380 files, mostly `AVALONIA_NS` plus a `Localization/` tree that
 must not be synced again.
+
+### 2e-sync - Apply the mechanical part with `sync.py`
+
+After the manifest is posted, apply SAFE_SYNC, NEW, and DIVERGED files in one pass:
+
+```bash
+python3 .ai/skills/port-imageeditor/scripts/sync.py "$ShareXRepo" "$XerahSRoot" <last_sync> --dry-run
+python3 .ai/skills/port-imageeditor/scripts/sync.py "$ShareXRepo" "$XerahSRoot" <last_sync>
+```
+
+- SAFE_SYNC/NEW files are written from upstream head with the rewrites applied, the
+  target's header state preserved (new `.cs` files get the submodule header), UTF-8
+  without BOM, and LF endings (policy below).
+- DIVERGED files are 3-way merged (`git merge-file`, base = last sync) so XerahS
+  adaptations and upstream changes combine automatically; overlapping hunks are left as
+  `<<<<<<< xerahs` / `>>>>>>> upstream` markers. The 2026-09-26 run merged 18 files with
+  7 conflicted. Resolve every marker, then `grep -rn '<<<<<<<' src` must be empty.
+- `KEPT_TYPES` in the script re-adds `using` lines for types ShareX moved out of
+  ImageEditor but XerahS keeps (currently `BitmapConversionHelpers`).
+- The script refuses to run over uncommitted `src/` changes, and only `--force`
+  overrides that. Run it once per range, before any manual edits.
+
+Merge output still needs review:
+- **Misaligned hunks.** When a conflict's XerahS side ends mid-method, or the resolved
+  file will not compile, rebuild that file from `git show HEAD:<file>` and apply the
+  upstream intent by hand. NumberAnnotation (arrow tails) needed this on 2026-09-26.
+- **Removals ported by accident.** A clean merge still applies upstream removals you
+  decided to keep. Reverse-apply the removing commit for just those files:
+  `git -C "$ShareXRepo" show <hash> -- <files> | sed 's#\([ab]\)/ShareX.ImageEditor/#\1/src/ShareX.ImageEditor/#g' > p.patch`
+  then run `git apply -R --recount -C1 p.patch` inside the submodule. This is how the
+  f58d576 Options-panel removal was kept out.
+- **API moved between intermediate commits.** The base-to-head diff hides API that was
+  added and then used within the range (for example `Annotation.TransformAdditionalPoints`
+  and `MoveBy`, both new in this range). Read the per-commit patches when a merged override
+  refers to a base member that XerahS lacks.
 
 ### 2e-headers - Header, BOM, and EOL policy during syncs
 
@@ -518,6 +572,21 @@ and verify these known XerahS adaptations before building:
   a local `EditorCore`, not ShareX's embedded `EditorView`. Port annotation/core
   behavior (for example `SmartEraserAnnotation.ConfigureFill`) into
   `OverlayWindow.Canvas.cs` in the same session. Do not port `RegionCaptureWindow`.
+- `BitmapConversionHelpers`: upstream moved it to `ShareX.AvaloniaUI.Imaging` and dropped
+  `using ShareX.ImageEditor.Presentation.Rendering;` from its callers. XerahS keeps it
+  in `Presentation.Rendering`, so synced callers need that `using` back (`sync.py`
+  handles this via `KEPT_TYPES`).
+- Editor Options panel (`EditorOptionsPanel`, `MainViewModel.EditorOptions.cs`,
+  `ShowOptionsButton`, `OpenOptionsPanelCommand`): upstream removed it in `f58d576`
+  (settings moved into the ShareX app). XerahS keeps it for the standalone editor
+  (`AvaloniaIntegration` sets `ShowOptionsButton = true`). Keep the adapter members, the
+  toolbar menu item, and the `OpenOptionsPanelRequested` wiring in
+  `EditorView.Subscriptions.cs`.
+- `EditorView` workspace-host APIs (`ConfigureForFullscreenWorkspace`,
+  `LoadWorkspaceImage`, `InsertWorkspaceImageAnnotation`, `ResetModalContentPosition`, …)
+  serve ShareX's embedded RegionCapture and are intentionally absent in XerahS. Port only
+  `DisposeWorkspace` / `ReleaseAnnotationDisplayBitmaps` (used by `EditorWindow.OnClosed`),
+  and unsubscribe `ThemeManager.ThemeChanged` in `OnUnloaded` and `DisposeWorkspace`.
 - Win32-only helpers (`DllImport("user32.dll")` cursor-screen math, GDI magnifier):
   re-implement with Avalonia `TopLevel.Screens` / a cross-platform fallback. Do not
   copy the P/Invoke.
@@ -602,8 +671,10 @@ dotnet test "tests/XerahS.Tests/XerahS.Tests.csproj" -m:1
 ```
 
 On Windows, Linux/macOS tests that start `/bin/sh` or assert POSIX/`file:///` path
-shapes can fail without any ImageEditor change. Do not block the port on those.
-Block only on ImageEditor, RegionCapture adapter, or editor-behavior failures.
+shapes can fail without any ImageEditor change. To tell whether a failure is
+pre-existing, run `git -C ShareX.ImageEditor stash -u`, rebuild the test project,
+rerun the tests, then `stash pop`. A failure that reproduces without the port does not
+block the port. Still report it, and fix it when the user asks.
 
 ## Step 5 - Update tracking
 
@@ -677,12 +748,12 @@ For the common "catch up XerahS to the latest local ShareX state" task:
 5. Run `git -C "$ShareXRepo" log -1 --format="%H %cs %s" -- ShareX.ImageEditor`.
 6. Run `git -C "$ShareXRepo" diff --name-only <last_sync>..HEAD -- ShareX.ImageEditor`.
 7. Map each changed upstream file into `$XerahSRoot/ShareX.ImageEditor/src/ShareX.ImageEditor`. Map `Integration/` to `Hosting/`. Skip `Localization/` (core rule 19).
-8. For large ranges, run the 2e-triage classification (NEW / SAFE_SYNC / AVALONIA_NS / SKIP_I18N / DIVERGED) against a base worktree before deciding sync strategy per file.
+8. If the ShareX checkout is shallow, deepen it with `fetch --shallow-since` until `<last_sync>` resolves. Then run `scripts/triage.py` to classify every changed file.
 9. Review every upstream commit in the range so you understand the complete feature and bug-fix set.
 10. For each item, compare the upstream behavior against the current XerahS behavior and decide whether it is missing, already fixed, implemented differently, partially implemented, or conflicting.
 11. Post the ImageEditor Port Manifest listing every identified bug fix and enhancement, including XerahS status, decision, and rationale, before editing.
 12. Read upstream and XerahS code where needed to confirm how the behavior works.
-13. Port, manually merge, keep XerahS behavior, or write a custom implementation as appropriate; do not blind cherry-pick or raw-copy diverged Avalonia files.
+13. Run `scripts/sync.py` (dry run first) for SAFE_SYNC/NEW/DIVERGED. Resolve conflicts, re-apply kept XerahS behavior (reverse-apply removals you keep), and walk the step 3b adaptation checklist. Otherwise port by hand, keep XerahS behavior, or write a custom implementation as the manifest says. Do not blind cherry-pick or raw-copy diverged Avalonia files.
 14. Commit each completed bug fix/enhancement as a separate `ShareX.ImageEditor` submodule commit, keeping shared infrastructure separate when needed.
 15. Build the ImageEditor project, then the XerahS solution.
 16. Update `PORT_STATUS.md`, then push the submodule commits and commit/push the root pointer separately.

@@ -12,8 +12,10 @@
 
 #endregion License Information (GPL v3)
 
+using System.Runtime.InteropServices;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
+using XerahS.Common;
 
 namespace XerahS.Platform.Windows.Capture;
 
@@ -28,15 +30,25 @@ internal static class DxgiOutputDuplicationHelper
 
     public static IDXGIOutputDuplication Create(IDXGIOutput output, ID3D11Device device)
     {
-        try
+        if (DxgiOutputDuplicationPolicy.ShouldUseDuplicateOutput1(RuntimeInformation.ProcessArchitecture))
         {
-            using var output5 = output.QueryInterface<IDXGIOutput5>();
-            return output5.DuplicateOutput1(device, 0, PreferredFormats);
+            try
+            {
+                using var output5 = output.QueryInterface<IDXGIOutput5>();
+                return output5.DuplicateOutput1(device, 0, PreferredFormats);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"DxgiOutputDuplicationHelper: DuplicateOutput1 failed, using DuplicateOutput. {ex.Message}");
+            }
         }
-        catch
+        else
         {
-            using var output1 = output.QueryInterface<IDXGIOutput1>();
-            return output1.DuplicateOutput(device);
+            DebugHelper.WriteLine(
+                $"DxgiOutputDuplicationHelper: Skipping DuplicateOutput1 on {RuntimeInformation.ProcessArchitecture}; using DuplicateOutput.");
         }
+
+        using var output1 = output.QueryInterface<IDXGIOutput1>();
+        return output1.DuplicateOutput(device);
     }
 }

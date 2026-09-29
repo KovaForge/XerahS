@@ -296,6 +296,39 @@ public class WaylandWindowPointQueryHelperTests
     }
 
     [Test]
+    public void KdeKdotoolHelper_TryParseMouseLocationWindowId_RejectsArgumentInjectionPayloads()
+    {
+        const string quotedPayload = """
+            X=400
+            Y=300
+            WINDOW=abc"; rm -rf /
+            """;
+        const string hexWindow = """
+            X=1
+            Y=1
+            WINDOW=0x1a00007
+            """;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                KdeKdotoolWindowPointQueryHelper.TryParseMouseLocationWindowId(quotedPayload, out string quotedId),
+                Is.False);
+            Assert.That(quotedId, Is.Empty);
+
+            Assert.That(
+                KdeKdotoolWindowPointQueryHelper.TryParseMouseLocationWindowId("WINDOW=ok`id`", out string backtickId),
+                Is.False);
+            Assert.That(backtickId, Is.Empty);
+
+            Assert.That(
+                KdeKdotoolWindowPointQueryHelper.TryParseMouseLocationWindowId(hexWindow, out string hexId),
+                Is.True);
+            Assert.That(hexId, Is.EqualTo("0x1a00007"));
+        });
+    }
+
+    [Test]
     public void SwayHelper_TryGetFocusedWindowRectFromTreeJson_ReturnsDeepestFocusedLeaf()
     {
         const string json = """

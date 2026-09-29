@@ -84,6 +84,33 @@ public sealed record RegionCaptureOptions
     public bool EnableMagnifier { get; init; } = true;
 
     /// <summary>
+    /// Draw the magnifier as a square instead of a circle. Default: false
+    /// </summary>
+    public bool UseSquareMagnifier { get; init; } = false;
+
+    /// <summary>
+    /// Odd number of source pixels shown in the magnifier. Default: 15
+    /// </summary>
+    public int MagnifierPixelCount { get; init; } = 15;
+
+    /// <summary>
+    /// Show X/Y (and sampled hex) under the magnifier. Default: true
+    /// </summary>
+    public bool ShowInfo { get; init; } = true;
+
+    /// <summary>
+    /// Custom HUD info text using pixel-info tokens ($x, $y, $r, $g, $b, $hex, $HEX, $n, ...).
+    /// Null keeps the built-in "X/Y + hex" text.
+    /// </summary>
+    public string? CustomInfoFormat { get; init; }
+
+    /// <summary>
+    /// Draw crosshair lines across the whole screen through the cursor. When false only the
+    /// short crosshair around the cursor is drawn. Default: true
+    /// </summary>
+    public bool ShowScreenCrosshair { get; init; } = true;
+
+    /// <summary>
     /// Magnifier zoom level. Default: 4x
     /// </summary>
     public int MagnifierZoom { get; init; } = 4;

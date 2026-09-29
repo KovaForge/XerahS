@@ -31,6 +31,13 @@ namespace XerahS.Platform.Abstractions
     public class CaptureOptions
     {
         public bool UseModernCapture { get; set; } = true;
+
+        /// <summary>
+        /// When true, GDI captures on HDR displays recapture those outputs via DXGI
+        /// and composite tone-mapped highlights onto the screenshot.
+        /// DXGI captures already tone-map HDR formats regardless of this setting.
+        /// </summary>
+        public bool HDRScreenshotColorCorrection { get; set; } = true;
         public LinuxInteractiveRegionSelectorPreference LinuxRegionSelectorPreference { get; set; } =
             LinuxInteractiveRegionSelectorPreference.Automatic;
         public MacOSInteractiveRegionSelectorPreference MacOSRegionSelectorPreference { get; set; } =
@@ -42,6 +49,11 @@ namespace XerahS.Platform.Abstractions
         /// When true, the follow-up bitmap capture must not re-open the XDG portal selector/dialog again.
         /// </summary>
         public bool LinuxDisallowPortalAfterOverlaySelection { get; set; } = false;
+        /// <summary>
+        /// Linux-only: skip the hosted capture engine (OmaSnap, XIP0088). Set when the pipeline
+        /// already tried it and failed, so the fallback chain does not run it a second time.
+        /// </summary>
+        public bool LinuxSkipHostedCaptureEngine { get; set; } = false;
         public bool ShowCursor { get; set; } = true;
         /// <summary>
         /// For window captures: capture transparent regions of the window.

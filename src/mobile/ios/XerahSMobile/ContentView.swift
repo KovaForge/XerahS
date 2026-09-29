@@ -26,17 +26,28 @@ import SwiftUI
 
 /// Placeholder root; app uses RootView with environmentObject(AppState).
 struct ContentView: View {
+    private let appState: AppState
+
+    init() {
+        let settings = SettingsRepository()
+        let history = HistoryRepository()
+        let cloud = XerahSCloudClient()
+        appState = AppState(
+            settingsRepository: settings,
+            historyRepository: history,
+            uploadQueueWorker: UploadQueueWorker(
+                settingsRepository: settings,
+                queueRepository: QueueRepository(),
+                historyRepository: history,
+                cloudClient: cloud
+            ),
+            cloudClient: cloud
+        )
+    }
+
     var body: some View {
         RootView()
-            .environmentObject(AppState(
-                settingsRepository: SettingsRepository(),
-                historyRepository: HistoryRepository(),
-                uploadQueueWorker: UploadQueueWorker(
-                    settingsRepository: SettingsRepository(),
-                    queueRepository: QueueRepository(),
-                    historyRepository: HistoryRepository()
-                )
-            ))
+            .environmentObject(appState)
     }
 }
 

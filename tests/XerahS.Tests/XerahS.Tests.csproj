@@ -41,13 +41,16 @@
     </PackageReference>
   </ItemGroup>
 
+  <!--
+    No AdditionalProperties here: AssembleProduct already defaults to false (Directory.Build.props), and
+    extra global properties on App/CLI made a second configuration of UI, Core and RegionCapture that
+    built into the same obj folders in parallel (AVLN9999 "file is being used by another process").
+  -->
   <ItemGroup>
-    <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj"
-                      AdditionalProperties="AssembleProduct=false;EnableAppDrivenPluginBuild=false;SkipBundlePlugins=true" />
+    <ProjectReference Include="..\..\src\desktop\app\XerahS.App\XerahS.App.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Assistant\XerahS.Assistant.csproj" />
     <ProjectReference Include="..\..\src\desktop\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj" />
-    <ProjectReference Include="..\..\src\desktop\cli\XerahS.CLI\XerahS.CLI.csproj"
-                      AdditionalProperties="AssembleProduct=false;EnableAppDrivenPluginBuild=false;SkipBundlePlugins=true" />
+    <ProjectReference Include="..\..\src\desktop\cli\XerahS.CLI\XerahS.CLI.csproj" />
     <ProjectReference Include="..\..\src\desktop\cli\XerahS.OmaXerahs\XerahS.OmaXerahs.csproj" />
     <ProjectReference Include="..\..\src\desktop\tools\XerahS.WatchFolder.Daemon\XerahS.WatchFolder.Daemon.csproj" />
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Core\XerahS.Core.csproj" />
@@ -72,9 +75,7 @@
     <ProjectReference Include="..\..\src\desktop\core\XerahS.Uploaders\XerahS.Uploaders.csproj" />
     <ProjectReference Include="..\..\src\tools\XerahS.McpServer\XerahS.McpServer.csproj" />
     <ProjectReference Include="..\..\ShareX.ImageEditor\src\ShareX.ImageEditor\ShareX.ImageEditor.csproj" GlobalPropertiesToRemove="OS" />
-    <ProjectReference Include="..\..\ShareX.VideoEditor\backend\ShareX.VideoEditor.csproj"
-                      GlobalPropertiesToRemove="OS"
-                      AdditionalProperties="BuildWebUI=false" />
+    <ProjectReference Include="..\..\Omacut\dotnet\src\Omacut\Omacut.csproj" GlobalPropertiesToRemove="OS" />
   </ItemGroup>
 
   <!--
@@ -99,8 +100,12 @@
              Link="Platform\Windows\WindowsSources\DxgiFrameAcquisitionHelper.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DxgiOutputEnumerationCleanupHelper.cs"
              Link="Platform\Windows\WindowsSources\DxgiOutputEnumerationCleanupHelper.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DxgiOutputDuplicationPolicy.cs"
+             Link="Platform\Windows\WindowsSources\DxgiOutputDuplicationPolicy.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\CursorReplacementHelper.cs"
              Link="Platform\Windows\WindowsSources\CursorReplacementHelper.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\ModernCapturePolicy.cs"
+             Link="Platform\Windows\WindowsSources\ModernCapturePolicy.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DxgiRotationHelper.cs"
              Link="Platform\Windows\WindowsSources\DxgiRotationHelper.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\GdiCaptureRectHelper.cs"

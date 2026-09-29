@@ -78,6 +78,9 @@ public class TaskInfo
 
     internal string? ResolvedUploaderHost { get; set; }
 
+    /// <summary>Uploader instance that produced the successful upload (recorded in History for "Delete from host").</summary>
+    internal string? ResolvedUploaderInstanceId { get; set; }
+
     public string? UploaderHost
     {
         get
@@ -138,6 +141,12 @@ public class TaskInfo
     public Stopwatch? UploadDuration { get; set; }
 
     public UploadResult Result { get; set; }
+
+    /// <summary>
+    /// Database identifier of the durable history row created for this task. This is carried
+    /// into the completion toast so shared History actions operate on the real row.
+    /// </summary>
+    public long? HistoryItemId { get; set; }
 
     /// <summary>
     /// Correlation identifier for structured logging across capture, save, and upload stages.

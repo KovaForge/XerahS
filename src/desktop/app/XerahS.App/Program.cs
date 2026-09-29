@@ -30,6 +30,7 @@ using System.Security.Cryptography;
 using System.Text;
 using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Cloud;
 using XerahS.Core.Managers;
 using XerahS.Core.SendTo;
 using XerahS.Platform.Abstractions;
@@ -143,6 +144,21 @@ namespace XerahS.App
                 {
                     ValidateLinuxDisplayEnvironment();
                     ClearX11SessionManagement();
+
+                    // Avalonia renders through X11/XWayland. On pure Wayland autostart, wait briefly for
+                    // XWayland and adopt its socket when DISPLAY is unset (XIP0088 Phase 0 item 6).
+                    var displayResult = LinuxDisplayBootstrap.EnsureDisplay();
+                    XerahS.Common.DebugHelper.WriteLine($"Linux display: {displayResult.Message}");
+                    if (!displayResult.Usable)
+                    {
+                        string message = LinuxDisplayBootstrap.BuildUserMessage(displayResult);
+                        XerahS.Common.DebugHelper.WriteLine($"Startup stopped: {message}");
+                        XerahS.Common.DebugHelper.Flush();
+                        Console.Error.WriteLine(message);
+                        LinuxDisplayBootstrap.NotifyStartupFailure(message);
+                        Environment.ExitCode = 1;
+                        return;
+                    }
                 }
 
                 // Initialize settings first (Linux portal service preference is needed for platform init)
@@ -159,11 +175,23 @@ namespace XerahS.App
             }
             catch (Exception ex)
             {
-                XerahS.Common.DebugHelper.WriteException(ex, "Critical application startup failure");
-                XerahS.Common.DebugHelper.Flush();
-
                 // Provide helpful guidance for common Linux display issues
                 bool isLinuxDisplayError = IsLinuxDisplayError(ex);
+                if (isLinuxDisplayError)
+                {
+                    // Environment problem, not a bug: one readable line plus a desktop notification.
+                    string displayMessage = LinuxDisplayBootstrap.BuildUserMessage(
+                        new LinuxDisplayBootstrap.Result(false, Environment.GetEnvironmentVariable("DISPLAY"), false, ex.Message + "."));
+                    XerahS.Common.DebugHelper.WriteLine($"Startup stopped: {displayMessage}");
+                    LinuxDisplayBootstrap.NotifyStartupFailure(displayMessage);
+                }
+                else
+                {
+                    XerahS.Common.DebugHelper.WriteException(ex, "Critical application startup failure");
+                }
+
+                XerahS.Common.DebugHelper.Flush();
+
                 if (isLinuxDisplayError)
                 {
                     Console.Error.WriteLine("\n" + new string('=', 70));
@@ -484,7 +512,14 @@ namespace XerahS.App
                         eventArgs.Exception.InnerException.GetType().FullName == "Tmds.DBus.Protocol.DBusException" &&
                         eventArgs.Exception.InnerException.Message.Contains("ServiceUnknown");
 
-                    if (!isIgnorableAvaloniaDbusException)
+                    if (!isIgnorableAvaloniaDbusException &&
+                        XerahS.Common.DBusExceptionClassifier.IsConnectionGone(eventArgs.Exception))
+                    {
+                        // The session bus or a portal went away (logout, portal restart). Expected; not an error.
+                        XerahS.Common.DebugHelper.WriteLine(
+                            $"Unobserved D-Bus task ended after the connection closed: {XerahS.Common.DBusExceptionClassifier.Describe(eventArgs.Exception!)}");
+                    }
+                    else if (!isIgnorableAvaloniaDbusException)
                     {
                         XerahS.Common.DebugHelper.WriteException(eventArgs.Exception!, "Unobserved task exception");
                         XerahS.Common.DebugHelper.Flush();
@@ -547,6 +582,8 @@ namespace XerahS.App
             if (OperatingSystem.IsLinux())
             {
                 XerahS.Common.DebugHelper.WriteLine("Linux: Initializing platform services");
+                XerahS.Platform.Linux.Services.LinuxDesktopProfile.ConfigureOmaSnapPathOverride(
+                    XerahS.Core.SettingsManager.Settings?.LinuxOmaSnapPathOverride);
                 var linuxCaptureService = new XerahS.Platform.Linux.LinuxScreenCaptureService();
                 var uiCaptureService = new XerahS.UI.Services.ScreenCaptureService(linuxCaptureService);
 
@@ -660,7 +697,21 @@ namespace XerahS.App
                 {
                     XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "PROGRAM", "Background task started");
                     XerahS.Common.DebugHelper.WriteLine("Starting async services initialization...");
-                    
+
+                    try
+                    {
+                        XerahS.Common.NetworkMonitor.NetworkMonitorHost.Shared.EnsureStarted();
+                        XerahS.Common.DebugHelper.WriteLine(
+                            "Network monitor started. Outage log: " +
+                            XerahS.Common.NetworkMonitor.NetworkMonitorHost.Shared.LogFilePath);
+                    }
+                    catch (Exception ex)
+                    {
+                        XerahS.Common.DebugHelper.WriteException(ex, "Failed to start network monitor");
+                    }
+
+                    AgentSkillBootstrapper.EnsureInstalled();
+
                     // 1. Initialize Plugins (ProviderCatalog)
                     try
                     {
@@ -800,11 +851,25 @@ namespace XerahS.App
         /// </summary>
         private static void OnArgumentsReceived(string[] args)
         {
-            XerahS.Common.DebugHelper.WriteLine($"Arguments received from another instance: {string.Join(" ", args)}");
+            string[] redactedArguments = XerahSCloudArgumentRedactor.Redact(args);
+            XerahS.Common.DebugHelper.WriteLine($"Arguments received from another instance: {string.Join(" ", redactedArguments)}");
 
             if (AppContracts.Cli.IsPassiveStartupInvocation(args))
             {
                 XerahS.Common.DebugHelper.WriteLine("Ignoring passive startup relay from a secondary instance.");
+                return;
+            }
+
+            if (AppContracts.Cli.IsReloadWorkflowsInvocation(args))
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(ReloadWorkflowsFromDisk);
+                return;
+            }
+
+            // Hyprland keybinding trigger (XIP0088): run like a hotkey, never raise the main window.
+            if (AppContracts.Cli.TryGetRunWorkflowId(args, out string runWorkflowId))
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => RunWorkflowFromAutomation(runWorkflowId));
                 return;
             }
 
@@ -850,10 +915,62 @@ namespace XerahS.App
             });
         }
 
+        /// <summary>
+        /// Picks up WorkflowsConfig changes written by automation (omaxerahs) while the app is running,
+        /// so the next save does not overwrite them and hotkeys/menus reflect the new state.
+        /// </summary>
+        private static void ReloadWorkflowsFromDisk()
+        {
+            try
+            {
+                XerahS.Core.SettingsManager.LoadWorkflowsConfig();
+                if (Avalonia.Application.Current is XerahS.UI.App app && app.WorkflowManager != null)
+                {
+                    app.WorkflowManager.UpdateHotkeys(XerahS.Core.SettingsManager.WorkflowsConfig.Hotkeys);
+                }
+
+                XerahS.Common.DebugHelper.WriteLine("Workflows reloaded from disk at the request of an automation client.");
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, "Failed to reload workflows from disk");
+            }
+        }
+
+        private static void RunWorkflowFromAutomation(string workflowId)
+        {
+            try
+            {
+                XerahS.Core.Hotkeys.WorkflowSettings workflow = XerahS.Core.Automation.WorkflowAutomation.FindWorkflow(workflowId);
+                if (Avalonia.Application.Current is not XerahS.UI.App app || !app.TryRunWorkflow(workflow))
+                {
+                    XerahS.Common.DebugHelper.WriteLine($"Workflow run '{workflowId}' ignored: workflows are not initialized yet.");
+                }
+            }
+            catch (XerahS.Core.Automation.AutomationException ex)
+            {
+                XerahS.Common.DebugHelper.WriteLine($"Workflow run '{workflowId}' rejected: {ex.Message}");
+            }
+        }
+
         private static void ProcessIncomingArguments(string[]? args, string source)
         {
             if (args == null || args.Length == 0)
             {
+                return;
+            }
+
+            if (AppContracts.Cli.TryGetRunWorkflowId(args, out string runWorkflowId))
+            {
+                // XerahS was started by "omaxerahs workflow run" because it was not running.
+                RunWorkflowFromAutomation(runWorkflowId);
+                return;
+            }
+
+            string? cloudCallbackArgument = args.FirstOrDefault(XerahSCloudOAuthCallbackParser.IsCallbackArgument);
+            if (cloudCallbackArgument != null)
+            {
+                _ = ProcessCloudCallbackAsync(cloudCallbackArgument, source);
                 return;
             }
 
@@ -896,6 +1013,33 @@ namespace XerahS.App
             XerahS.Common.DebugHelper.WriteLine(
                 $"Shell integration ({source}): Scheduling upload for {pathSet.Files.Count} file(s).");
             _ = Task.Run(() => UploadFilesFromIntegrationAsync(pathSet.Files));
+        }
+
+        private static async Task ProcessCloudCallbackAsync(string callbackArgument, string source)
+        {
+            try
+            {
+                if (!Uri.TryCreate(callbackArgument, UriKind.Absolute, out Uri? callbackUri))
+                {
+                    XerahS.Common.DebugHelper.WriteLine($"XerahS Cloud OAuth callback ({source}) rejected: invalid URI.");
+                    return;
+                }
+
+                IXerahSCloudOAuthCoordinator? coordinator =
+                    (Application.Current as XerahS.UI.App)?.ServiceProvider?.GetService<IXerahSCloudOAuthCoordinator>();
+                if (coordinator == null)
+                {
+                    XerahS.Common.DebugHelper.WriteLine($"XerahS Cloud OAuth callback ({source}) rejected: coordinator unavailable.");
+                    return;
+                }
+
+                XerahSCloudOAuthCompletion result = await coordinator.CompleteAsync(callbackUri).ConfigureAwait(false);
+                XerahS.Common.DebugHelper.WriteLine($"XerahS Cloud OAuth callback ({source}) result: {result}.");
+            }
+            catch (Exception ex)
+            {
+                XerahS.Common.DebugHelper.WriteException(ex, $"XerahS Cloud OAuth callback ({source}) failed");
+            }
         }
 
         private static void OpenPluginPackageInstallers(IReadOnlyList<string> packagePaths, string source)

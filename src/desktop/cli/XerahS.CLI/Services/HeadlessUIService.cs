@@ -23,7 +23,7 @@
 
 #endregion License Information (GPL v3)
 
-using ShareX.VideoEditor.Hosting;
+using Omacut.Hosting;
 using SkiaSharp;
 using XerahS.Common;
 using XerahS.Core;
@@ -58,96 +58,62 @@ namespace XerahS.CLI.Services
 
         public async Task<string?> ShowVideoEditorAsync(string videoPath, string? ffmpegPath)
         {
-            string detectedFfmpegPath = PathsManager.GetFFmpegPath();
-
-            return await Task.Run(async () =>
+            try
             {
-                try
+                string resolvedVideoPath = FileHelpers.GetAbsolutePath(videoPath);
+                string detectedFfmpegPath = PathsManager.GetFFmpegPath();
+                var ffmpegResolution = VideoEditorFfmpegResolver.Resolve(ffmpegPath, detectedFfmpegPath);
+                LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
+
+                string ffprobePath = string.Empty;
+                if (ffmpegResolution.IsAvailable)
                 {
-                    string resolvedVideoPath = FileHelpers.GetAbsolutePath(videoPath);
-                    VideoEditorLaunchPolicy launchPolicy = VideoEditorLaunchPolicyResolver.GetCurrentPolicy();
-                    if (!launchPolicy.AllowInteractiveLaunch)
+                    try
                     {
-                        Console.Error.WriteLine("[VideoEditor] The video editor is unavailable on this platform/session.");
-                        return null;
-                    }
-
-                    var ffmpegResolution = VideoEditorFfmpegResolver.Resolve(ffmpegPath, detectedFfmpegPath);
-
-                    LogVideoEditorFfmpegResolution(ffmpegPath, detectedFfmpegPath, ffmpegResolution);
-
-                    string ffprobePath = string.Empty;
-                    if (ffmpegResolution.IsAvailable)
-                    {
-                        try
-                        {
-                            ffprobePath = await VideoEditorFfprobeResolver.EnsureAvailableAsync(
-                                ffmpegResolution.ConfiguredPath,
-                                message =>
-                                {
-                                    string logMessage = $"[VideoEditor] {message}";
-                                    Console.WriteLine(logMessage);
-                                    DebugHelper.WriteLine(logMessage);
-                                });
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.Error.WriteLine($"[VideoEditor] FFprobe unavailable: {ex.Message}");
-                            DebugHelper.WriteException(ex, "Failed to resolve FFprobe for video editor");
-                        }
-                    }
-
-                    var options = new VideoEditorOptions
-                    {
-                        VideoPath = resolvedVideoPath,
-                        FFmpegPath = ffmpegResolution.ConfiguredPath,
-                        FFprobePath = ffprobePath,
-                        WindowTitle = AppResources.AppName,
-                        Theme = ResolveTheme(),
-                        EnableLinuxWaylandExplicitSyncMitigation = launchPolicy.EnableLinuxWaylandExplicitSyncMitigation
-                    };
-
-                    var events = new VideoEditorEvents
-                    {
-                        DiagnosticReported = diagnosticEvent =>
-                        {
-                            string message = $"[VideoEditor:{diagnosticEvent.Source}] {diagnosticEvent.Message}";
-
-                            if (diagnosticEvent.Exception != null)
+                        ffprobePath = await VideoEditorFfprobeResolver.EnsureAvailableAsync(
+                            ffmpegResolution.ConfiguredPath,
+                            message =>
                             {
-                                Console.Error.WriteLine(message);
-                                Console.Error.WriteLine(diagnosticEvent.Exception);
-                                DebugHelper.WriteException(diagnosticEvent.Exception, message);
-                            }
-                            else
-                            {
-                                Console.WriteLine(message);
-                                DebugHelper.WriteLine(message);
-                            }
-                        },
-                        ExportCompleted = outputPath =>
-                        {
-                            string message = $"[VideoEditor] Export completed: {outputPath}";
-                            Console.WriteLine(message);
-                            DebugHelper.WriteLine(message);
-                        },
-                        ExportFailed = ex =>
-                        {
-                            string message = $"[VideoEditor] Export failed: {ex.Message}";
-                            Console.Error.WriteLine(message);
-                            DebugHelper.WriteException(ex, message);
-                        }
-                    };
-
-                    return VideoEditorHost.ShowEditorDialog(options, events);
+                                string logMessage = $"[VideoEditor] {message}";
+                                Console.WriteLine(logMessage);
+                                DebugHelper.WriteLine(logMessage);
+                            });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"[VideoEditor] FFprobe unavailable: {ex.Message}");
+                        DebugHelper.WriteException(ex, "Failed to resolve FFprobe for video editor");
+                    }
                 }
-                catch (Exception ex)
+
+                var options = new OmacutEditorOptions
                 {
-                    Console.Error.WriteLine($"[VideoEditor] Failed to open editor: {ex.Message}");
-                    DebugHelper.WriteException(ex, "Failed to open video editor from CLI");
-                    return null;
+                    VideoPath = resolvedVideoPath,
+                    FfmpegPath = ffmpegResolution.IsAvailable ? ffmpegResolution.ConfiguredPath : null,
+                    FfprobePath = string.IsNullOrWhiteSpace(ffprobePath) ? null : ffprobePath,
+                    WindowTitle = AppResources.AppName,
+                    AllowOpeningOtherFiles = false,
+                    Log = message =>
+                    {
+                        Console.WriteLine(message);
+                        DebugHelper.WriteLine(message);
+                    },
+                };
+
+                string? exported = await CliVideoEditorHost.ShowAsync(options);
+                if (!string.IsNullOrEmpty(exported))
+                {
+                    Console.WriteLine($"[VideoEditor] Export completed: {exported}");
                 }
-            });
+
+                return exported;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[VideoEditor] Failed to open editor: {ex.Message}");
+                DebugHelper.WriteException(ex, "Failed to open video editor from CLI");
+                return null;
+            }
         }
 
         public Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel, AfterCaptureQuickAction QuickAction)> ShowAfterCaptureWindowAsync(
@@ -222,16 +188,6 @@ namespace XerahS.CLI.Services
                 Console.Error.WriteLine(message);
                 DebugHelper.WriteLine(message);
             }
-        }
-
-        private static string ResolveTheme()
-        {
-            return SettingsManager.Settings?.ThemeMode switch
-            {
-                AppThemeMode.Light => "Light",
-                AppThemeMode.System => "System",
-                _ => "Dark"
-            };
         }
     }
 }

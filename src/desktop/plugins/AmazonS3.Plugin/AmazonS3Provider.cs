@@ -40,7 +40,7 @@ namespace ShareX.AmazonS3.Plugin;
 /// Amazon S3 file uploader provider (supports Image, Text, and File categories).
 /// Also implements <see cref="IUploaderExplorer"/> for the Media Explorer.
 /// </summary>
-public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstanceSecretMigrator
+public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IUploadRemover, IInstanceSecretMigrator, IInstanceSecretBackupProvider
 {
     public override string ProviderId => "amazons3";
     public override string Name => "Amazon S3";
@@ -54,6 +54,60 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         // For plugins, we don't self-register as they are loaded via PluginLoader
         // But for internal ones we might still want it. 
         // In the external plugin assembly, this ctor will still run if activated.
+    }
+
+    public IReadOnlyList<InstanceSecretReference> GetSecretReferences(string settingsJson)
+    {
+        if (string.IsNullOrWhiteSpace(settingsJson))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        S3ConfigModel? config;
+        string? secretKey;
+        try
+        {
+            JObject json = JObject.Parse(settingsJson);
+            secretKey = json.Value<string>(nameof(S3ConfigModel.SecretKey));
+            config = json.ToObject<S3ConfigModel>();
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        if (config == null || string.IsNullOrWhiteSpace(secretKey))
+        {
+            return Array.Empty<InstanceSecretReference>();
+        }
+
+        config.SecretKey = secretKey;
+
+        if (config.AuthMode == S3AuthMode.AwsSso)
+        {
+            return
+            [
+                new(ProviderId, config.SecretKey, "ssoClient"),
+                new(ProviderId, config.SecretKey, "ssoToken"),
+                new(ProviderId, config.SecretKey, "ssoRoleCredentials")
+            ];
+        }
+
+        var references = new List<InstanceSecretReference>
+        {
+            new(ProviderId, config.SecretKey, "accessKeyId"),
+            new(ProviderId, config.SecretKey, "secretAccessKey")
+        };
+
+        string? destinationSecretKey = S3CredentialSecrets.BuildDestinationSecretKey(config);
+        if (!string.IsNullOrWhiteSpace(destinationSecretKey) &&
+            !string.Equals(destinationSecretKey, config.SecretKey, StringComparison.Ordinal))
+        {
+            references.Add(new(ProviderId, destinationSecretKey, "accessKeyId"));
+            references.Add(new(ProviderId, destinationSecretKey, "secretAccessKey"));
+        }
+
+        return references;
     }
 
     public bool TryMigrateSecrets(string settingsJson, ISecretStore secrets,
@@ -131,6 +185,21 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         return jsonChanged;
     }
 
+    /// <summary>
+    /// Usable only with a bucket: without one the AWS SDK rejects every request
+    /// (ArgumentException), so an unconfigured destination is reported as such and skipped.
+    /// </summary>
+    public override bool ValidateSettings(string settingsJson)
+    {
+        if (!base.ValidateSettings(settingsJson))
+        {
+            return false;
+        }
+
+        S3ConfigModel? config = JsonConvert.DeserializeObject<S3ConfigModel>(settingsJson);
+        return config != null && !string.IsNullOrWhiteSpace(config.BucketName);
+    }
+
     public override Uploader CreateInstance(string settingsJson)
     {
         var config = JsonConvert.DeserializeObject<S3ConfigModel>(settingsJson);
@@ -194,7 +263,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
 
     // ─── IUploaderExplorer ───────────────────────────────────────────────────
 
-    private static readonly SysHttpClient _explorerHttpClient = new();
+    private static SysHttpClient ExplorerHttpClient => HttpClientFactory.Create();
 
     /// <inheritdoc/>
     public bool SupportsFolders => true;
@@ -219,7 +288,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
 
         string host = pathStyle ? endpoint : $"{config.BucketName}.{endpoint}";
 
-        string prefix = (query.FolderPath ?? "").TrimStart('/');
+        string prefix = S3ExplorerListHelper.ResolveListPrefix(config.ObjectPrefix, query.FolderPath);
 
         // Build query parameters sorted alphabetically for canonical form
         var qp = new SortedDictionary<string, string>
@@ -236,8 +305,47 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         string canonicalQs = BuildCanonicalQueryString(qp);
         string canonicalUri = pathStyle ? $"/{config.BucketName}/" : "/";
 
-        string xml = await SendSignedGetAsync(host, canonicalUri, canonicalQs, region, ak, sk, st, cancellation);
-        return ParseListObjectsXml(xml, config);
+        try
+        {
+            string xml;
+            try
+            {
+                xml = await SendSignedGetAsync(host, canonicalUri, canonicalQs, region, ak, sk, st, cancellation);
+            }
+            catch (S3RequestException ex) when (ex.Redirect != null)
+            {
+                // Follow S3's region hint once (PermanentRedirect / wrong signing region) and
+                // otherwise tell the user which region/endpoint to configure.
+                string? redirectRegion = ex.Redirect.Region ?? S3ExplorerListHelper.RegionFromEndpoint(ex.Redirect.EndpointHost);
+                bool isAws = endpoint.Contains("amazonaws.com", StringComparison.OrdinalIgnoreCase);
+                if (!isAws || string.IsNullOrWhiteSpace(redirectRegion) ||
+                    string.Equals(redirectRegion, region, StringComparison.OrdinalIgnoreCase) && ex.Redirect.EndpointHost == null)
+                {
+                    throw new InvalidOperationException(
+                        S3ExplorerListHelper.BuildWrongRegionMessage(config.BucketName, ex.Redirect, ex.Message), ex);
+                }
+
+                string regionalEndpoint = $"s3.{redirectRegion}.amazonaws.com";
+                string redirectedHost = pathStyle ? regionalEndpoint : $"{config.BucketName}.{regionalEndpoint}";
+                DebugHelper.WriteLine($"Amazon S3 explorer: bucket '{config.BucketName}' is in region '{redirectRegion}'; retrying via {redirectedHost}.");
+                try
+                {
+                    xml = await SendSignedGetAsync(redirectedHost, canonicalUri, canonicalQs, redirectRegion, ak, sk, st, cancellation);
+                }
+                catch (S3RequestException retryEx) when (retryEx.Redirect != null)
+                {
+                    throw new InvalidOperationException(
+                        S3ExplorerListHelper.BuildWrongRegionMessage(config.BucketName, retryEx.Redirect, retryEx.Message), retryEx);
+                }
+            }
+
+            return ParseListObjectsXml(xml, config);
+        }
+        catch (InvalidOperationException ex) when (S3ExplorerListHelper.IsListBucketDenied(ex.Message))
+        {
+            throw new InvalidOperationException(
+                S3ExplorerListHelper.BuildListBucketDeniedMessage(config.BucketName, ex.Message), ex);
+        }
     }
 
     /// <inheritdoc/>
@@ -290,7 +398,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         if (string.IsNullOrWhiteSpace(ak) || string.IsNullOrWhiteSpace(sk)) return false;
 
         string host = pathStyle ? endpoint : $"{bucket}.{endpoint}";
-        string objectKey = item.Path.TrimStart('/');
+        string objectKey = ResolveObjectKey(item);
         string canonicalUri = pathStyle
             ? $"/{Uri.EscapeDataString(bucket)}/{EscapeS3Key(objectKey)}"
             : $"/{EscapeS3Key(objectKey)}";
@@ -298,7 +406,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         try
         {
             using var request = BuildSignedRequest("DELETE", host, canonicalUri, "", region, ak, sk, st);
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             return response.IsSuccessStatusCode
                 || response.StatusCode == System.Net.HttpStatusCode.NoContent;
         }
@@ -309,14 +417,146 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
     }
 
     /// <inheritdoc/>
-    public async Task<bool> CreateFolderAsync(string parentPath, string folderName, CancellationToken cancellation = default)
+    public Task<bool> CreateFolderAsync(string parentPath, string folderName, CancellationToken cancellation = default)
     {
-        // S3 "folders" are zero-byte objects whose key ends with "/"
-        // We need settings to determine the bucket. Without a query context here we cannot
-        // resolve them, so callers should pass a MediaItem from the current listing.
-        // Return false — the VM drives this via a dedicated command that has instance context.
-        await Task.CompletedTask;
-        return false;
+        // Needs instance settings to resolve the bucket; the Media Browser calls the
+        // ExplorerContext overload below.
+        return Task.FromResult(false);
+    }
+
+    /// <inheritdoc/>
+    public ExplorerCapabilities BrowserCapabilities =>
+        ExplorerCapabilities.Download | ExplorerCapabilities.Upload | ExplorerCapabilities.Rename |
+        ExplorerCapabilities.Delete | ExplorerCapabilities.Url | ExplorerCapabilities.CreateFolder |
+        ExplorerCapabilities.Thumbnails;
+
+    /// <inheritdoc/>
+    public Task<bool> CreateFolderAsync(ExplorerContext context, string parentPath, string folderName, CancellationToken cancellation = default)
+    {
+        ValidateExplorerName(folderName);
+        return RunExplorerOperationAsync(context, (operations, config) =>
+            operations.CreateFolderAsync(S3ExplorerListHelper.ResolveListPrefix(config.ObjectPrefix, parentPath) + folderName + "/", cancellation));
+    }
+
+    /// <inheritdoc/>
+    public Task<bool> UploadAsync(ExplorerContext context, string folderPath, string fileName, Stream content, CancellationToken cancellation = default)
+    {
+        ValidateExplorerName(fileName);
+        return RunExplorerOperationAsync(context, (operations, config) =>
+            operations.UploadAsync(S3ExplorerListHelper.ResolveListPrefix(config.ObjectPrefix, folderPath) + fileName, content, cancellation));
+    }
+
+    /// <inheritdoc/>
+    public Task<bool> RenameAsync(ExplorerContext context, MediaItem item, string newName, CancellationToken cancellation = default)
+    {
+        ValidateExplorerName(newName);
+        string key = ResolveObjectKey(item);
+        string parent = GetParentKey(key);
+        return RunExplorerOperationAsync(context, (operations, _) => item.IsFolder
+            ? operations.RenameFolderAsync(key, parent + newName + "/", cancellation)
+            : operations.RenameFileAsync(key, parent + newName, cancellation));
+    }
+
+    /// <inheritdoc/>
+    public Task<bool> DeleteAsync(ExplorerContext context, MediaItem item, CancellationToken cancellation = default)
+    {
+        string key = ResolveObjectKey(item);
+        return RunExplorerOperationAsync(context, (operations, _) => item.IsFolder
+            ? operations.DeleteFolderAsync(key, cancellation)
+            : operations.DeleteFileAsync(key, cancellation));
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool?> HasChildrenAsync(ExplorerContext context, MediaItem folder, CancellationToken cancellation = default)
+    {
+        bool hasChildren = false;
+        string key = ResolveObjectKey(folder);
+        await RunExplorerOperationAsync(context, async (operations, _) =>
+            hasChildren = await operations.HasChildrenAsync(key, cancellation));
+        return hasChildren;
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> DeleteUploadAsync(
+        ExplorerContext context,
+        string url,
+        IReadOnlyDictionary<string, string?> uploadMetadata,
+        CancellationToken cancellation = default)
+    {
+        S3ConfigModel config = DeserializeConfig(context.SettingsJson);
+        if (!TryResolveUploadedObjectKey(config, url, uploadMetadata, out string key))
+        {
+            return false;
+        }
+
+        return await RunExplorerOperationAsync(context, (operations, _) => operations.DeleteFileAsync(key, cancellation));
+    }
+
+    /// <summary>
+    /// Prefers the key recorded at upload time; falls back to parsing the URL for older uploads.
+    /// A recorded bucket that differs from the instance's bucket is refused rather than deleting
+    /// the same key in the wrong bucket.
+    /// </summary>
+    internal static bool TryResolveUploadedObjectKey(
+        S3ConfigModel config,
+        string url,
+        IReadOnlyDictionary<string, string?> uploadMetadata,
+        out string key)
+    {
+        key = string.Empty;
+        if (uploadMetadata.TryGetValue(AmazonS3Uploader.BucketMetadata, out string? bucket) &&
+            !string.IsNullOrWhiteSpace(bucket) &&
+            !string.Equals(bucket, config.BucketName, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (uploadMetadata.TryGetValue(AmazonS3Uploader.ObjectKeyMetadata, out string? recordedKey) &&
+            !string.IsNullOrWhiteSpace(recordedKey))
+        {
+            key = recordedKey;
+            return true;
+        }
+
+        return new AmazonS3Uploader(config, string.Empty, string.Empty).TryGetObjectKey(url, out key);
+    }
+
+    /// <summary>
+    /// Runs a write operation with an SDK client for the instance. Failures surface as exceptions
+    /// carrying the S3 error message, so the browser can show why an operation failed.
+    /// </summary>
+    private async Task<bool> RunExplorerOperationAsync(ExplorerContext context, Func<S3ExplorerOperations, S3ConfigModel, Task> operation)
+    {
+        S3ConfigModel config = DeserializeConfig(context.SettingsJson);
+        if (string.IsNullOrWhiteSpace(config.BucketName))
+        {
+            throw new InvalidOperationException("Amazon S3 bucket is not configured.");
+        }
+
+        var (ak, sk, st) = ResolveCredentials(config, refreshIfExpired: true);
+        if (string.IsNullOrWhiteSpace(ak) || string.IsNullOrWhiteSpace(sk))
+        {
+            throw new InvalidOperationException("Amazon S3 credentials are missing, invalid, or expired.");
+        }
+
+        using Amazon.S3.IAmazonS3 client = new AmazonS3Uploader(config, ak, sk, st).CreateClient();
+        await operation(new S3ExplorerOperations(client, config), config);
+        return true;
+    }
+
+    internal static string GetParentKey(string key)
+    {
+        string trimmed = key.TrimEnd('/');
+        int separator = trimmed.LastIndexOf('/');
+        return separator >= 0 ? trimmed[..(separator + 1)] : string.Empty;
+    }
+
+    private static void ValidateExplorerName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name) || name is "." or ".." || name.Contains('/') || name.Contains('\\'))
+        {
+            throw new ArgumentException($"'{name}' is not a valid name.", nameof(name));
+        }
     }
 
     // ─── Private helpers ─────────────────────────────────────────────────────
@@ -331,7 +571,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         if (string.IsNullOrWhiteSpace(ak) || string.IsNullOrWhiteSpace(sk)) return null;
 
         string host = pathStyle ? endpoint : $"{bucket}.{endpoint}";
-        string objectKey = item.Path.TrimStart('/');
+        string objectKey = ResolveObjectKey(item);
         string canonicalUri = pathStyle
             ? $"/{Uri.EscapeDataString(bucket)}/{EscapeS3Key(objectKey)}"
             : $"/{EscapeS3Key(objectKey)}";
@@ -339,7 +579,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         try
         {
             using var request = BuildSignedRequest("GET", host, canonicalUri, "", region, ak, sk, st);
-            using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+            using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadAsByteArrayAsync(cancellation);
         }
@@ -353,7 +593,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
     {
         try
         {
-            using var response = await _explorerHttpClient.GetAsync(url, cancellation);
+            using var response = await ExplorerHttpClient.GetAsync(url, cancellation);
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadAsByteArrayAsync(cancellation);
         }
@@ -367,7 +607,7 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         string region, string ak, string sk, string? st, CancellationToken cancellation)
     {
         using var request = BuildSignedRequest("GET", host, canonicalUri, canonicalQs, region, ak, sk, st);
-        using var response = await _explorerHttpClient.SendAsync(request, cancellation);
+        using var response = await ExplorerHttpClient.SendAsync(request, cancellation);
         string body = await response.Content.ReadAsStringAsync(cancellation);
 
         if (response.IsSuccessStatusCode)
@@ -375,7 +615,24 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
             return body;
         }
 
-        throw new InvalidOperationException(BuildS3ErrorMessage(response, body));
+        string? bucketRegion = response.Headers.TryGetValues("x-amz-bucket-region", out var regionValues)
+            ? regionValues.FirstOrDefault()
+            : null;
+        throw new S3RequestException(
+            BuildS3ErrorMessage(response, body),
+            S3ExplorerListHelper.TryParseRegionRedirect(body, bucketRegion));
+    }
+
+    /// <summary>S3 error carrying the bucket's real region when S3 says it lives elsewhere.</summary>
+    private sealed class S3RequestException : InvalidOperationException
+    {
+        public S3RequestException(string message, S3RegionRedirect? redirect)
+            : base(message)
+        {
+            Redirect = redirect;
+        }
+
+        public S3RegionRedirect? Redirect { get; }
     }
 
     private static SysHttpRequestMessage BuildSignedRequest(string method, string host,
@@ -433,9 +690,9 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
                 {
                     Id = pfx,
                     Name = name,
-                    Path = pfx,
+                    Path = S3ExplorerListHelper.GetExplorerPath(pfx, config.ObjectPrefix),
                     IsFolder = true,
-                    Metadata = new Dictionary<string, string>(metadataTemplate)
+                    Metadata = BuildItemMetadata(metadataTemplate, pfx)
                 });
             }
 
@@ -460,12 +717,12 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
                 {
                     Id = key,
                     Name = name,
-                    Path = key,
+                    Path = S3ExplorerListHelper.GetExplorerPath(key, config.ObjectPrefix),
                     SizeBytes = size,
                     ModifiedAt = modified,
                     MimeType = mime,
                     Url = url,
-                    Metadata = new Dictionary<string, string>(metadataTemplate)
+                    Metadata = BuildItemMetadata(metadataTemplate, key)
                 });
             }
 
@@ -476,10 +733,32 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
                 ContinuationToken = string.IsNullOrEmpty(nextToken) ? null : nextToken
             };
         }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
         catch
         {
             return new ExplorerPage();
         }
+    }
+
+    private static Dictionary<string, string> BuildItemMetadata(
+        Dictionary<string, string> metadataTemplate,
+        string objectKey)
+    {
+        var metadata = new Dictionary<string, string>(metadataTemplate)
+        {
+            ["objectKey"] = objectKey
+        };
+        return metadata;
+    }
+
+    private static string ResolveObjectKey(MediaItem item)
+    {
+        return item.Metadata.TryGetValue("objectKey", out string? objectKey)
+            ? objectKey.TrimStart('/')
+            : item.Path.TrimStart('/');
     }
 
     private Dictionary<string, string> BuildMetadata(S3ConfigModel config)
@@ -573,9 +852,9 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
             return (string.Empty, string.Empty, null);
         }
 
-        string ak = Secrets.GetSecret(ProviderId, config.SecretKey, "accessKeyId") ?? string.Empty;
-        string sk = Secrets.GetSecret(ProviderId, config.SecretKey, "secretAccessKey") ?? string.Empty;
-        return (ak, sk, null);
+        return S3CredentialSecrets.TryGetAccessKeyCredentials(Secrets, config, out string ak, out string sk)
+            ? (ak, sk, null)
+            : (string.Empty, string.Empty, null);
     }
 
     private AwsSsoStoredRoleCredentials? EnsureSsoRoleCredentials(S3ConfigModel config, bool refreshIfExpired)
@@ -586,9 +865,15 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         }
 
         AwsSsoStoredRoleCredentials? creds = AwsSsoSecretStore.LoadRoleCredentials(Secrets, config.SecretKey);
-        if (creds != null && !creds.IsExpired())
+        if (creds != null && creds.IsUsableFor(config.SsoAccountId, config.SsoRoleName))
         {
             return creds;
+        }
+
+        if (creds != null)
+        {
+            AwsSsoSecretStore.DeleteRoleCredentials(Secrets, config.SecretKey);
+            creds = null;
         }
 
         if (!refreshIfExpired)
@@ -814,8 +1099,13 @@ public class AmazonS3Provider : UploaderProviderBase, IUploaderExplorer, IInstan
         }
 
         AwsSsoStoredRoleCredentials? creds = AwsSsoSecretStore.LoadRoleCredentials(Secrets, config.SecretKey);
-        if (creds == null || creds.IsExpired())
+        if (creds == null || !creds.IsUsableFor(config.SsoAccountId, config.SsoRoleName))
         {
+            if (creds != null)
+            {
+                AwsSsoSecretStore.DeleteRoleCredentials(Secrets, config.SecretKey);
+            }
+
             var ssoClient = new AwsSsoClient(config.SsoRegion);
             creds = ssoClient.GetRoleCredentials(token.AccessToken, config.SsoAccountId, config.SsoRoleName);
             AwsSsoSecretStore.SaveRoleCredentials(Secrets, config.SecretKey, creds);

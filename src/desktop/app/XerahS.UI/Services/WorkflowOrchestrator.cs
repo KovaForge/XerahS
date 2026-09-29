@@ -140,51 +140,35 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
 
     private async Task<XerahS.Platform.Abstractions.WindowInfo?> ShowWindowSelectorAsync()
     {
-        var tcs = new TaskCompletionSource<XerahS.Platform.Abstractions.WindowInfo?>();
-
-        Dispatcher.UIThread.Post(() =>
+        try
         {
-            try
+            return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 var viewModel = new WindowSelectorViewModel();
-                var dialog = new SurfaceWindow
-                {
-                    Title = "Select Window to Capture",
-                    Width = 400,
-                    Height = 500,
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                    Content = new WindowSelectorDialog { DataContext = viewModel }
-                };
+                XerahS.Platform.Abstractions.WindowInfo? selected = null;
 
-                viewModel.OnWindowSelected = window =>
-                {
-                    tcs.TrySetResult(window);
-                    dialog.Close();
-                };
+                await ModalDialogHost.ShowAsync(
+                    viewModel,
+                    set =>
+                    {
+                        viewModel.OnWindowSelected = window =>
+                        {
+                            selected = window;
+                            set(true);
+                        };
+                        viewModel.OnCancelled = () => set(false);
+                    },
+                    dismissResult: false,
+                    debugSource: nameof(WindowSelectorViewModel));
 
-                viewModel.OnCancelled = () =>
-                {
-                    tcs.TrySetResult(null);
-                    dialog.Close();
-                };
-
-                if (_desktop?.MainWindow != null)
-                {
-                    dialog.ShowDialog(_desktop.MainWindow);
-                }
-                else
-                {
-                    dialog.Show();
-                }
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.WriteException(ex, "Failed to show window selector");
-                tcs.TrySetResult(null);
-            }
-        });
-
-        return await tcs.Task;
+                return selected;
+            });
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.WriteException(ex, "Failed to show window selector");
+            return null;
+        }
     }
 
     private async Task<string?> ShowOpenFileDialogAsync()
@@ -299,6 +283,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
             var hotkeyService = PlatformServices.Hotkey;
             _workflowManager = new Core.Hotkeys.WorkflowManager(hotkeyService);
             _workflowManager.HotkeyTriggered += HotkeyManager_HotkeyTriggered;
+            _workflowManager.WorkflowsChanged += (_, _) => RefreshHyprlandKeybindings();
 
             var hotkeys = Core.SettingsManager.WorkflowsConfig.Hotkeys;
 
@@ -315,6 +300,28 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         {
             DebugHelper.WriteException(ex, "Failed to initialize hotkeys");
         }
+    }
+
+    /// <summary>Keeps ~/.config/hypr/xerahs.lua in sync with hotkeys when Hyprland keybindings are on (XIP0088).</summary>
+    private void RefreshHyprlandKeybindings()
+    {
+        var workflows = _workflowManager?.Workflows.ToList();
+        if (workflows == null || SettingsManager.Settings?.LinuxHyprlandKeybindings != true)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await new Core.Hotkeys.HyprlandKeybindingCoordinator().RefreshAsync(workflows).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteLine($"Hyprland keybindings: refresh failed ({ex.Message}).");
+            }
+        });
     }
 
     private void OnTaskCompleted(object? sender, EventArgs e)
@@ -351,6 +358,12 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
         }
 
         await ExecuteWorkflowFromTriggerAsync(settings);
+    }
+
+    public Task RunWorkflowAsync(Core.Hotkeys.WorkflowSettings workflow)
+    {
+        DebugHelper.WriteLine($"Workflow run requested by an automation client: {workflow} (ID: {workflow.Id})");
+        return ExecuteWorkflowFromTriggerAsync(workflow);
     }
 
     private async Task ExecuteWorkflowFromPaletteAsync(Core.Hotkeys.WorkflowSettings settings)
@@ -539,6 +552,7 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
                     ImagePath = imagePath,
                     FilePath = filePath,
                     URL = url,
+                    HistoryItemId = task.Info?.HistoryItemId,
                     Duration = generalSettings.ToastWindowDuration,
                     FadeDuration = generalSettings.ToastWindowFadeDuration,
                     Placement = generalSettings.ToastWindowPlacement,
@@ -546,6 +560,8 @@ public sealed class WorkflowOrchestrator : IWorkflowOrchestrator
                     LeftClickAction = generalSettings.ToastWindowLeftClickAction,
                     RightClickAction = generalSettings.ToastWindowRightClickAction,
                     MiddleClickAction = generalSettings.ToastWindowMiddleClickAction,
+                    ActionButtons = generalSettings.ToastWindowButtons?.ToList() ?? [],
+                    ActionButtonSize = generalSettings.ToastWindowButtonSize,
                     AutoHide = generalSettings.ToastWindowAutoHide
                 };
 

@@ -292,6 +292,7 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
                 Icon=xerahs
                 Terminal=false
                 Type=Application
+                MimeType=x-scheme-handler/xerahs;
                 Categories=Utility;Graphics;GTK;
                 Keywords=screenshot;screen;capture;share;upload;
                 StartupWMClass=xerahs
@@ -473,6 +474,7 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
                 Icon=xerahs
                 Terminal=false
                 Type=Application
+                MimeType=x-scheme-handler/xerahs;
                 Categories=Utility;Graphics;GTK;
                 Keywords=screenshot;screen;capture;share;upload;
                 StartupWMClass=xerahs
@@ -621,9 +623,9 @@ File.CreateSymbolicLink(symlinkPath, "../lib/xerahs/XerahS");
         sb.AppendLine();
         sb.AppendLine("%install");
         sb.AppendLine("rm -rf %{buildroot}");
-        sb.AppendLine("mkdir -p %{buildroot}/usr/lib/xerahs");
-        sb.AppendLine("mkdir -p %{buildroot}/usr/bin");
-        sb.AppendLine("cp -a usr/* %{buildroot}/usr/lib/xerahs/");
+        sb.AppendLine("mkdir -p %{buildroot}/usr");
+        // The staged source already mirrors the install layout (usr/lib/xerahs, usr/bin, usr/share, usr/lib/udev).
+        sb.AppendLine("cp -a usr/. %{buildroot}/usr/");
         sb.AppendLine("rm -f %{buildroot}/usr/bin/xerahs");
         sb.AppendLine("rm -f %{buildroot}/usr/bin/omaxerahs");
         sb.AppendLine("ln -s /usr/lib/xerahs/XerahS %{buildroot}/usr/bin/xerahs");

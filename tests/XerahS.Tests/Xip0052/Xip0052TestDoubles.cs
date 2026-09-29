@@ -36,6 +36,7 @@ using XerahS.Services.Abstractions;
 using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 using XerahS.Uploaders.PluginSystem;
+using XerahS.UI.Views.Dialogs;
 
 namespace XerahS.Tests.Xip0052;
 
@@ -203,8 +204,10 @@ internal sealed class FakeViewDialogService : IViewDialogService
     public Task<bool> ShowWorkflowEditorAsync(WorkflowEditorViewModel viewModel) => Task.FromResult(false);
     public Task ShowImageEffectsBrowserAsync(ImageEffectsViewModel viewModel) => Task.CompletedTask;
     public Task ShowFFmpegOptionsAsync(FFmpegOptionsViewModel viewModel) => Task.CompletedTask;
-    public Task ShowProviderExplorerAsync(ProviderExplorerViewModel viewModel) => Task.CompletedTask;
+    public Task ShowMediaBrowserAsync(MediaBrowserViewModel viewModel) => Task.CompletedTask;
     public Task ShowQrCodeGeneratorAsync(QrCodeGeneratorViewModel viewModel) => Task.CompletedTask;
+    public Task<bool> ShowWatchFolderEditorAsync(WatchFolderEditViewModel viewModel) => Task.FromResult(false);
+    public Task<OpenImageChoice> ShowOpenImageChoiceAsync() => Task.FromResult(OpenImageChoice.Cancel);
     public Task<string?> ShowFilePickerAsync(string title, IEnumerable<string>? filters = null) => Task.FromResult<string?>(null);
     public Task<string?> ShowSaveFilePickerAsync(string title, string suggestedFileName, string defaultExtension, IEnumerable<string>? filters = null) => Task.FromResult<string?>(null);
     public Task<string?> ShowSecretInputAsync(string title, string label) => Task.FromResult<string?>(null);
@@ -230,13 +233,15 @@ internal sealed class FakeUiViewModelFactory : IUiViewModelFactory
     public IScreenRecordingCoordinator ScreenRecordingCoordinator { get; }
 
     public CustomUploaderEditorViewModel CreateCustomUploaderEditorViewModel() => new();
+    public SettingsViewModel CreateApplicationSettingsViewModel() => new();
     public DestinationSettingsViewModel CreateDestinationSettingsViewModel() => new(this);
-    public HistoryViewModel CreateHistoryViewModel() => new(TaskManager, CoreDialogService);
+    public HistoryViewModel CreateHistoryViewModel(bool autoLoadHistory = true) =>
+        new(TaskManager, CoreDialogService, autoLoadHistory);
     public IndexFolderViewModel CreateIndexFolderViewModel(TaskSettings? taskSettings = null, bool isWorkflowConfigMode = false) =>
         CreateUninitialized<IndexFolderViewModel>();
     public PluginInstallerViewModel CreatePluginInstallerViewModel() => new(ViewDialogService);
-    public ProviderExplorerViewModel CreateProviderExplorerViewModel(UploaderInstance instance, IUploaderExplorer explorer) =>
-        new(instance, explorer, CoreDialogService);
+    public MediaBrowserViewModel CreateMediaBrowserViewModel(IReadOnlyList<MediaBrowserSource> sources, MediaBrowserSource? initialSource = null) =>
+        new(sources, CoreDialogService, initialSource);
     public QrCodeGeneratorViewModel CreateQrCodeGeneratorViewModel() => new(ViewDialogService);
     public WorkflowsViewModel CreateWorkflowsViewModel() => new(this);
     public WorkflowEditorViewModel CreateWorkflowEditorViewModel(WorkflowSettings model, bool loadUploaderCategories = true) =>

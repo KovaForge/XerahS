@@ -11,7 +11,10 @@ Lightweight **contracts only** (interfaces and DTOs) for building XerahS uploade
 
 | Type | Description |
 |------|-------------|
-| `IUploaderProvider` | Entry point for a destination: metadata, `CreateInstance(settingsJson)`, config view/VM, validation. |
+| `IUploaderProvider` | Entry point for a destination: metadata, `CreateInstance(settingsJson)`, optional `IUploadHandler`, config view/VM/schema, capabilities. |
+| `IUploadHandler` | Preferred async upload contract (`UploadRequest` → `UploadOutcome`). |
+| `IDestinationHost` | Host HTTP factory, secrets, and logging injected into uploads. |
+| `IProviderCatalog` | Injectable catalog of loaded providers. |
 | `IUploaderExplorer` | Optional: Media Explorer (list/thumbnail/delete/create folder). |
 | `IUploaderConfigViewModel` | Optional: ViewModel for provider config UI. |
 | `UploaderCategory` | Image, Text, File, UrlShortener, UrlSharing. |
@@ -20,7 +23,8 @@ Lightweight **contracts only** (interfaces and DTOs) for building XerahS uploade
 | `PluginManifest` | Deserialized from `plugin.json` (PluginId, EntryPoint, SupportedCategories, ApiVersion, etc.). |
 | `ExplorerQuery` / `ExplorerPage` / `MediaItem` | Used by `IUploaderExplorer.ListAsync`. |
 | `ISecretStore` / `IProviderContext` / `IProviderContextAware` | Optional: host-provided secrets and context. |
-| `IInstanceSecretMigrator` / `ISecretStoreInfo` | Optional: migrate legacy plaintext settings into the host secret store; describe secret keys. |
+| `IInstanceSecretMigrator` / `IInstanceSecretBackupProvider` | Optional: migrate legacy plaintext settings and enumerate the secret-store references required by an instance. |
+| `InstanceSecretReference` / `ISecretStoreInfo` | A provider/key/name secret reference; diagnostics for the host's secret-store backend. |
 
 ## IUploaderProvider.CreateInstance
 
@@ -28,7 +32,7 @@ Lightweight **contracts only** (interfaces and DTOs) for building XerahS uploade
 
 ## Secrets (optional)
 
-Implement **IInstanceSecretMigrator** so the host can migrate legacy plaintext credentials from settings JSON into the secret store. Implement **ISecretStoreInfo** to describe which secret keys your provider uses (for UI or tooling).
+Implement **IInstanceSecretMigrator** so the host can migrate legacy plaintext credentials from settings JSON into the secret store. Implement **IInstanceSecretBackupProvider** to enumerate each `InstanceSecretReference` needed to move an instance between secret-store backends. `GetSecretReferences` identifies values only; it must not read or return secret values.
 
 ## plugin.json
 

@@ -226,7 +226,7 @@ namespace XerahS.Common
 
             try
             {
-                HttpClient client = HttpClientFactory.Create();
+                HttpClient client = HttpClientFactory.Create(allowAutoRedirect: true, infiniteTimeout: true);
 
                 using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, URL))
                 {

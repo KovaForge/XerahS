@@ -25,7 +25,9 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using System;
+using XerahS.Common;
 using XerahS.UI.Controls;
+using XerahS.UI.Helpers;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views
@@ -35,6 +37,18 @@ namespace XerahS.UI.Views
         public TaskSettingsPanel()
         {
             InitializeComponent();
+
+            TextBox? namePattern = this.FindControl<TextBox>("NameFormatPatternTextBox");
+            if (namePattern != null)
+            {
+                NamePatternMenu.Attach(namePattern, CodeMenuEntryFilename.n, CodeMenuEntryFilename.t, CodeMenuEntryFilename.pn);
+            }
+
+            TextBox? windowPattern = this.FindControl<TextBox>("NameFormatPatternActiveWindowTextBox");
+            if (windowPattern != null)
+            {
+                NamePatternMenu.Attach(windowPattern, CodeMenuEntryFilename.n);
+            }
 
             // Wire up PropertyGrid property changes to preview updates
             var propertyGrid = this.FindControl<PropertyGrid>("EffectPropertyGrid");

@@ -38,6 +38,7 @@ final class AppState: ObservableObject {
     let settingsRepository: SettingsRepository
     let historyRepository: HistoryRepository
     let uploadQueueWorker: UploadQueueWorker
+    let cloudClient: XerahSCloudClient
 
     /// Paths from share intent to process when Upload screen is ready. Consumed once.
     @Published var pendingSharedPaths: [String] = []
@@ -48,11 +49,13 @@ final class AppState: ObservableObject {
     init(
         settingsRepository: SettingsRepository,
         historyRepository: HistoryRepository,
-        uploadQueueWorker: UploadQueueWorker
+        uploadQueueWorker: UploadQueueWorker,
+        cloudClient: XerahSCloudClient
     ) {
         self.settingsRepository = settingsRepository
         self.historyRepository = historyRepository
         self.uploadQueueWorker = uploadQueueWorker
+        self.cloudClient = cloudClient
         importPendingSxcuFiles()
         importPendingXsdcFiles()
     }

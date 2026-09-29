@@ -9,6 +9,8 @@
   "assemblyFileName": "XerahS.Nextcloud.Plugin.dll",
   "supportedCategories": ["Image", "Text", "File"],
   "supportsExplorer": true,
+  "supportsCancellation": true,
+  "supportsProgress": true,
   "configViewId": "nextcloud",
   "dependencies": [],
   "homepageUrl": "https://nextcloud.com/"

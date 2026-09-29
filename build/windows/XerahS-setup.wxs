@@ -85,6 +85,29 @@
                      KeyPath="yes" />
     </Component>
 
+    <Component Id="XerahSOAuthProtocolComp"
+               Directory="INSTALLFOLDER"
+               Guid="84C5E7F3-8E9B-4D16-9976-A2BD75D34937">
+      <RegistryValue Root="HKCU"
+                     Key="Software\Classes\xerahs"
+                     Type="string"
+                     Value="URL:XerahS OAuth Callback"
+                     KeyPath="yes" />
+      <RegistryValue Root="HKCU"
+                     Key="Software\Classes\xerahs"
+                     Name="URL Protocol"
+                     Type="string"
+                     Value="" />
+      <RegistryValue Root="HKCU"
+                     Key="Software\Classes\xerahs\DefaultIcon"
+                     Type="string"
+                     Value="[INSTALLFOLDER]XerahS.exe,0" />
+      <RegistryValue Root="HKCU"
+                     Key="Software\Classes\xerahs\shell\open\command"
+                     Type="string"
+                     Value="&quot;[INSTALLFOLDER]XerahS.exe&quot; &quot;%1&quot;" />
+    </Component>
+
     <!--
       Main feature.
       AppFiles and PluginFiles are ComponentGroups defined in the generated
@@ -94,6 +117,7 @@
       <ComponentGroupRef Id="AppFiles" />
       <ComponentGroupRef Id="PluginFiles" />
       <ComponentRef Id="StartMenuShortcutComp" />
+      <ComponentRef Id="XerahSOAuthProtocolComp" />
     </Feature>
 
   </Package>

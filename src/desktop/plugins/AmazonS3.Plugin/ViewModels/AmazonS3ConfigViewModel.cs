@@ -428,8 +428,13 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
             ? AwsSsoSecretStore.LoadRoleCredentials(_secrets, _secretKey)
             : null;
 
-        if (creds == null || creds.IsExpired())
+        if (creds == null || !creds.IsUsableFor(SsoAccountId, SsoRoleName))
         {
+            if (creds != null && _secrets != null)
+            {
+                AwsSsoSecretStore.DeleteRoleCredentials(_secrets, _secretKey);
+            }
+
             try
             {
                 var ssoClient = new AwsSsoClient(SsoRegion);
@@ -1002,7 +1007,7 @@ public partial class AmazonS3ConfigViewModel : ObservableObject, IUploaderConfig
 
         BucketName = bucketName;
         UseCustomCNAME = true;
-        SetPublicACL = true;
+        SetPublicACL = false;
 
         StatusMessage = null;
         return true;

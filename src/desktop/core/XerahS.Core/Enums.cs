@@ -276,8 +276,23 @@ public enum WorkflowType // Localized
     [Description("Image thumbnailer")]
     ImageThumbnailer,
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Image resizer")]
+    ImageResizer,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Image converter")]
+    ImageConverter,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Image watermark")]
+    ImageWatermark,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Animated GIF maker")]
+    AnimatedGifMaker,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Video converter")]
     VideoConverter,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Video trimmer")]
+    VideoTrimmer,
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Video thumbnailer")]
     VideoThumbnailer,
@@ -299,6 +314,9 @@ public enum WorkflowType // Localized
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Hash checker")]
     HashCheck,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Media browser")]
+    MediaBrowser,
 
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Directory indexer")]
@@ -309,6 +327,9 @@ public enum WorkflowType // Localized
     [Category(EnumExtensions.WorkflowType_Category_Tools)]
     [Description("Monitor test")]
     MonitorTest,
+    [Category(EnumExtensions.WorkflowType_Category_Tools)]
+    [Description("Network monitor")]
+    NetworkMonitor,
     // Other
     [Category(EnumExtensions.WorkflowType_Category_Other)]
     [Description("Disable/Enable hotkeys")]

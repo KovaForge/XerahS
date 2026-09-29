@@ -167,7 +167,8 @@ jobs:
             ARCHIVE_LIST="$(mktemp)"
             tar -tzf "$ARCHIVE" > "$ARCHIVE_LIST"
             grep -q "XerahS.app/Contents/MacOS/xerahs-watchfolder-daemon" "$ARCHIVE_LIST"
-            grep -q "XerahS.app/Contents/MacOS/xerahs-watchfolder-daemon.runtimeconfig.json" "$ARCHIVE_LIST"
+            # runtimeconfig sidecar is embedded in the single-file binary on macOS
+            # (see XerahS.App.csproj PublishWatchFolderDaemon / package-mac.sh).
             rm -f "$ARCHIVE_LIST"
           done
 
@@ -188,8 +189,43 @@ jobs:
           if-no-files-found: warn
           path: build/logs/macos-build.log
 
-  build-linux:
+  # OmaSnap capture engine (XIP0088), bundled in the Linux x64 tarball so XerahS works out of
+  # the box on Omarchy/Hyprland. Ubuntu 24.04 ships Qt 6.4, so OmaSnap is built in an Arch
+  # container (its target platform). Required: a missing submodule or dependency fails the
+  # release. deb, rpm, AppImage and Flatpak do not include it.
+  build-omasnap:
     needs: validate-version
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    steps:
+      - name: Install OmaSnap build dependencies
+        shell: bash
+        run: |
+          pacman -Syu --noconfirm --needed git base-devel cmake ninja pkgconf qt6-base layer-shell-qt \
+            wayland wayland-protocols libdeflate
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build OmaSnap
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          mkdir -p "$RUNNER_TEMP/omasnap-stage"
+          OMASNAP_REQUIRED=1 ./build/linux/build-omasnap.sh "$RUNNER_TEMP/omasnap-stage"
+
+      - name: Upload OmaSnap stage
+        uses: actions/upload-artifact@v4
+        with:
+          name: omasnap-linux-x64
+          if-no-files-found: error
+          path: ${{ runner.temp }}/omasnap-stage
+
+  build-linux:
+    needs: [validate-version, build-omasnap]
+    if: ${{ !cancelled() && needs.validate-version.result == 'success' }}
     strategy:
       fail-fast: false
       matrix:
@@ -220,12 +256,32 @@ jobs:
             libx11-6 libx11-xcb1 libice6 libsm6 libfontconfig1 libgl1 libxcursor1 \
             libxrandr2 libxi6 libxinerama1
 
+      - name: Download optional OmaSnap stage
+        if: matrix.rid == 'linux-x64'
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: omasnap-linux-x64
+          path: ${{ runner.temp }}/omasnap-stage
+
+      - name: Restore OmaSnap executable bit
+        if: matrix.rid == 'linux-x64'
+        shell: bash
+        run: |
+          # upload-artifact@v4 + download-artifact@v4 occasionally drop the +x
+          # bit on the extracted omasnap binary. Reapply it so the executable
+          # check in Build Linux packages sees it as runnable.
+          chmod +x "$RUNNER_TEMP/omasnap-stage/omasnap/omasnap" 2>/dev/null || true
+
       - name: Build Linux packages
         shell: bash
         run: |
           set -o pipefail
           mkdir -p build/logs
           chmod +x ./build/linux/package-linux.sh
+          if [ -x "$RUNNER_TEMP/omasnap-stage/omasnap/omasnap" ]; then
+            export XERAHS_OMASNAP_STAGE_DIR="$RUNNER_TEMP/omasnap-stage"
+          fi
           XERAHS_ARCHITECTURES="${{ matrix.rid }}" ./build/linux/package-linux.sh 2>&1 | tee "build/logs/linux-${{ matrix.rid }}-build.log"
 
       - name: Validate Linux archive
@@ -238,7 +294,21 @@ jobs:
           tar -tzf "$ARCHIVE" > "$ARCHIVE_LIST"
           grep -Eq '(^|/)xerahs-watchfolder-daemon$' "$ARCHIVE_LIST"
           grep -Eq '(^|/)xerahs-watchfolder-daemon.runtimeconfig.json$' "$ARCHIVE_LIST"
+          # OmaSnap is bundled in the linux-x64 tarball (XIP0088); other architectures ship without it.
+          if [ "${{ matrix.rid }}" = "linux-x64" ] || grep -Eq '(^|/)omasnap/' "$ARCHIVE_LIST"; then
+            for entry in omasnap/omasnap omasnap/licenses/LICENSE-MIT omasnap/licenses/LICENSE-OFL omasnap/licenses/LICENSE-ISC; do
+              grep -Eq "(^|/)${entry}\$" "$ARCHIVE_LIST" || { echo "::error::Incomplete OmaSnap bundle: missing ${entry}"; exit 1; }
+            done
+          fi
           rm -f "$ARCHIVE_LIST"
+          # The packager logs "Skipped RPM package" and exits 0 when rpmbuild fails; fail here
+          # instead of 15 minutes later in the release job's asset validator.
+          for package in deb rpm; do
+            if [ ! -f "dist/XerahS-${VERSION}-${{ matrix.rid }}.${package}" ]; then
+              echo "::error::Missing dist/XerahS-${VERSION}-${{ matrix.rid }}.${package}; see the Build Linux packages log."
+              exit 1
+            fi
+          done
 
       - name: Validate AppImage
         shell: bash
@@ -330,7 +400,10 @@ jobs:
         run: |
           set -o pipefail
           chmod +x ./build/linux/package-linux.sh
-          XERAHS_SKIP_APPIMAGE=1 XERAHS_ARCHITECTURES="linux-x64" ./build/linux/package-linux.sh
+          # Flatpak does not bundle the OmaSnap Qt capture engine (see the
+          # build-omasnap comment block above). Allow package-linux.sh to
+          # skip OmaSnap instead of failing because Qt6 is absent here.
+          XERAHS_ALLOW_NO_OMASNAP=1 XERAHS_SKIP_APPIMAGE=1 XERAHS_ARCHITECTURES="linux-x64" ./build/linux/package-linux.sh
 
       - name: Extract tarball to Flatpak staging dir
         shell: bash
@@ -345,13 +418,14 @@ jobs:
           tar -xzf "dist/XerahS-${VERSION}-linux-x64.tar.gz" \
             -C "dist/xerahs-flatpak-staging"
 
-      - name: Validate WebUI dist is present
+      - name: Validate video editor audio library is present
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -d "dist/xerahs-flatpak-staging/frontend/dist" ]; then
-            echo "Error: WebUI dist missing at dist/xerahs-flatpak-staging/frontend/dist"
-            echo "This means ShareX.VideoEditor was not built. Ensure git submodules are initialized."
+          # The Omacut video editor plays audio through the bundled OpenAL Soft library.
+          if ! find "dist/xerahs-flatpak-staging" -maxdepth 1 -name 'libopenal.so*' | grep -q .; then
+            echo "Error: libopenal.so missing from dist/xerahs-flatpak-staging"
+            echo "This means the Omacut submodule was not built. Ensure git submodules are initialized."
             exit 1
           fi
 

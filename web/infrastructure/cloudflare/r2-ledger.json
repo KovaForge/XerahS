@@ -1,0 +1,35 @@
+{
+  "bucket": {
+    "locationHint": "apac",
+    "storageClass": "Standard"
+  },
+  "publicAccess": false,
+  "locks": {
+    "rules": [
+      {
+        "id": "xerahs-trial-grants-indefinite",
+        "enabled": true,
+        "prefix": "trial-grants/v1/",
+        "condition": { "type": "Indefinite" }
+      },
+      {
+        "id": "xerahs-deletions-180-days",
+        "enabled": true,
+        "prefix": "deletions/v1/",
+        "condition": { "type": "Age", "maxAgeSeconds": 15552000 }
+      }
+    ]
+  },
+  "lifecycle": {
+    "rules": [
+      {
+        "id": "xerahs-expire-deletions-after-lock",
+        "enabled": true,
+        "conditions": { "prefix": "deletions/v1/" },
+        "deleteObjectsTransition": {
+          "condition": { "type": "Age", "maxAge": 15552000 }
+        }
+      }
+    ]
+  }
+}

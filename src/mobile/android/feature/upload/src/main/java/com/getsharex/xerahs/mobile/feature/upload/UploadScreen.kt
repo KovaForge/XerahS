@@ -45,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,10 +54,15 @@ import androidx.compose.ui.unit.dp
 import com.getsharex.xerahs.mobile.core.data.HistoryRepository
 import com.getsharex.xerahs.mobile.core.data.SettingsRepository
 import com.getsharex.xerahs.mobile.core.data.UploadQueueWorker
+import com.getsharex.xerahs.mobile.core.data.cloud.CLOUD_STATUS_FAILED
+import com.getsharex.xerahs.mobile.core.data.cloud.CLOUD_TAG_ERROR
+import com.getsharex.xerahs.mobile.core.data.cloud.CLOUD_TAG_STATUS
+import com.getsharex.xerahs.mobile.core.data.cloud.CloudRepository
 import com.getsharex.xerahs.mobile.core.domain.HistoryEntry
 import com.getsharex.xerahs.mobile.core.domain.UploadResultItem
 import com.getsharex.xerahs.mobile.core.domain.activeDestinationDisplayName
 import java.io.File
+import kotlinx.coroutines.launch
 
 private const val MAX_HOME_HISTORY_ITEMS = 100
 
@@ -69,6 +75,7 @@ fun UploadScreen(
     initialPaths: Array<String>? = null,
     historyRepository: HistoryRepository? = null,
     settingsRepository: SettingsRepository? = null,
+    cloudRepository: CloudRepository? = null,
     viewModel: UploadViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -77,6 +84,7 @@ fun UploadScreen(
         }
     )
 ) {
+    val scope = rememberCoroutineScope()
     var pendingAutoShareUploads by remember { mutableIntStateOf(0) }
     var autoShareResults by remember { mutableStateOf<List<UploadResultItem>>(emptyList()) }
 
@@ -195,6 +203,12 @@ fun UploadScreen(
                 HistoryCard(
                     entry = entry,
                     onCopyUrl = { onCopyToClipboard(entry.url) },
+                    onRetryCloud = if (entry.tags[CLOUD_TAG_STATUS] == CLOUD_STATUS_FAILED && cloudRepository != null) ({
+                        scope.launch {
+                            cloudRepository.retry(entry)
+                            refreshHistory()
+                        }
+                    }) else null,
                     onDelete = {
                         historyRepository?.deleteEntry(entry.id)
                         refreshHistory()
@@ -362,6 +376,7 @@ private fun EmptyHistoryCard(hasQuery: Boolean) {
 private fun HistoryCard(
     entry: HistoryEntry,
     onCopyUrl: () -> Unit,
+    onRetryCloud: (() -> Unit)?,
     onDelete: () -> Unit
 ) {
     Card(
@@ -394,9 +409,22 @@ private fun HistoryCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            entry.tags[CLOUD_TAG_STATUS]?.let { status ->
+                Text(
+                    text = "Cloud: $status",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (status == CLOUD_STATUS_FAILED) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            entry.tags[CLOUD_TAG_ERROR]?.let { error ->
+                Text(error, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (entry.url.isNotBlank()) {
                     OutlinedButton(onClick = onCopyUrl) { Text("Copy URL") }
+                }
+                if (onRetryCloud != null) {
+                    OutlinedButton(onClick = onRetryCloud) { Text("Retry Cloud") }
                 }
                 OutlinedButton(onClick = onDelete) { Text("Delete") }
             }

@@ -35,6 +35,7 @@ using System.Threading.Tasks;
 using XerahS.Core;
 using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
+using XerahS.UI.Views.Dialogs;
 
 namespace XerahS.Tests.Editor;
 
@@ -110,8 +111,10 @@ public class CreativeFilterDialogWiringTests
         public Task<bool> ShowWorkflowEditorAsync(WorkflowEditorViewModel viewModel) => Task.FromResult(false);
         public Task ShowImageEffectsBrowserAsync(ImageEffectsViewModel viewModel) => Task.CompletedTask;
         public Task ShowFFmpegOptionsAsync(FFmpegOptionsViewModel viewModel) => Task.CompletedTask;
-        public Task ShowProviderExplorerAsync(ProviderExplorerViewModel viewModel) => Task.CompletedTask;
+        public Task ShowMediaBrowserAsync(MediaBrowserViewModel viewModel) => Task.CompletedTask;
         public Task ShowQrCodeGeneratorAsync(QrCodeGeneratorViewModel viewModel) => Task.CompletedTask;
+        public Task<bool> ShowWatchFolderEditorAsync(WatchFolderEditViewModel viewModel) => Task.FromResult(false);
+        public Task<OpenImageChoice> ShowOpenImageChoiceAsync() => Task.FromResult(OpenImageChoice.Cancel);
         public Task<string?> ShowFilePickerAsync(string title, IEnumerable<string>? filters = null) => Task.FromResult<string?>(null);
         public Task<string?> ShowSaveFilePickerAsync(string title, string suggestedFileName, string defaultExtension, IEnumerable<string>? filters = null) => Task.FromResult<string?>(null);
         public Task<string?> ShowSecretInputAsync(string title, string label) => Task.FromResult<string?>(null);

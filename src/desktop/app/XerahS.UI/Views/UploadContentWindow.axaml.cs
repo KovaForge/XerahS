@@ -158,101 +158,47 @@ public partial class UploadContentWindow : SurfaceWindow
 
     private async void OnTextInputRequested(object? sender, EventArgs e)
     {
-        var dialog = new SurfaceWindow
+        var viewModel = new XerahS.UI.ViewModels.SimplePromptViewModel
         {
             Title = "Enter Text",
-            Width = 450,
-            Height = 300,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Content = new DockPanel
-            {
-                Margin = new Avalonia.Thickness(12)
-            }
+            Label = "Text to upload",
+            ShowCancel = true,
+            ShowInput = true,
+            PrimaryButtonText = "OK"
         };
 
-        var textBox = new TextBox
+        var ok = await XerahS.UI.Services.ModalDialogHost.ShowAsync(
+            viewModel,
+            set => viewModel.CloseRequested = set,
+            dismissResult: false,
+            debugSource: "UploadContent.Enter Text");
+
+        if (_viewModel != null && ok && !string.IsNullOrEmpty(viewModel.AcceptedInput))
         {
-            AcceptsReturn = true,
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-            PlaceholderText = "Enter text to upload..."
-        };
-
-        var okButton = new Button { Content = "OK", MinWidth = 80, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right };
-        var cancelButton = new Button { Content = "Cancel", MinWidth = 80, Margin = new Avalonia.Thickness(8, 0, 0, 0) };
-
-        var buttonPanel = new StackPanel
-        {
-            Orientation = Avalonia.Layout.Orientation.Horizontal,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-            Spacing = 8,
-            Margin = new Avalonia.Thickness(0, 8, 0, 0)
-        };
-        buttonPanel.Children.Add(okButton);
-        buttonPanel.Children.Add(cancelButton);
-
-        DockPanel.SetDock(buttonPanel, Dock.Bottom);
-        var panel = (DockPanel)dialog.Content;
-        panel.Children.Add(buttonPanel);
-        panel.Children.Add(textBox);
-
-        string? result = null;
-        okButton.Click += (_, _) => { result = textBox.Text; dialog.Close(); };
-        cancelButton.Click += (_, _) => dialog.Close();
-
-        await dialog.ShowDialog(this);
-
-        if (_viewModel != null && !string.IsNullOrEmpty(result))
-        {
-            _viewModel.AddTextItem(result);
+            _viewModel.AddTextItem(viewModel.AcceptedInput);
         }
     }
 
     private async void OnURLInputRequested(object? sender, EventArgs e)
     {
-        var dialog = new SurfaceWindow
+        var viewModel = new XerahS.UI.ViewModels.SimplePromptViewModel
         {
             Title = "Enter URL",
-            Width = 450,
-            Height = 150,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Content = new DockPanel
-            {
-                Margin = new Avalonia.Thickness(12)
-            }
+            Label = "https://...",
+            ShowCancel = true,
+            ShowInput = true,
+            PrimaryButtonText = "OK"
         };
 
-        var textBox = new TextBox
+        var ok = await XerahS.UI.Services.ModalDialogHost.ShowAsync(
+            viewModel,
+            set => viewModel.CloseRequested = set,
+            dismissResult: false,
+            debugSource: "UploadContent.Enter URL");
+
+        if (_viewModel != null && ok && !string.IsNullOrEmpty(viewModel.AcceptedInput))
         {
-            PlaceholderText = "https://..."
-        };
-
-        var okButton = new Button { Content = "OK", MinWidth = 80 };
-        var cancelButton = new Button { Content = "Cancel", MinWidth = 80 };
-
-        var buttonPanel = new StackPanel
-        {
-            Orientation = Avalonia.Layout.Orientation.Horizontal,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-            Spacing = 8,
-            Margin = new Avalonia.Thickness(0, 8, 0, 0)
-        };
-        buttonPanel.Children.Add(okButton);
-        buttonPanel.Children.Add(cancelButton);
-
-        DockPanel.SetDock(buttonPanel, Dock.Bottom);
-        var panel = (DockPanel)dialog.Content;
-        panel.Children.Add(buttonPanel);
-        panel.Children.Add(textBox);
-
-        string? result = null;
-        okButton.Click += (_, _) => { result = textBox.Text; dialog.Close(); };
-        cancelButton.Click += (_, _) => dialog.Close();
-
-        await dialog.ShowDialog(this);
-
-        if (_viewModel != null && !string.IsNullOrEmpty(result))
-        {
-            _viewModel.AddURLItem(result);
+            _viewModel.AddURLItem(viewModel.AcceptedInput);
         }
     }
 

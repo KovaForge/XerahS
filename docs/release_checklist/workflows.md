@@ -59,6 +59,7 @@ Total items: `53`
 - [ ] WF-IndexFolder Directory indexer
 - [ ] WF-ClipboardViewer Clipboard viewer
 - [ ] WF-MonitorTest Monitor test
+- [ ] WF-NetworkMonitor Network monitor
 
 ## Other (`6`)
 - [ ] WF-DisableHotkeys Disable/Enable hotkeys

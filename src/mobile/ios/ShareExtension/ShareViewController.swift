@@ -286,12 +286,10 @@ final class ShareViewController: UIViewController {
             return
         }
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        Task { [weak self] in
             guard let self else { return }
-            let results = self.uploadService.uploadFiles(uploadPaths)
-            DispatchQueue.main.async {
-                self.finishUploadShare(uploadResults: results, hasPendingImport: !sxcuPaths.isEmpty || !xsdcPaths.isEmpty)
-            }
+            let results = await self.uploadService.uploadFiles(uploadPaths)
+            await MainActor.run { self.finishUploadShare(uploadResults: results, hasPendingImport: !sxcuPaths.isEmpty || !xsdcPaths.isEmpty) }
         }
     }
 
@@ -312,7 +310,10 @@ final class ShareViewController: UIViewController {
             openContainingApp()
         }
 
-        if uploadedUrls.count == uploadResults.count {
+        let cloudFailures = uploadResults.compactMap(\.cloudError)
+        if !cloudFailures.isEmpty {
+            updateStatus("Link copied. \(cloudFailures[0]) Cloud publishing is online-only; retry by sharing the file again.")
+        } else if uploadedUrls.count == uploadResults.count {
             let status = uploadedUrls.count == 1
                 ? "Link copied to Clipboard."
                 : "\(uploadedUrls.count) links copied to Clipboard."

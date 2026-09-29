@@ -74,6 +74,7 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":feature:upload"))
     implementation(project(":feature:settings"))
+    implementation(project(":feature:history"))
 
     implementation(libs.core.ktx)
     implementation(libs.activity.compose)

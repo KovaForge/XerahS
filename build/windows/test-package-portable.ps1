@@ -20,7 +20,7 @@ function Assert-Rejected([scriptblock]$Action, [string]$ExpectedMessage) {
 }
 
 try {
-    foreach ($relative in @('XerahS.exe', 'coreclr.dll', 'xerahs-watchfolder-daemon.exe', 'frontend/dist/index.html',
+    foreach ($relative in @('XerahS.exe', 'coreclr.dll', 'xerahs-watchfolder-daemon.exe',
             'Plugins/example/plugin.json', 'Plugins/example/example.dll', 'XerahS.pdb', 'Plugins/example/example.pdb', '.hidden')) {
         $file = Join-Path $source $relative
         [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($file)) | Out-Null
@@ -35,7 +35,7 @@ try {
         try {
             $names = @($zip.Entries | ForEach-Object { $_.FullName })
             foreach ($required in @('XerahS.exe', 'xerahs-watchfolder-daemon.exe', 'portable.txt',
-                    'frontend/dist/index.html', 'Plugins/example/plugin.json', 'Plugins/example/example.dll', '.hidden', 'LICENSE.txt')) {
+                    'Plugins/example/plugin.json', 'Plugins/example/example.dll', '.hidden', 'LICENSE.txt')) {
                 Assert-True ($names -contains $required) "Archive missing root-relative entry $required"
             }
             Assert-True (@($names | Where-Object { $_ -like '*.pdb' }).Count -eq 0) 'Archive contains debug symbols.'

@@ -43,6 +43,35 @@ namespace XerahS.Core.Tasks
     {
         #region Recording Handlers (Stage 5)
 
+        /// <summary>
+        /// Starts recording and waits for the stop signal. A restart request (ShareX #7255) discards
+        /// the current take and records again with the same options, so the surrounding workflow
+        /// (save, upload, history) only ever sees the final take.
+        /// </summary>
+        internal static async Task RecordUntilStoppedAsync(
+            ScreenRecordingWorkflowCoordinator recordingCoordinator,
+            RecordingOptions recordingOptions,
+            Action<string?> onStarted)
+        {
+            string? requestedOutputPath = recordingOptions.OutputPath;
+            while (true)
+            {
+                recordingOptions.OutputPath = requestedOutputPath;
+                await recordingCoordinator.StartRecordingAsync(recordingOptions);
+                recordingOptions.OutputPath = recordingCoordinator.PlannedOutputPath ?? recordingOptions.OutputPath;
+                onStarted(recordingOptions.OutputPath);
+
+                await recordingCoordinator.WaitForStopSignalAsync();
+                if (!recordingCoordinator.ConsumeRestartRequest())
+                {
+                    return;
+                }
+
+                DebugHelper.WriteLine("Restarting recording: discarding the current take.");
+                await recordingCoordinator.AbortRecordingAsync();
+            }
+        }
+
         private static ScreenRecordingWorkflowCoordinator CreateRecordingCoordinator()
         {
             return new ScreenRecordingWorkflowCoordinator(RecordingManagerService);
@@ -107,16 +136,12 @@ namespace XerahS.Core.Tasks
                 DebugHelper.WriteLine($"Starting recording: Mode={mode}, Codec={recordingOptions.Settings?.Codec}, FPS={recordingOptions.Settings?.FPS}");
                 DebugHelper.WriteLine($"Output path: {recordingOptions.OutputPath}");
 
-                // 1. Start recording
                 var recordingCoordinator = CreateRecordingCoordinator();
-                await recordingCoordinator.StartRecordingAsync(recordingOptions);
-                recordingOptions.OutputPath = recordingCoordinator.PlannedOutputPath ?? recordingOptions.OutputPath;
-                Info.FilePath = recordingOptions.OutputPath;
-                XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "ScreenRecordingManager.StartRecordingAsync completed");
-
-                // 2. Wait for stop signal (ASYNC WAIT - Yields thread, keeps task alive)
-                XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Waiting for stop signal...");
-                await recordingCoordinator.WaitForStopSignalAsync();
+                await RecordUntilStoppedAsync(recordingCoordinator, recordingOptions, plannedPath =>
+                {
+                    Info.FilePath = plannedPath ?? Info.FilePath;
+                    XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Recording started; waiting for stop signal...");
+                });
                 XerahS.Common.TroubleshootingHelper.Log(taskSettings.Job.ToString(), "WORKER_TASK", "Stop signal received. Resuming...");
 
                 // 3. Stop recording
@@ -230,22 +255,13 @@ namespace XerahS.Core.Tasks
                     if (taskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnnotateMedia)
                         && PlatformServices.IsInitialized && PlatformServices.UI != null)
                     {
-                        VideoEditorLaunchPolicy launchPolicy = VideoEditorLaunchPolicyResolver.GetCurrentPolicy();
-                        if (!launchPolicy.AllowAutoLaunchAfterCapture)
+                        string? ffmpegPath = ResolveGifFFmpegPath(taskSettings.CaptureSettings?.FFmpegOptions);
+                        string? editedPath = await PlatformServices.UI.ShowVideoEditorAsync(outputPath, ffmpegPath);
+                        if (!string.IsNullOrEmpty(editedPath) && File.Exists(editedPath))
                         {
-                            DebugHelper.WriteLine($"VideoEditor auto-launch skipped: {launchPolicy.AutoLaunchBlockedReason}");
-                            ShowDeferredVideoEditorToast(outputPath, launchPolicy.AutoLaunchBlockedReason);
-                        }
-                        else
-                        {
-                            string? ffmpegPath = ResolveGifFFmpegPath(taskSettings.CaptureSettings?.FFmpegOptions);
-                            string? editedPath = await PlatformServices.UI.ShowVideoEditorAsync(outputPath, ffmpegPath);
-                            if (!string.IsNullOrEmpty(editedPath) && File.Exists(editedPath))
-                            {
-                                outputPath = editedPath;
-                                Info.FilePath = outputPath;
-                                DebugHelper.WriteLine($"VideoEditor produced: {outputPath}");
-                            }
+                            outputPath = editedPath;
+                            Info.FilePath = outputPath;
+                            DebugHelper.WriteLine($"VideoEditor produced: {outputPath}");
                         }
                     }
 
@@ -290,7 +306,13 @@ namespace XerahS.Core.Tasks
 
                             DebugHelper.WriteLine($"[HistoryTrace] Preparing to add item. URL='{historyItem.URL}', File='{historyItem.FileName}'");
 
-                            await Task.Run(() => historyManager.AppendHistoryItem(historyItem));
+                            bool appended = await Task.Run(() => historyManager.AppendHistoryItem(historyItem));
+                            if (!appended)
+                            {
+                                throw new InvalidOperationException("The recording history row could not be saved.");
+                            }
+
+                            Info.HistoryItemId = historyItem.Id;
                             DebugHelper.WriteLine($"Added recording to history: {historyItem.FileName} (URL: {historyItem.URL})");
                             historySaved = true;
                             break; // Success - exit retry loop
@@ -459,36 +481,6 @@ namespace XerahS.Core.Tasks
             }
 
             return historyItem;
-        }
-
-        private static void ShowDeferredVideoEditorToast(string outputPath, string? message)
-        {
-            if (string.IsNullOrWhiteSpace(outputPath))
-            {
-                return;
-            }
-
-            try
-            {
-                PlatformServices.Toast?.ShowToast(new Platform.Abstractions.ToastConfig
-                {
-                    Title = "Recording Saved",
-                    Text = string.IsNullOrWhiteSpace(message)
-                        ? "Recording saved. Open the video editor manually if needed."
-                        : message,
-                    FilePath = outputPath,
-                    Duration = 8f,
-                    Size = new SizeI(480, 140),
-                    AutoHide = true,
-                    LeftClickAction = Platform.Abstractions.ToastClickAction.OpenFile,
-                    MiddleClickAction = Platform.Abstractions.ToastClickAction.AnnotateMedia,
-                    RightClickAction = Platform.Abstractions.ToastClickAction.CloseNotification
-                });
-            }
-            catch
-            {
-                // Ignore toast failures so the recording flow can finish cleanly.
-            }
         }
 
         private static LinuxRecordingBackendPreference ResolveLinuxRecordingBackendPreference(TaskSettingsCapture captureSettings)

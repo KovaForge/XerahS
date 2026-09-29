@@ -132,6 +132,7 @@ Without the `.Desktop` package, the `WebView` control may fail to initialize or 
 - Never host `AnnotationToolbar` as a centered size-to-content control without a finite width cap on Avalonia 12.1+; always stretch the host (or bind `MaxWidth` to the overlay/editor root `Bounds.Width`) and cap the toolbar chrome `ScrollViewer` to that width because otherwise trailing tool buttons clip with no horizontal scrollbar.
 - Never leave the `ShareX.ImageEditor` submodule on a detached/older HEAD after `git pull`; always `git submodule update --init` (or checkout the parent gitlink SHA) because app hosts compile against the pointer API (`BorderStyle`, `VisibleToolbarItems`, etc.) and a stale checkout silently empties or breaks the annotation toolbar.
 - Never use Avalonia's fake headless drawing for icon-font smoke tests; always use Skia-backed headless mode (`UseSkia()` and `UseHeadlessDrawing = false`) because glyph resource failures only surface when the font pipeline is actually exercised.
+- Never apply an icon font to every `TextBlock` below an Avalonia toolbar button; always scope icon typography to the button's content presenter because tooltip text can share the button's logical ancestry and must retain a normal text font.
 - Never rely on Button `FontFamily` inheritance for Lucide/Content icon glyphs when a global `TextBlock` style sets `FontFamily`; always restyle `Button TextBlock` (bind to `$parent[Button].FontFamily` or set `ShareX.FontFamily.Icon` on `Button.toolbar-button TextBlock`) because Style priority outranks Inherited and blank PUA glyphs look like invisible toolbar buttons.
 - Never let feature work alter or bypass existing `ShareX.ImageEditor` theme resources, variants, or bindings unless the task explicitly targets them; always treat theme behavior and visual resource contracts as non-regression requirements because unrelated UI changes can silently break dark/light presentation across the editor.
 - Never make XerahS host startup responsible for prewarming editor wallpaper conversions; always let `ShareX.ImageEditor` request the desktop wallpaper during `MainViewModel` initialization because Linux wallpaper conversion/caching belongs to the editor integration contract and must work consistently across every host, not just XerahS.
@@ -217,6 +218,8 @@ This forces the build system to include the correct Windows SDK reference assemb
     ```
 
     **Why**: Plugin build targets that copy outputs to the host's bin folder (e.g., `$(TargetFramework)\Plugins\`) will use the plugin's TFM in the path. If the plugin targets `net10.0` but the host outputs to `net10.0-windows10.0.19041.0`, plugins end up in the wrong folder and fail to load at runtime. This causes provider settings UI to not appear.
+
+- Never turn the characters before a filename token into an S3 explorer folder by blindly appending `/`; always scope ListObjectsV2 to the last complete directory before the token, expose paths relative to that logical root, and retain the full object key in item metadata because embedded tokens otherwise produce nonexistent prefixes and absolute paths duplicate the generic explorer's Root breadcrumb.
 
 ---
 
@@ -324,9 +327,24 @@ This forces the build system to include the correct Windows SDK reference assemb
 ### Compile New NUnit Tests Before Broad Verification
 
 - Never assume NUnit attributes are globally imported in `XerahS.Tests`; always include `using NUnit.Framework;` in a new test file and run its focused filter first because otherwise the full dependency build finishes before revealing a trivial test-compilation error.
+- Never put backslash-escaped `TimeSpan` patterns directly inside an interpolated format item; call `ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture)` first because the containing C# string still treats those backslashes as escape sequences.
+- Never leave shared AWS and plugin S3 model names unqualified in tests or make `IProviderContext.Secrets` nullable; qualify colliding SDK types and match the interface nullability exactly because warnings are errors and the test project reveals these issues only after its broad dependency build.
+- Never combine a fixed probe clock with a ViewModel that filters short monitoring ranges against wall-clock time; align the sample timestamp with the active clock or inject the clock because an otherwise valid sample will correctly fall outside the five-minute window and produce a misleading aggregate-test failure.
 - Never run a `--no-restore` solution build after pulling central package-version changes; always restore the solution first because stale project assets can mix incompatible managed assembly versions and produce misleading compiler failures.
 - Never remove a project reference based only on `using`-directive searches; search fully qualified namespace expressions and build the affected project directly because expression-qualified calls can hide a real dependency without importing its namespace.
 - Never use a product executable project as a bounded compile check unless recursive staging is explicitly disabled; route agent checks through `build/verify.ps1` so plugin builds, daemon staging, and VideoEditor frontend work happen only in product-assembly lanes.
+
+### Keep Subdaily Jobs Portable Across Hosting Plans
+
+**Context**: XIP0085 needs one-minute ledger dispatch and five-minute account-deletion processing, but Vercel Hobby rejects Cron Jobs that run more than once per day.
+
+**Lesson**: Treat subdaily scheduling as an independently deployable adapter. Keep the business logic behind idempotent, secret-authenticated internal routes, and let a versioned Cloudflare Cron Worker invoke the exact allowlisted paths when the Vercel plan cannot provide the required cadence. Store the shared secret independently in both providers, generate Worker binding types from `wrangler.jsonc`, configure staging and production as explicit Wrangler environments, and keep the Worker out of the application request-delivery path.
+
+### Confirm the Canonical Hostname Before Provisioning Exact-Origin Integrations
+
+**Context**: XIP0085 was first provisioned at the temporary `staging.xerahs.com` hostname before `cloud.xerahs.com` was confirmed as the stable application origin.
+
+**Lesson**: Never infer a stable public hostname from an environment label. Confirm and record the canonical application origin before provisioning DNS, TLS, authentication callbacks, OAuth clients, billing webhooks, schedulers, and desktop defaults because exact-origin integrations make a later migration coordinated and compatibility-sensitive. Preserve a narrowly scoped legacy callback window for already-shipped native clients instead of either silently breaking them or accepting wildcard redirects.
 
 ### Portable Release Contracts
 

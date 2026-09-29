@@ -105,7 +105,8 @@ struct UploadScreen: View {
                         HistoryEntryRow(
                             entry: entry,
                             onCopyUrl: { onCopyToClipboard(entry.url) },
-                            onDelete: { _ = historyViewModel.deleteEntry(entry.id) }
+                            onDelete: { _ = historyViewModel.deleteEntry(entry.id) },
+                            onRetryCloudPublish: { worker.retryCloudPublish(entry) }
                         )
                     }
                 }
@@ -155,6 +156,10 @@ struct UploadScreen: View {
                     onAutoShareUploadFinished(completed)
                 }
             }
+        }
+        .onReceive(worker.cloudPublishResult.receive(on: DispatchQueue.main)) { message in
+            statusText = message
+            historyViewModel.refresh()
         }
         .onAppear {
             worker.updateState()

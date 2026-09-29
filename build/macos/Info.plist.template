@@ -20,6 +20,19 @@
 	<string>Logo</string>
 	<key>CFBundleIconName</key>
 	<string>Logo</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>com.xerahs.app.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>xerahs</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSMinimumSystemVersion</key>
 	<string>__MIN_OS__</string>
 	<key>LSApplicationCategoryType</key>

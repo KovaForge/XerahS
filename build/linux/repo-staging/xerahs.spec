@@ -45,7 +45,8 @@ XerahS-%{version}-linux-*.rpm asset already attached to each release.
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/lib/xerahs
 mkdir -p %{buildroot}%{_bindir}
-cp -a usr/* %{buildroot}/usr/lib/xerahs/
+# The release tarball holds the payload at its root (no usr/ prefix).
+cp -a . %{buildroot}/usr/lib/xerahs/
 # Remove any pre-existing symlinks or regular files before creating new symlinks.
 rm -f %{buildroot}%{_bindir}/xerahs
 rm -f %{buildroot}%{_bindir}/omaxerahs
@@ -76,6 +77,7 @@ Exec=/usr/bin/xerahs %U
 Icon=xerahs
 Terminal=false
 Type=Application
+MimeType=x-scheme-handler/xerahs;
 Categories=Utility;Graphics;GTK;
 Keywords=screenshot;screen;capture;share;upload;
 StartupWMClass=xerahs

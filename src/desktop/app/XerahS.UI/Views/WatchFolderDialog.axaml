@@ -1,16 +1,12 @@
-<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="using:XerahS.UI.Views"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:vm="using:XerahS.UI.ViewModels"
         mc:Ignorable="d"
         x:Class="XerahS.UI.Views.WatchFolderDialog"
         x:DataType="vm:WatchFolderEditViewModel"
-        Width="520"
-        SizeToContent="Height"
-        WindowStartupLocation="CenterOwner"
-        Title="{Binding Title}">
+        MinWidth="480" MaxWidth="560">
 
     <Design.DataContext>
         <vm:WatchFolderEditViewModel />
@@ -84,4 +80,4 @@
             <Button Content="Save" Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}" Classes="accent" AutomationProperties.Name="Save"/>
         </StackPanel>
     </StackPanel>
-</ui:SurfaceWindow>
+</UserControl>

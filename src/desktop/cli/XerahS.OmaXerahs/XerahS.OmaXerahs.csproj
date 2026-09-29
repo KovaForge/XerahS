@@ -23,19 +23,30 @@
     <PackageReference Include="System.CommandLine" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Agent skill shipped inside the binary; "omaxerahs skill install" writes it out. -->
+    <EmbeddedResource Include="AgentSkill\**\*" LogicalName="AgentSkill/$([System.String]::Copy('%(RecursiveDir)').Replace('\','/'))%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Dual Windows/non-Windows Bootstrap refs match XerahS.CLI, but always drop OS so this net10.0 host binds Bootstrap's net10.0 TFM. -->
     <ProjectReference Include="..\..\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj"
                       Condition="$(RuntimeIdentifier.StartsWith('win')) Or ('$(OS)' == 'Windows_NT' And '$(RuntimeIdentifier)' == '')"
-                      GlobalPropertiesToRemove="OS"
-                      AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
+                      GlobalPropertiesToRemove="OS" />
     <ProjectReference Include="..\..\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj"
                       Condition="!($(RuntimeIdentifier.StartsWith('win')) Or ('$(OS)' == 'Windows_NT' And '$(RuntimeIdentifier)' == ''))"
-                      GlobalPropertiesToRemove="OS"
-                      AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
+                      GlobalPropertiesToRemove="OS" />
     <ProjectReference Include="..\..\core\XerahS.Core\XerahS.Core.csproj" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Abstractions\XerahS.Platform.Abstractions.csproj" />
     <!-- net10.0 cannot reference XerahS.Platform.Windows (net10.0-windows*). Linux/macOS platform projects match CLI RID/OS conditions. -->
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.MacOS\XerahS.Platform.MacOS.csproj" Condition="'$(IsMacOSCliBuild)' == 'true'" />
     <ProjectReference Include="..\..\..\platform\XerahS.Platform.Linux\XerahS.Platform.Linux.csproj" Condition="'$(IsLinuxCliBuild)' == 'true'" />
+  </ItemGroup>
+
+  <!--
+    Pass RID/CrossCompile to Bootstrap only for RID-specific (publish) builds. Passing them when empty
+    (or CrossCompile=true on Linux) created a second configuration of Bootstrap and everything below it,
+    so the same obj folder was built twice in parallel (AVLN9999 "file is being used by another process").
+  -->
+  <ItemGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <ProjectReference Update="..\..\app\XerahS.Bootstrap\XerahS.Bootstrap.csproj" AdditionalProperties="RuntimeIdentifier=$(RuntimeIdentifier);CrossCompile=$(CrossCompile)" />
   </ItemGroup>
 </Project>

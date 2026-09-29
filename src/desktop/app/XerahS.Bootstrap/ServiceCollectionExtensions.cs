@@ -25,6 +25,9 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using XerahS.Core.Cloud;
+using XerahS.Uploaders.PluginSystem;
+using XerahS.Core.Uploaders;
 using XerahS.Platform.Abstractions;
 using XerahS.Services.Abstractions;
 
@@ -91,6 +94,7 @@ namespace XerahS.Bootstrap
 
             services.TryAddSingleton(application.WatchFolderManager);
             services.TryAddSingleton<IWatchFolderDaemonController, WatchFolderDaemonControllerAdapter>();
+            services.TryAddSingleton<IProviderCatalog>(_ => ProviderCatalogService.Shared);
 
             return services;
         }
@@ -105,9 +109,10 @@ namespace XerahS.Bootstrap
             ArgumentNullException.ThrowIfNull(services);
             ArgumentNullException.ThrowIfNull(hostServices);
 
-            return services
+            services
                 .AddXerahSPlatformServices(hostServices.Platform)
                 .AddXerahSApplicationServices(hostServices.Application);
+            return services.AddXerahSCloudServices();
         }
 
         /// <summary>
@@ -123,7 +128,8 @@ namespace XerahS.Bootstrap
             }
 
             AddLegacyPlatformServiceAccessors(services);
-            return services.AddXerahSApplicationServices(DesktopApplicationServices.FromCurrentProcess());
+            services.AddXerahSApplicationServices(DesktopApplicationServices.FromCurrentProcess());
+            return services.AddXerahSCloudServices();
         }
 
         /// <summary>
@@ -161,6 +167,29 @@ namespace XerahS.Bootstrap
 
             TryAddOptionalSingleton(services, PlatformServices.GetShellIntegrationIfAvailable());
             TryAddOptionalSingleton(services, PlatformServices.GetNotificationIfAvailable());
+        }
+
+        private static IServiceCollection AddXerahSCloudServices(this IServiceCollection services)
+        {
+            services.TryAddSingleton(_ => XerahSCloudOptions.FromEnvironment());
+            services.TryAddSingleton<ISecretStore>(_ => ProviderContextManager.EnsureProviderContext().Secrets);
+            services.TryAddSingleton<IXerahSCloudSessionStore, XerahSCloudSessionStore>();
+            services.TryAddSingleton<IXerahSCloudClock, SystemXerahSCloudClock>();
+            services.TryAddSingleton<IXerahSCloudTokenValidator>(sp =>
+                new SupabaseXerahSCloudTokenValidator(httpClient: null, sp.GetRequiredService<IXerahSCloudClock>()));
+            services.TryAddSingleton<IXerahSCloudOAuthTokenExchange>(sp =>
+                new XerahSCloudOAuthTokenExchange(
+                    httpClient: null,
+                    sp.GetRequiredService<XerahSCloudOptions>(),
+                    sp.GetRequiredService<IXerahSCloudTokenValidator>()));
+            services.TryAddSingleton<IXerahSCloudOAuthCoordinator, XerahSCloudOAuthCoordinator>();
+            services.TryAddSingleton<IXerahSCloudClient>(sp =>
+                new XerahSCloudApiClient(
+                    httpClient: null,
+                    sp.GetRequiredService<IXerahSCloudSessionStore>(),
+                    sp.GetRequiredService<IXerahSCloudOAuthTokenExchange>(),
+                    sp.GetRequiredService<XerahSCloudOptions>()));
+            return services;
         }
     }
 }

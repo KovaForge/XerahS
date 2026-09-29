@@ -27,6 +27,7 @@ using Avalonia.Controls;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.UI.ViewModels;
+using XerahS.Media;
 using XerahS.UI.Views;
 
 namespace XerahS.UI.Services;
@@ -37,6 +38,9 @@ public static class MediaToolsToolService
     private static ImageSplitterWindow? _splitterWindow;
     private static ImageThumbnailerWindow? _thumbnailerWindow;
     private static VideoConverterWindow? _converterWindow;
+    private static VideoTrimmerWindow? _trimmerWindow;
+    private static AnimatedGifMakerWindow? _gifMakerWindow;
+    private static readonly Dictionary<ImageBatchOperation, ImageBatchToolWindow> _imageBatchWindows = new();
     private static VideoThumbnailerWindow? _videoThumbnailerWindow;
     private static ImageAnalyzerWindow? _analyzerWindow;
 
@@ -84,6 +88,32 @@ public static class MediaToolsToolService
                 }, w => _converterWindow = w, "VideoConverter");
                 break;
 
+            case WorkflowType.VideoTrimmer:
+                OpenVideoTrimmer(null, owner);
+                break;
+
+            case WorkflowType.ImageResizer:
+                OpenImageBatchTool(ImageBatchOperation.Resize, null, owner);
+                break;
+
+            case WorkflowType.ImageConverter:
+                OpenImageBatchTool(ImageBatchOperation.Convert, null, owner);
+                break;
+
+            case WorkflowType.ImageWatermark:
+                OpenImageBatchTool(ImageBatchOperation.Watermark, null, owner);
+                break;
+
+            case WorkflowType.AnimatedGifMaker:
+                ShowWindow(_gifMakerWindow, owner, () =>
+                {
+                    var vm = new AnimatedGifMakerViewModel();
+                    var w = new AnimatedGifMakerWindow();
+                    w.Initialize(vm);
+                    return w;
+                }, w => _gifMakerWindow = w, "AnimatedGifMaker");
+                break;
+
             case WorkflowType.VideoThumbnailer:
                 ShowWindow(_videoThumbnailerWindow, owner, () =>
                 {
@@ -106,6 +136,45 @@ public static class MediaToolsToolService
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>Opens the Image Resizer / Converter / Watermark tool, optionally with images added.</summary>
+    public static void OpenImageBatchTool(ImageBatchOperation operation, IEnumerable<string>? filePaths, Window? owner)
+    {
+        _imageBatchWindows.TryGetValue(operation, out var current);
+        ShowWindow(current, owner, () =>
+        {
+            var vm = new ImageBatchToolViewModel(operation);
+            var w = new ImageBatchToolWindow();
+            w.Initialize(vm);
+            return w;
+        }, w =>
+        {
+            if (w == null) _imageBatchWindows.Remove(operation);
+            else _imageBatchWindows[operation] = w;
+        }, operation.ToString());
+
+        if (filePaths != null && _imageBatchWindows.TryGetValue(operation, out var window) && window.ViewModel is { } viewModel)
+        {
+            viewModel.AddFilePaths(filePaths);
+        }
+    }
+
+    /// <summary>Opens the Video Trimmer, optionally with a video already loaded (History "Trim video...").</summary>
+    public static void OpenVideoTrimmer(string? filePath, Window? owner)
+    {
+        ShowWindow(_trimmerWindow, owner, () =>
+        {
+            var vm = new VideoTrimmerViewModel();
+            var w = new VideoTrimmerWindow();
+            w.Initialize(vm);
+            return w;
+        }, w => _trimmerWindow = w, "VideoTrimmer");
+
+        if (!string.IsNullOrWhiteSpace(filePath) && _trimmerWindow?.ViewModel is { } viewModel)
+        {
+            _ = viewModel.LoadAsync(filePath);
+        }
     }
 
     private static void ShowWindow<T>(T? current, Window? owner, Func<T> createWindow, Action<T?> setWindow, string toolName) where T : Window

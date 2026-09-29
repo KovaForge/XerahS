@@ -26,7 +26,10 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using XerahS.Common;
 using XerahS.Core;
+using XerahS.Core.Managers;
+using XerahS.UI.Helpers;
 using XerahS.UI.Services;
 using XerahS.UI.Controls;
 
@@ -39,7 +42,14 @@ namespace XerahS.UI.Views
         public ApplicationSettingsView()
         {
             InitializeComponent();
-            var vm = new ViewModels.SettingsViewModel();
+            TextBox? subfolderPattern = this.FindControl<TextBox>("SaveImageSubFolderPatternTextBox");
+            if (subfolderPattern != null)
+            {
+                NamePatternMenu.Attach(subfolderPattern, CodeMenuEntryFilename.n);
+            }
+
+            var uiFactory = UiViewModelFactoryAccessor.GetRequired();
+            var vm = uiFactory.CreateApplicationSettingsViewModel();
             DataContext = vm;
 
             var propertyGrid = this.FindControl<PropertyGrid>("ApplicationConfigPropertyGrid");
@@ -47,8 +57,6 @@ namespace XerahS.UI.Views
             {
                 propertyGrid.PropertyValueChanged += (_, _) => SettingsManager.SaveApplicationConfig();
             }
-
-            var uiFactory = UiViewModelFactoryAccessor.GetRequired();
 
             // Wire up the edit requester
             vm.HotkeySettings.EditHotkeyRequester = async (settings) =>
@@ -59,21 +67,22 @@ namespace XerahS.UI.Views
 
             vm.EditWatchFolderRequester = async (editVm) =>
             {
-                var dialog = new WatchFolderDialog
-                {
-                    DataContext = editVm
-                };
-
-                if (VisualRoot is Window window)
-                {
-                    return await dialog.ShowDialog<bool>(window);
-                }
-
-                return false;
+                return await uiFactory.ViewDialogService.ShowWatchFolderEditorAsync(editVm);
             };
 
             vm.BrowseScreenshotsFolderRequester = BrowseScreenshotsFolderAsync;
-
+            vm.BackupSettingsFileRequester = () => uiFactory.ViewDialogService.ShowSaveFilePickerAsync(
+                "Create Portable Settings Backup",
+                PortableSettingsBackupService.DefaultFileName,
+                PortableSettingsBackupService.FileExtension,
+                new[] { $"*.{PortableSettingsBackupService.FileExtension}" });
+            vm.RestoreSettingsFileRequester = () => uiFactory.ViewDialogService.ShowFilePickerAsync(
+                "Restore Portable Settings Backup",
+                new[] { $"*.{PortableSettingsBackupService.FileExtension}" });
+            var settingsBackupDialogs = new AvaloniaDialogServiceAdapter();
+            vm.SettingsBackupConfirmationRequester = settingsBackupDialogs.ShowConfirmationAsync;
+            vm.SettingsBackupMessageRequester = settingsBackupDialogs.ShowMessageAsync;
+            vm.SettingsBackupErrorRequester = settingsBackupDialogs.ShowErrorAsync;
             // Find debug TextBox and connect it to the HotkeySelectionControl's static debug log
             Loaded += (s, e) =>
             {

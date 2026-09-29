@@ -56,7 +56,7 @@ namespace XerahS.Bootstrap
                 // 1. Initialize logging
                 if (options.EnableLogging)
                 {
-                    InitializeLogging(options.LogPath);
+                    InitializeLogging(options.LogPath, options.ConsoleLogging);
                 }
 
                 // 2. Load configuration (must be before platform init so Linux portal service preferences are available)
@@ -111,7 +111,7 @@ namespace XerahS.Bootstrap
         /// <summary>
         /// Initialize logging with datestamped file in Logs/yyyy-MM folder structure.
         /// </summary>
-        private static void InitializeLogging(string? customLogPath = null)
+        private static void InitializeLogging(string? customLogPath = null, bool? consoleLogging = null)
         {
             string logPath;
 
@@ -132,6 +132,10 @@ namespace XerahS.Bootstrap
 
             Directory.CreateDirectory(logDirectory);
             DebugHelper.Init(logPath);
+            if (consoleLogging.HasValue && DebugHelper.Logger != null)
+            {
+                DebugHelper.Logger.ConsoleWrite = consoleLogging.Value;
+            }
 
             var dh = DebugHelper.Logger;
             if (dh == null) return;
@@ -268,6 +272,7 @@ namespace XerahS.Bootstrap
         {
             bool useWaylandPortalServices = ResolveLinuxWaylandPortalServicesSetting();
             DebugHelper.WriteLine($"Linux: UseWaylandPortalServices={useWaylandPortalServices}");
+            Platform.Linux.Services.LinuxDesktopProfile.ConfigureOmaSnapPathOverride(SettingsManager.Settings?.LinuxOmaSnapPathOverride);
             Platform.Linux.LinuxPlatform.Initialize(useWaylandPortalServices: useWaylandPortalServices);
         }
 #endif

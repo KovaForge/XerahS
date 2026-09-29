@@ -16,32 +16,6 @@ fi
 VERSION=$(grep '<Version>' "$ROOT/Directory.Build.props" | sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' | tr -d '[:space:]')
 echo "Building XerahS version $VERSION for Linux..."
 
-prepare_video_editor_frontend() {
-    local frontend_dir="$ROOT/ShareX.VideoEditor/frontend"
-    local npm_ci_args=(ci)
-
-    if [ ! -f "$frontend_dir/package.json" ]; then
-        echo "Error: ShareX.VideoEditor frontend package.json not found: $frontend_dir"
-        exit 1
-    fi
-
-    if [ "${XERAHS_NPM_OFFLINE:-}" = "1" ]; then
-        npm_ci_args+=(--offline)
-    fi
-
-    echo "Building ShareX.VideoEditor frontend..."
-    (
-        cd "$frontend_dir"
-        npm "${npm_ci_args[@]}"
-        npm run build
-    )
-
-    if [ ! -d "$frontend_dir/dist" ]; then
-        echo "Error: ShareX.VideoEditor frontend dist missing after build: $frontend_dir/dist"
-        exit 1
-    fi
-}
-
 restore_project_assets_for_os() {
     local project_path="$1"
     local os_value="$2"
@@ -202,6 +176,12 @@ publish_single_plugin() {
             fi
         done
 
+        # Make deps.json runtime/native/resources paths match the published layout
+        # and fail the build if any asset is neither at its declared path nor in
+        # plugin.json dependencies. See rewrite_plugin_deps_json / validate_plugin_dependencies.
+        rewrite_plugin_deps_json "$plugin_output"
+        validate_plugin_dependencies "$plugin_output" "$plugin_id"
+
         if [ -f "$plugin_output/$assembly_name" ]; then
             break
         fi
@@ -252,6 +232,266 @@ validate_omaxerahs_bundle() {
         echo "Error: Missing omaxerahs runtimeconfig in publish output: $runtimeconfig_path"
         exit 1
     fi
+
+    smoke_test_omaxerahs_history "$omaxerahs_path" "${2:-}"
+}
+
+# Bundle the OmaSnap capture engine (XIP0088) in the linux-x64 portable tarball, so XerahS
+# captures through OmaSnap on Omarchy/Hyprland out of the box. deb, rpm and AppImage stay
+# unchanged. Sources, in order:
+#   XERAHS_OMASNAP_STAGE_DIR    folder that already contains omasnap/ (CI Arch container job)
+#   otherwise                   built now from native/omasnap with build-omasnap.sh
+# A linux-x64 tarball without OmaSnap is an error. XERAHS_ALLOW_NO_OMASNAP=1 lets a machine
+# without Qt6 + LayerShellQt still package XerahS (the capability probe then reports it absent).
+# OmaSnap links against the host's Qt at runtime and XerahS probes it before use, so it is
+# inert on systems that cannot run it.
+append_omasnap() {
+    local tarball="$1"
+    local arch="$2"
+    local stage_dir="${XERAHS_OMASNAP_STAGE_DIR:-}"
+    local temp_stage=""
+    local allow_missing="${XERAHS_ALLOW_NO_OMASNAP:-0}"
+
+    if [ "$arch" != "linux-x64" ] || [ ! -f "$tarball" ]; then
+        return 0
+    fi
+
+    if [ -z "$stage_dir" ]; then
+        temp_stage="$(mktemp -d)"
+        if [ "$allow_missing" = "1" ]; then
+            "$ROOT/build/linux/build-omasnap.sh" "$temp_stage"
+        else
+            OMASNAP_REQUIRED=1 "$ROOT/build/linux/build-omasnap.sh" "$temp_stage"
+        fi
+        stage_dir="$temp_stage"
+    fi
+
+    if [ ! -x "$stage_dir/omasnap/omasnap" ]; then
+        [ -n "$temp_stage" ] && rm -rf "$temp_stage"
+        if [ "$allow_missing" = "1" ]; then
+            echo "  Warning: OmaSnap not staged; XERAHS_ALLOW_NO_OMASNAP=1, so the portable tarball ships without it."
+            return 0
+        fi
+        echo "Error: OmaSnap is not staged at $stage_dir/omasnap/omasnap; the linux-x64 tarball must bundle it."
+        echo "       Install Qt6 + LayerShellQt build deps, or set XERAHS_ALLOW_NO_OMASNAP=1 to package without it."
+        exit 1
+    fi
+
+    local notice
+    for notice in LICENSE-MIT LICENSE-OFL LICENSE-ISC; do
+        if [ ! -f "$stage_dir/omasnap/licenses/$notice" ]; then
+            echo "Error: OmaSnap stage is missing licenses/$notice; refusing to ship it without notices."
+            exit 1
+        fi
+    done
+
+    echo "  Adding OmaSnap to $(basename "$tarball")..."
+    local uncompressed="${tarball%.gz}"
+    gzip -d -f "$tarball"
+    tar --owner=0 --group=0 -rf "$uncompressed" -C "$stage_dir" ./omasnap
+    gzip -9 -f "$uncompressed"
+    [ -n "$temp_stage" ] && rm -rf "$temp_stage"
+    return 0
+}
+
+# Run the published single-file omaxerahs on its own (no native libraries beside it) and
+# check that it can open SQLite. Guards against the e_sqlite3 provider being left outside
+# the bundle, which made uploads from omaxerahs fail to write history (XIP0088 Phase 0).
+smoke_test_omaxerahs_history() {
+    local omaxerahs_path="$1"
+    local arch="$2"
+    local host_arch
+    case "$(uname -m)" in
+        x86_64) host_arch="linux-x64" ;;
+        aarch64|arm64) host_arch="linux-arm64" ;;
+        *) host_arch="" ;;
+    esac
+
+    if [ -n "$arch" ] && [ "$arch" != "$host_arch" ]; then
+        echo "  Skipping omaxerahs SQLite smoke test for $arch on $host_arch host."
+        return 0
+    fi
+
+    local smoke_dir
+    smoke_dir="$(mktemp -d)"
+    mkdir -p "$smoke_dir/home"
+    cp "$omaxerahs_path" "$smoke_dir/omaxerahs"
+    local output
+    output="$(cd "$smoke_dir" && HOME="$smoke_dir/home" XDG_CONFIG_HOME="$smoke_dir/config" \
+        XDG_DATA_HOME="$smoke_dir/data" XDG_STATE_HOME="$smoke_dir/state" XDG_CACHE_HOME="$smoke_dir/cache" \
+        XERAHS_NO_APP_NOTIFY=1 ./omaxerahs doctor --json 2>/dev/null || true)"
+    rm -rf "$smoke_dir"
+
+    if ! printf '%s' "$output" | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(0 if d.get("history",{}).get("ok") else 1)'; then
+        echo "Error: published omaxerahs cannot open SQLite on its own. doctor output: $output"
+        exit 1
+    fi
+
+    echo "  omaxerahs SQLite smoke test passed."
+}
+
+# Rewrite every runtime/native/resources asset path inside the plugin's deps.json
+# so it points at the actual file on disk after publish. Without this, deps.json
+# keeps the NuGet restore layout (e.g. "lib/net8.0/AWSSDK.S3.dll") while the
+# publish step flattens the file to the plugin root, so .NET falls back to
+# AppContext.BaseDirectory probing. PluginFolderCleaner then sees a file that is
+# neither at the declared deps.json path nor in plugin.json dependencies, and
+# quarantines it on every startup (observed with AWSSDK on the amazon3s plugin).
+rewrite_plugin_deps_json() {
+    local plugin_output="$1"
+    local deps_path
+    local deps_paths=()
+
+    while IFS= read -r -d '' deps_path; do
+        deps_paths+=("$deps_path")
+    done < <(find "$plugin_output" -maxdepth 1 -name '*.deps.json' -print0 2>/dev/null)
+
+    if [ "${#deps_paths[@]}" -eq 0 ]; then
+        return 0
+    fi
+
+    local deps_file
+    for deps_file in "${deps_paths[@]}"; do
+        python3 - "$plugin_output" "$deps_file" <<'PY'
+import json
+import os
+import sys
+
+plugin_dir, deps_path = sys.argv[1], sys.argv[2]
+
+with open(deps_path, "r", encoding="utf-8") as handle:
+    deps = json.load(handle)
+
+targets = deps.get("targets", {})
+if not isinstance(targets, dict):
+    sys.exit(0)
+
+asset_groups = ("runtime", "native", "resources")
+rewritten = False
+
+
+def visit(node):
+    global rewritten
+    if isinstance(node, dict):
+        for key, value in list(node.items()):
+            if key in asset_groups and isinstance(value, dict):
+                if rewrite_group(value):
+                    rewritten = True
+            else:
+                visit(value)
+    elif isinstance(node, list):
+        for item in node:
+            visit(item)
+
+
+def rewrite_group(group):
+    changed = False
+    for declared_path in list(group.keys()):
+        if not declared_path or not declared_path.startswith("lib/"):
+            continue
+        on_disk = os.path.join(plugin_dir, declared_path)
+        if os.path.exists(on_disk):
+            continue
+        basename = os.path.basename(declared_path)
+        candidate = os.path.join(plugin_dir, basename)
+        if candidate != on_disk and os.path.exists(candidate):
+            group[basename] = group.pop(declared_path)
+            changed = True
+    return changed
+
+
+visit(targets)
+
+if rewritten:
+    with open(deps_path, "w", encoding="utf-8") as handle:
+        json.dump(deps, handle, indent=2)
+        handle.write("\n")
+PY
+    done
+}
+
+# Fail the build if any deps.json runtime asset is not at its declared path AND
+# its basename is not declared in plugin.json dependencies. Without this guard,
+# the bundle ships with files that PluginFolderCleaner will quarantine on first
+# startup, breaking the plugin until the user manually restores them.
+validate_plugin_dependencies() {
+    local plugin_output="$1"
+    local plugin_id="$2"
+
+    local deps_path manifest_path
+    deps_path=$(find "$plugin_output" -maxdepth 1 -name '*.deps.json' -print -quit 2>/dev/null || true)
+    manifest_path="$plugin_output/plugin.json"
+
+    if [ -z "$deps_path" ]; then
+        return 0
+    fi
+    if [ ! -f "$manifest_path" ]; then
+        return 0
+    fi
+
+    python3 - "$plugin_output" "$deps_path" "$manifest_path" "$plugin_id" <<'PY'
+import json
+import os
+import sys
+
+plugin_dir, deps_path, manifest_path, plugin_id = sys.argv[1:5]
+
+with open(deps_path, "r", encoding="utf-8") as handle:
+    deps = json.load(handle)
+with open(manifest_path, "r", encoding="utf-8") as handle:
+    manifest = json.load(handle)
+
+declared = set()
+for entry in manifest.get("dependencies") or []:
+    if isinstance(entry, str) and entry:
+        declared.add(os.path.basename(entry))
+
+targets = deps.get("targets", {})
+if not isinstance(targets, dict):
+    sys.exit(0)
+
+missing = []
+for target_name, libraries in targets.items():
+    if not isinstance(libraries, dict):
+        continue
+    for lib_name, info in libraries.items():
+        if not isinstance(info, dict):
+            continue
+        # Only runtime and resources are plugin-breakers when quarantined: the
+        # plugin's AssemblyLoadContext needs to resolve them at load time, and
+        # PluginFolderCleaner moves them out on first startup. Native assets are
+        # commonly shared between the main app and plugins (Avalonia pulls in
+        # libSkiaSharp.so / libHarfBuzzSharp.so transitively even when the main
+        # app is self-contained single-file); quarantining those is harmless.
+        for group in ("runtime", "resources"):
+            entries = info.get(group)
+            if not isinstance(entries, dict):
+                continue
+            for declared_path in entries:
+                if not declared_path or not isinstance(declared_path, str):
+                    continue
+                full = os.path.join(plugin_dir, declared_path)
+                if os.path.exists(full):
+                    continue
+                if os.path.basename(declared_path) in declared:
+                    continue
+                missing.append((target_name, lib_name, group, declared_path))
+
+if missing:
+    sys.stderr.write(
+        "Error: plugin '%s' ships runtime files that PluginFolderCleaner will quarantine.\n"
+        % plugin_id
+    )
+    sys.stderr.write("Each missing entry below must either:\n")
+    sys.stderr.write("  * exist at the declared deps.json path in the plugin folder, or\n")
+    sys.stderr.write("  * be listed under plugin.json 'dependencies' (basename match).\n")
+    for target_name, lib_name, group, declared_path in missing:
+        sys.stderr.write(
+            "  - target=%s lib=%s group=%s path=%s\n"
+            % (target_name, lib_name, group, declared_path)
+        )
+    sys.exit(1)
+PY
 }
 
 # Define Architectures to Build
@@ -275,7 +515,6 @@ if [ -n "${XERAHS_DOTNET_RESTORE_SOURCES:-}" ]; then
     done
 fi
 
-prepare_video_editor_frontend
 restore_scoped_intermediate_assets
 restore_project_assets_for_os "$PACKAGING_TOOL" "Linux"
 
@@ -308,7 +547,7 @@ for ARCH in "${ARCHITECTURES[@]}"; do
         -p:SkipBundlePlugins=true
 
     validate_daemon_bundle "$PUBLISH_DIR"
-    validate_omaxerahs_bundle "$PUBLISH_DIR"
+    validate_omaxerahs_bundle "$PUBLISH_DIR" "$ARCH"
 
     # 1.5 Publish Plugins
     echo "Publishing Plugins ($ARCH)..."
@@ -339,6 +578,8 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     export PLUGINS_DIR PUBLISH_DIR ARCH
     export -f dotnet_publish_serial
     export -f publish_single_plugin
+    export -f rewrite_plugin_deps_json
+    export -f validate_plugin_dependencies
 
     printf '%s\0' "${PLUGIN_PROJECTS[@]}" | xargs -0 -n1 -P "$PLUGIN_JOBS" bash -c '
         publish_single_plugin "$1" "$PLUGINS_DIR" "$PUBLISH_DIR" "$ARCH"
@@ -357,7 +598,18 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     echo "Packaging ($ARCH)..."
     echo "Note: rpmbuild is required to produce RPM packages."
     echo "Note: squashfs-tools is required to produce AppImage packages."
-    dotnet run --no-restore --project "$PACKAGING_TOOL" -- "$PUBLISH_DIR" "$OUTPUT_DIR" "$VERSION" "$ARCH"
+    # The portable tarball is written first; a later format (AppImage without squashfs-tools,
+    # RPM without rpmbuild) can fail after it. Finish the tarball with OmaSnap either way, then
+    # report the packaging failure, so no tarball leaves here without its capture engine.
+    packaging_status=0
+    dotnet run --no-restore --project "$PACKAGING_TOOL" -- "$PUBLISH_DIR" "$OUTPUT_DIR" "$VERSION" "$ARCH" || packaging_status=$?
+
+    append_omasnap "$OUTPUT_DIR/XerahS-${VERSION}-${ARCH}.tar.gz" "$ARCH"
+
+    if [ "$packaging_status" -ne 0 ]; then
+        echo "Error: packaging ($ARCH) failed with exit code $packaging_status; see the messages above."
+        exit "$packaging_status"
+    fi
 done
 
 echo ""
