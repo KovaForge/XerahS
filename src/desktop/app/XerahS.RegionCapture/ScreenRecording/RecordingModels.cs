@@ -234,28 +234,6 @@ public class FrameArrivedEventArgs : EventArgs
 }
 
 /// <summary>
-/// Event arguments for audio buffer notifications (Stage 6)
-/// </summary>
-public class AudioBufferEventArgs : EventArgs
-{
-    /// <summary>Audio data buffer</summary>
-    public byte[] Buffer { get; }
-
-    /// <summary>Number of bytes recorded in this buffer</summary>
-    public int BytesRecorded { get; }
-
-    /// <summary>Timestamp in 100-nanosecond units</summary>
-    public long Timestamp { get; }
-
-    public AudioBufferEventArgs(byte[] buffer, int bytesRecorded, long timestamp)
-    {
-        Buffer = buffer;
-        BytesRecorded = bytesRecorded;
-        Timestamp = timestamp;
-    }
-}
-
-/// <summary>
 /// Event arguments for recording started notification
 /// Includes information about the recording method being used
 /// </summary>

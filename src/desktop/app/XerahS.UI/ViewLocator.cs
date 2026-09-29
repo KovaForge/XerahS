@@ -51,7 +51,6 @@ public class ViewLocator : IDataTemplate
             [typeof(DebugViewModel)] = static () => new DebugView(),
             [typeof(DestinationSettingsViewModel)] = static () => new DestinationSettingsView(),
             [typeof(HistoryViewModel)] = static () => new HistoryView(),
-            [typeof(HotkeySettingsViewModel)] = static () => new HotkeySettingsView(),
             [typeof(IndexFolderViewModel)] = static () => new IndexFolderPanel(),
             [typeof(ProviderCatalogViewModel)] = static () => new ProviderCatalogView(),
             [typeof(MediaBrowserViewModel)] = static () => new MediaBrowserView(),

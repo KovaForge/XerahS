@@ -122,27 +122,3 @@ public interface IVideoEncoder : IDisposable
     /// </summary>
     void FinalizeEncoding();
 }
-
-/// <summary>
-/// Audio capture interface (Stage 6)
-/// Windows: WasapiAudioCapture
-/// Linux: PulseAudio
-/// macOS: CoreAudio
-/// </summary>
-public interface IAudioCapture : IDisposable
-{
-    /// <summary>
-    /// Start capturing audio
-    /// </summary>
-    void Start();
-
-    /// <summary>
-    /// Stop capturing audio
-    /// </summary>
-    void Stop();
-
-    /// <summary>
-    /// Fired when audio data is available
-    /// </summary>
-    event EventHandler<AudioBufferEventArgs> AudioDataAvailable;
-}

@@ -168,6 +168,9 @@ namespace XerahS.Platform.Abstractions
         /// <summary>Optional compositor-managed keybindings (Hyprland, XIP0088). Null elsewhere.</summary>
         public static ICompositorKeybindingService? CompositorKeybindings { get; set; }
 
+        /// <summary>Optional one-time keyboard access setup for global hotkeys (Linux Quick Setup). Null elsewhere.</summary>
+        public static IHotkeyAccessSetupService? HotkeyAccessSetup { get; set; }
+
         /// <summary>
         /// Checks if platform services have been initialized
         /// </summary>
@@ -356,6 +359,7 @@ namespace XerahS.Platform.Abstractions
             HostedCaptureEngine = null;
             DesktopProfile = null;
             CompositorKeybindings = null;
+            HotkeyAccessSetup = null;
             _platformInfo = null;
             _screenService = null;
             _clipboardService = null;

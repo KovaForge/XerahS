@@ -45,20 +45,7 @@ namespace XerahS.Platform.Windows
             var clipboardService = new WindowsClipboardService();
             var clipboardMonitorService = new WindowsClipboardMonitorService(clipboardService);
 
-            // If no service provided, use modern DXGI capture if supported, otherwise GDI+
-            if (screenCaptureService == null)
-            {
-                if (WindowsModernCaptureService.IsSupported)
-                {
-                    DebugHelper.WriteLine("Modern DXGI screen capture is supported. Using WindowsModernCaptureService.");
-                    screenCaptureService = new WindowsModernCaptureService(screenService);
-                }
-                else
-                {
-                    DebugHelper.WriteLine("Modern DXGI screen capture is NOT supported (requires Windows 8+). Using legacy GDI+ WindowsScreenCaptureService.");
-                    screenCaptureService = new WindowsScreenCaptureService(screenService);
-                }
-            }
+            screenCaptureService ??= WindowsScreenCaptureServiceFactory.Create(screenService);
 
             PlatformServices.Initialize(
                 platformInfo: new WindowsPlatformInfo(),
