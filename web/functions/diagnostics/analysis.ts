@@ -20,7 +20,13 @@ export const EXIT_MARKER_VERSION = [0, 32, 0] as const;
 
 export type EventKind = "exception" | "abnormal_exit" | "error_line";
 export type ExitKind = "clean" | "abnormal" | "running" | "unknown";
-export type WindowKind = "24h" | "7d" | "30d";
+export type WindowKind = "24h" | "7d";
+
+/** Log history a report may cover. The server rejects anything else. */
+export const WINDOW_HOURS: Record<WindowKind, number> = {
+  "24h": 24,
+  "7d": 24 * 7,
+};
 
 export interface LogEntry {
   /** Local wall-clock time as written by the app, "yyyy-MM-dd HH:mm:ss.fff". */
@@ -651,9 +657,13 @@ export function windowKindFor(start: string, end: string): WindowKind {
     (Date.parse(end.replace(" ", "T") + "Z") -
       Date.parse(start.replace(" ", "T") + "Z")) /
     3_600_000;
-  if (hours <= 24) return "24h";
-  if (hours <= 24 * 7) return "7d";
-  return "30d";
+  return hours <= WINDOW_HOURS["24h"] ? "24h" : "7d";
+}
+
+/** Local timestamp `hours` before `end`, in the log's "yyyy-MM-dd HH:mm:ss.fff" form. */
+export function timestampHoursBefore(end: string, hours: number): string {
+  const ms = Date.parse(end.replace(" ", "T") + "Z") - hours * 3_600_000;
+  return new Date(ms).toISOString().replace("T", " ").slice(0, 23);
 }
 
 /** "yyyy-MM-dd HH:mm:ss.fff" (local, offset unknown) to ISO, applying an offset when known. */

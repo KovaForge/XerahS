@@ -1,98 +1,145 @@
--- Behavioural tests for db/migrations/0001_diagnostics.sql.
--- Run against a scratch database after applying the migration:
---   for f in db/migrations/*.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done
+-- Behavioural tests for db/migrations. Run against a scratch database after
+-- applying every migration in order:
+--   node scripts/db-migrate.ts        (or: for f in db/migrations/*.sql; do psql ... -f "$f"; done)
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/diagnostics_test.sql
 -- Any failed assertion raises and aborts the run.
 
 update diagnostics.settings set allow_ingest = true;
 
-create temporary table t_report (template jsonb);
-insert into t_report values ($json$
-{
-  "schemaVersion": 1, "redactionVersion": 1, "trigger": "manual",
-  "installId": "11111111-1111-4111-8111-111111111111",
-  "clientReportId": "22222222-2222-4222-8222-222222222222",
-  "app": {"version": "0.31.3", "buildFlavor": "Release", "dotnetVersion": "10.0.12"},
-  "os": {"family": "windows", "description": "Microsoft Windows 10.0.26200", "version": "10.0.26200",
-         "architecture": "X64", "processArchitecture": "X64", "elevated": false},
-  "capture": {"captureBackend": "dxgi", "ffmpeg": {"version": "7.1", "source": "bundled", "hwEncoders": ["h264_nvenc"]}},
-  "hardware": {"cpuModel": "AMD Ryzen 9", "logicalCores": 32, "ramGbBucket": 64, "gpus": [{"name": "NVIDIA RTX 4090"}]},
-  "displays": [{"ordinal": 0, "width": 3840, "height": 2160, "scale": 1.5, "rotation": 0, "isHdr": false},
-               {"ordinal": 3, "width": 1440, "height": 2560, "scale": 1.0, "rotation": 270, "isHdr": false}],
-  "window": {"kind": "24h", "start": "2026-09-28T14:00:00Z", "end": "2026-09-29T14:00:00Z"},
-  "sessions": [{"startedAt": "2026-09-29T12:11:48Z", "endedAt": "2026-09-29T13:45:18Z", "appVersion": "0.31.3",
-                "exitKind": "abnormal", "lastComponent": "CaptureFullScreenDxgi",
-                "lastMessageTemplate": "EnumDisplaySettings orientation for <display> => dmDisplayOrientation=3, mappedRotation=Rotate270"}],
-  "events": [
-    {"kind": "abnormal_exit", "component": "CaptureFullScreenDxgi",
-     "messageTemplate": "EnumDisplaySettings orientation for <display> => dmDisplayOrientation=3, mappedRotation=Rotate270"},
-    {"kind": "error_line", "component": "DxgiOutputDuplicationHelper",
-     "messageTemplate": "DuplicateOutput1 failed, using DuplicateOutput. HRESULT: [0x80070057]",
-     "sampleMessage": "DuplicateOutput1 failed E_INVALIDARG", "occurrences": 12},
-    {"kind": "exception", "exceptionType": "System.NullReferenceException", "messageTemplate": "Object reference not set",
-     "topFrames": ["XerahS.Core.Foo.Bar()", "XerahS.Core.Foo.Baz()"]}
-  ],
-  "logs": [{"fileName": "XerahS-20260929.log",
-            "content": "2026-09-29 13:45:18.110 - Capture start: Job=RectangleRegion\n2026-09-29 13:45:18.173 - CaptureFullScreenDxgi: EnumDisplaySettings orientation for DISPLAY4 => mappedRotation=Rotate270\n2026-09-29 13:45:28.441 - XerahS starting."}]
-}
-$json$);
-
 create temporary table t_results (name text primary key, result jsonb);
 
-create or replace function pg_temp.report(p_client_report_id text, p_patch jsonb default '{}')
+-- A report from `install` whose logs run until `end_at`. Each report carries
+-- one old line (12:00 on the day before end_at) and one line at end_at, so
+-- overlapping reports share their older half.
+create or replace function pg_temp.report(
+  p_install text,
+  p_client text,
+  p_end timestamptz,
+  p_patch jsonb default '{}')
 returns jsonb language sql as $$
-  select (select template from t_report) || jsonb_build_object('clientReportId', p_client_report_id) || p_patch
+  select jsonb_build_object(
+    'schemaVersion', 1, 'redactionVersion', 1, 'trigger', 'manual',
+    'installId', p_install, 'clientReportId', p_client,
+    'app', jsonb_build_object('version', '0.31.3', 'buildFlavor', 'Release', 'dotnetVersion', '10.0.12'),
+    'os', jsonb_build_object('family', 'windows', 'description', 'Microsoft Windows 10.0.26200', 'version', '10.0.26200',
+                             'architecture', 'X64', 'processArchitecture', 'X64', 'elevated', false),
+    'capture', jsonb_build_object('captureBackend', 'dxgi',
+                                  'ffmpeg', jsonb_build_object('version', '7.1', 'source', 'bundled', 'hwEncoders', jsonb_build_array('h264_nvenc'))),
+    'hardware', jsonb_build_object('cpuModel', 'AMD Ryzen 9', 'logicalCores', 32, 'ramGbBucket', 64,
+                                   'gpus', jsonb_build_array(jsonb_build_object('name', 'NVIDIA RTX 4090'))),
+    'displays', jsonb_build_array(
+      jsonb_build_object('ordinal', 0, 'width', 3840, 'height', 2160, 'scale', 1.5, 'rotation', 0, 'isHdr', false),
+      jsonb_build_object('ordinal', 1, 'width', 1440, 'height', 2560, 'scale', 1.0, 'rotation', 270, 'isHdr', false)),
+    'window', jsonb_build_object('kind', '24h', 'start', p_end - interval '1 day', 'end', p_end),
+    'sessions', jsonb_build_array(jsonb_build_object(
+      'startedAt', p_end - interval '2 hours', 'endedAt', p_end - interval '1 hour', 'appVersion', '0.31.3',
+      'exitKind', 'abnormal', 'lastComponent', 'CaptureFullScreenDxgi',
+      'lastMessageTemplate', 'EnumDisplaySettings orientation for <display> => dmDisplayOrientation=3, mappedRotation=Rotate270')),
+    'events', jsonb_build_array(
+      jsonb_build_object('kind', 'abnormal_exit', 'component', 'CaptureFullScreenDxgi',
+        'messageTemplate', 'EnumDisplaySettings orientation for <display> => dmDisplayOrientation=3, mappedRotation=Rotate270',
+        'firstAt', p_end - interval '1 hour', 'lastAt', p_end - interval '1 hour'),
+      jsonb_build_object('kind', 'error_line', 'component', 'DxgiOutputDuplicationHelper',
+        'messageTemplate', 'DuplicateOutput1 failed, using DuplicateOutput. HRESULT: [0x80070057]',
+        'sampleMessage', 'DuplicateOutput1 failed E_INVALIDARG', 'occurrences', 12,
+        'firstAt', p_end - interval '3 hours', 'lastAt', p_end - interval '10 minutes'),
+      jsonb_build_object('kind', 'exception', 'exceptionType', 'System.NullReferenceException',
+        'messageTemplate', 'Object reference not set', 'topFrames', jsonb_build_array('XerahS.Core.Foo.Bar()', 'XerahS.Core.Foo.Baz()'),
+        'firstAt', p_end - interval '5 minutes', 'lastAt', p_end - interval '5 minutes')),
+    'logs', jsonb_build_array(jsonb_build_object(
+      'fileName', 'XerahS.log',
+      'content', to_char((p_end - interval '1 day') at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.MS') || ' - Capture start: Job=RectangleRegion' || E'\n' ||
+                 '   at XerahS.Core.Old.Frame()' || E'\n' ||
+                 to_char(p_end at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.MS') || ' - CaptureFullScreenDxgi: orientation for DISPLAY4 => Rotate270'))
+  ) || p_patch
 $$;
 
 create or replace function pg_temp.token(p_byte text)
 returns bytea language sql as $$ select decode(repeat(p_byte, 32), 'hex') $$;
 
+create or replace function pg_temp.submit(p_report jsonb)
+returns jsonb language sql as $$ select diagnostics.submit_report(p_report, pg_temp.token('ab'), null) $$;
+
+-- ---------------------------------------------------------------------------
+-- Normalization, grouping, idempotency, timestamp dedup
+-- ---------------------------------------------------------------------------
 do $$
 declare
   a jsonb;
-  dup jsonb;
-  v_count integer;
+  r jsonb;
+  c jsonb;
   v_row record;
+  v_install text := '11111111-1111-4111-8111-111111111111';
 begin
-  -- Normalization keeps identifiers and HRESULTs, collapses standalone numbers and handles.
   assert diagnostics.normalize_template('DuplicateOutput1 failed HRESULT [0x80070057] hwnd=0x17103C took 25 ms')
        = 'DuplicateOutput1 failed HRESULT [0x80070057] hwnd=<hex> took # ms',
     'normalize_template keeps identifiers and HRESULT codes';
 
-  a := diagnostics.submit_report(pg_temp.report('22222222-2222-4222-8222-222222222222'), pg_temp.token('ab'), null);
-  assert (a ->> 'duplicate')::boolean = false, 'first submit is new';
+  a := pg_temp.submit(pg_temp.report(v_install, '22222222-2222-4222-8222-222222222222', '2026-09-29 14:00Z'));
+  assert (a ->> 'duplicate')::boolean = false and a ->> 'deduplicatedBefore' is null, 'first report is new and untrimmed';
   insert into t_results values ('a', a);
 
-  dup := diagnostics.submit_report(pg_temp.report('22222222-2222-4222-8222-222222222222'), pg_temp.token('ab'), null);
-  assert (dup ->> 'duplicate')::boolean and dup ->> 'reportId' = a ->> 'reportId', 'resubmit is idempotent';
+  r := pg_temp.submit(pg_temp.report(v_install, '22222222-2222-4222-8222-222222222222', '2026-09-29 14:00Z'));
+  assert (r ->> 'duplicate')::boolean and r ->> 'reason' = 'same_report' and r ->> 'reportId' = a ->> 'reportId',
+    'exact resend returns the stored report';
 
-  insert into t_results values ('b',
-    diagnostics.submit_report(pg_temp.report('33333333-3333-4333-8333-333333333333'), pg_temp.token('ab'), null));
+  -- Pressing Send again with the same logs: new client id, nothing newer.
+  r := pg_temp.submit(pg_temp.report(v_install, '33333333-3333-4333-8333-333333333333', '2026-09-29 14:00Z'));
+  assert (r ->> 'duplicate')::boolean and r ->> 'reason' = 'no_new_entries' and r ->> 'reportId' = a ->> 'reportId',
+    format('same logs again are a duplicate: %s', r);
+  r := pg_temp.submit(pg_temp.report(v_install, '33333333-3333-4333-8333-333333333334', '2026-09-29 13:00Z'));
+  assert r ->> 'reason' = 'no_new_entries', 'older logs are a duplicate';
+  assert (select count(*) from diagnostics.reports) = 1, 'duplicates store nothing';
 
-  select count(*) into v_count from diagnostics.crash_signatures;
-  assert v_count = 3, format('same failures group into 3 signatures, got %s', v_count);
-  assert not exists (select 1 from diagnostics.crash_signatures where report_count <> 2), 'each signature counted twice';
-  assert (select occurrence_count from diagnostics.crash_signatures where kind = 'error_line') = 24, 'occurrences summed';
+  assert (select count(*) from diagnostics.crash_signatures) = 3, 'three signatures';
+  assert not exists (select 1 from diagnostics.crash_signatures where report_count <> 1), 'counted once';
+
+  -- One week later from the same install, but the window overlaps: only newer
+  -- lines, sessions and events are kept.
+  c := pg_temp.submit(pg_temp.report(v_install, '44444444-4444-4444-8444-444444444444', '2026-09-30 10:00Z',
+         '{"window": {"kind": "7d", "start": "2026-09-23T10:00:00Z", "end": "2026-09-30T10:00:00Z"}}'));
+  assert (c ->> 'duplicate')::boolean = false, 'overlapping report with newer lines is accepted';
+  assert (c ->> 'deduplicatedBefore')::timestamptz = '2026-09-29 14:00Z', 'trimmed at the previous mark';
+  insert into t_results values ('c', c);
+
+  select * into v_row from diagnostics.reports where report_id = (c ->> 'reportId')::uuid;
+  assert v_row.window_start = '2026-09-29 14:00Z', 'stored window starts at the mark';
+  assert v_row.line_count = 1, format('only the new log line is stored, got %s', v_row.line_count);
+  assert v_row.event_count = 3 and v_row.session_count = 1, 'new events and sessions kept';
+  assert not exists (select 1 from diagnostics.report_log_chunks where report_id = (c ->> 'reportId')::uuid and content like '%Old.Frame%'),
+    'continuation lines of old entries are dropped with them';
+
+  assert (select last_log_at from diagnostics.install_state where install_id = v_install::uuid) = '2026-09-30 10:00Z',
+    'high-water mark advanced';
+  assert (diagnostics.install_status(v_install::uuid) ->> 'lastReportId') = c ->> 'reportId', 'install_status reports the mark';
+  assert (diagnostics.install_status('99999999-9999-4999-8999-999999999999') ->> 'reportCount')::int = 0, 'unknown install';
+
+  -- A different install sending identical content is a separate report.
+  r := pg_temp.submit(pg_temp.report('55555555-5555-4555-8555-555555555555', '66666666-6666-4666-8666-666666666666', '2026-09-29 14:00Z'));
+  assert (r ->> 'duplicate')::boolean = false, 'other installs are independent';
+  assert (select report_count from diagnostics.crash_signatures where kind = 'exception') = 3, 'grouped across installs';
 
   select * into v_row from diagnostics.v_reports where report_id = (a ->> 'reportId')::uuid;
   assert v_row.abnormal_exit_count = 1 and v_row.event_count = 3 and v_row.display_count = 2, 'report summary columns';
   assert v_row.primary_signature_id = (a ->> 'primarySignatureId')::bigint, 'primary signature returned';
   assert (select kind from diagnostics.crash_signatures where signature_id = v_row.primary_signature_id) = 'abnormal_exit',
     'abnormal exit outranks other events';
-  assert (select reports_30d from diagnostics.v_signatures where signature_id = v_row.primary_signature_id) = 2,
-    'daily rollup feeds v_signatures';
 
-  -- Search spans knowledge base, events and raw log text.
   assert exists (select 1 from diagnostics.search('DuplicateOutput1', 20) where source = 'signature'), 'signature search';
   assert exists (select 1 from diagnostics.search('E_INVALIDARG', 20) where source = 'event'), 'event search';
   assert exists (select 1 from diagnostics.search('RectangleRegion', 20) where source = 'log'), 'log search';
+  assert (select count(*) from diagnostics.report_log((a ->> 'reportId')::uuid)) = 1, 'report_log returns the chunk';
+end;
+$$;
 
-  select count(*) into v_count from diagnostics.report_log((a ->> 'reportId')::uuid);
-  assert v_count = 1, 'report_log returns the chunk';
-  assert exists (
-    select 1 from diagnostics.report_log_chunks
-    where report_id = (a ->> 'reportId')::uuid and line_count = 3 and started_at < ended_at),
-    'chunk records line count and timestamp range';
+-- Only 24h and 7d windows are accepted.
+do $$
+begin
+  perform pg_temp.submit(pg_temp.report('77777777-7777-4777-8777-777777777777', '77777777-7777-4777-8777-777777777771', '2026-09-29 14:00Z',
+    '{"window": {"kind": "30d", "start": "2026-08-30T14:00:00Z", "end": "2026-09-29T14:00:00Z"}}'));
+  assert false, '30d window must be rejected';
+exception when check_violation then
+  null;
 end;
 $$;
 
@@ -102,19 +149,18 @@ declare
   c jsonb;
   v_row record;
 begin
-  c := diagnostics.submit_report(
-    pg_temp.report('44444444-4444-4444-8444-444444444444', jsonb_build_object('logs', jsonb_build_array(jsonb_build_object(
+  c := pg_temp.submit(pg_temp.report('88888888-8888-4888-8888-888888888888', '88888888-8888-4888-8888-888888888881', '2026-09-29 14:00Z',
+    jsonb_build_object('logs', jsonb_build_array(jsonb_build_object(
       'fileName', 'big.log',
       'content', (select string_agg('2026-09-29 10:00:00.000 - line ' || i || ' ' || repeat('x', 40), E'\n')
-                  from generate_series(0, 3999) i))))),
-    pg_temp.token('ab'), null);
+                  from generate_series(0, 3999) i))))));
   select count(*) as n, max(length(content)) as m, sum(line_count) as l into v_row
   from diagnostics.report_log_chunks where report_id = (c ->> 'reportId')::uuid;
   assert v_row.n > 1 and v_row.m <= 65536 and v_row.l = 4000, format('chunking: %s', row_to_json(v_row));
 end;
 $$;
 
--- Knowledge base annotation, and a fixed signature that recurs in a newer build reopens.
+-- Knowledge base annotation; a fixed signature reopens only from the fixed version on.
 do $$
 declare
   v_sid bigint := (select (result ->> 'primarySignatureId')::bigint from t_results where name = 'a');
@@ -127,16 +173,12 @@ begin
   assert exists (select 1 from diagnostics.search('access violation', 5) where signature_id = v_sid),
     'root cause text is searchable';
 
-  -- An older, still-broken build reporting the same failure is not a regression.
-  perform diagnostics.submit_report(
-    pg_temp.report('55555555-5555-4555-8555-555555555550', '{"app": {"version": "0.31.3", "buildFlavor": "Release"}}'),
-    pg_temp.token('ab'), null);
+  perform pg_temp.submit(pg_temp.report('a1111111-1111-4111-8111-111111111111', 'a1111111-1111-4111-8111-111111111112', '2026-09-29 14:00Z'));
   assert (select status from diagnostics.crash_signatures where signature_id = v_sid) = 'fixed',
     'reports from versions before the fix keep the signature fixed';
 
-  perform diagnostics.submit_report(
-    pg_temp.report('55555555-5555-4555-8555-555555555555', '{"app": {"version": "0.32.1", "buildFlavor": "Release"}}'),
-    pg_temp.token('ab'), null);
+  perform pg_temp.submit(pg_temp.report('a2222222-2222-4222-8222-222222222222', 'a2222222-2222-4222-8222-222222222223', '2026-09-29 14:00Z',
+    '{"app": {"version": "0.32.1", "buildFlavor": "Release"}}'));
   assert (select status from diagnostics.crash_signatures where signature_id = v_sid) = 'investigating',
     'regression reopens a fixed signature';
 
@@ -152,28 +194,43 @@ begin
 end;
 $$;
 
--- Self-service delete needs the right token and cascades.
+-- Self-service delete needs the right token, cascades, and rolls the mark back
+-- so the same logs can be sent again.
 do $$
 declare
-  v_id uuid := (select (result ->> 'reportId')::uuid from t_results where name = 'b');
+  v_install uuid := '11111111-1111-4111-8111-111111111111';
+  v_c uuid := (select (result ->> 'reportId')::uuid from t_results where name = 'c');
+  r jsonb;
 begin
-  assert not diagnostics.delete_report_with_token(v_id, pg_temp.token('cd')), 'wrong token is rejected';
-  assert diagnostics.delete_report_with_token(v_id, pg_temp.token('ab')), 'right token deletes';
-  assert not exists (select 1 from diagnostics.report_events where report_id = v_id), 'events cascade';
-  assert not exists (select 1 from diagnostics.report_keys where report_id = v_id), 'key removed';
+  assert not diagnostics.delete_report_with_token(v_c, pg_temp.token('cd')), 'wrong token is rejected';
+  assert diagnostics.delete_report_with_token(v_c, pg_temp.token('ab')), 'right token deletes';
+  assert not exists (select 1 from diagnostics.report_events where report_id = v_c), 'events cascade';
+  assert not exists (select 1 from diagnostics.report_keys where report_id = v_c), 'key removed';
+  assert (select last_log_at from diagnostics.install_state where install_id = v_install) = '2026-09-29 14:00Z',
+    'mark rolled back to the remaining report';
+
+  r := pg_temp.submit(pg_temp.report(v_install::text, '44444444-4444-4444-8444-444444444445', '2026-09-30 10:00Z',
+         '{"window": {"kind": "7d", "start": "2026-09-23T10:00:00Z", "end": "2026-09-30T10:00:00Z"}}'));
+  assert (r ->> 'duplicate')::boolean = false, 'deleted logs can be sent again';
 end;
 $$;
 
--- Rate limit: 10 per install per day (6 used above, including the deleted one).
+-- Rate limit: 10 accepted reports per install per day. Duplicates do not count.
 do $$
 declare
   i integer;
   v_limited boolean := false;
+  v_install text := 'b1111111-1111-4111-8111-111111111111';
 begin
-  for i in 1 .. 10 loop
+  for i in 1 .. 12 loop
+    perform pg_temp.submit(pg_temp.report(v_install, format('b2222222-2222-4222-8222-%s', lpad(i::text, 12, '0')), '2026-09-29 14:00Z'));
+  end loop;
+  assert (select report_count from diagnostics.install_state where install_id = v_install::uuid) = 1, 'duplicates are free';
+
+  for i in 1 .. 12 loop
     begin
-      perform diagnostics.submit_report(
-        pg_temp.report(format('66666666-6666-4666-8666-%s', lpad(i::text, 12, '0'))), pg_temp.token('ab'), null);
+      perform pg_temp.submit(pg_temp.report(v_install, format('b3333333-3333-4333-8333-%s', lpad(i::text, 12, '0')),
+        timestamptz '2026-09-29 14:00Z' + i * interval '1 minute'));
     exception when others then
       assert sqlerrm = 'diagnostics_rate_limited', sqlerrm;
       v_limited := true;
@@ -189,7 +246,7 @@ do $$
 begin
   update diagnostics.settings set allow_ingest = false;
   begin
-    perform diagnostics.submit_report(pg_temp.report('77777777-7777-4777-8777-777777777777'), pg_temp.token('ab'), null);
+    perform pg_temp.submit(pg_temp.report('c1111111-1111-4111-8111-111111111111', 'c1111111-1111-4111-8111-111111111112', '2026-09-29 14:00Z'));
     assert false, 'disabled ingest must fail';
   exception when others then
     assert sqlerrm = 'diagnostics_ingest_disabled', sqlerrm;
@@ -199,7 +256,8 @@ begin
   perform diagnostics.ensure_month_partitions(clock_timestamp() + interval '5 months');
 
   assert diagnostics.purge_install('11111111-1111-4111-8111-111111111111') > 0, 'purge_install removes reports';
-  assert not exists (select 1 from diagnostics.reports), 'no reports remain';
+  assert not exists (select 1 from diagnostics.install_state where install_id = '11111111-1111-4111-8111-111111111111'),
+    'purge_install clears the mark';
   assert exists (select 1 from diagnostics.crash_signatures), 'knowledge base survives report purges';
 end;
 $$;

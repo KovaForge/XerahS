@@ -8,6 +8,7 @@ import {
   parseLog,
   scrub,
   splitComponent,
+  timestampHoursBefore,
   windowKindFor,
 } from "./analysis";
 
@@ -140,8 +141,11 @@ describe("parsing helpers", () => {
       windowKindFor("2026-09-29 00:00:00.000", "2026-09-29 23:00:00.000"),
     ).toBe("24h");
     expect(
-      windowKindFor("2026-09-20 00:00:00.000", "2026-09-29 00:00:00.000"),
-    ).toBe("30d");
+      windowKindFor("2026-09-25 00:00:00.000", "2026-09-29 00:00:00.000"),
+    ).toBe("7d");
+    expect(timestampHoursBefore("2026-09-29 14:00:00.000", 168)).toBe(
+      "2026-09-22 14:00:00.000",
+    );
   });
 });
 

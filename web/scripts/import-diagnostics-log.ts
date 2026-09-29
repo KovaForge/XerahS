@@ -17,7 +17,9 @@ import {
   analyzeLogs,
   REDACTION_VERSION,
   SCHEMA_VERSION,
+  timestampHoursBefore,
   toIso,
+  WINDOW_HOURS,
   windowKindFor,
 } from "../functions/diagnostics/analysis.ts";
 
@@ -56,7 +58,16 @@ if (files.length === 0) {
 
 for (const file of files) {
   const raw = readFileSync(file, "utf8");
-  const analyzed = analyzeLogs([{ fileName: basename(file), content: raw }]);
+  const whole = analyzeLogs([{ fileName: basename(file), content: raw }]);
+  // Reports cover at most the past week: keep the newest 7 days of the log.
+  const analyzed = whole.windowEnd
+    ? analyzeLogs([{ fileName: basename(file), content: raw }], {
+        sinceTimestamp: timestampHoursBefore(
+          whole.windowEnd,
+          WINDOW_HOURS["7d"],
+        ),
+      })
+    : whole;
   if (!analyzed.windowStart || !analyzed.windowEnd) {
     console.warn(`${file}: no log entries, skipped`);
     continue;
