@@ -7624,3 +7624,13 @@ M build/linux/aur/xerahs-git/PKGBUILD
 - Commit: none (empty-queue audit; SHA in Step 9 summary only)
 - Follow-up: producer xerahs-review will repopulate next_candidates on its next 6h tick when clawpatch emits fresh findings. Watch preserved stashes (ModalOpenService teammate WIP + WaylandPortalHotkeyService orphan) for human review; do not auto-apply from this consumer cron.
 - Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
+
+### 2026-09-29 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json
+- Findings: Step 5a categoriser found zero candidates in next_candidates (queue was 0 on read; producer xerahs-review nadia-daily last ingested 2026-09-15 with the v2.1.x gate still filtering everything as severity-gated/triage=non-bug/duplicate). No fixes to land this tick. Infra: forked declan/develop had advanced 4 commits since last sync (SystemCursorGuard Windows mouse cursor crash fix, IdleMemoryTrimmer release-after-capture, OmaSnap submodule registration with rebase updates, Claude-session merge from origin/develop); fast-forwarded HEAD from ea93e897 to 46c1ac1f. upstream/develop advanced 1f4249d5 -> 16e1e651 since the 2026-09-22 sync (ShareX PR #289: X11 WM_CLASS = xerahs + ShareX.ImageEditor submodule bump); merged as 10d7e2ae after resolving Directory.Build.props version conflict (kept KovaForge v0.31.0, dropped upstream's v0.28.36 lower tag per skill rule). Submodule ShareX.ImageEditor already at the new upstream pin (d7c027fa == HEAD == origin/develop).
+- Status: No-op (empty-queue audit)
+- Build/test: n/a (no code change this tick; upstream merges are infrastructure)
+- Commit: <filled at Step 7b commit time>
+- Follow-up: producer xerahs-review (nadia-daily) repopulates next_candidates on its 6h producer tick when clawpatch emits fresh findings. Preserved stashes (ModalOpenService teammate WIP + WaylandPortalHotkeyService app-id passthrough) are not in next_candidates and not auto-applied.
