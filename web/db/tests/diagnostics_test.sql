@@ -1,6 +1,7 @@
 -- Behavioural tests for db/migrations/0001_diagnostics.sql.
 -- Run against a scratch database after applying the migration:
---   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0001_diagnostics.sql -f db/tests/diagnostics_test.sql
+--   for f in db/migrations/*.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done
+--   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/diagnostics_test.sql
 -- Any failed assertion raises and aborts the run.
 
 update diagnostics.settings set allow_ingest = true;
@@ -126,11 +127,21 @@ begin
   assert exists (select 1 from diagnostics.search('access violation', 5) where signature_id = v_sid),
     'root cause text is searchable';
 
+  -- An older, still-broken build reporting the same failure is not a regression.
+  perform diagnostics.submit_report(
+    pg_temp.report('55555555-5555-4555-8555-555555555550', '{"app": {"version": "0.31.3", "buildFlavor": "Release"}}'),
+    pg_temp.token('ab'), null);
+  assert (select status from diagnostics.crash_signatures where signature_id = v_sid) = 'fixed',
+    'reports from versions before the fix keep the signature fixed';
+
   perform diagnostics.submit_report(
     pg_temp.report('55555555-5555-4555-8555-555555555555', '{"app": {"version": "0.32.1", "buildFlavor": "Release"}}'),
     pg_temp.token('ab'), null);
   assert (select status from diagnostics.crash_signatures where signature_id = v_sid) = 'investigating',
     'regression reopens a fixed signature';
+
+  assert diagnostics.version_array('v0.32.1-beta') = array[0, 32, 1], 'version_array parses tags';
+  assert diagnostics.version_array('unknown') is null, 'version_array rejects non-versions';
 
   begin
     perform diagnostics.annotate_signature(v_sid, ' ');
@@ -153,7 +164,7 @@ begin
 end;
 $$;
 
--- Rate limit: 10 per install per day (5 used above, including the deleted one).
+-- Rate limit: 10 per install per day (6 used above, including the deleted one).
 do $$
 declare
   i integer;

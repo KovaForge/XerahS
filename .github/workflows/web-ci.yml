@@ -64,8 +64,18 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v5
-      - run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0001_diagnostics.sql
-      - run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0001_diagnostics.sql
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24.19.0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.2
+          run_install: false
+      - run: pnpm install --frozen-lockfile
+      # Applies every migration once, in order, and records it.
+      - run: node scripts/db-migrate.ts
+      # A second run must be a no-op.
+      - run: node scripts/db-migrate.ts
       - run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/diagnostics_test.sql
 
   database:
