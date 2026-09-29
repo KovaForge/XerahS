@@ -44,6 +44,30 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
+  diagnostics-database:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v5
+      - run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0001_diagnostics.sql
+      - run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/0001_diagnostics.sql
+      - run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/diagnostics_test.sql
+
   database:
     runs-on: ubuntu-latest
     defaults:
