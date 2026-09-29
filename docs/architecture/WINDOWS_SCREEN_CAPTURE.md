@@ -60,6 +60,10 @@ Compared with the previous implementation in one class:
 - DXGI cursor composition draws into an overlay the size of the cursor instead of the whole desktop. The PNG encode and decode of that overlay is gone.
 - GDI captures read the DIB section directly instead of doing a PNG encode and decode round trip through `System.Drawing`.
 
+## Screen recording
+
+`Recording/WindowsGraphicsCaptureSource` uses the same `Capture/Wgc` interop. Each frame is copied into one staging texture that is reused until the frame size changes, then mapped and passed to the encoder with its real row pitch. Frame handlers are synchronous and must finish with the pointer before they return.
+
 ## Verifying on Linux
 
 `XerahS.Platform.Windows` skips compilation on Linux by default. To compile it, and the test project for the Windows target, run:
