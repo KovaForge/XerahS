@@ -23,15 +23,22 @@
 
 #endregion License Information (GPL v3)
 
-using XerahS.Platform.Abstractions;
+using SkiaSharp;
 
-namespace XerahS.Platform.Windows.Capture;
+namespace XerahS.Platform.Windows.Capture.Engine;
 
-internal static class ModernCapturePolicy
+/// <summary>
+/// Port implemented by each native Windows capture API.
+/// </summary>
+internal interface IScreenCaptureBackend
 {
+    CaptureBackendKind Kind { get; }
+
+    string Name { get; }
+
     /// <summary>
-    /// Resolves the capture backend policy supplied by the application layer.
+    /// Captures the requested area. Returns null when this backend cannot serve the request,
+    /// so the engine moves on to the next backend in the chain.
     /// </summary>
-    internal static bool ShouldUseModernCapture(CaptureOptions? options) =>
-        options?.UseModernCapture ?? true;
+    SKBitmap? TryCapture(ScreenCaptureRequest request);
 }

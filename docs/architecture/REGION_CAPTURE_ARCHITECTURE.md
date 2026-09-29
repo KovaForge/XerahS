@@ -1,5 +1,7 @@
 # Region Capture Backend Architecture
 
+> **Windows status (v0.31.4):** `WindowsRegionCaptureBackend` and its DXGI, WinRT and GDI strategies were removed because nothing constructed them. Windows screenshots run through `IScreenCaptureService`. See [Windows Screen Capture Architecture](WINDOWS_SCREEN_CAPTURE.md).
+
 ## Overview
 
 The XerahS (XerahS) region capture backend has been completely redesigned to provide **pixel-perfect, platform-agnostic screen capture** across Windows, macOS, and Linux with full support for:

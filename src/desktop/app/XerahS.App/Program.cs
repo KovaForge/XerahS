@@ -545,18 +545,8 @@ namespace XerahS.App
                 var screenService = new XerahS.Platform.Windows.WindowsScreenService();
 
                 // Create Windows capture service
-                XerahS.Platform.Abstractions.IScreenCaptureService realCaptureService;
-
-                if (XerahS.Platform.Windows.WindowsModernCaptureService.IsSupported)
-                {
-                    XerahS.Common.DebugHelper.WriteLine("Windows: Using WindowsModernCaptureService (Direct3D11/DXGI)");
-                    realCaptureService = new XerahS.Platform.Windows.WindowsModernCaptureService(screenService);
-                }
-                else
-                {
-                    XerahS.Common.DebugHelper.WriteLine("Windows: Using WindowsScreenCaptureService (GDI+)");
-                    realCaptureService = new XerahS.Platform.Windows.WindowsScreenCaptureService(screenService);
-                }
+                XerahS.Platform.Abstractions.IScreenCaptureService realCaptureService =
+                    XerahS.Platform.Windows.WindowsScreenCaptureServiceFactory.Create(screenService);
 
                 // Create UI capture service (Wrapper with Region UI)
                 // This delegates to realCaptureService for actual capture

@@ -1,5 +1,7 @@
 # Migration Guide: New Region Capture Backend
 
+> **Windows status (v0.31.4):** `WindowsRegionCaptureBackend` and its DXGI, WinRT and GDI strategies were removed because nothing constructed them. Windows screenshots run through `IScreenCaptureService`. See [Windows Screen Capture Architecture](../architecture/WINDOWS_SCREEN_CAPTURE.md).
+
 ## Overview
 
 This guide explains how to migrate from the existing region capture implementation to the new platform-agnostic backend.

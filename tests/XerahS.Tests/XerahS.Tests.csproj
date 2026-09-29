@@ -88,10 +88,6 @@
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\BgraRowCopyHelper.cs"
              Link="Platform\Windows\WindowsSources\BgraRowCopyHelper.cs" />
-    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DisposableContextDictionary.cs"
-             Link="Platform\Windows\WindowsSources\DisposableContextDictionary.cs" />
-    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DxgiCapabilitiesHelper.cs"
-             Link="Platform\Windows\WindowsSources\DxgiCapabilitiesHelper.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DxgiCropRectHelper.cs"
              Link="Platform\Windows\WindowsSources\DxgiCropRectHelper.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DxgiCursorCompositionHelper.cs"
@@ -104,17 +100,22 @@
              Link="Platform\Windows\WindowsSources\DxgiOutputDuplicationPolicy.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\CursorReplacementHelper.cs"
              Link="Platform\Windows\WindowsSources\CursorReplacementHelper.cs" />
-    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\ModernCapturePolicy.cs"
-             Link="Platform\Windows\WindowsSources\ModernCapturePolicy.cs" />
-    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\DxgiRotationHelper.cs"
-             Link="Platform\Windows\WindowsSources\DxgiRotationHelper.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\GdiCaptureRectHelper.cs"
              Link="Platform\Windows\WindowsSources\GdiCaptureRectHelper.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\Engine\CaptureBackendPolicy.cs"
+             Link="Platform\Windows\WindowsSources\CaptureBackendPolicy.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\Engine\CaptureRectResolver.cs"
+             Link="Platform\Windows\WindowsSources\CaptureRectResolver.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\Engine\IScreenCaptureBackend.cs"
+             Link="Platform\Windows\WindowsSources\IScreenCaptureBackend.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\Engine\ScreenCaptureEngine.cs"
+             Link="Platform\Windows\WindowsSources\ScreenCaptureEngine.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Capture\Engine\ScreenCaptureRequest.cs"
+             Link="Platform\Windows\WindowsSources\ScreenCaptureRequest.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\ScrollTargetResolver.cs"
              Link="Platform\Windows\WindowsSources\ScrollTargetResolver.cs" />
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\ClipboardDibCodec.cs"
              Link="Platform\Windows\WindowsSources\ClipboardDibCodec.cs" />
-    <Compile Remove="Platform\Windows\WinRTCaptureStrategyTests.cs" />
     <Compile Remove="Platform\Windows\DxgiHdrToneMapperTests.cs" />
   </ItemGroup>
 

@@ -1,5 +1,7 @@
 # UI Integration Guide: RegionCaptureWindow Refactoring
 
+> **Windows status (v0.31.4):** `WindowsRegionCaptureBackend` and its DXGI, WinRT and GDI strategies were removed because nothing constructed them. Windows screenshots run through `IScreenCaptureService`. See [Windows Screen Capture Architecture](../../docs/architecture/WINDOWS_SCREEN_CAPTURE.md).
+
 ## Overview
 
 This guide shows how to refactor `RegionCaptureWindow.axaml.cs` to use the new region capture backend, removing all platform-specific DPI handling code.

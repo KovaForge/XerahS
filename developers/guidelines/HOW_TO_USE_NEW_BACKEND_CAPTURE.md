@@ -1,5 +1,7 @@
 # How To Use New Backend Capture
 
+> **Windows status (v0.31.4):** `WindowsRegionCaptureBackend` and its DXGI, WinRT and GDI strategies were removed because nothing constructed them. Windows screenshots run through `IScreenCaptureService`. See [Windows Screen Capture Architecture](../../docs/architecture/WINDOWS_SCREEN_CAPTURE.md).
+
 ## Current Status
 
 ✅ **macOS and Linux backends:** Complete and compiling (0 errors)
