@@ -43,6 +43,7 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
     private WGC.Direct3D11CaptureFramePool? _framePool;
     private WGC.GraphicsCaptureSession? _session;
     private ID3D11Device? _d3dDevice;
+    private ID3D11Texture2D? _stagingTexture;
     private WD3D.IDirect3DDevice? _device;
     private readonly object _lock = new();
     private bool _isCapturing;
@@ -407,7 +408,7 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
         });
     }
 
-    private async void OnFrameArrived(WGC.Direct3D11CaptureFramePool sender, object args)
+    private void OnFrameArrived(WGC.Direct3D11CaptureFramePool sender, object args)
     {
         if (_disposed || !_isCapturing) return;
 
@@ -415,94 +416,80 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
         if ((_frameCount % 30) == 0)
         {
              XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"OnFrameArrived! Frame {_frameCount}");
-             System.Console.WriteLine($"WGC: OnFrameArrived! Frame {_frameCount}");
         }
 
         try
         {
             using var frame = sender.TryGetNextFrame();
-            if (frame == null) return;
+            if (frame?.Surface == null) return;
 
-            // Get Direct3D surface
-            var surface = frame.Surface;
-            if (surface == null) return;
+            // Read the frame back through a reused staging texture. The frame pool raises this event on the
+            // capture thread that owns the device, so the immediate context is never used concurrently.
+            using ID3D11Texture2D texture = Direct3D11Interop.GetTexture(frame.Surface);
+            Texture2DDescription description = texture.Description;
+            ID3D11Texture2D staging = GetStagingTexture(description);
+            ID3D11DeviceContext context = _d3dDevice!.ImmediateContext;
+            context.CopyResource(staging, texture);
 
-            // Use SoftwareBitmap to get access to pixel data (Standard WinRT way, robust to interop issues)
-            using var softwareBitmap = await global::Windows.Graphics.Imaging.SoftwareBitmap.CreateCopyFromSurfaceAsync(surface);
-            
-            int width = softwareBitmap.PixelWidth;
-            int height = softwareBitmap.PixelHeight;
-            uint size = (uint)(width * height * 4);
-            
-            // Create IBuffer
-            var buffer = new global::Windows.Storage.Streams.Buffer(size);
-            buffer.Length = size; // Must set length to receive data
-            softwareBitmap.CopyToBuffer(buffer);
-            
-            // Get pointer via IBufferByteAccess
-            var bufferUnknown = Marshal.GetIUnknownForObject(buffer);
-            IntPtr dataPtr;
-            
+            MappedSubresource mapped = context.Map(staging, 0, MapMode.Read);
             try
             {
-                var iidBytes = typeof(IBufferByteAccess).GUID;
-                if (Marshal.QueryInterface(bufferUnknown, in iidBytes, out var pByteAccess) != 0)
+                var frameData = new FrameData
                 {
-                    throw new InvalidCastException("Failed to query IBufferByteAccess");
-                }
-                
-                try
-                {
-                    var byteAccess = (IBufferByteAccess)Marshal.GetObjectForIUnknown(pByteAccess);
-                    byteAccess.Buffer(out dataPtr);
-                }
-                finally
-                {
-                    Marshal.Release(pByteAccess);
-                }
+                    DataPtr = mapped.DataPointer,
+                    Stride = (int)mapped.RowPitch,
+                    Width = (int)description.Width,
+                    Height = (int)description.Height,
+                    Timestamp = (long)(frame.SystemRelativeTime.TotalMilliseconds * 10000),
+                    Format = PixelFormat.Bgra32
+                };
+
+                // Handlers are synchronous and must finish with the pointer before the texture is unmapped.
+                FrameArrived?.Invoke(this, new FrameArrivedEventArgs(frameData));
             }
             finally
             {
-                Marshal.Release(bufferUnknown);
+                context.Unmap(staging, 0);
             }
-
-            // Calculate stride
-            int stride = width * 4; // Buffer is tightly packed
-            
-            // Create FrameData (DataPtr is valid only because buffer is alive in this scope? Reference counting?)
-            // IBuffer object 'buffer' is managed wrapper. As long as 'buffer' is alive, dataPtr should be valid.
-            // But we didn't use 'using var buffer'. 'buffer' will be GC'd?
-            // No, we should invoke event BEFORE buffer is GC'd.
-            
-            var frameData = new FrameData
-            {
-                DataPtr = dataPtr,
-                Stride = stride,
-                Width = width,
-                Height = height,
-                Timestamp = (long)(frame.SystemRelativeTime.TotalMilliseconds * 10000),
-                Format = PixelFormat.Bgra32
-            };
-
-            // Raise event synchronously so we can use the pointer
-            FrameArrived?.Invoke(this, new FrameArrivedEventArgs(frameData));
-            
-            // End of method, buffer is eligible for GC.
-            // But FrameArrived handlers are synchronous, right?
-            // Yes.
-            // Wait, IBuffer is a COM object.
-            // dataPtr points to its internal memory.
-            // If buffer wrapper is GC'd, the COM object might be released.
-            // I should ensure buffer stays alive.
-            GC.KeepAlive(buffer);
         }
         catch (Exception ex)
         {
             // Log error but don't crash capture thread
-            System.Console.WriteLine($"WGC Error processing captured frame: {ex.Message}");
+            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "WGC", $"Error processing captured frame: {ex.Message}");
         }
 
         Interlocked.Increment(ref _frameCount);
+    }
+
+    private ID3D11Texture2D GetStagingTexture(Texture2DDescription source)
+    {
+        if (_stagingTexture != null)
+        {
+            Texture2DDescription current = _stagingTexture.Description;
+            if (current.Width == source.Width && current.Height == source.Height && current.Format == source.Format)
+            {
+                return _stagingTexture;
+            }
+
+            _stagingTexture.Dispose();
+            _stagingTexture = null;
+        }
+
+        _stagingTexture = _d3dDevice!.CreateTexture2D(new Texture2DDescription
+        {
+            Width = source.Width,
+            Height = source.Height,
+            MipLevels = 1,
+            ArraySize = 1,
+            Format = source.Format,
+            SampleDescription = new Vortice.DXGI.SampleDescription(1, 0),
+            Usage = ResourceUsage.Staging,
+            BindFlags = BindFlags.None,
+            CPUAccessFlags = CpuAccessFlags.Read,
+            MiscFlags = ResourceOptionFlags.None
+        });
+
+        return _stagingTexture;
     }
 
     private static IntPtr GetPrimaryMonitorHandle()
@@ -549,6 +536,8 @@ public class WindowsGraphicsCaptureSource : ICaptureSource
                         _session = null;
                         _captureItem = null;
                         _device = null;
+                        _stagingTexture?.Dispose();
+                        _stagingTexture = null;
                         _d3dDevice?.Dispose();
                         _d3dDevice = null;
                         return Task.CompletedTask;

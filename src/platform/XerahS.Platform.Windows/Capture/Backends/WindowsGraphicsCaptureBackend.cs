@@ -48,9 +48,6 @@ internal sealed class WindowsGraphicsCaptureBackend : IScreenCaptureBackend
     private const int BorderlessMinimumBuild = 20348;
     private const int FrameTimeoutMilliseconds = 1000;
 
-    /// <summary>IID of Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess.</summary>
-    private static readonly Guid DxgiInterfaceAccessInterfaceId = new("A9B3D012-3DF2-4EE3-B8D1-8695F457D3C1");
-
     private static readonly Lazy<bool> Supported = new(DetectSupport);
     private static readonly Lazy<bool> BorderlessAccessGranted = new(RequestBorderlessAccess);
 
@@ -172,7 +169,7 @@ internal sealed class WindowsGraphicsCaptureBackend : IScreenCaptureBackend
             return false;
         }
 
-        using ID3D11Texture2D texture = GetTexture(frame.Surface);
+        using ID3D11Texture2D texture = Direct3D11Interop.GetTexture(frame.Surface);
         CopyVisibleRegion(texture, monitor.Bounds, captureRect, destination);
         return true;
     }
@@ -188,22 +185,6 @@ internal sealed class WindowsGraphicsCaptureBackend : IScreenCaptureBackend
             destination,
             visible.X - captureRect.X,
             visible.Y - captureRect.Y);
-    }
-
-    private static ID3D11Texture2D GetTexture(WD3D.IDirect3DSurface surface)
-    {
-        IntPtr surfacePointer = WinRT.MarshalInterface<WD3D.IDirect3DSurface>.FromManaged(surface);
-        try
-        {
-            Guid accessInterfaceId = DxgiInterfaceAccessInterfaceId;
-            Marshal.ThrowExceptionForHR(Marshal.QueryInterface(surfacePointer, in accessInterfaceId, out IntPtr accessPointer));
-            using var access = new IDirect3DDxgiInterfaceAccess(accessPointer);
-            return access.GetInterface<ID3D11Texture2D>();
-        }
-        finally
-        {
-            Marshal.Release(surfacePointer);
-        }
     }
 
     private void EnsureDevice()

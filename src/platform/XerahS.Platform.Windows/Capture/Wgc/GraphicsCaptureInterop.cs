@@ -36,6 +36,26 @@ namespace XerahS.Platform.Windows.Capture.Wgc;
 /// </summary>
 internal static class Direct3D11Interop
 {
+    /// <summary>IID of Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess.</summary>
+    private static readonly Guid DxgiInterfaceAccessInterfaceId = new("A9B3D012-3DF2-4EE3-B8D1-8695F457D3C1");
+
+    /// <summary>Returns the D3D11 texture behind a Windows.Graphics.Capture frame surface. The caller owns it.</summary>
+    public static ID3D11Texture2D GetTexture(WD3D.IDirect3DSurface surface)
+    {
+        IntPtr surfacePointer = WinRT.MarshalInterface<WD3D.IDirect3DSurface>.FromManaged(surface);
+        try
+        {
+            Guid accessInterfaceId = DxgiInterfaceAccessInterfaceId;
+            Marshal.ThrowExceptionForHR(Marshal.QueryInterface(surfacePointer, in accessInterfaceId, out IntPtr accessPointer));
+            using var access = new IDirect3DDxgiInterfaceAccess(accessPointer);
+            return access.GetInterface<ID3D11Texture2D>();
+        }
+        finally
+        {
+            Marshal.Release(surfacePointer);
+        }
+    }
+
     /// <summary>Creates a BGRA-capable hardware device on the default adapter.</summary>
     public static ID3D11Device CreateHardwareDevice()
     {
