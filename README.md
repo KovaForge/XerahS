@@ -132,6 +132,15 @@ This package builds directly from the source code and automatically handles depe
 yay -S xerahs-git
 ```
 
+### Flatpak (FlatPark)
+Any Flatpak-capable distro can install XerahS from the community-maintained [FlatPark](https://flatpark.org/apps/com.xerahs.XerahS) repository (maintained by @jing2uo). It downloads the official `XerahS-<version>-linux-x64.tar.gz` release unmodified at install time and updates automatically with new releases:
+```bash
+flatpak remote-add --if-not-exists flatpark https://dl.flatpark.org/flatpark.flatpakrepo
+flatpak install flatpark com.xerahs.XerahS
+```
+
+Screen recording and GIF creation need `ffmpeg`, which the Flatpak runtime does not ship. See [docs/linux/flatpak-permissions.md](docs/linux/flatpak-permissions.md) for the sandbox permissions XerahS expects.
+
 ### macOS Permissions (Screen Recording)
 Screen capture on macOS requires Screen Recording permission:
 1. Open **System Settings** > **Privacy & Security** > **Screen Recording**.
