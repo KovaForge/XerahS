@@ -7644,3 +7644,13 @@ M build/linux/aur/xerahs-git/PKGBUILD
 - Build/test: n/a (no code change)
 - Commit: see Step 7b commit below
 - Follow-up: next cron tick re-runs Step 5a against any new clawpatch ingest. Step 3 upstream merge non-negotiable: fetched upstream/develop (9712850d, v0.31.4 + v0.32.0 Linux hotkey) and fast-forwarded local; declan/develop had advanced in parallel (push rejection per v1.1.26), merged with --no-ff to preserve audit trail.
+
+### 2026-09-30 00:05 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. Tick started with HEAD c039113c == declan/develop. Step 3 fetched upstream/develop 9712850d and confirmed it is already an ancestor of HEAD (merge-base == upstream, no merge needed). Fork sync: HEAD c039113c == declan/develop c039113c (already up to date); origin/develop 46c1ac1f is 24 commits behind. Submodule ShareX.ImageEditor clean at d7c027fa9b92 (HEAD == origin/develop inside submodule; no upstream remote configured inside submodule so single-remote sync verified). Working tree porcelain: empty. No deferred-last-runs files. No new stashes; preserved cross-tick stashes (wip-preserved-20260922 + xerahs-bugfix-WIP-WaylandPortalHotkeyService) untouched. recently_pivoted 48/200. last_runs 102 -> 103 rows (+1 vs HEAD, within XIP0077 +0/+1 cap). No code change this tick; no pivot to drain. No skill improvement this run (v1.1.16 deferred-file cleanup triggered because there are no deferred files; no Step 10 blockers hit).
+- Status: No-op (empty-queue audit, v1.1.9 contract)
+- Build/test: n/a (no code change this tick)
+- Commit: see Step 7b commit below
+- Follow-up: next cron tick re-runs Step 5a against any new clawpatch ingest. Producer (xerahs-review) is up to date and recently_pivoted holds 48 entries. Stash {wip-preserved-20260922} remains for human review per v1.1.35 pitfall.
