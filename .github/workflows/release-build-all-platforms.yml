@@ -264,6 +264,15 @@ jobs:
           name: omasnap-linux-x64
           path: ${{ runner.temp }}/omasnap-stage
 
+      - name: Restore OmaSnap executable bit
+        if: matrix.rid == 'linux-x64'
+        shell: bash
+        run: |
+          # upload-artifact@v4 + download-artifact@v4 occasionally drop the +x
+          # bit on the extracted omasnap binary. Reapply it so the executable
+          # check in Build Linux packages sees it as runnable.
+          chmod +x "$RUNNER_TEMP/omasnap-stage/omasnap/omasnap" 2>/dev/null || true
+
       - name: Build Linux packages
         shell: bash
         run: |
