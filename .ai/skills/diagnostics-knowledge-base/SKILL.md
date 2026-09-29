@@ -9,9 +9,10 @@ Users share scrubbed logs, system data, monitor layout, hardware and FFmpeg deta
 
 ## Connect
 
-From `web/` (linked with `neon link`; `DATABASE_URL_UNPOOLED` is in `.env.local`):
+From `web/functions/diagnostics/` (its own `.neon` link and `neon.ts`; run `neon env pull` there to get `.env.local`). `web/` itself is linked to the separate XerahS Cloud project.
 
 ```bash
+cd web/functions/diagnostics
 set -a; . ./.env.local; set +a
 psql "$DATABASE_URL_UNPOOLED"
 ```
@@ -77,7 +78,9 @@ The importer scrubs with the same rules as the app (`web/functions/diagnostics/a
 
 ## Schema changes
 
-Add a new file under `web/db/migrations/` (never edit an applied one), test it on a throwaway branch (`neon branches create --name <tmp> --parent production`), then run `node scripts/db-migrate.ts` from `web/`. CI applies every migration to Postgres 17 and runs `web/db/tests/diagnostics_test.sql`.
+Add a new file under `web/db/diagnostics/migrations/` (never edit an applied one), test it on a throwaway branch (`neon branches create --name <tmp> --parent production`), then from `web/` run `node scripts/db-migrate.ts --dir db/diagnostics/migrations --env functions/diagnostics/.env.local`. CI applies every migration to Postgres 17 and runs `web/db/diagnostics/tests/diagnostics_test.sql`.
+
+Redeploy the ingest Function from `web/functions/diagnostics/` with `neon deploy --env .env.local`.
 
 ## Removal
 

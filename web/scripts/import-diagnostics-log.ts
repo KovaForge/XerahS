@@ -3,7 +3,7 @@
 //   node scripts/import-diagnostics-log.ts [--dry-run] [--comment "..."] <log files...>
 //
 // Reads DATABASE_URL_UNPOOLED (or DATABASE_URL) from the environment or
-// .env.local. Logs are scrubbed with the same rules as the desktop client
+// functions/diagnostics/.env.local (`neon env pull` in that directory). Logs are scrubbed with the same rules as the desktop client
 // before anything leaves this machine. Re-importing the same files is a no-op.
 
 import { createHash, randomBytes } from "node:crypto";
@@ -163,8 +163,8 @@ for (const file of files) {
     continue;
   }
 
-  loadEnvFile(".env.local");
-  loadEnvFile(".env");
+  // The diagnostics database belongs to the Function's Neon project.
+  loadEnvFile("functions/diagnostics/.env.local");
   const connectionString =
     process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
   if (!connectionString) {

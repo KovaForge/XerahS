@@ -1,19 +1,27 @@
-// Applies db/migrations/*.sql in name order, each once, each in its own
+// Applies <dir>/*.sql in name order, each once, each in its own
 // transaction, and records them in public.schema_migrations.
 //
-//   node scripts/db-migrate.ts [--status]
+//   node scripts/db-migrate.ts --dir db/cloud/migrations --env .env.local [--status]
+//   node scripts/db-migrate.ts --dir db/diagnostics/migrations --env functions/diagnostics/.env.local
 //
 // Uses DATABASE_URL_UNPOOLED (or DATABASE_URL) from the environment, then
-// .env.local / .env. Refuses to continue if an applied file has changed.
+// the --env file. Refuses to continue if an applied file has changed.
 
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import process from "node:process";
 
 import pg from "pg";
 
-const MIGRATIONS_DIR = new URL("../db/migrations/", import.meta.url).pathname;
+function argument(name: string): string | undefined {
+  const index = process.argv.indexOf(name);
+  return index >= 0 ? process.argv[index + 1] : undefined;
+}
+
+const MIGRATIONS_DIR = resolve(
+  argument("--dir") ?? "db/diagnostics/migrations",
+);
 
 function loadEnvFile(path: string): void {
   if (!existsSync(path)) return;
@@ -24,8 +32,7 @@ function loadEnvFile(path: string): void {
   }
 }
 
-loadEnvFile(".env.local");
-loadEnvFile(".env");
+loadEnvFile(argument("--env") ?? ".env.local");
 const connectionString =
   process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
 if (!connectionString) {
@@ -37,7 +44,7 @@ if (!connectionString) {
 
 const statusOnly = process.argv.includes("--status");
 const files = readdirSync(MIGRATIONS_DIR)
-  .filter((name) => /^\d{4}_[a-z0-9_]+\.sql$/.test(name))
+  .filter((name) => /^\d+_[a-z0-9_]+\.sql$/.test(name))
   .sort();
 
 const client = new pg.Client({

@@ -1,7 +1,7 @@
 -- Behavioural tests for db/migrations. Run against a scratch database after
 -- applying every migration in order:
---   node scripts/db-migrate.ts        (or: for f in db/migrations/*.sql; do psql ... -f "$f"; done)
---   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/diagnostics_test.sql
+--   node scripts/db-migrate.ts --dir db/diagnostics/migrations
+--   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/diagnostics/tests/diagnostics_test.sql
 -- Any failed assertion raises and aborts the run.
 
 update diagnostics.settings set allow_ingest = true;

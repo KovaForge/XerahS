@@ -1,15 +1,6 @@
 import { defineConfig } from "@neon/config/v1";
 
-export default defineConfig({
-  functions: {
-    // Crash-report ingest for the desktop Debug tab (functions/diagnostics).
-    diagnostics: {
-      name: "XerahS diagnostics ingest",
-      source: "functions/diagnostics/index.ts",
-      env: {
-        // HMAC key for per-network rate limits; client IPs are never stored.
-        DIAGNOSTICS_NETWORK_SECRET: process.env.DIAGNOSTICS_NETWORK_SECRET!,
-      },
-    },
-  },
-});
+// XerahS Cloud (project xerahs-cloud, aws-ap-southeast-2). Postgres only:
+// auth is self-hosted Better Auth inside the Next.js app. The diagnostics
+// ingest Function has its own policy in functions/diagnostics/neon.ts.
+export default defineConfig({});
