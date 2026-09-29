@@ -172,6 +172,10 @@ namespace XerahS.App
 
                 BuildAvaloniaApp()
                     .StartWithClassicDesktopLifetime(_startupArguments);
+
+                // Diagnostics treats a session without this line as a crash (DiagnosticsLogAnalyzer.CleanExitMessage).
+                XerahS.Common.DebugHelper.WriteLine(XerahS.Core.Diagnostics.DiagnosticsLogAnalyzer.CleanExitMessage);
+                XerahS.Common.DebugHelper.Flush();
             }
             catch (Exception ex)
             {
