@@ -68,6 +68,16 @@ describe("scrub", () => {
     expect(text).toContain("token=<redacted>");
   });
 
+  it("does not mistake version numbers for addresses", () => {
+    expect(
+      scrub(
+        "Version: 0.31.3.12 Dev, plugin v1.2.3.4, peer 203.0.113.9, VERSION=2.0.1.7",
+      ),
+    ).toBe(
+      "Version: 0.31.3.12 Dev, plugin v1.2.3.4, peer <ip>, VERSION=2.0.1.7",
+    );
+  });
+
   it("keeps public URLs, versions and loopback", () => {
     const text = scrub(
       "GET https://api.github.com/repos/KovaForge/XerahS/releases?x=1 at 127.0.0.1 on 10.0.26200 from 203.0.113.9",

@@ -67,8 +67,10 @@ public static class DiagnosticsLogAnalyzer
     private static readonly Regex Secret = new(
         @"\b(authorization|bearer|api[_-]?key|apikey|access[_-]?token|refresh[_-]?token|client[_-]?secret|secret|password|passwd|token|cookie|sig|signature)(\s*[:=]\s*|\s+)(""?)([^\s""',;&]{4,})",
         Options | RegexOptions.IgnoreCase);
+    // IPv4 addresses, but not version numbers ("Version: 0.31.3.1", "v1.2.3.4").
     private static readonly Regex IPv4 = new(
-        @"(?<![\d.])(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?![\d.])", Options);
+        @"(?<![\d.])(?<!(?:version|ver)[:=]?\s{0,3})(?<!\bv)(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?![\d.])",
+        Options | RegexOptions.IgnoreCase);
 
     private static readonly Regex IdentifierWindows = new(@"[A-Za-z]:\\Users\\([^\\/\r\n""'<>|]+)", Options);
     private static readonly Regex IdentifierUnix = new(@"/(?:home|Users|var/home)/([^/\s""'<>]+)", Options);
@@ -115,7 +117,7 @@ public static class DiagnosticsLogAnalyzer
             return rest.Length > 0 ? $"{scheme}://{host}/<path>" : $"{scheme}://{host}";
         });
         result = Secret.Replace(result, m => $"{m.Groups[1].Value}{m.Groups[2].Value}{m.Groups[3].Value}<redacted>");
-        result = IPv4.Replace(result, m => m.Value is "127.0.0.1" or "0.0.0.0" ? m.Value : "<ip>");
+        result = IPv4.Replace(result, m => m.Value is "127.0.0.1" or "0.0.0.0" || m.Value.StartsWith("0.", StringComparison.Ordinal) ? m.Value : "<ip>");
 
         if (identifiers != null)
         {

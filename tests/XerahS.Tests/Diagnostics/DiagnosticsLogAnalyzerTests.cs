@@ -87,6 +87,32 @@ public class DiagnosticsLogAnalyzerTests
     }
 
     [Test]
+    public void Scrub_DoesNotMistakeVersionsForAddresses()
+    {
+        Assert.That(
+            DiagnosticsLogAnalyzer.Scrub("Version: 0.31.3.12 Dev, plugin v1.2.3.4, peer 203.0.113.9, VERSION=2.0.1.7"),
+            Is.EqualTo("Version: 0.31.3.12 Dev, plugin v1.2.3.4, peer <ip>, VERSION=2.0.1.7"));
+    }
+
+    [Test]
+    public void ParseHyprlandMonitors_ReadsLayoutWithoutSerials()
+    {
+        const string json = """
+            [{"id":0,"name":"eDP-1","description":"Apple Computer Inc iMac 9ACC64B374424","width":3840,"height":2160,
+              "refreshRate":59.997,"x":0,"y":0,"scale":1.25,"transform":1,"disabled":false},
+             {"id":1,"name":"DP-2","description":"x","width":0,"height":0,"x":0,"y":0,"scale":1,"transform":0}]
+            """;
+        var displays = DiagnosticsSystemInfo.ParseHyprlandMonitors(json);
+        Assert.That(displays, Has.Count.EqualTo(1));
+        Assert.That(displays[0], Is.EqualTo(new DisplayInfo
+        {
+            Ordinal = 0, DeviceName = "eDP-1", IsPrimary = true, X = 0, Y = 0, Width = 3840, Height = 2160,
+            Scale = 1.25, Rotation = 90, RefreshHz = 59.997,
+        }));
+        Assert.That(DiagnosticsSystemInfo.ParseHyprlandMonitors("not json"), Is.Empty);
+    }
+
+    [Test]
     public void NormalizeTemplate_KeepsIdentifiersAndHresults()
     {
         Assert.That(

@@ -172,9 +172,13 @@ export function scrub(
       `${key}${sep}${quote}<redacted>`,
   );
 
+  // IPv4 addresses, but not version numbers ("Version: 0.31.3.1", "v1.2.3.4").
   result = result.replace(
-    /(?<![\d.])(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?![\d.])/g,
-    (ip) => (ip === "127.0.0.1" || ip === "0.0.0.0" ? ip : "<ip>"),
+    /(?<![\d.])(?<!(?:version|ver)[:=]?\s{0,3})(?<!\bv)(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?![\d.])/gi,
+    (ip) =>
+      ip === "127.0.0.1" || ip === "0.0.0.0" || ip.startsWith("0.")
+        ? ip
+        : "<ip>",
   );
 
   for (const name of identifiers) {

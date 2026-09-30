@@ -6,6 +6,11 @@ on:
   push:
     branches: [develop]
     paths: ["web/**", ".github/workflows/web-ci.yml"]
+  # Daily, so a newly published advisory fails here (and Dependabot opens the
+  # fix) before it can fail someone's unrelated push.
+  schedule:
+    - cron: "23 20 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -246,6 +246,66 @@ public static class DiagnosticsSystemInfo
     /// <summary>Monitor layout: bounds, scale and primary flag. No model names or serials.</summary>
     public static IReadOnlyList<DisplayInfo> CollectDisplays()
     {
+        IReadOnlyList<DisplayInfo> displays = CollectPlatformDisplays();
+        // The Linux screen service reads xrandr, which is often absent on Wayland.
+        if (displays.Count == 0 && OperatingSystem.IsLinux() &&
+            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("HYPRLAND_INSTANCE_SIGNATURE")))
+        {
+            displays = ParseHyprlandMonitors(RunProcess("hyprctl", "monitors -j"));
+        }
+        return displays;
+    }
+
+    /// <summary>
+    /// Parses `hyprctl monitors -j`. The monitor description is not used: it carries the
+    /// panel's serial number.
+    /// </summary>
+    public static IReadOnlyList<DisplayInfo> ParseHyprlandMonitors(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return Array.Empty<DisplayInfo>();
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array) return Array.Empty<DisplayInfo>();
+            var displays = new List<DisplayInfo>();
+            foreach (var monitor in document.RootElement.EnumerateArray())
+            {
+                static int Int(System.Text.Json.JsonElement element, string name) =>
+                    element.TryGetProperty(name, out var value) && value.TryGetInt32(out int number) ? number : 0;
+                static double? Number(System.Text.Json.JsonElement element, string name) =>
+                    element.TryGetProperty(name, out var value) && value.TryGetDouble(out double number) ? number : null;
+
+                if (monitor.TryGetProperty("disabled", out var disabled) && disabled.ValueKind == System.Text.Json.JsonValueKind.True) continue;
+                int width = Int(monitor, "width");
+                int height = Int(monitor, "height");
+                if (width <= 0 || height <= 0) continue;
+                string? name = monitor.TryGetProperty("name", out var n) ? n.GetString() : null;
+                displays.Add(new DisplayInfo
+                {
+                    Ordinal = displays.Count,
+                    DeviceName = name is { Length: > 0 and <= 64 } ? name : null,
+                    IsPrimary = displays.Count == 0,
+                    X = Int(monitor, "x"),
+                    Y = Int(monitor, "y"),
+                    Width = width,
+                    Height = height,
+                    Scale = Number(monitor, "scale") is { } scale ? Math.Round(scale, 4) : null,
+                    // Wayland transforms 0-3 rotate 0/90/180/270; 4-7 are the flipped variants.
+                    Rotation = Int(monitor, "transform") % 4 * 90,
+                    RefreshHz = Number(monitor, "refreshRate") is { } hz ? Math.Round(hz, 3) : null,
+                });
+                if (displays.Count >= 32) break;
+            }
+            return displays;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return Array.Empty<DisplayInfo>();
+        }
+    }
+
+    private static IReadOnlyList<DisplayInfo> CollectPlatformDisplays()
+    {
         try
         {
             if (!PlatformServices.IsInitialized) return Array.Empty<DisplayInfo>();

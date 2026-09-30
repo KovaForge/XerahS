@@ -110,6 +110,7 @@ public sealed record DisplayInfo
     public int Height { get; init; }
     public double? Scale { get; init; }
     public int? Rotation { get; init; }
+    public double? RefreshHz { get; init; }
     public int? BitsPerPixel { get; init; }
     public bool? IsHdr { get; init; }
 }
