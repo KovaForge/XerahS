@@ -25,6 +25,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using XerahS.UI.Services;
 using XerahS.UI.ViewModels;
 
 namespace XerahS.UI.Views
@@ -44,15 +45,8 @@ namespace XerahS.UI.Views
 
         private async void OnShareLogsClick(object? sender, RoutedEventArgs e)
         {
-            var window = new ShareLogsWindow();
-            if (TopLevel.GetTopLevel(this) is Window owner)
-            {
-                await window.ShowDialog(owner);
-            }
-            else
-            {
-                window.Show();
-            }
+            // Modal overlay in the main window, like the app's other dialogs.
+            await UiViewModelFactoryAccessor.GetRequired().ViewDialogService.ShowShareLogsAsync(new ShareLogsViewModel());
         }
     }
 }

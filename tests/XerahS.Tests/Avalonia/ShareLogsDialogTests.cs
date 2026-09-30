@@ -36,7 +36,7 @@ using XerahS.UI.Views;
 namespace XerahS.Tests.Avalonia;
 
 [TestFixture]
-public class ShareLogsWindowTests
+public class ShareLogsDialogTests
 {
     private const string Log =
         "2026-09-29 12:11:48.698 - XerahS starting.\n" +
@@ -101,7 +101,14 @@ public class ShareLogsWindowTests
         {
             var client = new DiagnosticsClient(new HttpClient(server), new Uri("https://diagnostics.test/"));
             var vm = new ShareLogsViewModel(new DiagnosticsStateStore(statePath), client, Build);
-            var window = new ShareLogsWindow(vm);
+            // The app shows the dialog in the main window's modal overlay; a plain
+            // window stands in for it here.
+            var window = new global::Avalonia.Controls.Window
+            {
+                Width = 720,
+                Height = 1400,
+                Content = new ShareLogsDialog { DataContext = vm },
+            };
             window.Show();
 
             await WaitUntil(() => vm.HasNewEntries && !vm.IsPreparing);
@@ -143,6 +150,10 @@ public class ShareLogsWindowTests
             {
                 window.CaptureRenderedFrame()?.Save(after, global::Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
             }
+            bool? closedWith = null;
+            vm.CloseRequested = result => closedWith = result;
+            vm.CloseCommand.Execute(null);
+            Assert.That(closedWith, Is.True, "Close reports that a report was sent");
             window.Close();
         }
         finally

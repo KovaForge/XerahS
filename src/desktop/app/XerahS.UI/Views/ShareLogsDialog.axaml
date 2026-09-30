@@ -1,136 +1,122 @@
-<ui:SurfaceWindow xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:ui="using:XerahS.UI.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:vm="using:XerahS.UI.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="640" d:DesignHeight="760"
-        x:Class="XerahS.UI.Views.ShareLogsWindow"
+        mc:Ignorable="d" d:DesignWidth="680"
+        x:Class="XerahS.UI.Views.ShareLogsDialog"
         x:DataType="vm:ShareLogsViewModel"
-        Title="Share logs"
-        Icon="/Assets/Logo.ico"
-        Width="640" Height="760"
-        MinWidth="520" MinHeight="560"
-        WindowStartupLocation="CenterOwner">
+        Width="680">
 
-    <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}">
-        <Grid RowDefinitions="*,Auto">
+    <!-- Hosted in the main window's ModalContent overlay (IViewDialogService.ShowShareLogsAsync),
+         which supplies the backdrop, card chrome and scrolling. -->
+    <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+            Padding="24">
+        <StackPanel Spacing="16">
 
-            <ScrollViewer Grid.Row="0" Padding="24,20,24,8">
-                <StackPanel Spacing="16">
+            <!-- Header -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="Share logs" Theme="{StaticResource TitleTextBlockStyle}"/>
+                <TextBlock Text="Send scrubbed logs and system details to the XerahS developers to help fix crashes. Nothing is sent until you press Send."
+                           Theme="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
 
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Share logs with the XerahS developers"
-                                   Theme="{StaticResource SubtitleTextBlockStyle}"/>
-                        <TextBlock TextWrapping="Wrap"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                   Text="Helps us find and fix crashes. Review what is included below; nothing is sent until you press Send."/>
-                    </StackPanel>
+            <!-- Privacy disclosure -->
+            <Border Theme="{StaticResource CardBorderTheme}" Padding="20">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="What will be shared" Theme="{StaticResource BodyStrongTextBlockStyle}"/>
+                    <TextBlock TextWrapping="Wrap" Text="• XerahS log files from the selected period, after removing personal data: your user and computer names, email addresses, IP addresses, the paths of links you uploaded (only the site name is kept), and passwords, keys or tokens."/>
+                    <TextBlock TextWrapping="Wrap" Text="• App: XerahS version, build type and .NET version."/>
+                    <TextBlock TextWrapping="Wrap" Text="• System: operating system and version, CPU architecture (and whether XerahS runs emulated), display language, and whether XerahS runs as administrator or in a sandbox."/>
+                    <TextBlock TextWrapping="Wrap" Text="• Hardware: processor model and core count, memory (rounded), graphics adapters and driver versions."/>
+                    <TextBlock TextWrapping="Wrap" Text="• Monitors: count, resolution, position, scaling and which one is primary."/>
+                    <TextBlock TextWrapping="Wrap" Text="• Recording: FFmpeg version, whether it is bundled, and its hardware encoders."/>
+                    <TextBlock TextWrapping="Wrap" Text="• A random ID created on this computer for sharing, so reports from it can be grouped and deleted. It is not linked to you, your account, or your hardware."/>
 
-                    <!-- Privacy disclosure -->
-                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1" CornerRadius="8" Padding="16">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="What will be shared" FontWeight="SemiBold"/>
-                            <TextBlock TextWrapping="Wrap" Text="• XerahS log files from the selected period, after removing personal data: your user and computer names, email addresses, IP addresses, the paths of links you uploaded (only the site name is kept), and passwords, keys or tokens."/>
-                            <TextBlock TextWrapping="Wrap" Text="• App: XerahS version, build type and .NET version."/>
-                            <TextBlock TextWrapping="Wrap" Text="• System: operating system and version, CPU architecture (and whether XerahS runs emulated), display language, and whether XerahS runs as administrator or in a sandbox."/>
-                            <TextBlock TextWrapping="Wrap" Text="• Hardware: processor model and core count, memory (rounded), graphics adapters and driver versions."/>
-                            <TextBlock TextWrapping="Wrap" Text="• Monitors: count, resolution, position, scaling and which one is primary."/>
-                            <TextBlock TextWrapping="Wrap" Text="• Recording: FFmpeg version, whether it is bundled, and its hardware encoders."/>
-                            <TextBlock TextWrapping="Wrap" Text="• A random ID created on this computer for sharing, so reports from it can be grouped and deleted. It is not linked to you, your account, or your hardware."/>
-
-                            <TextBlock Text="Never shared" FontWeight="SemiBold" Margin="0,8,0,0"/>
-                            <TextBlock TextWrapping="Wrap"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       Text="Screenshots, recordings, clipboard contents, settings files, upload history, uploader credentials, account details, or your IP address."/>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Time range -->
-                    <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1" CornerRadius="8" Padding="16">
-                        <StackPanel Spacing="8">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBlock Text="Log history to include" FontWeight="SemiBold"/>
-                                <TextBlock Grid.Column="1" Text="{Binding WindowLabel}"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                            </Grid>
-                            <Slider Minimum="0" Maximum="1" TickFrequency="1"
-                                    IsSnapToTickEnabled="True" TickPlacement="BottomRight"
-                                    Value="{Binding WindowIndex}"
-                                    AutomationProperties.Name="Log history to include"/>
-                            <Grid ColumnDefinitions="*,*">
-                                <TextBlock Text="Past 24 hours" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                <TextBlock Grid.Column="1" Text="Past week" HorizontalAlignment="Right"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                            </Grid>
-                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                                <ProgressBar IsIndeterminate="True" Width="48" VerticalAlignment="Center"
-                                             IsVisible="{Binding IsPreparing}"/>
-                                <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap"/>
-                            </StackPanel>
-                            <TextBlock Text="{Binding AlreadySentText}" TextWrapping="Wrap"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       IsVisible="{Binding AlreadySentText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Optional note -->
-                    <StackPanel Spacing="6">
-                        <TextBlock Text="What happened? (optional)" FontWeight="SemiBold"/>
-                        <TextBox Text="{Binding Comment}" AcceptsReturn="True" TextWrapping="Wrap"
-                                 MinHeight="72" MaxLength="2000"
-                                 PlaceholderText="For example: XerahS closes when I press Print Screen with two monitors."
-                                 AutomationProperties.Name="What happened"/>
-                    </StackPanel>
-
-                    <!-- Exact payload -->
-                    <Expander Header="Review exactly what will be sent" HorizontalAlignment="Stretch">
-                        <StackPanel Spacing="8">
-                            <TextBox Text="{Binding PreviewText}" IsReadOnly="True" TextWrapping="NoWrap"
-                                     FontFamily="monospace" FontSize="12" Height="280" AcceptsReturn="True"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                     AutomationProperties.Name="Report preview"/>
-                            <Button Content="Save a copy…" Command="{Binding SaveCopyCommand}"
-                                    HorizontalAlignment="Left"
-                                    AutomationProperties.Name="Save a copy of the report"/>
-                        </StackPanel>
-                    </Expander>
-                </StackPanel>
-            </ScrollViewer>
-
-            <!-- Footer -->
-            <Border Grid.Row="1" Padding="24,12,24,16"
-                    BorderThickness="0,1,0,0" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap"
-                               IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                               Classes.error="{Binding StatusIsError}">
-                        <TextBlock.Styles>
-                            <Style Selector="TextBlock.error">
-                                <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}"/>
-                            </Style>
-                        </TextBlock.Styles>
-                    </TextBlock>
-                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
-                        <Button Grid.Column="0" Content="Copy report ID" Command="{Binding CopyReportIdCommand}"
-                                IsVisible="{Binding HasSentReport}" Margin="0,0,8,0"
-                                AutomationProperties.Name="Copy report ID"/>
-                        <Button Grid.Column="1" Content="Delete last report" Command="{Binding DeleteLastReportCommand}"
-                                IsVisible="{Binding HasSentReport}"
-                                AutomationProperties.Name="Delete the last report sent from this computer"/>
-                        <Button Grid.Column="3" Content="Close" Click="OnCloseClick" MinWidth="88" Margin="0,0,8,0"
-                                AutomationProperties.Name="Close"/>
-                        <Button Grid.Column="4" Content="Send" Command="{Binding SendCommand}" MinWidth="88"
-                                IsDefault="True"
-                                AutomationProperties.Name="Send logs"/>
-                    </Grid>
+                    <TextBlock Text="Never shared" Theme="{StaticResource BodyStrongTextBlockStyle}" Margin="0,8,0,0"/>
+                    <TextBlock TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="Screenshots, recordings, clipboard contents, settings files, upload history, uploader credentials, account details, or your IP address."/>
                 </StackPanel>
             </Border>
-        </Grid>
+
+            <!-- Time range -->
+            <Border Theme="{StaticResource CardBorderTheme}" Padding="20">
+                <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Log history to include" Theme="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding WindowLabel}"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                    </Grid>
+                    <Slider Minimum="0" Maximum="1" TickFrequency="1"
+                            IsSnapToTickEnabled="True" TickPlacement="BottomRight"
+                            Value="{Binding WindowIndex}"
+                            AutomationProperties.Name="Log history to include"/>
+                    <Grid ColumnDefinitions="*,*">
+                        <TextBlock Text="Past 24 hours" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Column="1" Text="Past week" HorizontalAlignment="Right"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                        <ProgressBar IsIndeterminate="True" Width="48" VerticalAlignment="Center"
+                                     IsVisible="{Binding IsPreparing}"/>
+                        <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding AlreadySentText}" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               IsVisible="{Binding AlreadySentText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Optional note -->
+            <StackPanel Spacing="6">
+                <TextBlock Text="What happened? (optional)" Theme="{StaticResource BodyStrongTextBlockStyle}"/>
+                <TextBox Text="{Binding Comment}" AcceptsReturn="True" TextWrapping="Wrap"
+                         MinHeight="72" MaxLength="2000"
+                         PlaceholderText="For example: XerahS closes when I press Print Screen with two monitors."
+                         AutomationProperties.Name="What happened"/>
+            </StackPanel>
+
+            <!-- Exact payload -->
+            <Expander Header="Review exactly what will be sent" HorizontalAlignment="Stretch">
+                <StackPanel Spacing="8">
+                    <TextBox Text="{Binding PreviewText}" IsReadOnly="True" TextWrapping="NoWrap"
+                             FontFamily="monospace" FontSize="12" Height="280" AcceptsReturn="True"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             AutomationProperties.Name="Report preview"/>
+                    <Button Content="Save a copy…" Command="{Binding SaveCopyCommand}"
+                            HorizontalAlignment="Left"
+                            AutomationProperties.Name="Save a copy of the report"/>
+                </StackPanel>
+            </Expander>
+
+            <!-- Status and actions -->
+            <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap"
+                       IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                       Classes.error="{Binding StatusIsError}">
+                <TextBlock.Styles>
+                    <Style Selector="TextBlock.error">
+                        <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}"/>
+                    </Style>
+                </TextBlock.Styles>
+            </TextBlock>
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
+                <Button Grid.Column="0" Content="Copy report ID" Command="{Binding CopyReportIdCommand}"
+                        IsVisible="{Binding HasSentReport}"
+                        AutomationProperties.Name="Copy report ID"/>
+                <Button Grid.Column="1" Content="Delete last report" Command="{Binding DeleteLastReportCommand}"
+                        IsVisible="{Binding HasSentReport}"
+                        AutomationProperties.Name="Delete the last report sent from this computer"/>
+                <Button Grid.Column="3" Content="Close" Command="{Binding CloseCommand}" MinWidth="88"
+                        IsCancel="True"
+                        AutomationProperties.Name="Close"/>
+                <Button Grid.Column="4" Content="Send" Command="{Binding SendCommand}" MinWidth="88"
+                        IsDefault="True"
+                        AutomationProperties.Name="Send logs"/>
+            </Grid>
+        </StackPanel>
     </Border>
-</ui:SurfaceWindow>
+</UserControl>

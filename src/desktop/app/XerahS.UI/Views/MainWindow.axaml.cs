@@ -95,6 +95,8 @@ namespace XerahS.UI.Views
             InitializeComponent();
             DataContextChanged += OnMainWindowDataContextChanged;
             KeyDown += OnKeyDown;
+            // Tunnel so Esc closes a modal dialog even when a control inside it has focus.
+            AddHandler(KeyDownEvent, OnModalEscapeKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
             ApplyInitialWindowPlacement();
 
             if (this.FindControl<ContentControl>("ContentFrame") is ContentControl contentFrame)

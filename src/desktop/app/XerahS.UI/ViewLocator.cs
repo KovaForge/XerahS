@@ -65,6 +65,7 @@ public class ViewLocator : IDataTemplate
             [typeof(ImageEffectsViewModel)] = static () => new ImageEffectsBrowserDialog(),
             [typeof(FFmpegOptionsViewModel)] = static () => new FFmpegOptionsWindow(),
             [typeof(QrCodeGeneratorViewModel)] = static () => new QrCodeGeneratorDialog(),
+            [typeof(ShareLogsViewModel)] = static () => new ShareLogsDialog(),
             [typeof(WatchFolderEditViewModel)] = static () => new WatchFolderDialog(),
             [typeof(OpenImageChoiceViewModel)] = static () => new OpenImageChoiceDialog(),
             [typeof(WindowSelectorViewModel)] = static () => new WindowSelectorDialog(),

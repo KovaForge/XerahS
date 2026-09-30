@@ -32,7 +32,10 @@ using XerahS.Core.Diagnostics;
 
 namespace XerahS.UI.ViewModels;
 
-/// <summary>Debug tab "Share logs" dialog: review, then send scrubbed logs and system data.</summary>
+/// <summary>
+/// Debug tab "Share logs" modal (ShareLogsDialog, hosted in the main window's
+/// ModalContent overlay): review, then send scrubbed logs and system data.
+/// </summary>
 public partial class ShareLogsViewModel : ViewModelBase
 {
     private readonly DiagnosticsStateStore _stateStore;
@@ -109,6 +112,14 @@ public partial class ShareLogsViewModel : ViewModelBase
 
     private DiagnosticsWindow Window => WindowIndex <= 0 ? DiagnosticsWindow.Past24Hours : DiagnosticsWindow.PastWeek;
 
+    /// <summary>Set by the modal host (IViewDialogService.ShowShareLogsAsync).</summary>
+    public Action<bool>? CloseRequested { get; set; }
+
+    [RelayCommand]
+    private void Close() => CloseRequested?.Invoke(HasSentReport);
+
+    private bool _initialized;
+
     /// <summary>Set by the view: asks for a path to save a copy of the report.</summary>
     public Func<string, Task<string?>>? PickSavePath { get; set; }
 
@@ -119,6 +130,9 @@ public partial class ShareLogsViewModel : ViewModelBase
 
     public async Task InitializeAsync()
     {
+        if (_initialized) return;
+        _initialized = true;
+
         // The server knows what this install already sent, even from another
         // copy of the settings. Fall back to the local record when offline.
         try
