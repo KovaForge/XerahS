@@ -19,8 +19,8 @@ jobs:
     env:
       APP_ENV: development
       APP_ORIGIN: http://localhost:3000
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_000000000000000000000000
+      # Not a secret: lets the build load the Better Auth config.
+      BETTER_AUTH_SECRET: ci-build-placeholder-not-used-at-runtime-0000
       NEXT_PUBLIC_PASSKEYS_ENABLED: "false"
       LEDGER_USE_LOCAL_FAKE: "true"
     steps:
@@ -119,3 +119,4 @@ jobs:
           echo "$out"
           ! echo "$out" | grep -q "^not ok"
           echo "$out" | grep -q "^ok 36 "
+      - run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/cloud/tests/better_auth_mirror.test.sql
