@@ -271,7 +271,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             if (!nativeOk)
             {
                 DebugHelper.WriteLine("[WaylandPortalRecording] No usable FFmpeg encoder for the fallback; using GStreamer's last-resort encoder.");
-                GStreamerPluginAdvisor.Notify(advice, usedFfmpegFallback: false);
+                GStreamerPluginAdvisor.Notify(advice, usedFfmpegFallback: false, hasUsableFFmpegEncoder: plan != null);
             }
 
             return false;
@@ -282,7 +282,8 @@ public sealed class WaylandPortalRecordingService : IRecordingService
         {
             // Raw frames need an exact size; without one, use GStreamer's own encoders.
             DebugHelper.WriteLine("[WaylandPortalRecording] Could not determine the stream's frame size; not using the FFmpeg bridge.");
-            GStreamerPluginAdvisor.Notify(advice, usedFfmpegFallback: false);
+            // FFmpeg itself is fine here, so a download would not help.
+            GStreamerPluginAdvisor.Notify(advice, usedFfmpegFallback: false, hasUsableFFmpegEncoder: true);
             return false;
         }
 
@@ -323,7 +324,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
         DebugHelper.WriteLine($"[WaylandPortalRecording] Capture: gst-launch-1.0 {captureArgs}");
         DebugHelper.WriteLine($"[WaylandPortalRecording] Encode: {ffmpegPath} {encodeArgs}");
 
-        GStreamerPluginAdvisor.Notify(advice, usedFfmpegFallback: true);
+        GStreamerPluginAdvisor.Notify(advice, usedFfmpegFallback: true, hasUsableFFmpegEncoder: true);
         _gstreamerOutputPath = outputPath;
         _ffmpegTask = Task.Run(() => RunFFmpegEncodingBridge(captureArgs, ffmpegPath, encodeArgs, outputPath));
         return true;

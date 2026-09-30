@@ -172,4 +172,23 @@ public class WaylandRecordingFallbackTests
         LinuxOsReleaseInfo info = LinuxOsRelease.Load(_ => ["NAME=\"Arch Linux\"", "PRETTY_NAME=\"Omarchy\"", "ID=arch", "ID_LIKE=\"arch\""]);
         Assert.That((info.DistroId, info.DistroIdLike, info.PrettyName), Is.EqualTo(("arch", "arch", "Omarchy")));
     }
+
+    [Test]
+    public void NoNoticeWhenFFmpegEncodes()
+    {
+        // The FFmpeg bridge records H.264/VP9 fine: no toast, and never a sudo command.
+        Assert.That(GStreamerPluginAdvisor.BuildNotice(usedFfmpegFallback: true, hasUsableFFmpegEncoder: true, userFFmpegAlreadyDownloaded: false), Is.Null);
+        Assert.That(GStreamerPluginAdvisor.BuildNotice(false, hasUsableFFmpegEncoder: true, userFFmpegAlreadyDownloaded: false), Is.Null);
+        Assert.That(GStreamerPluginAdvisor.BuildNotice(false, false, userFFmpegAlreadyDownloaded: true), Is.Null);
+    }
+
+    [Test]
+    public void DegradedRecordingFetchesFFmpegWithoutAdminRights()
+    {
+        RecordingEncoderNotice? notice = GStreamerPluginAdvisor.BuildNotice(false, false, false);
+        Assert.That(notice, Is.Not.Null);
+        Assert.That(notice!.DownloadFFmpeg, Is.True);
+        Assert.That(notice.Text, Does.Contain("no administrator rights"));
+        Assert.That(notice.Text + notice.Title, Does.Not.Contain("sudo"));
+    }
 }
