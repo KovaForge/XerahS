@@ -110,7 +110,9 @@ namespace XerahS.Common
 
             if (OperatingSystem.IsLinux())
             {
-                return FFmpegArchitecture.linux64;
+                return RuntimeInformation.OSArchitecture == System.Runtime.InteropServices.Architecture.Arm64
+                    ? FFmpegArchitecture.linuxArm64
+                    : FFmpegArchitecture.linux64;
             }
 
             return FFmpegArchitecture.win64;
@@ -124,7 +126,8 @@ namespace XerahS.Common
                 FFmpegArchitecture.win32 => "win-x86.zip",
                 FFmpegArchitecture.winArm64 => "win-arm64.zip",
                 FFmpegArchitecture.macos64 => "macos64.zip",
-                FFmpegArchitecture.linux64 => "linux64.zip",
+                FFmpegArchitecture.linux64 => "linux-x64.zip",
+                FFmpegArchitecture.linuxArm64 => "linux-arm64.zip",
                 _ => "win-x64.zip"
             };
         }

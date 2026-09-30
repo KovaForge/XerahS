@@ -1,8 +1,8 @@
 # FFmpeg release handover
 
 **Date:** 2026-09-30
-**Status:** Findings only. No repo changes have been made from this investigation.
-**Audience:** Whoever next publishes ShareX FFmpeg builds and wires XerahS Linux download to them.
+**Status:** Linux releases implemented (2026-09-30). Windows release process and ShareX unchanged.
+**Audience:** Whoever next publishes ShareX FFmpeg builds, Windows or Linux.
 
 User-facing recording behaviour stays in [FFMPEG.md](FFMPEG.md). This note is the release contract: which GitHub repos produce the binaries, what XerahS actually downloads, how the Windows DPI manifest fits in, and how ShareX Authenticode-signs `ffmpeg.exe`.
 
@@ -20,8 +20,8 @@ Checked trees:
 
 | Repo | What it is | What it publishes today |
 |---|---|---|
-| [ShareX/FFmpeg](https://github.com/ShareX/FFmpeg) | Release bucket. Tree is `README.md` and `LICENSE.txt`. Tags are `v8.1`, `v8.0`, `v7.1`, … | `ffmpeg-8.1-win-x64.zip`, `ffmpeg-8.1-win-arm64.zip`. Each zip contains one file, `ffmpeg.exe`, at the archive root. |
-| [ShareX/FFmpeg-Builds](https://github.com/ShareX/FFmpeg-Builds) | Frozen fork of [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds). Last commit 2024-06-25. Scripts can build Linux. CI does not. | `ffmpeg-latest-win64.zip`, `ffmpeg-7.0-win64.zip`, and the `win32` pair. Last auto-build 2024-06-28. |
+| [ShareX/FFmpeg](https://github.com/ShareX/FFmpeg) | Release bucket. Windows tags `v8.1`, `v8.0`, `v7.1`, … are uploaded by hand. `.github/workflows/linux-release.yml` publishes `v<version>-linux` (section 5). | `ffmpeg-8.1-win-x64.zip`, `ffmpeg-8.1-win-arm64.zip`. Each zip contains one file, `ffmpeg.exe`, at the archive root. |
+| [ShareX/FFmpeg-Builds](https://github.com/ShareX/FFmpeg-Builds) | Fork of [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds). `master` is the Windows fork, frozen at 2024-06-25 with its workflow disabled. Branch `linux` is current upstream plus `sharex/` Linux packaging (section 5). | `ffmpeg-latest-win64.zip`, `ffmpeg-7.0-win64.zip`, and the `win32` pair. Last auto-build 2024-06-28. |
 
 XerahS Windows download points at the release bucket, not the build repo:
 
@@ -65,16 +65,19 @@ Source: `src/desktop/core/XerahS.Common/UpdateChecker/FFmpegUpdateChecker.cs`.
 
 ShareX desktop `ShareX.HelpersLib/UpdateChecker/FFmpegUpdateChecker.cs` still looks for `win64.zip`, `win32.zip`, and `macos64.zip`. `ffmpeg-8.1-win-x64.zip` does not end with `win64.zip`, so the current ShareX checker does not select the `v8.1` assets. `FFmpegGitHubDownloader` exists in that tree and has no caller in the Avalonia UI. The ShareX app workflow downloads the zip by the `win-x64` URL directly. See section 6.
 
-### BtbN (what XerahS Linux matches today)
+### Linux releases (what XerahS Linux matches)
 
 ```text
-ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz
-ffmpeg-n8.1-latest-linuxarm64-gpl-8.1.tar.xz
+tag v8.1-linux   (never marked latest)
+ffmpeg-8.1-linux-x64.zip
+ffmpeg-8.1-linux-arm64.zip
+SHA256SUMS
+SHA256SUMS.sig
 ```
 
-Upstream BtbN zips the whole tree (`zip -9 -r` / `tar`) and keeps `ffprobe`. ShareX's fork disables `ffprobe` and flattens Windows to a single exe.
+The zip names follow the Windows pattern `ffmpeg-{version}-{rid}.zip`. They live on a separate tag because `v8.1` is an immutable release: no asset can be added to it after publishing. See section 5.
 
----
+Before 0.32.3, XerahS Linux downloaded BtbN's `ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz` from `BtbN/FFmpeg-Builds`. That path is removed.
 
 ## 3. DPI manifest
 
@@ -102,7 +105,7 @@ Both published binaries (`ffmpeg-8.1-win-x64.zip` and `ffmpeg-latest-win64.zip`)
 </assembly>
 ```
 
-Running `Add-manifest.bat` with the Downloads manifest would drop `PerMonitorV2`. Leave the toolchain manifest in place. Keep `Extract-manifest.bat` as a check that `PerMonitorV2` is still present.
+Running `Add-manifest.bat` with the Downloads manifest would drop `PerMonitorV2`. Of the three helpers, only `Extract-manifest.bat` is still useful, as a check. Leave the toolchain manifest in place. Keep `Extract-manifest.bat` as a check that `PerMonitorV2` is still present.
 
 `ShareX/FFmpeg-Builds` has a copy of the weaker manifest at the repo root (`ffmpeg.exe.manifest`, added 2022-09-10). No script references it. The ShareX build workflow does not run `mt.exe` either.
 
@@ -114,83 +117,92 @@ Linux has no PE manifest. The equivalent requirement is which devices are compil
 
 `DownloadLatestAsync` in `src/desktop/core/XerahS.Common/FFmpegDownloader.cs`:
 
-- Windows and macOS call `FFmpegUpdateChecker("ShareX", "FFmpeg")`, download the zip, and extract entries named `ffmpeg.exe` / `ffprobe.exe` (or `ffmpeg` / `ffprobe`). `EnsureExecutable` sets the Unix mode on non-Windows.
-- Linux returns immediately and calls `DownloadLinuxStaticAsync`.
+- **Windows and macOS** call `FFmpegUpdateChecker("ShareX", "FFmpeg")`, which reads `/releases/latest`, download the zip and extract `ffmpeg.exe` / `ffprobe.exe` (or `ffmpeg` / `ffprobe`). When `ffprobe.exe` is missing on Windows, `DownloadFFprobeFallbackAsync` fetches one from `System233/ffmpeg-msvc-prebuilt`.
+- **Linux** calls `DownloadLinuxAsync`:
+  1. Lists `repos/ShareX/FFmpeg/releases` and picks the newest published, non-prerelease release whose tag matches `v<major>.<minor>-linux[.<n>]` and that has `ffmpeg-<major>.<minor>-linux-x64.zip` (or `-linux-arm64.zip`), `SHA256SUMS` and `SHA256SUMS.sig` (`SelectLinuxRelease`).
+  2. Downloads `SHA256SUMS` and `SHA256SUMS.sig` and checks the ECDSA P-256 signature against the key built into `FFmpegReleaseVerifier.TrustedKeys`.
+  3. Downloads the zip and checks its SHA-256 against the signed line for that exact file name.
+  4. Extracts `ffmpeg` and `ffprobe` and marks them executable.
 
-The Linux path reads `https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/tags/latest` and keeps the newest asset matching:
+  Any failed check stops the install. There is no unsigned fallback.
 
-```text
-^ffmpeg-n(?<major>\d+)\.(?<minor>\d+)-latest-(?<arch>linux64|linuxarm64)-gpl-\d+\.\d+\.tar\.xz$
-```
-
-It skips `master`, LGPL, and shared builds. Extraction is `tar -xJf` with wildcards `*/bin/ffmpeg` and `*/bin/ffprobe`. Both binaries are copied flat into the destination folder and marked executable.
-
-`FFmpegLinuxDownloadTests` requires `libx264` and `libvpx-vp9` in that binary, plus a sibling `ffprobe`.
-
-Install folder comes from `PathsManager.GetArchitectureFolderName()`:
+Install folder: `PathsManager.GetToolsArchitectureFolderName()`.
 
 - Windows: `win-x64`, `win-arm64`, `win-x86`
 - macOS: `macos64`
-- Linux: `linux64` for every CPU, including arm64
+- Linux: `linux-x64` or `linux-arm64`, the same suffixes as the assets.
 
-`FFmpegUpdateChecker.ResolveArchitecture()` has the same Linux bug: every Linux machine is `linux64`.
+`GetToolPath` still finds an FFmpeg installed by 0.32.2 in `Tools/linux64`. Plugins keep `Plugins/linux64` (`GetArchitectureFolderName()`), so installed plugins don't move.
 
-`DownloadFFprobeFallbackAsync` returns `null` unless the OS is Windows. A Linux zip that contains only `ffmpeg` breaks the video editor. `VideoEditorFfprobeResolver` looks for `ffprobe` beside `ffmpeg`, then calls the primary download, then the Windows-only fallback.
+`FFmpegUpdateChecker` maps Linux to `linux-x64.zip` / `linux-arm64.zip` for consistency. Linux doesn't use it to download.
+
+Tests: `tests/XerahS.Tests/Common/FFmpegLinuxDownloadTests.cs` covers release selection, signature and hash checks, and the pinned key. It also has an `[Explicit]` network test that installs the real release and requires `libx264`, `libvpx-vp9` and `ffprobe`.
 
 ---
 
-## 5. Linux assets to publish
+## 5. Linux releases
 
-Put these two files on the same `v8.1` (and later `v*`) release as the Windows zips:
+### Why a separate tag
 
-| Asset | Zip root |
-|---|---|
-| `ffmpeg-8.1-linux-x64.zip` | `ffmpeg` and `ffprobe` |
-| `ffmpeg-8.1-linux-arm64.zip` | `ffmpeg` and `ffprobe` |
+- **`v8.1` can't take more assets.** It is an immutable release (`isImmutable: true`), so Linux zips can't be added to it.
+- **Windows is made by hand.** Jaex builds and uploads the Windows zips.
+- **ShareX looks at two things only:**
+  - its build workflow downloads `releases/download/v8.1/ffmpeg-8.1-win-<arch>.zip` by exact URL;
+  - its in-app `FFmpegUpdateChecker` reads `/releases/latest`, with no pre-releases.
 
-That follows the Windows pattern: `ffmpeg-{version}-{rid}.zip`, flat zip, both tools.
+  Windows XerahS also reads `/releases/latest`.
 
-`ffmpeg-8.1-linux-x64.zip` does not end with `linux64.zip`. The checker suffix has to change with the new files. Publishing BtbN names (`ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz`) on `ShareX/FFmpeg` would still miss, because the Linux code requests the tag named `latest` on `BtbN/FFmpeg-Builds`, not GitHub's "latest release" of `ShareX/FFmpeg`.
+The Linux build is therefore published as its own release, `v<version>-linux`, created with `--latest=false`. The `latest` release stays Jaex's Windows release. ShareX and Windows XerahS see no change. The publish job fails if `/releases/latest` changes during the run.
 
-Build the GPL static variant. LGPL drops `libx264` and `libx265`. A shared build needs its `lib/` directory beside the binary, and the extractor copies only the two executables.
+ShareX's `new Version(tag.Substring(1))` would throw on `8.1-linux` if it ever became `latest`. That is why the check exists.
 
-Each binary needs to show:
+### Build: `ShareX/FFmpeg-Builds`, branch `linux`
 
-- encoders: `libx264`, `libx265`, `libvpx-vp9`, `libaom-av1`
-- `drawtext` via libfreetype (watermarks)
-- inputs: `x11grab`, `pulse`
-- `ffprobe` next to `ffmpeg`
+- **Base.** Upstream BtbN master, 374 commits newer than the fork's 2024 `master`. It includes the `8.1` and `9.0` addins.
+- **Untouched.** `master`, which is Jaex's Windows fork and still has `--disable-ffprobe`, `zip -j ffmpeg.exe` and a disabled workflow.
+- **Added:** `sharex/`.
+  - `build-linux.sh <linux64|linuxarm64> <version> <out>` pulls BtbN's `ghcr.io/btbn/ffmpeg-builds/<target>-gpl-<version>` image and records its digest. It builds FFmpeg from `release/<version>` with ffprobe, then writes a flat zip holding `ffmpeg`, `ffprobe` and `LICENSE.txt`, plus `build-info-<rid>.txt`.
+  - `verify-linux.sh <zip>` checks:
+    - the zip layout and executable bits;
+    - `libx264`, `libx265`, `libvpx-vp9`, `libaom-av1`;
+    - `x11grab`, `pulse`, `drawtext`;
+    - that the newest glibc symbol is at most `GLIBC_2.28`.
+- **Removed:** the upstream workflows on this branch, so nothing there builds or pushes images by itself.
+- **Updating from upstream:** `git fetch https://github.com/BtbN/FFmpeg-Builds.git master && git merge FETCH_HEAD`, keeping the workflow deletions.
 
-Keep BtbN's glibc 2.28 / Linux 4.18 floor so one zip runs on current Ubuntu, Debian, Fedora, RHEL 8, and Arch.
+The toolchain and dependency images are BtbN's. The FFmpeg source and packaging are ours. Each release's notes record the image digest and the `FFmpeg-Builds` commit.
 
-PipeWire is a follow-on. Current BtbN `scripts.d` builds PulseAudio and X11, not PipeWire, so `ffmpeg -devices` will not list `pipewire`. XerahS on Wayland then keeps using `wf-recorder` or GStreamer, which [FFMPEG.md](FFMPEG.md) already describes. Linking `libpipewire` dynamically is enough on a machine that can do portal capture. Do not block the zip on a fully static PipeWire link.
+### Publish: `ShareX/FFmpeg`, `.github/workflows/linux-release.yml`
 
-### Build repo work
+The workflow is started manually (`workflow_dispatch`). Inputs:
 
-The 2024 fork cannot produce an 8.1 Linux build. Current BtbN has addins through `9.0` and a matrix that includes `linux64` and `linuxarm64`. Merge that forward, then keep a thin ShareX publish step:
+- `version` (for example `8.1`);
+- `builds_ref` (default `linux`);
+- `tag` (default `v<version>-linux`; use `v<version>-linux.2` for a rebuild);
+- `publish` (default off).
 
-1. Build `linux64` and `linuxarm64`, variant `gpl`, addin matching the Windows release (`8.1` today).
-2. Stop passing `--disable-ffprobe`. Windows can keep a zip of `ffmpeg.exe` only. Linux cannot.
-3. Repack:
+1. **build**: runs `build-linux.sh` for `linux64` and `linuxarm64` on `ubuntu-24.04`.
+2. **verify**: runs `verify-linux.sh` on native runners, `ubuntu-24.04` for x64 and `ubuntu-24.04-arm` for arm64.
+3. **publish** (only with `publish: true`, environment `release`, `master` only):
+   - writes `SHA256SUMS`;
+   - signs it with `LINUX_SIGNING_KEY` via `openssl dgst -sha256 -sign`;
+   - checks the signature against `keys/linux-release-2026.pub.pem`;
+   - adds GitHub build-provenance attestations for both zips;
+   - runs `gh release create --latest=false`;
+   - checks that `/releases/latest` is unchanged.
 
-```bash
-zip -9 -j "ffmpeg-8.1-linux-x64.zip" ffmpeg ffprobe
-zip -9 -j "ffmpeg-8.1-linux-arm64.zip" ffmpeg ffprobe
-```
+Run a build-only test first (`publish` off). When Jaex publishes a new Windows version (for example `v8.2`), run this workflow with `version: 8.2` to add `v8.2-linux`.
 
-4. Upload those zips onto the `ShareX/FFmpeg` tag `v8.1`, beside `ffmpeg-8.1-win-x64.zip`. XerahS resolves `repos/ShareX/FFmpeg/releases/latest` and only accepts tags that start with `v`. A floating `latest` tag on `FFmpeg-Builds` is not selected.
-5. If a manifest copy stays in the build repo, replace it with the text of `fftools/fftools.manifest`. Do not run `Add-manifest.bat` on the built exe.
+### Signing
 
-### XerahS work required before those zips are used
+- **What gets signed.** Authenticode can't sign ELF binaries (section 6). The Linux release signs `SHA256SUMS` with ECDSA P-256 instead, and XerahS checks that signature with the pinned public key before it installs anything.
+- **Why a checksum alone isn't enough.** A checksum published on the same release proves nothing to someone who can replace the release files.
+- **Where the key lives.** The public key is `ShareX/FFmpeg` `keys/linux-release-2026.pub.pem`, also in `FFmpegReleaseVerifier.TrustedKeys`. The private key is the `release` environment secret `LINUX_SIGNING_KEY`, with an offline copy kept by the maintainer. The rotation steps are in `keys/README.md`.
+- **Checking a release by hand.** Run `openssl dgst -sha256 -verify linux-release-2026.pub.pem -signature SHA256SUMS.sig SHA256SUMS`, then `sha256sum -c SHA256SUMS` and `gh attestation verify <zip> -R ShareX/FFmpeg`.
 
-Publishing the files does nothing until Linux stops returning early.
+### Not done
 
-- In `FFmpegDownloader.DownloadLatestAsync`, remove the `OperatingSystem.IsLinux()` branch that calls BtbN. The shared zip path already extracts `ffmpeg` and `ffprobe` and calls `EnsureExecutable`.
-- In `FFmpegUpdateChecker`, map Linux x64 to a new `linux-x64` value and arm64 to `linux-arm64`. Suffixes: `linux-x64.zip` and `linux-arm64.zip`.
-- In `PathsManager.GetArchitectureFolderName()`, use those same folder names so an arm64 download does not land in `Tools/linux64`.
-- Update `tests/XerahS.Tests/Common/FFmpegLinuxDownloadTests.cs` to the new asset names. The network test should still find `libx264`, `libvpx-vp9`, and a sibling `ffprobe`.
-
-After that, **Download FFmpeg** on Linux resolves `https://github.com/ShareX/FFmpeg/releases/download/v8.1/ffmpeg-8.1-linux-x64.zip`.
+- **PipeWire.** BtbN doesn't build a PipeWire input device, so Wayland capture keeps using GStreamer or `wf-recorder` (see [FFMPEG.md](FFMPEG.md)).
 
 ---
 
@@ -281,7 +293,7 @@ Sign after the manifest is in the binary. `mt.exe -outputresource` rewrites the 
 
 `ffprobe.exe` is not in ShareX's filter. Once the Windows zip contains it, add `ffprobe.exe` beside `ffmpeg.exe` in `files-folder-filter`, or ShareX will keep shipping an unsigned probe next to a signed `ffmpeg.exe`. Re-signing an already-signed file in the ShareX job is harmless: `signtool sign` replaces the signature, and it is the same certificate.
 
-This signer is Authenticode. It signs PE files. A Linux `ffmpeg` / `ffprobe` ELF cannot go through `azure/artifact-signing-action`. Publish the Linux zip with a SHA256 checksum. The Windows executables are the files this workflow can sign.
+This signer is Authenticode. It signs PE files. A Linux `ffmpeg` / `ffprobe` ELF cannot go through `azure/artifact-signing-action`. Linux releases sign `SHA256SUMS` instead (section 5).
 
 ---
 
@@ -295,15 +307,14 @@ Windows zip, before upload:
 - [ ] Asset name is `ffmpeg-<version>-win-x64.zip` or `ffmpeg-<version>-win-arm64.zip` on a `v*` tag of `ShareX/FFmpeg`.
 - [ ] Zip root is the exe, not a nested `bin/` directory.
 
-Linux zip, before upload:
+Linux release (the workflow checks all of this):
 
-- [ ] Names are `ffmpeg-<version>-linux-x64.zip` and `ffmpeg-<version>-linux-arm64.zip` on that same `v*` tag.
-- [ ] Zip root contains `ffmpeg` and `ffprobe`, mode executable after extract.
-- [ ] `ffmpeg -encoders` lists `libx264` and `libvpx-vp9`.
-- [ ] `ffmpeg -devices` lists `x11grab` and `pulse`.
-- [ ] SHA256 is published next to the asset.
-- [ ] XerahS no longer calls `BtbN/FFmpeg-Builds`, and the checker suffix is `linux-x64.zip` / `linux-arm64.zip`.
-- [ ] Tools folder is `linux-x64` or `linux-arm64`, matching the CPU.
+- [ ] The tag is `v<version>-linux` (or `.2`, `.3` for rebuilds) and is not marked latest. `/releases/latest` is still the Windows `v<version>`.
+- [ ] The assets are `ffmpeg-<version>-linux-x64.zip`, `ffmpeg-<version>-linux-arm64.zip`, `SHA256SUMS` and `SHA256SUMS.sig`.
+- [ ] The zip root holds `ffmpeg`, `ffprobe` and `LICENSE.txt`, and the binaries are executable after unzip.
+- [ ] `ffmpeg -encoders` lists `libx264`, `libx265`, `libvpx-vp9` and `libaom-av1`. `-devices` lists `x11grab` and `pulse`. `-filters` lists `drawtext`.
+- [ ] The newest glibc symbol is `GLIBC_2.28` or older.
+- [ ] `SHA256SUMS.sig` verifies with `keys/linux-release-2026.pub.pem`.
 
 Signing identity, once, before the first FFmpeg-repo workflow:
 

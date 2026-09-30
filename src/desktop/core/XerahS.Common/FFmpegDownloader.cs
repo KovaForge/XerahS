@@ -78,7 +78,7 @@ namespace XerahS.Common
 
             if (OperatingSystem.IsLinux())
             {
-                return await DownloadLinuxStaticAsync(destinationFolder, progress, cancellationToken).ConfigureAwait(false);
+                return await DownloadLinuxAsync(destinationFolder, progress, cancellationToken).ConfigureAwait(false);
             }
 
             string? downloadedArchive = null;
@@ -168,120 +168,164 @@ namespace XerahS.Common
             }
         }
 
-        // ShareX/FFmpeg publishes Windows builds only. On Linux, use BtbN's static GPL builds
-        // (libx264, libvpx, ...), which run on any distribution and install into the user's own
-        // tools folder: no package manager, no administrator rights.
-        private const string LinuxStaticReleaseApi = "https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/tags/latest";
+        // Linux builds are published on ShareX/FFmpeg next to the Windows zips, as separate
+        // v<version>-linux releases that are never marked latest (so ShareX and Windows XerahS,
+        // which read /releases/latest, are unaffected). Each holds ffmpeg-<version>-linux-x64.zip,
+        // ffmpeg-<version>-linux-arm64.zip and a signed SHA256SUMS. Everything installs into the
+        // user's own tools folder: no package manager, no administrator rights.
+        private const string LinuxReleasesApi = "https://api.github.com/repos/" + DefaultOwner + "/" + DefaultRepo + "/releases?per_page=50";
 
-        private static readonly System.Text.RegularExpressions.Regex LinuxStaticAsset = new(
-            @"^ffmpeg-n(?<major>\d+)\.(?<minor>\d+)-latest-(?<arch>linux64|linuxarm64)-gpl-\d+\.\d+\.tar\.xz$",
+        private static readonly System.Text.RegularExpressions.Regex LinuxReleaseTag = new(
+            @"^v(?<version>\d+\.\d+)-linux(\.\d+)?$",
             System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
-        /// <summary>Newest stable static build for this CPU, from a BtbN release's assets.</summary>
-        public static (string Name, string Url)? SelectLinuxStaticAsset(
-            IEnumerable<(string Name, string Url)> assets,
+        public sealed record GitHubReleaseAsset(string Name, string Url);
+
+        public sealed record GitHubReleaseSummary(
+            string Tag, bool Draft, bool Prerelease, DateTimeOffset PublishedAt, IReadOnlyList<GitHubReleaseAsset> Assets);
+
+        public sealed record FFmpegLinuxBuild(
+            string Tag, string ZipName, string ZipUrl, string ChecksumsUrl, string SignatureUrl);
+
+        /// <summary>Asset suffix for this CPU, matching the Windows win-x64 / win-arm64 scheme.</summary>
+        public static string? GetLinuxRid(System.Runtime.InteropServices.Architecture architecture) => architecture switch
+        {
+            System.Runtime.InteropServices.Architecture.X64 => "linux-x64",
+            System.Runtime.InteropServices.Architecture.Arm64 => "linux-arm64",
+            _ => null,
+        };
+
+        /// <summary>Newest published Linux release that has a zip for this CPU and a signed checksum file.</summary>
+        public static FFmpegLinuxBuild? SelectLinuxRelease(
+            IEnumerable<GitHubReleaseSummary> releases,
             System.Runtime.InteropServices.Architecture architecture)
         {
-            string? archToken = architecture switch
-            {
-                System.Runtime.InteropServices.Architecture.X64 => "linux64",
-                System.Runtime.InteropServices.Architecture.Arm64 => "linuxarm64",
-                _ => null,
-            };
-            if (archToken == null) return null;
+            string? rid = GetLinuxRid(architecture);
+            if (rid == null) return null;
 
-            return assets
-                .Select(asset => (asset, match: LinuxStaticAsset.Match(asset.Name)))
-                .Where(x => x.match.Success && x.match.Groups["arch"].Value == archToken)
-                .OrderByDescending(x => int.Parse(x.match.Groups["major"].Value, System.Globalization.CultureInfo.InvariantCulture))
-                .ThenByDescending(x => int.Parse(x.match.Groups["minor"].Value, System.Globalization.CultureInfo.InvariantCulture))
-                .Select(x => ((string Name, string Url)?)x.asset)
-                .FirstOrDefault();
+            foreach (GitHubReleaseSummary release in releases
+                         .Where(r => !r.Draft && !r.Prerelease)
+                         .OrderByDescending(r => r.PublishedAt))
+            {
+                var tag = LinuxReleaseTag.Match(release.Tag);
+                if (!tag.Success) continue;
+
+                string zipName = $"ffmpeg-{tag.Groups["version"].Value}-{rid}.zip";
+                GitHubReleaseAsset? zip = release.Assets.FirstOrDefault(a => a.Name == zipName);
+                GitHubReleaseAsset? sums = release.Assets.FirstOrDefault(a => a.Name == FFmpegReleaseVerifier.ChecksumsFileName);
+                GitHubReleaseAsset? sig = release.Assets.FirstOrDefault(a => a.Name == FFmpegReleaseVerifier.SignatureFileName);
+                if (zip != null && sums != null && sig != null)
+                {
+                    return new FFmpegLinuxBuild(release.Tag, zip.Name, zip.Url, sums.Url, sig.Url);
+                }
+            }
+
+            return null;
         }
 
-        private static async Task<FFmpegDownloadResult> DownloadLinuxStaticAsync(
+        private static async Task<List<GitHubReleaseSummary>?> GetLinuxReleasesAsync(CancellationToken cancellationToken)
+        {
+            using var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, LinuxReleasesApi);
+            request.Headers.UserAgent.ParseAdd("XerahS");
+            request.Headers.Accept.ParseAdd("application/vnd.github+json");
+            using var response = await HttpClientFactory.Create().SendAsync(request, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                DebugHelper.WriteLine($"[FFmpeg] Listing {DefaultOwner}/{DefaultRepo} releases failed: HTTP {(int)response.StatusCode}");
+                return null;
+            }
+
+            using JsonDocument document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+            var releases = new List<GitHubReleaseSummary>();
+            foreach (JsonElement release in document.RootElement.EnumerateArray())
+            {
+                var assets = new List<GitHubReleaseAsset>();
+                foreach (JsonElement asset in release.GetProperty("assets").EnumerateArray())
+                {
+                    string? name = asset.GetProperty("name").GetString();
+                    string? url = asset.GetProperty("browser_download_url").GetString();
+                    if (name != null && url != null) assets.Add(new GitHubReleaseAsset(name, url));
+                }
+
+                DateTimeOffset publishedAt = release.TryGetProperty("published_at", out JsonElement published) &&
+                                             published.ValueKind == JsonValueKind.String &&
+                                             published.TryGetDateTimeOffset(out DateTimeOffset value)
+                    ? value
+                    : DateTimeOffset.MinValue;
+                releases.Add(new GitHubReleaseSummary(
+                    release.GetProperty("tag_name").GetString() ?? "",
+                    release.GetProperty("draft").GetBoolean(),
+                    release.GetProperty("prerelease").GetBoolean(),
+                    publishedAt,
+                    assets));
+            }
+
+            return releases;
+        }
+
+        private static async Task<FFmpegDownloadResult> DownloadLinuxAsync(
             string destinationFolder, IProgress<double>? progress, CancellationToken cancellationToken)
         {
+            const string releasesPage = "https://github.com/" + DefaultOwner + "/" + DefaultRepo + "/releases";
             string? archive = null;
-            string? extractFolder = null;
             FileDownloader? downloader = null;
             Action? detachProgressHandlers = null;
             try
             {
-                var assets = new List<(string Name, string Url)>();
-                using (var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, LinuxStaticReleaseApi))
+                List<GitHubReleaseSummary>? releases = await GetLinuxReleasesAsync(cancellationToken).ConfigureAwait(false);
+                if (releases == null)
                 {
-                    request.Headers.UserAgent.ParseAdd("XerahS");
-                    request.Headers.Accept.ParseAdd("application/vnd.github+json");
-                    using var response = await HttpClientFactory.Create().SendAsync(request, cancellationToken).ConfigureAwait(false);
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        return FFmpegDownloadResult.CreateFailure($"Could not list FFmpeg builds (HTTP {(int)response.StatusCode}).");
-                    }
-                    using JsonDocument release = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
-                    foreach (JsonElement asset in release.RootElement.GetProperty("assets").EnumerateArray())
-                    {
-                        string? name = asset.GetProperty("name").GetString();
-                        string? url = asset.GetProperty("browser_download_url").GetString();
-                        if (name != null && url != null) assets.Add((name, url));
-                    }
+                    return FFmpegDownloadResult.CreateFailure("Could not list FFmpeg builds from GitHub.", releasesPage);
                 }
 
-                var selected = SelectLinuxStaticAsset(assets, System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture);
-                if (selected is not { } build)
+                var architecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture;
+                if (SelectLinuxRelease(releases, architecture) is not { } build)
                 {
-                    return FFmpegDownloadResult.CreateFailure(
-                        $"No FFmpeg build is available for {System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture} Linux.",
-                        "https://github.com/BtbN/FFmpeg-Builds/releases/tag/latest");
+                    return FFmpegDownloadResult.CreateFailure($"No FFmpeg build is available for {architecture} Linux.", releasesPage);
                 }
 
-                archive = Path.Combine(Path.GetTempPath(), build.Name);
-                downloader = new FileDownloader(build.Url, archive);
+                HttpClient http = HttpClientFactory.Create();
+                byte[] checksums = await http.GetByteArrayAsync(build.ChecksumsUrl, cancellationToken).ConfigureAwait(false);
+                byte[] signature = await http.GetByteArrayAsync(build.SignatureUrl, cancellationToken).ConfigureAwait(false);
+                if (!FFmpegReleaseVerifier.IsSignatureValid(checksums, signature))
+                {
+                    DebugHelper.WriteLine($"[FFmpeg] {build.Tag}: {FFmpegReleaseVerifier.SignatureFileName} does not match a trusted key.");
+                    return FFmpegDownloadResult.CreateFailure("The FFmpeg download could not be verified and was not installed.", build.ZipUrl);
+                }
+
+                string? expectedHash = FFmpegReleaseVerifier.FindHash(checksums, build.ZipName);
+                if (expectedHash == null)
+                {
+                    DebugHelper.WriteLine($"[FFmpeg] {build.Tag}: {build.ZipName} is not listed in {FFmpegReleaseVerifier.ChecksumsFileName}.");
+                    return FFmpegDownloadResult.CreateFailure("The FFmpeg download could not be verified and was not installed.", build.ZipUrl);
+                }
+
+                archive = Path.Combine(Path.GetTempPath(), $"xerahs-{Guid.NewGuid():N}-{build.ZipName}");
+                downloader = new FileDownloader(build.ZipUrl, archive);
                 detachProgressHandlers = AttachProgressHandlers(downloader, progress);
                 if (!await downloader.StartDownload(cancellationToken).ConfigureAwait(false) || !File.Exists(archive))
                 {
-                    return FFmpegDownloadResult.CreateFailure("FFmpeg download failed.", build.Url);
+                    return FFmpegDownloadResult.CreateFailure("FFmpeg download failed.", build.ZipUrl);
                 }
                 progress?.Report(100);
 
-                // .NET has no xz decoder; tar and xz are part of every Linux base system.
-                extractFolder = Directory.CreateTempSubdirectory("xerahs-ffmpeg-").FullName;
-                var tar = new System.Diagnostics.ProcessStartInfo("tar")
+                if (!await FFmpegReleaseVerifier.IsFileHashValidAsync(archive, expectedHash, cancellationToken).ConfigureAwait(false))
                 {
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                };
-                foreach (string argument in new[] { "-xJf", archive, "-C", extractFolder, "--wildcards", "*/bin/ffmpeg", "*/bin/ffprobe" })
-                {
-                    tar.ArgumentList.Add(argument);
-                }
-                using (var process = System.Diagnostics.Process.Start(tar)
-                                     ?? throw new InvalidOperationException("tar could not be started."))
-                {
-                    Task<string> stderr = process.StandardError.ReadToEndAsync(cancellationToken);
-                    await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-                    if (process.ExitCode != 0)
-                    {
-                        return FFmpegDownloadResult.CreateFailure($"Extracting FFmpeg failed: {(await stderr.ConfigureAwait(false)).Trim()}");
-                    }
+                    DebugHelper.WriteLine($"[FFmpeg] {build.ZipName}: SHA-256 does not match the signed {FFmpegReleaseVerifier.ChecksumsFileName}.");
+                    return FFmpegDownloadResult.CreateFailure("The FFmpeg download could not be verified and was not installed.", build.ZipUrl);
                 }
 
+                ExtractExecutables(archive, destinationFolder, "ffmpeg", "ffprobe");
                 foreach (string binary in new[] { "ffmpeg", "ffprobe" })
                 {
-                    string? extracted = Directory.EnumerateFiles(extractFolder, binary, SearchOption.AllDirectories).FirstOrDefault();
-                    if (extracted == null)
+                    if (!File.Exists(Path.Combine(destinationFolder, binary)))
                     {
-                        return FFmpegDownloadResult.CreateFailure($"The FFmpeg archive did not contain {binary}.");
+                        return FFmpegDownloadResult.CreateFailure($"The FFmpeg archive did not contain {binary}.", build.ZipUrl);
                     }
-                    string target = Path.Combine(destinationFolder, binary);
-                    File.Copy(extracted, target, overwrite: true);
-                    EnsureExecutable(target);
                 }
 
-                string ffmpegPath = Path.Combine(destinationFolder, "ffmpeg");
-                DebugHelper.WriteLine($"[FFmpeg] Installed {build.Name} to {destinationFolder}");
-                return FFmpegDownloadResult.CreateSuccess(ffmpegPath);
+                DebugHelper.WriteLine($"[FFmpeg] Installed {build.ZipName} ({build.Tag}, signature verified) to {destinationFolder}");
+                return FFmpegDownloadResult.CreateSuccess(Path.Combine(destinationFolder, "ffmpeg"));
             }
             catch (OperationCanceledException)
             {
@@ -298,11 +342,10 @@ namespace XerahS.Common
                 try
                 {
                     if (archive != null && File.Exists(archive)) File.Delete(archive);
-                    if (extractFolder != null && Directory.Exists(extractFolder)) Directory.Delete(extractFolder, recursive: true);
                 }
                 catch
                 {
-                    // Temp files; the OS cleans them eventually.
+                    // Temp file; the OS cleans it eventually.
                 }
             }
         }
