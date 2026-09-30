@@ -19,16 +19,16 @@ using System.Text.Json;
 namespace XerahS.Core.Cloud;
 
 /// <summary>
-/// Validates Supabase OAuth/OIDC tokens locally against the project's asymmetric JWKS.
+/// Validates XerahS Cloud (Better Auth) OAuth/OIDC tokens locally against the site's asymmetric JWKS.
 /// Symmetric legacy JWT secrets are intentionally unsupported because a public desktop client
 /// must never receive a shared signing secret.
 /// </summary>
-public sealed class SupabaseXerahSCloudTokenValidator : IXerahSCloudTokenValidator
+public sealed class XerahSCloudTokenValidator : IXerahSCloudTokenValidator
 {
     private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan JwksCacheLifetime = TimeSpan.FromMinutes(15);
-    // Hosted Supabase defaults to 3600s. Local config.toml uses 900s. Reject anything longer
-    // than one hour so a public desktop client never accepts week-long access tokens.
+    // XerahS Cloud issues 900s access tokens. Reject anything longer than one hour so a
+    // public desktop client never accepts week-long access tokens.
     private static readonly TimeSpan MaximumAccessTokenLifetime = TimeSpan.FromHours(1);
 
     private readonly HttpClient? _httpClient;
@@ -37,7 +37,7 @@ public sealed class SupabaseXerahSCloudTokenValidator : IXerahSCloudTokenValidat
     private IReadOnlyList<JsonWebKey> _keys = [];
     private DateTimeOffset _keysExpireAt;
 
-    public SupabaseXerahSCloudTokenValidator(HttpClient? httpClient, IXerahSCloudClock clock)
+    public XerahSCloudTokenValidator(HttpClient? httpClient, IXerahSCloudClock clock)
     {
         _httpClient = httpClient;
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -68,9 +68,11 @@ public sealed class SupabaseXerahSCloudTokenValidator : IXerahSCloudTokenValidat
                 $"OAuth access-token lifetime is outside the accepted desktop policy ({expiresInSeconds}s).");
         }
 
-        string issuer = new Uri(options.OAuthAuthority, "/auth/v1").AbsoluteUri.TrimEnd('/');
+        // Better Auth's OAuth server names the site origin as issuer; access tokens are for the owner API.
+        string issuer = XerahSCloudOptions.Issuer(options.OAuthAuthority);
+        string apiAudience = XerahSCloudOptions.ApiAudience(options.OAuthAuthority);
         JsonElement accessClaims = await VerifyJwtAsync(accessToken, options, cancellationToken).ConfigureAwait(false);
-        DateTimeOffset accessExpiry = ValidateCommonClaims(accessClaims, issuer, "authenticated");
+        DateTimeOffset accessExpiry = ValidateCommonClaims(accessClaims, issuer, apiAudience);
         string subject = RequireString(accessClaims, "sub");
         string sessionId = RequireString(accessClaims, "session_id");
         string clientId = RequireString(accessClaims, "client_id");
@@ -206,7 +208,7 @@ public sealed class SupabaseXerahSCloudTokenValidator : IXerahSCloudTokenValidat
                     return null;
                 }
 
-                Uri jwksEndpoint = new(options.OAuthAuthority, "/auth/v1/.well-known/jwks.json");
+                Uri jwksEndpoint = new(options.OAuthAuthority, XerahSCloudOptions.JwksPath);
                 using HttpResponseMessage response = await Http.GetAsync(jwksEndpoint, cancellationToken).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
