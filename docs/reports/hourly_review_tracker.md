@@ -7654,3 +7654,14 @@ M build/linux/aur/xerahs-git/PKGBUILD
 - Build/test: n/a (no code change this tick)
 - Commit: see Step 7b commit below
 - Follow-up: next cron tick re-runs Step 5a against any new clawpatch ingest. Producer (xerahs-review) is up to date and recently_pivoted holds 48 entries. Stash {wip-preserved-20260922} remains for human review per v1.1.35 pitfall.
+
+### 2026-09-30 08:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_tracker.md, docs/reports/hourly_review_state.json
+- Findings: Step 5a categoriser found zero candidates; queue 0 -> 0. Tick started with HEAD b90fa0a7 (2 commits ahead of declan/develop 3568914e). Step 2 pushed 3568914e..b90fa0a7 to declan/develop ([v0.32.0] Neon schema + Better Auth). After that push HEAD == declan/develop == b90fa0a7. Step 3 fetched upstream/develop 9712850d and confirmed it is already an ancestor of HEAD (merge-base == upstream, no merge needed). Submodule ShareX.ImageEditor clean at d7c027fa9b (HEAD == origin/develop inside submodule; no upstream remote configured inside submodule). Working tree porcelain: untracked web/skills-lock.json only (left unstaged). No deferred-last-runs files. No new stashes; preserved cross-tick stashes (wip-preserved-20260922 + xerahs-bugfix-WIP-WaylandPortalHotkeyService) untouched. recently_pivoted 48/200. last_runs 103 -> 104 rows (+1 vs HEAD, within XIP0077 +0/+1 cap). No code change this tick; no pivot to drain. No skill improvement this run.
+- Status: No-op (empty-queue audit, v1.1.9 contract)
+- Build/test: n/a (no code change this tick)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: next cron tick re-runs Step 5a against any new clawpatch ingest. Producer (xerahs-review) is up to date and recently_pivoted holds 48 entries. Stash {wip-preserved-20260922} remains for human review per v1.1.35 pitfall.
+- Skill: xerahs-bugfix/SKILL.md v1.1.35 (no patch this tick)
