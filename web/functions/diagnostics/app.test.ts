@@ -58,6 +58,8 @@ function report(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const maintenanceRuns: string[] = [];
+
 function fakeStore(result: Partial<SubmitResult> = {}) {
   const calls: Array<{ report: DiagnosticsReport; networkKey: Buffer | null }> =
     [];
@@ -80,6 +82,10 @@ function fakeStore(result: Partial<SubmitResult> = {}) {
       reportCount: 1,
     }),
     delete: async (_id, hash) => hash.length === 32,
+    maintenance: async (trigger) => {
+      maintenanceRuns.push(trigger);
+      return { reportsDeleted: 0 };
+    },
   };
   return { store, calls };
 }
@@ -254,5 +260,55 @@ describe("status and delete", () => {
       { method: "DELETE" },
     );
     expect(missing.status).toBe(400);
+  });
+});
+
+describe("POST /v1/internal/maintenance", () => {
+  const app = createApp({
+    store: fakeStore().store,
+    networkSecret: undefined,
+    now,
+  });
+  const delivery = {
+    version: 1,
+    invocation_id: "inv-123",
+    trigger: {
+      type: "schedule",
+      id: "trigger-1",
+      name: "diagnostics-maintenance",
+    },
+    data: { scheduled_at: "2026-09-30T18:17:00Z" },
+  };
+
+  it("refuses anything that is not a Neon trigger delivery", async () => {
+    const response = await app.request("/v1/internal/maintenance", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(delivery),
+    });
+    expect(response.status).toBe(401);
+    const mismatch = await app.request("/v1/internal/maintenance", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-neon-trigger-invocation-id": "other",
+      },
+      body: JSON.stringify(delivery),
+    });
+    expect(mismatch.status).toBe(401);
+    expect(maintenanceRuns).toHaveLength(0);
+  });
+
+  it("runs maintenance for a trigger delivery", async () => {
+    const response = await app.request("/v1/internal/maintenance", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-neon-trigger-invocation-id": "inv-123",
+      },
+      body: JSON.stringify(delivery),
+    });
+    expect(response.status).toBe(200);
+    expect(maintenanceRuns).toEqual(["schedule:diagnostics-maintenance"]);
   });
 });

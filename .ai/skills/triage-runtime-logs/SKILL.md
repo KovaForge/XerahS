@@ -65,7 +65,7 @@ If the user only pastes a partial log, work from that first. Read more log conte
 
 8. Record durable lessons when warranted.
    - Add a concise prevention rule to `developers/lessons-learnt/general.md` or a topic file when the bug exposed a reusable guardrail.
-   - Import the user's log if it is not in the knowledge base yet, then `annotate_signature` with the verified root cause and fix.
+   - Import the user's log if it is not in the knowledge base yet, then tick the issue off with `diagnostics.mark_fixed` (or `annotate_signature` when it is not fixed).
 
 ## Working Rules
 

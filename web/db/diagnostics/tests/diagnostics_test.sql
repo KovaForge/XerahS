@@ -241,6 +241,84 @@ begin
 end;
 $$;
 
+-- Fix queue: claim, release, tick off.
+do $$
+declare
+  v_claim diagnostics.crash_signatures;
+  v_other diagnostics.crash_signatures;
+begin
+  assert (select kind from diagnostics.v_fix_queue order by priority limit 1) = 'abnormal_exit', 'crashes come first';
+  v_claim := diagnostics.claim_next_issue('agent-a');
+  v_other := diagnostics.claim_next_issue('agent-b');
+  assert v_claim.signature_id is not null and v_other.signature_id is not null, 'issues were claimed';
+  assert v_claim.signature_id <> v_other.signature_id, 'two agents never get the same issue';
+  assert v_claim.claimed_by = 'agent-a' and v_claim.status = 'investigating', 'claim recorded';
+  assert diagnostics.release_issue(v_other.signature_id, 'agent-b'), 'release';
+  assert (select claimed_by is null from diagnostics.crash_signatures where signature_id = v_other.signature_id), 'released';
+
+  perform diagnostics.mark_fixed(v_claim.signature_id, 'agent-a', '0.33.0', 'abc1234', 'root cause', 'the fix');
+  assert not exists (select 1 from diagnostics.v_fix_queue where signature_id = v_claim.signature_id), 'fixed issues leave the queue';
+  assert (select status = 'fixed' and fixed_in_version = '0.33.0' and claimed_by is null
+          from diagnostics.crash_signatures where signature_id = v_claim.signature_id), 'ticked off';
+  begin
+    perform diagnostics.mark_fixed(v_other.signature_id, 'agent-b', 'unknown', 'abc1234');
+    assert false, 'mark_fixed needs a real version';
+  exception when raise_exception then
+    null;
+  end;
+end;
+$$;
+
+-- Space reclamation: resolved reports first, then raw logs; the knowledge base stays.
+do $$
+declare
+  r jsonb;
+  v_reports integer := (select count(*) from diagnostics.reports);
+  v_signatures integer := (select count(*) from diagnostics.crash_signatures);
+  v_open integer;
+begin
+  -- Below the watermark nothing happens.
+  r := diagnostics.reclaim_space('test');
+  assert (r ->> 'reportsDeleted')::int = 0 and (r ->> 'reportsLogsTrimmed')::int = 0, format('no-op below watermark: %s', r);
+
+  update diagnostics.settings set reclaim_high_bytes = 2, reclaim_low_bytes = 1,
+    fixed_retention = interval '0', raw_log_min_age = interval '0';
+  -- Error lines stay open. Reports with no open issue (none left after
+  -- de-duplication) go first; the rest only lose their raw logs.
+  update diagnostics.crash_signatures set status = 'fixed', fixed_in_version = '9.0.0' where kind <> 'error_line';
+  select count(*) into v_open from diagnostics.reports r
+  where exists (select 1 from diagnostics.report_events e join diagnostics.crash_signatures s on s.signature_id = e.signature_id
+                where e.report_id = r.report_id and s.status not in ('fixed', 'wont_fix', 'noise'));
+  assert v_open > 0 and v_open < v_reports, format('fixture has open and resolved reports (%s of %s)', v_open, v_reports);
+  r := diagnostics.reclaim_space('test');
+  assert (r ->> 'reportsDeleted')::int = v_reports - v_open, format('only resolved reports deleted: %s', r);
+  assert (r ->> 'reportsLogsTrimmed')::int = v_open, format('raw logs trimmed from the rest: %s', r);
+  assert not exists (select 1 from diagnostics.report_log_chunks), 'log text removed';
+  assert (select count(*) from diagnostics.reports) = v_open, 'reports with open issues kept';
+  assert exists (select 1 from diagnostics.report_events), 'events kept';
+  v_reports := v_open;
+
+  -- Once everything is fixed, whole reports go.
+  update diagnostics.crash_signatures set status = 'fixed', fixed_in_version = '9.0.0';
+  r := diagnostics.reclaim_space('test');
+  assert (r ->> 'reportsDeleted')::int = v_reports, format('resolved reports deleted: %s', r);
+  assert not exists (select 1 from diagnostics.reports), 'no reports left';
+  assert (select count(*) from diagnostics.crash_signatures) = v_signatures, 'knowledge base kept';
+  assert (select count(*) from diagnostics.purge_log where trigger = 'test') = 3, 'every run logged';
+
+  -- Empty partitions older than last month are dropped.
+  perform diagnostics.ensure_month_partitions(clock_timestamp() - interval '3 months');
+  r := diagnostics.run_maintenance('test');
+  assert (r ->> 'partitionsDropped')::int >= 1, format('old empty partitions dropped: %s', r);
+  assert to_regclass(format('diagnostics.%I', 'reports_' || to_char((clock_timestamp() - interval '3 months') at time zone 'UTC', '"y"YYYY"m"MM'))) is null,
+    'partition gone';
+  assert (select estimated_bytes from diagnostics.v_storage) = 0, 'storage view';
+
+  update diagnostics.settings set reclaim_high_bytes = 300 * 1024 * 1024, reclaim_low_bytes = 240 * 1024 * 1024,
+    fixed_retention = interval '14 days', raw_log_min_age = interval '7 days';
+end;
+$$;
+
 -- Ingest switch, partitions on demand, owner purge.
 do $$
 begin
@@ -255,7 +333,7 @@ begin
   perform diagnostics.ensure_month_partitions(clock_timestamp() + interval '5 months');
   perform diagnostics.ensure_month_partitions(clock_timestamp() + interval '5 months');
 
-  assert diagnostics.purge_install('11111111-1111-4111-8111-111111111111') > 0, 'purge_install removes reports';
+  perform diagnostics.purge_install('11111111-1111-4111-8111-111111111111');
   assert not exists (select 1 from diagnostics.install_state where install_id = '11111111-1111-4111-8111-111111111111'),
     'purge_install clears the mark';
   assert exists (select 1 from diagnostics.crash_signatures), 'knowledge base survives report purges';

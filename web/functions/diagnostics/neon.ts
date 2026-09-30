@@ -12,4 +12,13 @@ export default defineConfig({
       },
     },
   },
+  triggers: {
+    // Nightly partitions + space reclamation (diagnostics.run_maintenance).
+    "diagnostics-maintenance": {
+      type: "schedule",
+      function: "diagnostics",
+      cron: "17 18 * * *", // 18:17 UTC = 02:17 in Perth
+      functionPath: "/v1/internal/maintenance",
+    },
+  },
 });

@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { gunzipSync } from "node:zlib";
 
+import { parseTriggerDelivery } from "@neon/functions/triggers";
 import { Hono } from "hono";
 import { ZodError } from "zod";
 
@@ -38,6 +39,8 @@ export interface DiagnosticsStore {
   ): Promise<SubmitResult>;
   status(installId: string): Promise<InstallStatus>;
   delete(reportId: string, deleteTokenHash: Buffer): Promise<boolean>;
+  /** Partitions and NAS-style space reclamation (diagnostics.run_maintenance). */
+  maintenance(trigger: string): Promise<unknown>;
 }
 
 export interface AppOptions {
@@ -254,6 +257,26 @@ export function createApp({
       { ...result, deleteToken: result.duplicate ? null : deleteToken },
       result.duplicate ? 200 : 201,
     );
+  });
+
+  // Nightly Function Trigger (functions/diagnostics/neon.ts). Only Neon can
+  // send x-neon-trigger-invocation-id: the Functions proxy strips client
+  // x-neon-* headers, and the header must match the body's invocation_id.
+  app.post("/v1/internal/maintenance", async (c) => {
+    const parsed = await parseTriggerDelivery(c.req.raw);
+    if (!parsed.ok) {
+      return c.json(
+        {
+          error: { code: "unauthorized", message: "Trigger deliveries only." },
+        },
+        parsed.error === "invalid_body" ? 400 : 401,
+      );
+    }
+    const result = await store.maintenance(
+      `schedule:${parsed.invocation.trigger.name}`,
+    );
+    console.info("diagnostics_maintenance", result);
+    return c.json(result);
   });
 
   app.delete("/v1/reports/:reportId", async (c) => {

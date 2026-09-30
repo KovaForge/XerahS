@@ -1,6 +1,6 @@
 ---
 name: diagnostics-knowledge-base
-description: Query, import into, or annotate the XerahS crash-report knowledge base on Neon (users' shared logs, crash signatures, root causes, fixes). Use when triaging XerahS failures, asking what users hit, or recording a fix.
+description: Work the XerahS crash-report knowledge base on Neon as a fix queue (claim an issue, fix it, tick it off), or query, import into and annotate it (users' shared logs, crash signatures, root causes, fixes, storage). Use when fixing or triaging XerahS failures, asking what users hit, or recording a fix.
 ---
 
 # Diagnostics knowledge base
@@ -20,6 +20,39 @@ psql "$DATABASE_URL_UNPOOLED"
 Or use the Neon MCP server's SQL tool against project `solitary-dust-20133298`. For a least-privilege agent login, grant a login role `diagnostics_reader` (read + search) or `diagnostics_curator` (also `annotate_signature`).
 
 `neon cs` needs `--role-name neondb_owner` because the diagnostics roles are also branch roles. Do not print connection strings.
+
+## Work the fix queue
+
+The knowledge base is a queue of open issues (`new` / `investigating` / `known`), most important first: unexpected exits, then exceptions, then error lines, by 30-day volume and recency.
+
+1. Claim the next issue (nobody else gets it for 4 hours):
+   ```sql
+   select signature_id, kind, title, top_frames, message_template, last_version, root_cause, notes
+   from diagnostics.claim_next_issue('claude');
+   ```
+   Or pick one: `select * from diagnostics.v_fix_queue order by priority limit 20;`
+2. Read the evidence: `latest_report_id` from `v_fix_queue`, then `diagnostics.report_log(...)`, `report_sessions`, and the report's `displays`, `gpus`, `os_*`, `process_arch`, `ffmpeg_*`.
+3. Follow `triage-runtime-logs`: confirm the cause against current code, fix it, build and test, and commit.
+4. Tick it off. It leaves the queue; its reports become eligible for cleanup after 14 days:
+   ```sql
+   select diagnostics.mark_fixed(<signature_id>, 'claude', '<next app version>', '<commit sha>',
+     p_root_cause => '...', p_fix_summary => '...');
+   ```
+   If you cannot fix it, record what you learnt with `annotate_signature` (status `known`, `wont_fix` or `noise`) and `select diagnostics.release_issue(<id>, 'claude');`.
+
+A fixed signature reported again from its fixed version or later reopens as `investigating` automatically.
+
+## Storage (NAS-style)
+
+`diagnostics.run_maintenance()` runs nightly at 18:17 UTC (Neon Function trigger `diagnostics-maintenance`). When the estimated report data passes 300 MB it frees space down to 240 MB: first whole reports with no open issue left (older than 14 days), then the raw log text of the oldest reports (events, sessions and system data stay). Empty monthly partitions older than last month are dropped. Crash signatures and their root causes are never purged.
+
+```sql
+select * from diagnostics.v_storage;                         -- estimate, physical size, open/fixed counts
+select * from diagnostics.purge_log order by ran_at desc limit 10;
+select diagnostics.reclaim_space('manual', p_force => true);  -- owner only: purge now
+```
+
+Thresholds live in `diagnostics.settings` (`reclaim_high_bytes`, `reclaim_low_bytes`, `fixed_retention`, `raw_log_min_age`). The Neon free plan allows 0.5 GB per project.
 
 ## Read
 
@@ -84,4 +117,4 @@ Redeploy the ingest Function from `web/functions/diagnostics/` with `neon deploy
 
 ## Removal
 
-Nothing expires. Remove data only when the owner asks: `diagnostics.purge_report(report_id)` or `diagnostics.purge_install(install_id)`. Signatures and their knowledge survive report purges.
+Beyond the nightly cleanup above, remove data only when the owner asks: `diagnostics.purge_report(report_id)` or `diagnostics.purge_install(install_id)`. Signatures and their knowledge survive every purge.

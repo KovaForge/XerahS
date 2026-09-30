@@ -51,6 +51,10 @@ const store: DiagnosticsStore = {
       "select diagnostics.delete_report_with_token($1::uuid, $2) as result",
       [reportId, deleteTokenHash],
     ),
+  maintenance: (trigger) =>
+    asIngestRole<unknown>("select diagnostics.run_maintenance($1) as result", [
+      trigger,
+    ]),
 };
 
 export default createApp({
