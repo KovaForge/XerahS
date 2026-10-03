@@ -57,5 +57,7 @@ namespace XerahS.UI.Theming
         public const string ActionAbort = LucideIcons.x;
         public const string ActionRestart = LucideIcons.rotate_ccw;
         public const string StatusWarning = LucideIcons.triangle_alert;
+        public const string OnboardingTheme = LucideIcons.sun_moon;
+        public const string OnboardingHotkeys = LucideIcons.keyboard;
     }
 }

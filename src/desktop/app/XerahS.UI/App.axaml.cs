@@ -434,9 +434,9 @@ public partial class App : Application
             var wizard = new XerahS.UI.Onboarding.OnboardingWizardWindow();
             var result = await wizard.ShowDialogAsync(owner);
 
-            if (result.Completed || result.Skipped)
+            if (result.Completed)
             {
-                DebugHelper.WriteLine("[Onboarding] Wizard completed or skipped, marking first-time run complete.");
+                DebugHelper.WriteLine("[Onboarding] Wizard completed, marking first-time run complete.");
                 SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
             }
         }

@@ -529,9 +529,17 @@ namespace XerahS.UI.Views
                     {
                         var wizard = new XerahS.UI.Onboarding.OnboardingWizardWindow();
                         var result = await wizard.ShowDialogAsync(this);
-                        if (result.Completed || result.Skipped)
+
+                        // The settings page may have been pre-warmed before the wizard changed the theme;
+                        // sync it so its next auto-save does not write the old theme back.
+                        if (_applicationSettingsView?.DataContext is SettingsViewModel settingsViewModel)
                         {
-                            XerahS.Common.DebugHelper.WriteLine("[Onboarding] Wizard completed or skipped, marking first-time run complete.");
+                            settingsViewModel.ThemeMode = SettingsManager.Settings.ThemeMode;
+                        }
+
+                        if (result.Completed)
+                        {
+                            XerahS.Common.DebugHelper.WriteLine("[Onboarding] Wizard completed, marking first-time run complete.");
                             SettingsManager.Settings.MarkFirstTimeRunCompleted(persist: false);
                         }
                     }
