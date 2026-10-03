@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
+# Builds stay serial (-m:1, BuildInParallel=false) to avoid shared-output races, but the Roslyn
+# compiler server stays on: it only reuses the compiler process, and cold-starting csc for every
+# project roughly doubled build time. The MSBuild server remains off, as before.
+export DOTNET_CLI_USE_MSBUILD_SERVER=0
+
 # Configuration
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 ROOT="$SCRIPT_DIR/../.."
@@ -23,9 +28,7 @@ restore_project_assets_for_os() {
     dotnet restore "$project_path" \
         "${DOTNET_RESTORE_SOURCE_ARGS[@]}" \
         -p:OS="$os_value" \
-        --disable-build-servers \
         -p:nodeReuse=false \
-        -p:UseSharedCompilation=false \
         -p:BuildInParallel=false \
         -m:1
 }
@@ -45,9 +48,7 @@ restore_project_assets_for_publish() {
         -p:SelfContained=true \
         -p:PublishSingleFile=true \
         -p:EnableWindowsTargeting=true \
-        --disable-build-servers \
         -p:nodeReuse=false \
-        -p:UseSharedCompilation=false \
         -p:BuildInParallel=false \
         -m:1
 }
@@ -65,9 +66,7 @@ restore_project_assets_for_runtime() {
         -p:RuntimeIdentifiers="$runtime_identifier" \
         -p:DefineConstants=LINUX \
         -p:EnableWindowsTargeting=true \
-        --disable-build-servers \
         -p:nodeReuse=false \
-        -p:UseSharedCompilation=false \
         -p:BuildInParallel=false \
         -m:1
 }
@@ -105,9 +104,7 @@ restore_scoped_intermediate_assets() {
 dotnet_publish_serial() {
     dotnet publish "$@" \
         "${DOTNET_RESTORE_SOURCE_ARGS[@]}" \
-        --disable-build-servers \
         -p:nodeReuse=false \
-        -p:UseSharedCompilation=false \
         -p:BuildInParallel=false \
         -m:1
 }
@@ -275,6 +272,11 @@ append_omasnap() {
 
     if [ -z "$stage_dir" ]; then
         temp_stage="$(mktemp -d)"
+        # Local runs reuse one OmaSnap build folder so it only recompiles what changed.
+        # CI (CI=true) builds OmaSnap in its own job and keeps a fresh build every time.
+        if [ -z "${CI:-}" ] && [ -z "${OMASNAP_BUILD_DIR:-}" ]; then
+            export OMASNAP_BUILD_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/xerahs/omasnap-build"
+        fi
         if [ "$allow_missing" = "1" ]; then
             "$ROOT/build/linux/build-omasnap.sh" "$temp_stage"
         else

@@ -111,6 +111,13 @@ class Program
         CreateTarball(publishDir, tarballPath);
         Console.WriteLine($"Created portable tarball: {tarballName}");
 
+        // Local deploys only need the tarball; CI leaves this unset and builds every format.
+        if (string.Equals(Environment.GetEnvironmentVariable("XERAHS_TARBALL_ONLY"), "1", StringComparison.Ordinal))
+        {
+            Console.WriteLine("Skipped .deb, .rpm and AppImage (XERAHS_TARBALL_ONLY=1).");
+            return;
+        }
+
         // 2. Create .deb
         string debName = $"XerahS-{version}-{arch}.deb";
         string debPath = Path.Combine(outputDir, debName);
