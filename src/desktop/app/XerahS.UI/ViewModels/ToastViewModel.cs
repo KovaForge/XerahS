@@ -101,9 +101,72 @@ public partial class ToastViewModel : ObservableObject, IDisposable
     public double ActionButtonSize { get; }
     public double ActionButtonIconSize => ActionButtonSize / 2d;
     public Avalonia.CornerRadius ActionButtonCornerRadius => new(Math.Clamp(ActionButtonSize / 4d, 4, 16));
-    public Avalonia.Thickness TextContentMargin => HasActionButtons
-        ? new Avalonia.Thickness(12, 12, 12, ActionButtonSize + 20)
-        : new Avalonia.Thickness(12);
+    public Avalonia.Thickness TextContentMargin
+    {
+        get
+        {
+            double bottom = HasActionButtons ? ActionButtonSize + 20 : 12;
+            if (HasOutputChip)
+            {
+                // Keep text clear of the output chip in the bottom-right corner.
+                bottom = Math.Max(bottom, 12 + OutputChipReservedHeight);
+            }
+
+            return new Avalonia.Thickness(12, 12, 12, bottom);
+        }
+    }
+
+    internal const double OutputChipReservedHeight = 30;
+    internal const int OutputChipLabelMinWidth = 180;
+
+    public ToastOutputKind OutputKind => _config.OutputKind;
+    public bool HasOutputChip => OutputKind != ToastOutputKind.None;
+    public string OutputChipIcon => GetOutputChipIcon(OutputKind);
+    public string OutputChipLabel => GetOutputChipLabel(OutputKind);
+    public bool ShowOutputChipLabel => _config.Size.Width >= OutputChipLabelMinWidth;
+    public bool IsOutputChipWarning => OutputKind == ToastOutputKind.UploadFailedLocal;
+    public string OutputChipAccessibleName => $"Output: {OutputChipLabel}";
+
+    internal static string GetOutputChipIcon(ToastOutputKind kind) => kind switch
+    {
+        ToastOutputKind.Uploaded => LucideIcons.link,
+        ToastOutputKind.Local => LucideIcons.hard_drive,
+        ToastOutputKind.UploadFailedLocal => LucideIcons.cloud_off,
+        ToastOutputKind.ClipboardOnly => LucideIcons.clipboard,
+        _ => string.Empty
+    };
+
+    internal static string GetOutputChipLabel(ToastOutputKind kind) => kind switch
+    {
+        ToastOutputKind.Uploaded => "Online",
+        ToastOutputKind.Local => "Local",
+        ToastOutputKind.UploadFailedLocal => "Not uploaded",
+        ToastOutputKind.ClipboardOnly => "Clipboard",
+        _ => string.Empty
+    };
+
+    /// <summary>
+    /// Hover header text: the link or local path, prefixed so it says what it is.
+    /// </summary>
+    internal static string? FormatHeaderText(ToastOutputKind kind, string? url, string? filePath)
+    {
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            return kind == ToastOutputKind.None ? url : $"Link: {url}";
+        }
+
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return null;
+        }
+
+        return kind switch
+        {
+            ToastOutputKind.UploadFailedLocal => $"Upload failed, saved to: {filePath}",
+            ToastOutputKind.Local => $"Saved to: {filePath}",
+            _ => filePath
+        };
+    }
 
     // Commands for context menu (shared with History - same MenuFlyout)
     public ICommand EditImageCommand { get; }
@@ -154,7 +217,7 @@ public partial class ToastViewModel : ObservableObject, IDisposable
         Url = config.URL;
         HasImage = Image != null;
         HasUrl = !string.IsNullOrEmpty(config.URL);
-        HeaderText = !string.IsNullOrWhiteSpace(config.URL) ? config.URL : config.FilePath;
+        HeaderText = FormatHeaderText(config.OutputKind, config.URL, config.FilePath);
         HasHeaderText = !string.IsNullOrWhiteSpace(HeaderText);
         ErrorDetails = config.ErrorDetails;
         HasErrors = !string.IsNullOrWhiteSpace(config.ErrorDetails);
