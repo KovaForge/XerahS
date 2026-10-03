@@ -163,6 +163,54 @@ public class UploadHostRoutingTests
         Assert.That(ok, Is.False);
     }
 
+    // ---------- File fallback: the XerahS app uploads images to File destinations when no Image one exists ----------
+
+    [Test]
+    public void IsUsableForFile_AcceptsAFileCategoryS3Instance()
+    {
+        var instance = MakeInstance(providerId: S3ProviderId, category: UploaderCategory.File);
+
+        bool ok = UploadHost.TestAccessor.IsUsableInstance(
+            instance,
+            UploaderCategory.File,
+            isAutoProvider: false,
+            providerExists: true,
+            validateSettings: true);
+
+        Assert.That(ok, Is.True);
+    }
+
+    [Test]
+    public void IsUsableForFile_RejectsTheAutoFileInstance()
+    {
+        // "Auto (File)" only picks among other destinations; on its own it cannot upload anything.
+        var instance = MakeInstance(providerId: AutoProviderId, category: UploaderCategory.File);
+
+        bool ok = UploadHost.TestAccessor.IsUsableInstance(
+            instance,
+            UploaderCategory.File,
+            isAutoProvider: true,
+            providerExists: true,
+            validateSettings: true);
+
+        Assert.That(ok, Is.False);
+    }
+
+    [Test]
+    public void IsUsableForFile_RejectsImageCategoryInstances()
+    {
+        var instance = MakeInstance(providerId: S3ProviderId, category: UploaderCategory.Image);
+
+        bool ok = UploadHost.TestAccessor.IsUsableInstance(
+            instance,
+            UploaderCategory.File,
+            isAutoProvider: false,
+            providerExists: true,
+            validateSettings: true);
+
+        Assert.That(ok, Is.False);
+    }
+
     [Test]
     public void IsUsable_ShortCircuitsOnCategoryBeforeAskingAboutProviders()
     {

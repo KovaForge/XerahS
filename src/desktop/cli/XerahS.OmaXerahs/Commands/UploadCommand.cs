@@ -158,7 +158,7 @@ internal static class UploadCommand
             {
                 return JsonStdout.WriteFailureAndExit(
                     CliErrorCodes.NotReady,
-                    "No usable image uploader is configured in XerahS.");
+                    "No usable image or file uploader is configured in XerahS.");
             }
 
             var workflow = SettingsManager.GetFirstWorkflowOrDefault(WorkflowType.FileUpload);
@@ -167,8 +167,8 @@ internal static class UploadCommand
             taskSettings.AfterCaptureJob = AfterCaptureTasks.None;
             taskSettings.AfterUploadJob = AfterUploadTasks.None;
             taskSettings.DestinationInstanceId = null;
-            // Fail closed: no Image→File. Property lives on TaskSettings (PR-CFail).
-            taskSettings.AllowCrossCategoryFallback = false;
+            // Route like the XerahS app: Image destinations first, then File destinations.
+            taskSettings.AllowCrossCategoryFallback = true;
             taskSettings.GeneralSettings.ShowToastNotificationAfterTaskCompleted = false;
 
             var taskInfo = new TaskInfo(taskSettings)
@@ -236,7 +236,7 @@ internal static class UploadCommand
         string? host = taskInfo.UploaderHost;
         if (!string.IsNullOrWhiteSpace(host))
         {
-            var match = UploadHost.GetUsableImageInstances()
+            var match = UploadHost.GetUsableImageUploadInstances()
                 .FirstOrDefault(i => string.Equals(i.DisplayName, host, StringComparison.OrdinalIgnoreCase));
             if (match != null)
             {

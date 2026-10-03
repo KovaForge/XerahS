@@ -127,8 +127,11 @@ internal static class UploadHost
         }
 
         int pluginsLoaded = ProviderCatalog.GetAllPluginMetadata().Count;
-        var usable = GetUsableImageInstances();
-        var preferred = PreferDefault(usable);
+
+        // Same order as the XerahS app: an Image destination first, then a File destination,
+        // which the app falls back to for images (UploadJobProcessor cross-category fallback).
+        var preferred = PreferDefault(GetUsableImageInstances(), UploaderCategory.Image)
+            ?? PreferDefault(GetUsableFileInstances(), UploaderCategory.File);
 
         return new ImageDestinationInspection
         {
@@ -141,17 +144,27 @@ internal static class UploadHost
         };
     }
 
-    internal static List<UploaderInstance> GetUsableImageInstances()
+    internal static List<UploaderInstance> GetUsableImageInstances() => GetUsableInstances(UploaderCategory.Image);
+
+    internal static List<UploaderInstance> GetUsableFileInstances() => GetUsableInstances(UploaderCategory.File);
+
+    /// <summary>Image destinations followed by File destinations: every instance an image upload can go to.</summary>
+    internal static List<UploaderInstance> GetUsableImageUploadInstances() =>
+        GetUsableImageInstances().Concat(GetUsableFileInstances()).ToList();
+
+    private static List<UploaderInstance> GetUsableInstances(UploaderCategory category)
     {
         EnsurePluginsLoaded();
-        return InstanceManager.Instance.GetInstancesByCategory(UploaderCategory.Image)
-            .Where(IsUsableImageInstance)
+        return InstanceManager.Instance.GetInstancesByCategory(category)
+            .Where(instance => IsUsableInstance(instance, category))
             .ToList();
     }
 
-    internal static bool IsUsableImageInstance(UploaderInstance instance)
+    internal static bool IsUsableImageInstance(UploaderInstance instance) => IsUsableInstance(instance, UploaderCategory.Image);
+
+    private static bool IsUsableInstance(UploaderInstance instance, UploaderCategory category)
     {
-        if (instance.Category != UploaderCategory.Image || !instance.IsAvailable)
+        if (instance.Category != category || !instance.IsAvailable)
         {
             return false;
         }
@@ -173,12 +186,12 @@ internal static class UploadHost
         }
         catch (Exception ex)
         {
-            DebugHelper.WriteException(ex, "ValidateSettings failed for image instance");
+            DebugHelper.WriteException(ex, $"ValidateSettings failed for {category} instance");
             return false;
         }
     }
 
-    private static UploaderInstance? PreferDefault(List<UploaderInstance> usable)
+    private static UploaderInstance? PreferDefault(List<UploaderInstance> usable, UploaderCategory category)
     {
         if (usable.Count == 0)
         {
@@ -186,13 +199,13 @@ internal static class UploadHost
         }
 
         var preferred = usable.FirstOrDefault(i =>
-            InstanceManager.Instance.IsDefaultInstance(UploaderCategory.Image, i.InstanceId));
+            InstanceManager.Instance.IsDefaultInstance(category, i.InstanceId));
         return preferred ?? usable.OrderByDescending(i => i.CreatedAt).FirstOrDefault();
     }
 
     /// <summary>
     /// Test-only surface that lifts the routing decisions in
-    /// <see cref="IsUsableImageInstance"/>, <see cref="PreferDefault(List{UploaderInstance})"/>,
+    /// <see cref="IsUsableImageInstance"/>, <see cref="PreferDefault(List{UploaderInstance}, UploaderCategory)"/>,
     /// and the host-name match used by
     /// <c>UploadCommand.ResolveUploadedInstance</c> into pure functions that can be
     /// exercised without touching the static <see cref="InstanceManager"/> or
@@ -210,9 +223,21 @@ internal static class UploadHost
             UploaderInstance instance,
             bool isAutoProvider,
             bool providerExists,
+            bool validateSettings) =>
+            IsUsableInstance(instance, UploaderCategory.Image, isAutoProvider, providerExists, validateSettings);
+
+        /// <summary>
+        /// Pure mirror of the usability check for <paramref name="category"/> (Image, or File for the
+        /// fallback the app uses when no Image destination exists).
+        /// </summary>
+        internal static bool IsUsableInstance(
+            UploaderInstance instance,
+            UploaderCategory category,
+            bool isAutoProvider,
+            bool providerExists,
             bool validateSettings)
         {
-            if (instance.Category != UploaderCategory.Image || !instance.IsAvailable)
+            if (instance.Category != category || !instance.IsAvailable)
             {
                 return false;
             }
@@ -258,7 +283,7 @@ internal static class UploadHost
         }
 
         /// <summary>
-        /// Pure mirror of <see cref="PreferDefault(List{UploaderInstance})"/>:
+        /// Pure mirror of <see cref="PreferDefault(List{UploaderInstance}, UploaderCategory)"/>:
         /// returns the instance whose <see cref="UploaderInstance.InstanceId"/> is
         /// the default for the Image category. Falls back to the most recently
         /// created instance when no default is configured.
@@ -300,7 +325,8 @@ internal static class UploadHost
                 Ready = inspection.Ready,
                 ProviderId = inspection.Instance?.ProviderId,
                 InstanceId = inspection.Instance?.InstanceId,
-                DisplayName = inspection.Instance?.DisplayName
+                DisplayName = inspection.Instance?.DisplayName,
+                Category = inspection.Instance?.Category.ToString()
             },
             SecretStore = new DoctorSecretStoreInfo
             {
