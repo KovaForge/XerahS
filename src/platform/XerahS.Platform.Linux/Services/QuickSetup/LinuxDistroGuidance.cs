@@ -25,6 +25,9 @@ internal enum QuickSetupPackage
 
     /// <summary>Provides <c>pkexec</c>.</summary>
     Polkit,
+
+    /// <summary>Provides <c>tesseract</c> with English language data.</summary>
+    Tesseract,
 }
 
 internal static class LinuxDistroGuidance
@@ -99,6 +102,14 @@ internal static class LinuxDistroGuidance
         (LinuxDistroFamily.Gentoo, QuickSetupPackage.Acl) => "sys-apps/acl",
         (LinuxDistroFamily.Gentoo, QuickSetupPackage.Polkit) => "sys-auth/polkit",
         (LinuxDistroFamily.Debian, QuickSetupPackage.Polkit) => "pkexec",
+        (LinuxDistroFamily.Arch, QuickSetupPackage.Tesseract) => "tesseract tesseract-data-eng",
+        (LinuxDistroFamily.Debian, QuickSetupPackage.Tesseract) => "tesseract-ocr",
+        (LinuxDistroFamily.OpenSuse, QuickSetupPackage.Tesseract) => "tesseract-ocr tesseract-ocr-traineddata-english",
+        (LinuxDistroFamily.Fedora, QuickSetupPackage.Tesseract) => "tesseract tesseract-langpack-eng",
+        (LinuxDistroFamily.Alpine, QuickSetupPackage.Tesseract) => "tesseract-ocr tesseract-ocr-data-eng",
+        (LinuxDistroFamily.Void, QuickSetupPackage.Tesseract) => "tesseract-ocr",
+        (LinuxDistroFamily.Gentoo, QuickSetupPackage.Tesseract) => "app-text/tesseract",
+        (_, QuickSetupPackage.Tesseract) => "tesseract",
         (_, QuickSetupPackage.Acl) => "acl",
         _ => "polkit",
     };

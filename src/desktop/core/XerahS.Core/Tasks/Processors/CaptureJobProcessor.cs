@@ -539,7 +539,7 @@ namespace XerahS.Core.Tasks.Processors
             var ocrService = PlatformServices.Ocr;
             if (ocrService == null || !ocrService.IsSupported)
             {
-                DebugHelper.WriteLine("OCR skipped: OCR is not supported on this platform.");
+                DebugHelper.WriteLine($"OCR skipped: {ocrService?.UnavailableReason ?? "OCR is not supported on this platform."}");
                 return;
             }
 

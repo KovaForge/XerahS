@@ -29,11 +29,16 @@ namespace XerahS.Platform.Abstractions;
 
 /// <summary>
 /// Platform-agnostic OCR (Optical Character Recognition) service.
-/// Windows uses native Windows.Media.Ocr, other platforms can use Tesseract or native APIs.
+/// Windows uses native Windows.Media.Ocr; Linux uses the system Tesseract.
 /// </summary>
 public interface IOcrService
 {
     bool IsSupported { get; }
+
+    /// <summary>
+    /// Why OCR is unavailable and how to fix it (for example, which package to install), or null when it is available.
+    /// </summary>
+    string? UnavailableReason => null;
 
     Task<OcrResult> RecognizeAsync(SKBitmap image, OcrOptions options);
 
