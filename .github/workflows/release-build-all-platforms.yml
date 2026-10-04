@@ -54,6 +54,11 @@ jobs:
 
   build-windows:
     needs: validate-version
+    # One job per architecture, in parallel. Both used to run back to back in one job (~17 min).
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [win-x64, win-arm64]
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -105,10 +110,10 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path build/logs | Out-Null
-          $logPath = "build/logs/windows-build.log"
+          $logPath = "build/logs/windows-${{ matrix.arch }}-build.log"
           Start-Transcript -Path $logPath -Force | Out-Null
           try {
-            .\build\windows\package-windows.ps1
+            .\build\windows\package-windows.ps1 -Architectures ${{ matrix.arch }}
           }
           finally {
             Stop-Transcript | Out-Null
@@ -117,23 +122,20 @@ jobs:
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-release
+          name: windows-release-${{ matrix.arch }}
           if-no-files-found: error
           path: |
-            dist/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.exe
-            dist/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.exe
-            dist/XerahS-${{ needs.validate-version.outputs.version }}-win-x64.msi
-            dist/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64.msi
-            dist/XerahS-${{ needs.validate-version.outputs.version }}-win-x64-portable.zip
-            dist/XerahS-${{ needs.validate-version.outputs.version }}-win-arm64-portable.zip
+            dist/XerahS-${{ needs.validate-version.outputs.version }}-${{ matrix.arch }}.exe
+            dist/XerahS-${{ needs.validate-version.outputs.version }}-${{ matrix.arch }}.msi
+            dist/XerahS-${{ needs.validate-version.outputs.version }}-${{ matrix.arch }}-portable.zip
 
       - name: Upload Windows build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-build-log
+          name: windows-build-log-${{ matrix.arch }}
           if-no-files-found: warn
-          path: build/logs/windows-build.log
+          path: build/logs/windows-${{ matrix.arch }}-build.log
 
   build-macos:
     needs: validate-version
