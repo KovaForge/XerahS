@@ -229,7 +229,7 @@ On environments where `bash` is not in PATH, execute the sequence manually:
 7. Step 7 - Apply release channel policy
    - `ShareX/XerahS`: `gh release edit v<new-version> --prerelease --latest=false`
    - `KovaForge/XerahS`: `gh release edit v<new-version> --prerelease=false --latest`
-   - Verify: `gh release view v<new-version> --json isPrerelease,isLatest,url,assets`
+   - Verify: `gh release view v<new-version> --json isPrerelease,url,assets` and `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name` (gh has no `isLatest` field)
    - Overrides: `--set-prerelease` / `--no-prerelease`
    - Workflow guard: `.github/workflows/release-build-all-platforms.yml` must create/upload with the same repo policy (`prerelease: github.repository != 'KovaForge/XerahS'`, `make_latest: github.repository == 'KovaForge/XerahS'`).
 
@@ -320,6 +320,8 @@ One line per failed release iteration. Read before tagging; append a line for ev
 - A green build job does not mean every package was produced. Check the "Skipped ... package" lines in the Linux build log whenever the `release` job reports a missing asset.
 - `run-release-sequence.sh` used to wait only 90 x 10 s (15 min) for the GitHub release, while a full run takes ~18-20 min (v0.30.10 and v0.30.11 both timed out with `Error: release vX.Y.Z was not found`). The wait is now 30 min by default (`--release-wait <minutes>` to change it). If it still times out, that message is not a CI failure: poll the run with `gh run view <id> --repo KovaForge/XerahS` until it completes, then apply Steps 6-7 manually.
 - `--no-bump` skips syncing `build/windows/chocolatey/xerahs.nuspec` and the Flatpak metainfo `<release>` entry. When `Directory.Build.props` was already bumped by a feature commit, sync those two files yourself before tagging.
+- v0.32.4: `--no-bump` with every version file already synced needs `--allow-empty`, or Step 3 stops with "no staged changes" before tagging (nothing is pushed).
+- v0.32.4: Step 7 verified "latest" with `gh release view --json isLatest`, which gh 2.101 does not have; the release was already marked latest but the script exited 1. It now checks `gh api repos/<owner>/<repo>/releases/latest`.
 - Several agents may share one checkout. Maintenance auto-commits whatever is uncommitted, so check `git status` and `git log` before a run to avoid releasing, or sweeping up, another agent's half-finished work.
 
 ## Notes (lessons learnt)
