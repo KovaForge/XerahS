@@ -126,6 +126,7 @@ public partial class ToastWindow : OverlayWindow
 
         _viewModel.CloseRequested += OnCloseRequested;
         _viewModel.OpacityChanged += OnOpacityChanged;
+        _viewModel.HoverChanged += OnHoverChanged;
     }
 
     private void AdjustPositionToScreenBounds()
@@ -277,6 +278,10 @@ public partial class ToastWindow : OverlayWindow
 
     private async void OnPointerMoved(object? sender, PointerEventArgs e)
     {
+        // Motion over the toast means the pointer is inside, even if the platform lost the
+        // enter or reported a leave that was not real (X11/XWayland on Linux).
+        _viewModel?.OnPointerMovedInside();
+
         if (!_isDragging || _config == null) return;
 
         var point = e.GetCurrentPoint(this);
@@ -322,29 +327,31 @@ public partial class ToastWindow : OverlayWindow
     private void OnPointerEntered(object? sender, PointerEventArgs e)
     {
         _viewModel?.OnMouseEnter();
-
-        // Show header overlay when there is a URL or a local file path fallback.
-        if (_urlOverlay != null && _viewModel?.HasHeaderText == true)
-        {
-            _urlOverlay.Opacity = 1;
-        }
-
-        SetActionsPanelVisible(true);
-        SetOutputChipVisible(false);
     }
 
     private void OnPointerExited(object? sender, PointerEventArgs e)
     {
         _viewModel?.OnMouseLeave();
+    }
 
-        // Hide URL overlay
+    // The hover toolbar, output chip and header overlay all follow the view model's hover
+    // state, the same signal that holds off the auto-hide. On Linux a leave is confirmed
+    // after a short grace period, so a false X11 leave no longer hides the toolbar either.
+    private void OnHoverChanged(object? sender, bool hovered)
+    {
+        ApplyHoverVisuals(hovered);
+    }
+
+    private void ApplyHoverVisuals(bool hovered)
+    {
+        // Show header overlay when there is a URL or a local file path fallback.
         if (_urlOverlay != null)
         {
-            _urlOverlay.Opacity = 0;
+            _urlOverlay.Opacity = hovered && _viewModel?.HasHeaderText == true ? 1 : 0;
         }
 
-        SetActionsPanelVisible(false);
-        SetOutputChipVisible(true);
+        SetActionsPanelVisible(hovered);
+        SetOutputChipVisible(!hovered);
     }
 
     private void SetActionsPanelVisible(bool visible)
@@ -404,6 +411,7 @@ public partial class ToastWindow : OverlayWindow
         {
             _viewModel.CloseRequested -= OnCloseRequested;
             _viewModel.OpacityChanged -= OnOpacityChanged;
+            _viewModel.HoverChanged -= OnHoverChanged;
             _viewModel.Dispose();
         }
 
