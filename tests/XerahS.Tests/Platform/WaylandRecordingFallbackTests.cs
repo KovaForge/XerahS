@@ -96,9 +96,9 @@ public class WaylandRecordingFallbackTests
     [Test]
     public void CaptureWritesFixedSizeRawFramesToStdout()
     {
-        string args = FFmpegEncodingBridge.BuildCaptureArgs("pipewiresrc fd=9 target-object=106 do-timestamp=true", 1921, 1081, "videocrop left=10 top=20 right=30 bottom=40");
+        string args = FFmpegEncodingBridge.BuildCaptureArgs("pipewiresrc fd=9 path=106 do-timestamp=true", 1921, 1081, "videocrop left=10 top=20 right=30 bottom=40");
         Assert.That(args, Is.EqualTo(
-            "-q -e pipewiresrc fd=9 target-object=106 do-timestamp=true ! queue max-size-buffers=4 leaky=downstream ! videoconvert ! " +
+            "-q -e pipewiresrc fd=9 path=106 do-timestamp=true ! queue max-size-buffers=4 leaky=downstream ! videoconvert ! " +
             "videocrop left=10 top=20 right=30 bottom=40 ! videoconvert ! videoscale ! " +
             "video/x-raw,format=I420,width=1920,height=1080,pixel-aspect-ratio=1/1 ! fdsink fd=1 sync=false"));
     }

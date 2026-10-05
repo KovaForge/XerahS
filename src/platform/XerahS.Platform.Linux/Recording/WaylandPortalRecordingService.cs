@@ -287,6 +287,8 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             return false;
         }
 
+        WarnIfStreamShapeDiffers(frameWidth, frameHeight);
+
         string? crop = null;
         int width = frameWidth;
         int height = frameHeight;
@@ -342,6 +344,33 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             VideoCodec.HEVC => ((HasGStreamerElement("x265enc") || HasGStreamerElement("nvh265enc")) && mp4) || vp9,
             _ => h264 || vp9,
         };
+    }
+
+    /// <summary>
+    /// Logs when the negotiated stream does not have the shape the portal reported. Scaling changes
+    /// the size but not the aspect ratio, so a different ratio means pipewiresrc may be reading
+    /// another source (for example the webcam after a failed target match).
+    /// </summary>
+    private void WarnIfStreamShapeDiffers(int frameWidth, int frameHeight)
+    {
+        if (StreamShapeDiffers(_pipewireSourceWidth, _pipewireSourceHeight, frameWidth, frameHeight))
+        {
+            DebugHelper.WriteLine(
+                $"[WaylandPortalRecording] Warning: stream frames are {frameWidth}x{frameHeight} but the portal reported " +
+                $"{_pipewireSourceWidth}x{_pipewireSourceHeight}; the recording may not show the selected screen or window.");
+        }
+    }
+
+    internal static bool StreamShapeDiffers(int portalWidth, int portalHeight, int frameWidth, int frameHeight)
+    {
+        if (portalWidth <= 0 || portalHeight <= 0 || frameWidth <= 0 || frameHeight <= 0)
+        {
+            return false;
+        }
+
+        double portalRatio = (double)portalWidth / portalHeight;
+        double frameRatio = (double)frameWidth / frameHeight;
+        return Math.Abs(portalRatio - frameRatio) / portalRatio > 0.05;
     }
 
     /// <summary>
@@ -1395,42 +1424,18 @@ public sealed class WaylandPortalRecordingService : IRecordingService
     /// The pipewiresrc element for a portal stream. With the portal's PipeWire remote fd the
     /// stream negotiates like any portal client (OBS, browsers); without it, pipewiresrc reaches
     /// the node over the default daemon connection, where Hyprland window streams fail with
-    /// "no more input formats". target-object replaces the deprecated path property.
+    /// "no more input formats".
+    /// The portal returns a node ID, so it goes in <c>path</c> (deprecated, but the property that
+    /// takes a node ID). <c>target-object</c> matches an object name or serial instead; a node ID
+    /// there matches nothing, and pipewiresrc then autoconnects to the default video source,
+    /// which records the webcam instead of the screen.
     /// </summary>
-    internal static string BuildPipeWireSource(uint nodeId, int remoteFd, bool? supportsTargetObject = null)
+    internal static string BuildPipeWireSource(uint nodeId, int remoteFd)
     {
-        if (remoteFd < 0)
-        {
-            return $"pipewiresrc path={nodeId} do-timestamp=true";
-        }
-
-        bool targetObject = supportsTargetObject ?? PipeWireSrcSupportsTargetObject.Value;
-        return targetObject
-            ? $"pipewiresrc fd={remoteFd} target-object={nodeId} do-timestamp=true"
+        return remoteFd < 0
+            ? $"pipewiresrc path={nodeId} do-timestamp=true"
             : $"pipewiresrc fd={remoteFd} path={nodeId} do-timestamp=true";
     }
-
-    private static readonly Lazy<bool> PipeWireSrcSupportsTargetObject = new(() =>
-    {
-        try
-        {
-            using var process = Process.Start(new ProcessStartInfo("gst-inspect-1.0", "pipewiresrc")
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            });
-            if (process == null) return false;
-            string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit(3000);
-            return output.Contains("target-object", StringComparison.Ordinal);
-        }
-        catch
-        {
-            return false;
-        }
-    });
 
     private int RemoteFd => _pipewireRemote is { IsInvalid: false, IsClosed: false } handle
         ? (int)handle.DangerousGetHandle()
