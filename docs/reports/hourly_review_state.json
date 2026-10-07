@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-10-07 00:07 AWST",
+  "last_updated": "2026-10-07 08:07 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -1947,6 +1947,14 @@
       "commit": null,
       "summary": "Step 5a categoriser found zero candidates; queue 0 -> 0. Tick started with HEAD bb418b2d (v0.32.6) == declan/develop bb418b2d. origin/develop is also at bb418b2d after the origin fetch this tick (no lag). Step 3 fetched upstream/develop 9712850d and confirmed it is already an ancestor of HEAD (merge-base == upstream, 0 commits behind, no merge needed). Fork sync: HEAD bb418b2d == declan/develop bb418b2d (already up to date). Submodule ShareX.ImageEditor clean at d7c027fa9b (HEAD == origin/develop inside submodule; no upstream remote configured inside submodule). Working tree has preserved uncommitted Wayland I420 stride WIP (FFmpegEncodingBridge.cs RawWidth + WaylandRecordingFallbackTests); not staged, not a queue pick. Patch saved at /tmp/xerahs-bugfix/wip-wayland-20261007-000633.patch. No deferred-last-runs files. No new stashes; preserved cross-tick stashes (wip-preserved-20260922 + xerahs-bugfix-WIP-WaylandPortalHotkeyService) untouched. recently_pivoted 48/200. last_runs 122 -> 123 rows (+1 vs HEAD, within XIP0077 +0/+1 cap). No code change this tick; no pivot to drain. No skill improvement this run (v1.1.35, no efficiency blockers).",
       "status": "no-op"
+    },
+    {
+      "ts": "2026-10-07 08:07 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a categoriser found zero candidates; queue 0 -> 0. Tick started with HEAD 9d50aac0 (v0.32.6) == declan/develop 9d50aac0. origin/develop is also at 9d50aac0 after the origin fetch this tick (no lag). Step 3 fetched upstream/develop 9712850d and confirmed it is already an ancestor of HEAD (merge-base == upstream, 0 commits behind, no merge needed). Fork sync: HEAD 9d50aac0 == declan/develop 9d50aac0 (already up to date). Submodule ShareX.ImageEditor clean at d7c027fa9b (HEAD == origin/develop inside submodule; no upstream remote configured inside submodule). Working tree has preserved uncommitted Wayland I420 stride WIP (FFmpegEncodingBridge.cs RawWidth + WaylandRecordingFallbackTests); not staged, not a queue pick. Patch saved at /tmp/xerahs-bugfix/wip-wayland-20261007-080630.patch. Linux project + tests Release build succeeded (0/0); filtered WaylandRecordingFallbackTests aborted because testhost requires Microsoft.AspNetCore.App 10.0 and this omarchy host only has Microsoft.NETCore.App (DOTNET_ROOT overlay does not satisfy testhost). No deferred-last-runs files. No new stashes; preserved cross-tick stashes (wip-preserved-20260922 + xerahs-bugfix-WIP-WaylandPortalHotkeyService) untouched. recently_pivoted 48/200. last_runs 123 -> 124 rows (+1 vs HEAD, within XIP0077 +0/+1 cap). No code change this tick; no pivot to drain."
     }
   ],
   "last_run_outcome": "no-op",
