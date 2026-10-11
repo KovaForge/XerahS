@@ -103,6 +103,51 @@ public class WaylandRecordingFallbackTests
             "video/x-raw,format=I420,width=1920,height=1080,pixel-aspect-ratio=1/1 ! fdsink fd=1 sync=false"));
     }
 
+    [TestCase(1610, 983, 1608, 982)]
+    [TestCase(1366, 768, 1360, 768)]
+    [TestCase(1935, 1208, 1928, 1208)]
+    [TestCase(1920, 1080, 1920, 1080)]
+    [TestCase(1422, 1141, 1416, 1140)]
+    [TestCase(3840, 2160, 3840, 2160)]
+    [TestCase(1, 1, 8, 2)]
+    public void RawFrameWidthHasNoGStreamerRowPadding(int width, int height, int expectedWidth, int expectedHeight)
+    {
+        // GStreamer pads I420 rows to 4 bytes; ffmpeg rawvideo expects packed rows. Both sides must use
+        // a width whose Y (w) and chroma (w/2) strides need no padding, i.e. a multiple of 8.
+        string capture = FFmpegEncodingBridge.BuildCaptureArgs("pipewiresrc fd=9 path=106", width, height);
+        FFmpegEncoderPlan plan = FFmpegEncodingBridge.PlanEncoders(VideoCodec.H264, 4000, FFmpegFeatures.Parse(Encoders, Devices))!;
+        string encode = FFmpegEncodingBridge.BuildEncodeArgs(width, height, 30, plan, null, "/tmp/out.mp4");
+        Assert.Multiple(() =>
+        {
+            Assert.That(capture, Does.Contain($"format=I420,width={expectedWidth},height={expectedHeight},"));
+            Assert.That(encode, Does.Contain($"-video_size {expectedWidth}x{expectedHeight} "));
+            Assert.That(expectedWidth % 8, Is.EqualTo(0));
+        });
+    }
+
+    [Test]
+    public void CopiesCompleteRawFramesWithoutChangingTheirBytes()
+    {
+        // 16x4 I420: 64 luma bytes + two 16-byte chroma planes per frame.
+        byte[] frames = Enumerable.Range(0, 192).Select(value => (byte)value).ToArray();
+        using var source = new MemoryStream(frames);
+        using var destination = new MemoryStream();
+        Assert.That(FFmpegEncodingBridge.CopyRawFrames(source, destination, 17, 5), Is.EqualTo(2));
+        Assert.That(destination.ToArray(), Is.EqualTo(frames));
+    }
+
+    [TestCase(0)]
+    [TestCase(95)]
+    [TestCase(97)]
+    public void RejectsEmptyOrIncompleteRawFrames(int byteCount)
+    {
+        using var source = new MemoryStream(new byte[byteCount]);
+        using var destination = new MemoryStream();
+        Assert.Throws<InvalidDataException>(() => FFmpegEncodingBridge.CopyRawFrames(source, destination, 16, 4));
+        // Never send a partial frame to FFmpeg, even when a full frame preceded it.
+        Assert.That(destination.Length, Is.EqualTo(byteCount >= 96 ? 96 : 0));
+    }
+
     [Test]
     public void EncodeUsesWallclockTimestampsConstantRateAndAudio()
     {
