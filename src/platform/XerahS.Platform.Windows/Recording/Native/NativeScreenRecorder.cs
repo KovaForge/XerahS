@@ -49,6 +49,7 @@ public sealed class NativeScreenRecorder : IDisposable, IAsyncDisposable
     public VideoEncoderInfo? Encoder { get; private set; }
     /// <summary>Nonfatal diagnostics; recording continues.</summary>
     public event Action<string>? Diagnostic;
+    public event Action<Exception>? AudioCaptureFailed;
     public bool IsRecording => Volatile.Read(ref recording) != 0;
     public bool IsPaused => clock.IsPaused;
     public TimeSpan Elapsed => TimeSpan.FromTicks(clock.Elapsed);
@@ -160,7 +161,7 @@ public sealed class NativeScreenRecorder : IDisposable, IAsyncDisposable
             using MediaFoundationWriter writer = new(graphics, options, width, height);
             Encoder = writer.Encoder;
             using VideoTexturePool textures = new(graphics, processor, writer.EncoderBindFlags);
-            using GraphicsCapture capture = new(graphics, processor, targets, options.IncludeCursor, options.FramesPerSecond);
+            using GraphicsCapture capture = new(graphics, processor, targets, options.IncludeCursor, options.FramesPerSecond, options.HideCaptureBorder);
             AudioMixer mixer = new(clock);
             using WasapiCapture? audio = options.HasAudio ? new(options, mixer) : null;
             prepared.TrySetResult();
@@ -187,10 +188,18 @@ public sealed class NativeScreenRecorder : IDisposable, IAsyncDisposable
             long duration = 0;
             Rectangle currentRegion = options.Region;
             long resumeWaitStart = 0, lastTrack = 0, lastRetarget = 0;
+            bool audioDisabled = false;
             while (!stop.WaitOne(0))
             {
                 if (capture.HasEnded) break;
-                if (audio?.Failure is Exception audioFailure) throw new IOException("Windows audio capture failed (the endpoint may have changed or been disconnected).", audioFailure);
+                if (!audioDisabled && audio?.Failure is Exception audioFailure)
+                {
+                    audioDisabled = true;
+                    audio.Dispose();
+                    ReportDiagnostic($"Audio capture stopped; video recording continues with silence. {audioFailure.Message}");
+                    try { AudioCaptureFailed?.Invoke(audioFailure); }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+                }
                 if (clock.IsPaused)
                 {
                     Rectangle? requestedRegion;

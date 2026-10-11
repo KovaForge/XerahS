@@ -53,9 +53,17 @@ public sealed record NativeRecordingOptions
     public float MicrophoneGain { get; init; } = 1;
     /// <summary>Reject a software video encoder rather than silently increasing CPU usage.</summary>
     public bool RequireHardwareEncoder { get; init; } = true;
+    public bool LowLatency { get; init; } = true;
+    public bool HideCaptureBorder { get; init; } = true;
     public TimeSpan Duration { get; init; }
 
     internal bool HasAudio => CaptureSystemAudio || CaptureMicrophone;
+
+    internal void ValidateEncoder(VideoEncoderInfo encoder)
+    {
+        if (RequireHardwareEncoder && (!encoder.IsHardwareAccelerated || !encoder.IsD3D11Aware))
+            throw new NotSupportedException($"Windows selected '{encoder.Name}', which does not provide D3D11 hardware video encoding on this GPU. Disable RequireHardwareEncoder to allow Windows software encoding.");
+    }
 
     internal void Validate()
     {

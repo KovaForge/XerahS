@@ -49,7 +49,9 @@ internal static class WindowsNativeRecordingOptionsMapper
         Func<IntPtr, Rectangle?> getWindowBounds,
         Func<Rectangle> getPrimaryMonitorBounds,
         Func<Point, Rectangle?> getMonitorBounds,
-        Func<string?, string?>? resolveMicrophone = null)
+        Func<string?, string?>? resolveMicrophone = null,
+        Func<string?, string?>? resolveSystemAudio = null,
+        Func<string, Rectangle?>? getDisplayBounds = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ScreenRecordingSettings settings = options.Settings ?? new ScreenRecordingSettings();
@@ -67,7 +69,10 @@ internal static class WindowsNativeRecordingOptionsMapper
         switch (options.Mode)
         {
             case CaptureMode.Screen:
-                region = ResolveScreenBounds(options.Region, getPrimaryMonitorBounds, getMonitorBounds);
+                region = string.IsNullOrWhiteSpace(settings.DisplayId)
+                    ? ResolveScreenBounds(options.Region, getPrimaryMonitorBounds, getMonitorBounds)
+                    : getDisplayBounds?.Invoke(settings.DisplayId)
+                        ?? throw new ArgumentException("The selected recording display is no longer available.", nameof(options));
                 break;
 
             case CaptureMode.Region:
@@ -104,7 +109,7 @@ internal static class WindowsNativeRecordingOptionsMapper
         }
 
         string? microphoneId = settings.CaptureMicrophone
-            ? resolveMicrophone?.Invoke(settings.MicrophoneDeviceId)
+            ? resolveMicrophone != null ? resolveMicrophone(settings.MicrophoneDeviceId) : settings.MicrophoneDeviceId
             : null;
 
         return new NativeRecordingOptions
@@ -120,7 +125,14 @@ internal static class WindowsNativeRecordingOptionsMapper
             CaptureSystemAudio = settings.CaptureSystemAudio,
             CaptureMicrophone = settings.CaptureMicrophone,
             MicrophoneDeviceId = microphoneId,
-            RequireHardwareEncoder = settings.RequireHardwareEncoder
+            SystemAudioDeviceId = settings.CaptureSystemAudio
+                ? resolveSystemAudio != null ? resolveSystemAudio(settings.SystemAudioDeviceId) : settings.SystemAudioDeviceId
+                : null,
+            SystemAudioGain = settings.SystemAudioGain,
+            MicrophoneGain = settings.MicrophoneGain,
+            RequireHardwareEncoder = settings.RequireHardwareEncoder,
+            LowLatency = settings.LowLatency,
+            HideCaptureBorder = settings.HideCaptureBorder
         };
     }
 

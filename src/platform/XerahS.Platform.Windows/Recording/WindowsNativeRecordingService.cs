@@ -41,7 +41,7 @@ namespace XerahS.Platform.Windows.Recording;
 /// same QPC clock as the video. Supports true pause/resume without restarting the session.
 /// The engine is ported from ShareX.ScreenRecordingLib.
 /// </summary>
-public sealed class WindowsNativeRecordingService : IRecordingService, IPausableRecordingService
+public sealed class WindowsNativeRecordingService : IRecordingService, IMovableRecordingService, IRecordingCompletionSource
 {
     private const string LogCategory = "ScreenRecorder";
     private const string LogTag = "NATIVE_WIN";
@@ -54,9 +54,11 @@ public sealed class WindowsNativeRecordingService : IRecordingService, IPausable
     private RecordingStatus _status = RecordingStatus.Idle;
     private bool _stopRequested;
     private bool _disposed;
+    private TimeSpan _lastElapsed;
 
     public event EventHandler<RecordingErrorEventArgs>? ErrorOccurred;
     public event EventHandler<RecordingStatusEventArgs>? StatusChanged;
+    public event EventHandler? RecordingEnded;
 
     /// <summary>Whether this Windows build and session can run the GPU recorder.</summary>
     public static bool IsSupported
@@ -87,7 +89,8 @@ public sealed class WindowsNativeRecordingService : IRecordingService, IPausable
     public RecordingRuntimeCapabilities GetCapabilities(RecordingOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new RecordingRuntimeCapabilities(RecordingPauseBehavior.NativePauseResume);
+        return new RecordingRuntimeCapabilities(RecordingPauseBehavior.NativePauseResume,
+            SupportsRegionMove: options.Mode == CaptureMode.Region);
     }
 
     public async Task StartRecordingAsync(RecordingOptions options)
@@ -103,6 +106,7 @@ public sealed class WindowsNativeRecordingService : IRecordingService, IPausable
             }
 
             _stopRequested = false;
+            _lastElapsed = TimeSpan.Zero;
             SetStatus(RecordingStatus.Initializing);
         }
 
@@ -116,7 +120,10 @@ public sealed class WindowsNativeRecordingService : IRecordingService, IPausable
                 GetWindowBounds,
                 GetPrimaryMonitorBounds,
                 GetMonitorBounds,
-                ResolveMicrophoneId);
+                ResolveMicrophoneId,
+                ResolveSystemAudioId,
+                id => XerahS.Platform.Abstractions.PlatformServices.Screen.GetAllScreens()
+                    .FirstOrDefault(screen => string.Equals(screen.DeviceName, id, StringComparison.OrdinalIgnoreCase))?.Bounds);
 
             TroubleshootingHelper.Log(LogCategory, LogTag,
                 $"Starting: mode={options.Mode}, region={nativeOptions.Region}, hwnd=0x{nativeOptions.WindowHandle:X}, " +
@@ -126,8 +133,11 @@ public sealed class WindowsNativeRecordingService : IRecordingService, IPausable
 
             recorder = new NativeScreenRecorder(nativeOptions);
             recorder.Diagnostic += message => TroubleshootingHelper.Log(LogCategory, LogTag, message);
+            recorder.AudioCaptureFailed += error => ErrorOccurred?.Invoke(this,
+                new RecordingErrorEventArgs(new IOException("Audio capture stopped; video recording continues with silence.", error), false));
             lock (_lock)
             {
+                ObjectDisposedException.ThrowIf(_disposed, this);
                 _recorder = recorder;
             }
 
@@ -143,13 +153,13 @@ public sealed class WindowsNativeRecordingService : IRecordingService, IPausable
                 }
             }
 
-            _ = recorder.Completion.ContinueWith(OnRecorderCompleted, recorder, CancellationToken.None,
-                TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-
             lock (_lock)
             {
-                SetStatus(RecordingStatus.Recording);
+                if (!_disposed && !_stopRequested) SetStatus(RecordingStatus.Recording);
             }
+
+            _ = recorder.Completion.ContinueWith(OnRecorderCompleted, recorder, CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
         }
         catch (Exception ex)
         {
@@ -186,7 +196,7 @@ public sealed class WindowsNativeRecordingService : IRecordingService, IPausable
         lock (_lock)
         {
             recorder = _recorder;
-            if (recorder == null || _status is RecordingStatus.Idle or RecordingStatus.Finalizing)
+            if (recorder == null || _status == RecordingStatus.Idle || _stopRequested)
             {
                 return;
             }
@@ -207,12 +217,14 @@ public sealed class WindowsNativeRecordingService : IRecordingService, IPausable
             // The worker has already removed its incomplete output.
             TroubleshootingHelper.Log(LogCategory, LogTag, $"Stop failed: {ex.GetType().Name}: {ex.Message}");
             ErrorOccurred?.Invoke(this, new RecordingErrorEventArgs(ex, false));
+            throw;
         }
         finally
         {
             recorder.Dispose();
             lock (_lock)
             {
+                _lastElapsed = recorder.Elapsed;
                 _recorder = null;
                 SetStatus(RecordingStatus.Idle);
             }
@@ -245,6 +257,20 @@ public sealed class WindowsNativeRecordingService : IRecordingService, IPausable
         return Task.CompletedTask;
     }
 
+    public Task ResumeRecordingAsync(Rectangle region)
+    {
+        lock (_lock)
+        {
+            if (_recorder == null || _status != RecordingStatus.Paused) return Task.CompletedTask;
+            Rectangle normalized = RecordingRegionLayout.Normalize(region);
+            if (RecordingRegionLayout.Compute(normalized, GraphicsCapture.EnumerateMonitors()).Count == 0)
+                throw new ArgumentException("The moved recording region does not intersect a display.", nameof(region));
+            _recorder.Resume(region);
+            SetStatus(RecordingStatus.Recording);
+        }
+        return Task.CompletedTask;
+    }
+
     private void OnRecorderCompleted(Task<NativeRecordingResult> completion, object? state)
     {
         bool expected;
@@ -269,8 +295,11 @@ public sealed class WindowsNativeRecordingService : IRecordingService, IPausable
         {
             // The target window closed or changed size. The MP4 is already finalized and is kept; stopping returns it.
             TroubleshootingHelper.Log(LogCategory, LogTag, "Capture target ended; the recording was finalized early.");
-            ErrorOccurred?.Invoke(this, new RecordingErrorEventArgs(
-                new InvalidOperationException("The recorded window closed or changed size, so recording ended early."), false));
+            lock (_lock)
+            {
+                SetStatus(RecordingStatus.Finalizing);
+            }
+            RecordingEnded?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -278,7 +307,7 @@ public sealed class WindowsNativeRecordingService : IRecordingService, IPausable
     {
         if (_status == status) return;
         _status = status;
-        TimeSpan elapsed = _recorder?.Elapsed ?? TimeSpan.Zero;
+        TimeSpan elapsed = _recorder?.Elapsed ?? _lastElapsed;
         StatusChanged?.Invoke(this, new RecordingStatusEventArgs(status, elapsed));
     }
 
@@ -329,28 +358,21 @@ public sealed class WindowsNativeRecordingService : IRecordingService, IPausable
 
     /// <summary>
     /// The stored microphone setting may be a WASAPI endpoint ID or a device name (the FFmpeg backend uses
-    /// DirectShow names). Unknown values fall back to the default communications microphone.
+    /// DirectShow names). An unavailable selection must not silently record a different microphone.
     /// </summary>
     internal static string? ResolveMicrophoneId(string? stored)
     {
         if (string.IsNullOrWhiteSpace(stored)) return null;
 
-        try
-        {
-            IReadOnlyList<AudioCaptureDevice> microphones = AudioCaptureDevices.GetMicrophones();
-            AudioCaptureDevice? match = MatchAudioDevice(microphones, stored);
-            if (match == null)
-            {
-                TroubleshootingHelper.Log(LogCategory, LogTag, $"Microphone '{stored}' not found; using the default microphone.");
-            }
+        AudioCaptureDevice? match = MatchAudioDevice(AudioCaptureDevices.GetMicrophones(), stored);
+        return match?.Id ?? throw new ArgumentException("The selected microphone is no longer available.", nameof(stored));
+    }
 
-            return match?.Id;
-        }
-        catch (Exception ex)
-        {
-            TroubleshootingHelper.Log(LogCategory, LogTag, $"Microphone enumeration failed ({ex.Message}); using the default microphone.");
-            return null;
-        }
+    internal static string? ResolveSystemAudioId(string? stored)
+    {
+        if (string.IsNullOrWhiteSpace(stored)) return null;
+        AudioCaptureDevice? match = MatchAudioDevice(AudioCaptureDevices.GetSystemAudioDevices(), stored);
+        return match?.Id ?? throw new ArgumentException("The selected system audio device is no longer available.", nameof(stored));
     }
 
     internal static AudioCaptureDevice? MatchAudioDevice(IEnumerable<AudioCaptureDevice> devices, string stored)

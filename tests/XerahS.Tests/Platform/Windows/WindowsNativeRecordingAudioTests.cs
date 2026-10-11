@@ -132,6 +132,44 @@ public class WindowsNativeRecordingAudioTests
     }
 
     [Test]
+    public void Mixer_TracksOpposingEndpointDriftForSixtySimulatedSeconds_WithoutCaptureGaps()
+    {
+        var clock = new RecordingClock();
+        clock.Start(Origin);
+        var mixer = new AudioMixer(clock);
+        float[] loopback = Constant(Frames, 0.125f, 0.125f);
+        float[] microphone = Constant(Frames, 0.25f, 0.25f);
+        short[] output = new short[Frames * 2];
+        long gaps = 0;
+        for (int packet = 0; packet < 6000; packet++)
+        {
+            long elapsed = TicksForFrames((long)packet * Frames);
+            mixer.Write(0, Origin + (long)(elapsed * 1.0002), Frames, loopback, 1, false);
+            mixer.Write(1, Origin + (long)(elapsed * 0.9998), Frames, microphone, 1, false);
+            if (packet < 3) continue; // Model the encoder's audio lookahead.
+            mixer.Read((long)(packet - 3) * Frames, output);
+            if (packet > 3) gaps += output.Count(sample => sample < 11000 || sample > 13500);
+        }
+        Assert.That(gaps, Is.Zero, "Constant signals should remain mixed while each endpoint clock drifts by 200 ppm.");
+        Assert.That(mixer.Discontinuities, Is.Zero);
+    }
+
+    [Test]
+    public void Mixer_SilentPacketsAdvanceTimeline_AndExplicitDiscontinuityRepositionsSource()
+    {
+        var clock = new RecordingClock();
+        clock.Start(Origin);
+        var mixer = new AudioMixer(clock);
+        mixer.Write(0, Origin, Frames, ReadOnlySpan<float>.Empty, 1, false);
+        mixer.Write(0, Origin + TicksForFrames(Frames * 2), Frames, Constant(Frames, 0.5f, 0.5f), 1, true);
+        short[] output = new short[Frames * 2];
+        mixer.Read(0, output);
+        Assert.That(output, Is.All.Zero);
+        mixer.Read(Frames * 2, output.AsSpan(0, 100));
+        Assert.That(output.Take(100), Is.All.EqualTo((short)(0.5f * 32767)));
+    }
+
+    [Test]
     public void Clock_ExcludesPausedTimeFromMediaTimeline()
     {
         var clock = new RecordingClock();

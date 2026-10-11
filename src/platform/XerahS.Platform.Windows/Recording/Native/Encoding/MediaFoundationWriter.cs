@@ -46,7 +46,7 @@ internal sealed unsafe class MediaFoundationWriter : IDisposable
             deviceManager.ResetDevice(graphics.Device).CheckError();
             using IMFAttributes attributes = MediaFactory.MFCreateAttributes(5);
             attributes.Set(SinkWriterAttributeKeys.ReadwriteEnableHardwareTransforms, 1u).CheckError();
-            attributes.Set(SinkWriterAttributeKeys.LowLatency, 1u).CheckError();
+            attributes.Set(SinkWriterAttributeKeys.LowLatency, options.LowLatency ? 1u : 0u).CheckError();
             // The fixed-size GPU pool bounds in-flight samples. Do not make WriteSample wait for presentation time.
             attributes.Set(SinkWriterAttributeKeys.DisableThrottling, 1u).CheckError();
             attributes.Set(TranscodeAttributeKeys.TranscodeContainertype, TranscodeContainerTypeGuids.Mpeg4).CheckError();
@@ -59,9 +59,8 @@ internal sealed unsafe class MediaFoundationWriter : IDisposable
             using IMFMediaType videoIn = CreateVideoType(VideoFormatGuids.NV12, width, height, options.FramesPerSecond);
             writer.SetInputMediaType(videoStream, videoIn, null!);
             if (options.HasAudio) AddAudio(options.AudioBitrate);
-            Encoder = InspectVideoEncoder();
-            if (options.RequireHardwareEncoder && (!Encoder.IsHardwareAccelerated || !Encoder.IsD3D11Aware))
-                throw new NotSupportedException($"Windows selected '{Encoder.Name}', which does not provide D3D11 hardware video encoding on this GPU. Disable RequireHardwareEncoder to allow Windows software encoding.");
+            Encoder = InspectVideoEncoder(options.LowLatency);
+            options.ValidateEncoder(Encoder);
             writer.BeginWriting();
             started = true;
         }
@@ -117,7 +116,7 @@ internal sealed unsafe class MediaFoundationWriter : IDisposable
         writer.SetInputMediaType(audioStream, input, null!);
     }
 
-    private VideoEncoderInfo InspectVideoEncoder()
+    private VideoEncoderInfo InspectVideoEncoder(bool lowLatency)
     {
         using IMFSinkWriterEx extended = writer.QueryInterface<IMFSinkWriterEx>();
         for (int i = 0; i < 8; i++)
@@ -129,7 +128,7 @@ internal sealed unsafe class MediaFoundationWriter : IDisposable
             using (transform)
             {
                 if (category != TransformCategoryGuids.VideoEncoder) continue;
-                ConfigureLowLatency(transform);
+                if (lowLatency) ConfigureLowLatency(transform);
                 using IMFAttributes attributes = transform.Attributes;
                 bool hardware = !string.IsNullOrEmpty(GetString(attributes, TransformAttributeKeys.MftEnumHardwareUrlAttribute));
                 bool d3d11 = attributes.GetUInt32(TransformAttributeKeys.D3D11Aware, out uint aware).Success && aware != 0;

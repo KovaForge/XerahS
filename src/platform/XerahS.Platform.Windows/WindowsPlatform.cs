@@ -135,6 +135,7 @@ namespace XerahS.Platform.Windows
                     // The capture source + encoder pair above stays registered for builds older than 2004.
                     if (Recording.WindowsNativeRecordingService.IsSupported)
                     {
+                        PlatformServices.RecordingDevices = new Recording.WindowsRecordingDeviceService();
                         XerahS.RegionCapture.ScreenRecording.ScreenRecorderService.NativeRecordingServiceFactory =
                             () => new Recording.WindowsNativeRecordingService();
                         XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "INIT", "GPU native recorder (WindowsNativeRecordingService) registered");

@@ -86,7 +86,7 @@ internal sealed unsafe class WasapiCapture : IDisposable
         }
         else device = enumerator.GetDevice(id);
         using IMMDevice ownedDevice = device;
-        ComPtr<IAudioClient3> client = ActivateClient(ownedDevice);
+        ComPtr<IAudioClient3> client = ActivateClient(ownedDevice, options.LowLatency && !loopback, out bool supportsLowLatency);
         AutoResetEvent ready = new(false);
         try
         {
@@ -104,7 +104,7 @@ internal sealed unsafe class WasapiCapture : IDisposable
             const uint eventCallback = 0x00040000, loopbackFlag = 0x00020000, autoConvert = 0x80000000, srcQuality = 0x08000000;
             uint flags = eventCallback | autoConvert | srcQuality | (loopback ? loopbackFlag : 0);
             bool initialized = false;
-            if (!loopback)
+            if (supportsLowLatency)
             {
                 uint defaultPeriod, fundamentalPeriod, minimumPeriod, maximumPeriod;
                 if (client.Pointer->GetSharedModeEnginePeriod(&format, &defaultPeriod, &fundamentalPeriod, &minimumPeriod, &maximumPeriod).Succeeded)
@@ -117,7 +117,7 @@ internal sealed unsafe class WasapiCapture : IDisposable
                         // Failed initialization can leave a client partially initialized. Retry on a
                         // fresh client so default-period Windows resampling also works for mono/44.1 kHz microphones.
                         client.Dispose();
-                        client = ActivateClient(ownedDevice);
+                        client = ActivateClient(ownedDevice, false, out _);
                     }
                 }
             }
@@ -132,10 +132,23 @@ internal sealed unsafe class WasapiCapture : IDisposable
         catch { ready.Dispose(); client.Dispose(); throw; }
     }
 
-    private static ComPtr<IAudioClient3> ActivateClient(IMMDevice device)
+    private static ComPtr<IAudioClient3> ActivateClient(IMMDevice device, bool lowLatency, out bool supportsLowLatency)
     {
-        Guid iid = typeof(IAudioClient3).GUID;
-        device.Activate(iid, 1, null, out nint rawClient).CheckError(); // CLSCTX_INPROC_SERVER
+        supportsLowLatency = false;
+        if (lowLatency)
+        {
+            try
+            {
+                device.Activate(typeof(IAudioClient3).GUID, 1, null, out nint client3).CheckError();
+                supportsLowLatency = true;
+                return new((IAudioClient3*)client3);
+            }
+            catch (SharpGenException ex) when (ex.HResult == unchecked((int)0x80004002)) { } // E_NOINTERFACE
+        }
+        // IAudioClient's vtable is the prefix of IAudioClient3. Only the inherited methods
+        // may be called on this pointer; the period negotiation above is gated by supportsLowLatency.
+        Guid iid = new("1CB9AD4C-DBFA-4c32-B178-C2F568A703B2");
+        device.Activate(iid, 1, null, out nint rawClient).CheckError();
         return new((IAudioClient3*)rawClient);
     }
 

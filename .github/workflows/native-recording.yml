@@ -1,0 +1,74 @@
+name: Native Recording
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'src/desktop/**'
+      - 'src/platform/**'
+      - 'tests/**'
+      - 'Directory.*.props'
+      - 'ShareX.ImageEditor'
+      - 'Omacut'
+      - '.github/workflows/native-recording.yml'
+  push:
+    branches: [develop]
+    paths:
+      - 'src/desktop/**'
+      - 'src/platform/**'
+      - 'tests/**'
+      - 'Directory.*.props'
+      - 'ShareX.ImageEditor'
+      - 'Omacut'
+      - '.github/workflows/native-recording.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-recording-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  recording:
+    name: recording-${{ matrix.rid }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            rid: win-x64
+            run_tests: true
+          - os: windows-2022
+            rid: win-arm64
+            run_tests: false
+          - os: ubuntu-24.04
+            rid: linux-x64
+            run_tests: true
+    runs-on: ${{ matrix.os }}
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize build submodules at pinned commits
+        run: git submodule update --init ShareX.ImageEditor Omacut
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build desktop solution with warnings as errors
+        run: dotnet build src/desktop/XerahS.sln -c Release -r ${{ matrix.rid }} -m:1 -p:UseSharedCompilation=false
+      - name: Run recording regression tests
+        if: matrix.run_tests
+        run: >-
+          dotnet test tests/XerahS.Tests/XerahS.Tests.csproj -c Release -r ${{ matrix.rid }} --no-build
+          --filter "FullyQualifiedName~WindowsNativeRecording|FullyQualifiedName~NativeRecordingMapping|FullyQualifiedName~ScreenRecordingManagerLifecycle|FullyQualifiedName~RecordingMediaInspector|FullyQualifiedName~RecordingViewModelAudioRouting|FullyQualifiedName~ScreenRecorderServiceTests|FullyQualifiedName~FFmpegRecordingServiceTests|FullyQualifiedName~RegionCropperTests"
+          --logger "trx;LogFileName=recording-${{ matrix.rid }}.trx"
+          --results-directory artifacts/test-results
+      - name: Upload recording test results
+        if: always() && matrix.run_tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: recording-tests-${{ matrix.rid }}
+          path: artifacts/test-results/*.trx
+          if-no-files-found: ignore

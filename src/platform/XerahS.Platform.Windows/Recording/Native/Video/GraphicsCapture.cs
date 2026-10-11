@@ -69,19 +69,18 @@ internal sealed unsafe class GraphicsCapture : IDisposable
         {
             if (!RecordingInterop.IsWindow(options.WindowHandle)) throw new ArgumentException("The capture window no longer exists.");
             GraphicsCaptureItem item = CreateItem(options.WindowHandle, true);
-            width = item.Size.Width & ~1;
-            height = item.Size.Height & ~1;
-            if (width < 2 || height < 2) throw new ArgumentException("The window has no capturable content.");
+            Rectangle windowRegion = RecordingRegionLayout.Normalize(new Rectangle(0, 0, item.Size.Width, item.Size.Height));
+            width = windowRegion.Width;
+            height = windowRegion.Height;
             nint monitor = RecordingInterop.MonitorFromWindow(options.WindowHandle, MONITOR_FROM_FLAGS.MONITOR_DEFAULTTONEAREST);
             return [new(item, new Rectangle(0, 0, width, height), Point.Empty, monitor, options.WindowHandle)];
         }
 
-        width = options.Region.Width & ~1;
-        height = options.Region.Height & ~1;
-        if (width > 16384 || height > 16384) throw new ArgumentException("The capture region exceeds D3D11 texture limits.");
-        Rectangle region = new(options.Region.Location, new Size(width, height));
+        Rectangle region = RecordingRegionLayout.Normalize(options.Region);
+        width = region.Width;
+        height = region.Height;
         List<Target> targets = new();
-        foreach (RegionSlice slice in ComputeLayout(region, EnumerateMonitors()))
+        foreach (RecordingRegionSlice slice in ComputeLayout(region, EnumerateMonitors()))
         {
             GraphicsCaptureItem item = CreateItem(slice.Monitor, false);
             targets.Add(new(item, slice.Source, slice.Destination, slice.Monitor));
@@ -91,24 +90,8 @@ internal sealed unsafe class GraphicsCapture : IDisposable
     }
 
     /// <summary>One display's share of a desktop region: the crop in monitor space and its offset in the output canvas.</summary>
-    internal readonly record struct RegionSlice(nint Monitor, Rectangle Source, Point Destination);
-
-    /// <summary>
-    /// Splits a desktop region (physical virtual-screen pixels) into per-monitor crops so a region that spans
-    /// several displays is stitched into a single canvas. Areas outside every display stay black.
-    /// </summary>
-    internal static List<RegionSlice> ComputeLayout(Rectangle region, IEnumerable<(nint Monitor, Rectangle Bounds)> monitors)
-    {
-        List<RegionSlice> slices = new();
-        foreach ((nint monitor, Rectangle bounds) in monitors)
-        {
-            Rectangle intersection = Rectangle.Intersect(region, bounds);
-            if (intersection.Width <= 0 || intersection.Height <= 0) continue;
-            slices.Add(new(monitor, new Rectangle(intersection.X - bounds.X, intersection.Y - bounds.Y, intersection.Width, intersection.Height),
-                new Point(intersection.X - region.X, intersection.Y - region.Y)));
-        }
-        return slices;
-    }
+    internal static List<RecordingRegionSlice> ComputeLayout(Rectangle region, IEnumerable<(nint Monitor, Rectangle Bounds)> monitors) =>
+        RecordingRegionLayout.Compute(region, monitors);
 
     internal static List<(nint Monitor, Rectangle Bounds)> EnumerateMonitors()
     {
@@ -131,11 +114,11 @@ internal sealed unsafe class GraphicsCapture : IDisposable
     {
         if (sources.Count == 0 || sources.Any(x => x.Target.WindowHandle != 0)) return false;
         region = new Rectangle(region.Location, new Size(Width, Height));
-        List<RegionSlice> slices = ComputeLayout(region, EnumerateMonitors());
+        List<RecordingRegionSlice> slices = ComputeLayout(region, EnumerateMonitors());
         if (slices.Count != sources.Count || slices.Any(slice => !sources.Any(x => x.Target.Monitor == slice.Monitor))) return false;
         foreach (Source source in sources)
         {
-            RegionSlice slice = slices.First(x => x.Monitor == source.Target.Monitor);
+            RecordingRegionSlice slice = slices.First(x => x.Monitor == source.Target.Monitor);
             source.Target = source.Target with { Source = slice.Source, Destination = slice.Destination };
         }
         // Uncovered canvas areas (off-desktop parts of the region) must not keep pixels from the previous position.
@@ -172,7 +155,7 @@ internal sealed unsafe class GraphicsCapture : IDisposable
         finally { RecordingInterop.WindowsDeleteString(className); }
     }
 
-    public GraphicsCapture(GraphicsDevice graphics, GpuVideoProcessor processor, List<Target> targets, bool cursor, int fps)
+    public GraphicsCapture(GraphicsDevice graphics, GpuVideoProcessor processor, List<Target> targets, bool cursor, int fps, bool hideBorder = true)
     {
         this.graphics = graphics;
         this.processor = processor;
@@ -182,7 +165,7 @@ internal sealed unsafe class GraphicsCapture : IDisposable
         Height = processor.Height;
         try
         {
-            borderless = RequestBorderlessAccess();
+            borderless = hideBorder && RequestBorderlessAccess();
             CreateSources(targets);
         }
         catch { Dispose(); throw; }
@@ -201,7 +184,11 @@ internal sealed unsafe class GraphicsCapture : IDisposable
             sources.Add(source);
             ConfigureCaptureInterval(session, fps);
             session.IsCursorCaptureEnabled = cursor;
-            if (borderless && IsBorderRequiredSupported) session.IsBorderRequired = false;
+            if (borderless && IsBorderRequiredSupported)
+            {
+                try { session.IsBorderRequired = false; }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Windows could not hide the capture border: {ex.Message}"); }
+            }
             source.ClosedHandler = (_, _) => Interlocked.Exchange(ref source.Closed, 1);
             target.Item.Closed += source.ClosedHandler;
         }
@@ -228,10 +215,10 @@ internal sealed unsafe class GraphicsCapture : IDisposable
         void* rawSession;
         HRESULT result = ((IUnknown*)marshaler.ThisPtr)->QueryInterface(&iid, &rawSession);
         if (result.Value == unchecked((int)0x80004002)) return; // E_NOINTERFACE: older Windows uses its existing capture cadence.
-        result.ThrowOnFailure();
+        if (result.Failed) return; // Capture interval control is an optional driver/OS hint.
         using ComPtr<IGraphicsCaptureSession5> extended = new((IGraphicsCaptureSession5*)rawSession);
         // Newer Windows can otherwise throttle WGC to 60 FPS even on a high-refresh display.
-        extended.Pointer->SetMinUpdateInterval(TimeSpan.TicksPerSecond / fps).ThrowOnFailure();
+        extended.Pointer->SetMinUpdateInterval(TimeSpan.TicksPerSecond / fps);
     }
 
     private static readonly bool IsBorderRequiredSupported =

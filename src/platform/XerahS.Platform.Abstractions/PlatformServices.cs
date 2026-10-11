@@ -165,6 +165,9 @@ namespace XerahS.Platform.Abstractions
         /// <summary>Optional desktop profile (Linux: Omarchy/Hyprland detection). Null elsewhere.</summary>
         public static IDesktopEnvironmentProfile? DesktopProfile { get; set; }
 
+        /// <summary>Native audio-device settings, when the current recording backend supports them.</summary>
+        public static IRecordingDeviceService? RecordingDevices { get; set; }
+
         /// <summary>Optional compositor-managed keybindings (Hyprland, XIP0088). Null elsewhere.</summary>
         public static ICompositorKeybindingService? CompositorKeybindings { get; set; }
 

@@ -105,6 +105,18 @@ public class ScreenRecordingSettings
     /// <summary>Microphone device ID for audio capture</summary>
     public string? MicrophoneDeviceId { get; set; }
 
+    /// <summary>Windows WASAPI render endpoint. Null uses the default output.</summary>
+    public string? SystemAudioDeviceId { get; set; }
+
+    public float SystemAudioGain { get; set; } = 1;
+    public float MicrophoneGain { get; set; } = 1;
+
+    /// <summary>Display device name for Screen mode. Null uses the primary display.</summary>
+    public string? DisplayId { get; set; }
+
+    public bool LowLatency { get; set; } = true;
+    public bool HideCaptureBorder { get; set; } = true;
+
     /// <summary>
     /// Capture mouse cursor in recording
     /// Stage 2: Window &amp; Region Parity
