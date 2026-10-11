@@ -141,17 +141,47 @@ internal static class UploadHost
         };
     }
 
+    /// <summary>
+    /// Image destinations, or when none is usable, File destinations whose file-type routing
+    /// explicitly includes images (e.g. one S3 destination set to handle all file types). That is
+    /// the user's routing, not an implicit Image→File fallback, so omaxerahs stays fail-closed.
+    /// </summary>
     internal static List<UploaderInstance> GetUsableImageInstances()
     {
         EnsurePluginsLoaded();
-        return InstanceManager.Instance.GetInstancesByCategory(UploaderCategory.Image)
+        var images = InstanceManager.Instance.GetInstancesByCategory(UploaderCategory.Image)
             .Where(IsUsableImageInstance)
+            .ToList();
+        if (images.Count > 0)
+        {
+            return images;
+        }
+
+        return InstanceManager.Instance.GetInstancesByCategory(UploaderCategory.File)
+            .Where(i => RoutesImages(i.FileTypeRouting) && IsUsableInstance(i, UploaderCategory.File))
             .ToList();
     }
 
-    internal static bool IsUsableImageInstance(UploaderInstance instance)
+    private static readonly string[] ImageExtensions = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "tif", "tiff"];
+
+    /// <summary>True when the routing takes all file types or lists an image extension ("png" or ".png").</summary>
+    internal static bool RoutesImages(FileTypeScope? routing)
     {
-        if (instance.Category != UploaderCategory.Image || !instance.IsAvailable)
+        if (routing == null)
+        {
+            return false;
+        }
+
+        return routing.AllFileTypes || routing.FileExtensions.Any(ext =>
+            ImageExtensions.Contains(ext.TrimStart('.'), StringComparer.OrdinalIgnoreCase));
+    }
+
+    internal static bool IsUsableImageInstance(UploaderInstance instance) =>
+        IsUsableInstance(instance, UploaderCategory.Image);
+
+    private static bool IsUsableInstance(UploaderInstance instance, UploaderCategory category)
+    {
+        if (instance.Category != category || !instance.IsAvailable)
         {
             return false;
         }
@@ -173,7 +203,7 @@ internal static class UploadHost
         }
         catch (Exception ex)
         {
-            DebugHelper.WriteException(ex, "ValidateSettings failed for image instance");
+            DebugHelper.WriteException(ex, $"ValidateSettings failed for {category} instance");
             return false;
         }
     }
@@ -186,7 +216,7 @@ internal static class UploadHost
         }
 
         var preferred = usable.FirstOrDefault(i =>
-            InstanceManager.Instance.IsDefaultInstance(UploaderCategory.Image, i.InstanceId));
+            InstanceManager.Instance.IsDefaultInstance(i.Category, i.InstanceId));
         return preferred ?? usable.OrderByDescending(i => i.CreatedAt).FirstOrDefault();
     }
 

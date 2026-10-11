@@ -166,9 +166,12 @@ internal static class UploadCommand
             taskSettings.Job = WorkflowType.FileUpload;
             taskSettings.AfterCaptureJob = AfterCaptureTasks.None;
             taskSettings.AfterUploadJob = AfterUploadTasks.None;
-            taskSettings.DestinationInstanceId = null;
-            // Fail closed: no Image→File. Property lives on TaskSettings (PR-CFail).
-            taskSettings.AllowCrossCategoryFallback = false;
+            // Fail closed: no implicit Image→File (PR-CFail). The one exception is a File destination
+            // the user routed images to (UploadHost.GetUsableImageInstances): pin it, and let the
+            // pipeline accept that single category mismatch.
+            bool routedFileDestination = inspection.Instance.Category == UploaderCategory.File;
+            taskSettings.DestinationInstanceId = routedFileDestination ? inspection.Instance.InstanceId : null;
+            taskSettings.AllowCrossCategoryFallback = routedFileDestination;
             taskSettings.GeneralSettings.ShowToastNotificationAfterTaskCompleted = false;
 
             var taskInfo = new TaskInfo(taskSettings)
