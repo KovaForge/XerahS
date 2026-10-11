@@ -103,11 +103,26 @@ internal sealed unsafe class WasapiCapture : IDisposable
             };
             const uint eventCallback = 0x00040000, loopbackFlag = 0x00020000, autoConvert = 0x80000000, srcQuality = 0x08000000;
             uint flags = eventCallback | autoConvert | srcQuality | (loopback ? loopbackFlag : 0);
-            // XerahS: always use the default shared-mode period (typically 10 ms) with Windows format conversion.
-            // The IAudioClient3 low-latency path (InitializeSharedAudioStream) never returns on some drivers
-            // (observed with the Qualcomm Aqstic microphone array on Snapdragon X), which hung recording start.
-            // The mixer already allows 50 ms for packets to arrive, so the lower period buys nothing here.
-            client.Pointer->Initialize(AUDCLNT_SHAREMODE.AUDCLNT_SHAREMODE_SHARED, flags, 0, 0, &format, null).ThrowOnFailure();
+            bool initialized = false;
+            if (!loopback)
+            {
+                uint defaultPeriod, fundamentalPeriod, minimumPeriod, maximumPeriod;
+                if (client.Pointer->GetSharedModeEnginePeriod(&format, &defaultPeriod, &fundamentalPeriod, &minimumPeriod, &maximumPeriod).Succeeded)
+                {
+                    // IAudioClient3 accepts EVENTCALLBACK only, not AUTOCONVERTPCM or SRC_DEFAULT_QUALITY.
+                    // Try the low period when this format is supported directly by the shared engine.
+                    initialized = client.Pointer->InitializeSharedAudioStream(eventCallback, minimumPeriod, &format, null).Succeeded;
+                    if (!initialized)
+                    {
+                        // Failed initialization can leave a client partially initialized. Retry on a
+                        // fresh client so default-period Windows resampling also works for mono/44.1 kHz microphones.
+                        client.Dispose();
+                        client = ActivateClient(ownedDevice);
+                    }
+                }
+            }
+            // Fallback: loopback, devices with a locked engine period, or a failed low-latency call use the supported default period (typically 10 ms).
+            if (!initialized) client.Pointer->Initialize(AUDCLNT_SHAREMODE.AUDCLNT_SHAREMODE_SHARED, flags, 0, 0, &format, null).ThrowOnFailure();
             client.Pointer->SetEventHandle(ready.SafeWaitHandle.DangerousGetHandle()).ThrowOnFailure();
             Guid iid = typeof(IAudioCaptureClient).GUID;
             void* rawCapture;
