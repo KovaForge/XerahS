@@ -112,6 +112,12 @@ public class ScreenRecordingSettings
     public bool ShowCursor { get; set; } = true;
 
     /// <summary>
+    /// Window mode behaviour for the native Windows recorder.
+    /// Default keeps the established popup-inclusive behaviour.
+    /// </summary>
+    public WindowRecordingMode WindowRecordingMode { get; set; } = WindowRecordingMode.IncludePopups;
+
+    /// <summary>
     /// Force FFmpeg mode instead of native recording
     /// Trigger condition for Stage 4 FFmpeg fallback
     /// </summary>

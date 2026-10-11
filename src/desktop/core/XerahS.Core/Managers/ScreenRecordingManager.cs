@@ -489,7 +489,8 @@ public class ScreenRecordingManager : IScreenRecordingManager
             return true;
         }
 
-        // Audio capture currently routes through FFmpeg fallback
+        // Audio capture routes through FFmpeg unless the native backend records audio itself
+        // (Wayland portal; Windows WASAPI loopback + microphone in WindowsNativeRecordingService).
         if (settings is not null && (settings.CaptureSystemAudio || settings.CaptureMicrophone))
         {
             if (isWayland && ScreenRecorderService.NativeRecordingServiceFactory != null)
@@ -498,8 +499,16 @@ public class ScreenRecordingManager : IScreenRecordingManager
                 return false;
             }
 
-            XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Audio capture requested -> using FFmpeg");
-            return true;
+            if (OperatingSystem.IsWindows() && ScreenRecorderService.NativeRecordingServiceFactory != null)
+            {
+                // Fall through: the codec check below still routes non-H.264 codecs to FFmpeg.
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "NATIVE", "Audio capture requested on Windows -> native WASAPI audio");
+            }
+            else
+            {
+                XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "FALLBACK", "Audio capture requested -> using FFmpeg");
+                return true;
+            }
         }
 
         if (settings is not null && RecordingCodecSupportPolicy.RequiresFfmpegFallback(settings.Codec))
