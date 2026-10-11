@@ -57,11 +57,14 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - name: Build desktop solution with warnings as errors
-        run: dotnet build src/desktop/XerahS.sln -c Release -r ${{ matrix.rid }} -m:1 -p:UseSharedCompilation=false
+        run: dotnet build src/desktop/XerahS.sln -c Release -m:1 -p:UseSharedCompilation=false
+      - name: Compile native Windows recorder for the target architecture
+        if: runner.os == 'Windows'
+        run: dotnet build src/platform/XerahS.Platform.Windows/XerahS.Platform.Windows.csproj -c Release -r ${{ matrix.rid }} -m:1 -p:UseSharedCompilation=false
       - name: Run recording regression tests
         if: matrix.run_tests
         run: >-
-          dotnet test tests/XerahS.Tests/XerahS.Tests.csproj -c Release -r ${{ matrix.rid }} --no-build
+          dotnet test tests/XerahS.Tests/XerahS.Tests.csproj -c Release --no-build
           --filter "FullyQualifiedName~WindowsNativeRecording|FullyQualifiedName~NativeRecordingMapping|FullyQualifiedName~ScreenRecordingManagerLifecycle|FullyQualifiedName~RecordingMediaInspector|FullyQualifiedName~RecordingViewModelAudioRouting|FullyQualifiedName~ScreenRecorderServiceTests|FullyQualifiedName~FFmpegRecordingServiceTests|FullyQualifiedName~RegionCropperTests"
           --logger "trx;LogFileName=recording-${{ matrix.rid }}.trx"
           --results-directory artifacts/test-results
