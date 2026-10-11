@@ -37,10 +37,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-2022
+          # NUnit enforces the test assembly's Windows 10.0.26100 minimum.
+          - os: windows-2025
             rid: win-x64
             run_tests: true
-          - os: windows-2022
+          - os: windows-2025
             rid: win-arm64
             run_tests: false
           - os: ubuntu-24.04
@@ -68,6 +69,23 @@ jobs:
           --filter "FullyQualifiedName~WindowsNativeRecording|FullyQualifiedName~NativeRecordingMapping|FullyQualifiedName~ScreenRecordingManagerLifecycle|FullyQualifiedName~RecordingMediaInspector|FullyQualifiedName~RecordingViewModelAudioRouting|FullyQualifiedName~ScreenRecorderServiceTests|FullyQualifiedName~FFmpegRecordingServiceTests|FullyQualifiedName~RegionCropperTests"
           --logger "trx;LogFileName=recording-${{ matrix.rid }}.trx"
           --results-directory artifacts/test-results
+      - name: Require executed and passing recording tests
+        if: matrix.run_tests
+        shell: python
+        run: |
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          results = Path("artifacts/test-results/recording-${{ matrix.rid }}.trx")
+          namespace = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+          counters = ET.parse(results).find("t:ResultSummary/t:Counters", namespace)
+          if counters is None:
+              raise SystemExit("Recording test report has no result counters.")
+          total = int(counters.get("total", "0"))
+          passed = int(counters.get("passed", "0"))
+          if total == 0 or passed != total:
+              raise SystemExit(f"Recording tests must execute and all pass: {passed}/{total} passed.")
+          print(f"Verified {passed} executed, passing recording tests.")
       - name: Upload recording test results
         if: always() && matrix.run_tests
         uses: actions/upload-artifact@v4
