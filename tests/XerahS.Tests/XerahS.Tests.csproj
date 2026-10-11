@@ -117,6 +117,12 @@
     <Compile Include="..\..\src\platform\XerahS.Platform.Windows\ClipboardDibCodec.cs"
              Link="Platform\Windows\WindowsSources\ClipboardDibCodec.cs" />
     <Compile Remove="Platform\Windows\DxgiHdrToneMapperTests.cs" />
+    <Compile Remove="Platform\Windows\WindowsNativeRecordingOptionsTests.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Recording\Native\Audio\AudioMixer.cs" Link="Platform\Windows\WindowsSources\AudioMixer.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Recording\Native\RecordingClock.cs" Link="Platform\Windows\WindowsSources\RecordingClock.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Recording\Native\NativeRecordingOptions.cs" Link="Platform\Windows\WindowsSources\NativeRecordingOptions.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Recording\Native\Video\RecordingRegionLayout.cs" Link="Platform\Windows\WindowsSources\RecordingRegionLayout.cs" />
+    <Compile Include="..\..\src\platform\XerahS.Platform.Windows\Recording\WindowsNativeRecordingOptionsMapper.cs" Link="Platform\Windows\WindowsSources\WindowsNativeRecordingOptionsMapper.cs" />
   </ItemGroup>
 
   <ItemGroup>

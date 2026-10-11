@@ -131,6 +131,20 @@ namespace XerahS.Platform.Windows
                     XerahS.RegionCapture.ScreenRecording.ScreenRecorderService.EncoderFactory =
                         () => new Recording.MediaFoundationEncoder();
 
+                    // Preferred native path: GPU-resident capture/encode with WASAPI audio and native pause/resume.
+                    // The capture source + encoder pair above stays registered for builds older than 2004.
+                    if (Recording.WindowsNativeRecordingService.IsSupported)
+                    {
+                        PlatformServices.RecordingDevices = new Recording.WindowsRecordingDeviceService();
+                        XerahS.RegionCapture.ScreenRecording.ScreenRecorderService.NativeRecordingServiceFactory =
+                            () => new Recording.WindowsNativeRecordingService();
+                        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "INIT", "GPU native recorder (WindowsNativeRecordingService) registered");
+                    }
+                    else
+                    {
+                        XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "INIT", "GPU native recorder unavailable; using WGC capture source + Media Foundation encoder");
+                    }
+
                     XerahS.Common.TroubleshootingHelper.Log("ScreenRecorder", "INIT", "✓ Factories registered successfully");
                 }
                 else
