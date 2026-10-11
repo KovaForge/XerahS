@@ -10,6 +10,26 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.33.1
+
+### Features
+- **Windows recording (XIP0089)**: Record H.264/AAC through the native GPU pipeline, with system audio, microphone audio or both. Select audio devices and gains, record secondary displays and spanning regions, and choose direct window or popup-inclusive capture.
+- **Windows recording**: Pause and resume within one recording, exclude paused time from the media timeline, and move a paused region between displays while retaining its output size. Native settings expose hardware-encoder requirements, low latency and capture-border preferences.
+- **Recording verification**: Inspect existing recordings without loading application settings, or record and verify a workflow through the CLI. JSON reports check codecs, audio formats, stream durations and active recording time.
+
+### Fixes
+- **Recording reliability**: Complete workflows when a captured window closes or changes size, release failed native sessions before FFmpeg fallback, preserve existing output files, and handle repeated stop and concurrent abort safely. Runtime audio failure warns and continues video with silence.
+- **Windows audio fallback**: Map selected microphone endpoints to FFmpeg device names and mix both requested audio sources instead of dropping the microphone when system audio is enabled.
+- **Linux Wayland recording**: Record the selected desktop, window or region instead of a webcam, and pack raw I420 frames correctly for FFmpeg to avoid corrupted output.
+
+### Build
+- **Packaging and verification**: Preserve Linux executable permissions regardless of output path. Add Windows x64/ARM64 compilation and Windows/Linux recording regression checks, including rejection of empty test runs.
+
+### Known limitations
+- **Windows recording**: Live GPU, device-removal and 30-minute audible A/V acceptance checks remain outstanding. HDR, camera overlays and process-specific loopback are deferred. FFmpeg system-audio fallback still requires Stereo Mix; hardware-encoder requirements apply to the native backend.
+
+---
+
 ## v0.29.1
 
 ### Features
