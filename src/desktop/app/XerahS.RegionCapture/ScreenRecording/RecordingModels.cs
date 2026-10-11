@@ -118,6 +118,11 @@ public class ScreenRecordingSettings
     public WindowRecordingMode WindowRecordingMode { get; set; } = WindowRecordingMode.IncludePopups;
 
     /// <summary>
+    /// Native Windows recorder: fail (and fall back to FFmpeg) instead of using a software H.264 encoder.
+    /// </summary>
+    public bool RequireHardwareEncoder { get; set; } = false;
+
+    /// <summary>
     /// Force FFmpeg mode instead of native recording
     /// Trigger condition for Stage 4 FFmpeg fallback
     /// </summary>

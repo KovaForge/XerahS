@@ -175,4 +175,11 @@ public class WindowsNativeRecordingOptionsTests
         Assert.That(WindowsNativeRecordingService.MatchAudioDevice(devices, "Headset")?.Id, Is.EqualTo("{0.0.1.00000000}.{b}"));
         Assert.That(WindowsNativeRecordingService.MatchAudioDevice(devices, "Nothing like it"), Is.Null);
     }
+
+    [Test]
+    public void Service_ReportsNativePauseResume()
+    {
+        using var service = new WindowsNativeRecordingService();
+        Assert.That(service.GetCapabilities(new RecordingOptions()).PauseBehavior, Is.EqualTo(RecordingPauseBehavior.NativePauseResume));
+    }
 }

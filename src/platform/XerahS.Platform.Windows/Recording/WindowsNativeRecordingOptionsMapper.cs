@@ -120,8 +120,7 @@ internal static class WindowsNativeRecordingOptionsMapper
             CaptureSystemAudio = settings.CaptureSystemAudio,
             CaptureMicrophone = settings.CaptureMicrophone,
             MicrophoneDeviceId = microphoneId,
-            // Allow the Windows software encoder; it is logged when selected.
-            RequireHardwareEncoder = false
+            RequireHardwareEncoder = settings.RequireHardwareEncoder
         };
     }
 

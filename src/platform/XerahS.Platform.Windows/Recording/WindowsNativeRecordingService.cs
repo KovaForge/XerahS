@@ -38,10 +38,10 @@ namespace XerahS.Platform.Windows.Recording;
 /// GPU-resident native Windows recorder: Windows.Graphics.Capture frames stay on the GPU through cropping,
 /// multi-monitor stitching and BT.709 NV12 conversion, then go to the Media Foundation H.264 encoder through
 /// a DXGI device manager. System audio (WASAPI loopback) and microphone are mixed and encoded as AAC on the
-/// same QPC clock as the video.
+/// same QPC clock as the video. Supports true pause/resume without restarting the session.
 /// The engine is ported from ShareX.ScreenRecordingLib.
 /// </summary>
-public sealed class WindowsNativeRecordingService : IRecordingService
+public sealed class WindowsNativeRecordingService : IRecordingService, IPausableRecordingService
 {
     private const string LogCategory = "ScreenRecorder";
     private const string LogTag = "NATIVE_WIN";
@@ -87,7 +87,7 @@ public sealed class WindowsNativeRecordingService : IRecordingService
     public RecordingRuntimeCapabilities GetCapabilities(RecordingOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return RecordingRuntimeCapabilities.SegmentedRestart;
+        return new RecordingRuntimeCapabilities(RecordingPauseBehavior.NativePauseResume);
     }
 
     public async Task StartRecordingAsync(RecordingOptions options)
@@ -217,6 +217,32 @@ public sealed class WindowsNativeRecordingService : IRecordingService
                 SetStatus(RecordingStatus.Idle);
             }
         }
+    }
+
+    public Task PauseRecordingAsync()
+    {
+        lock (_lock)
+        {
+            if (_recorder == null || _status != RecordingStatus.Recording) return Task.CompletedTask;
+            _recorder.Pause();
+            SetStatus(RecordingStatus.Paused);
+        }
+
+        TroubleshootingHelper.Log(LogCategory, LogTag, "Paused");
+        return Task.CompletedTask;
+    }
+
+    public Task ResumeRecordingAsync()
+    {
+        lock (_lock)
+        {
+            if (_recorder == null || _status != RecordingStatus.Paused) return Task.CompletedTask;
+            _recorder.Resume();
+            SetStatus(RecordingStatus.Recording);
+        }
+
+        TroubleshootingHelper.Log(LogCategory, LogTag, "Resumed");
+        return Task.CompletedTask;
     }
 
     private void OnRecorderCompleted(Task<NativeRecordingResult> completion, object? state)
