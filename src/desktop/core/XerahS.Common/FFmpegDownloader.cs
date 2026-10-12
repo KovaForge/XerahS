@@ -25,6 +25,7 @@
 
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Text.Json;
 
 namespace XerahS.Common
@@ -54,8 +55,6 @@ namespace XerahS.Common
     {
         public const string DefaultOwner = "ShareX";
         public const string DefaultRepo = "FFmpeg";
-        private const string FFprobeFallbackOwner = "System233";
-        private const string FFprobeFallbackRepo = "ffmpeg-msvc-prebuilt";
 
         public static Task<FFmpegDownloadResult> DownloadLatestToToolsAsync(IProgress<double>? progress = null, CancellationToken cancellationToken = default)
         {
@@ -122,13 +121,27 @@ namespace XerahS.Common
                     return FFmpegDownloadResult.CreateFailure("FFmpeg download failed.");
                 }
 
+                string ffmpegBinary = OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";
+                string ffprobeBinary = OperatingSystem.IsWindows() ? "ffprobe.exe" : "ffprobe";
+                if (!ArchiveContains(downloadedArchive, ffmpegBinary) || !ArchiveContains(downloadedArchive, ffprobeBinary))
+                {
+                    return FFmpegDownloadResult.CreateFailure(
+                        $"The FFmpeg archive did not contain {ffmpegBinary} and {ffprobeBinary}.",
+                        downloadUrl);
+                }
+
                 ExtractFFmpegBinaries(downloadedArchive, destinationFolder);
 
-                string ffmpegPath = PathsManager.GetFFmpegPath();
+                if (!File.Exists(Path.Combine(destinationFolder, ffmpegBinary)) ||
+                    !File.Exists(Path.Combine(destinationFolder, ffprobeBinary)))
+                {
+                    return FFmpegDownloadResult.CreateFailure("FFmpeg was downloaded but could not be located.", downloadUrl);
+                }
 
+                string ffmpegPath = PathsManager.GetFFmpegPath();
                 if (string.IsNullOrWhiteSpace(ffmpegPath))
                 {
-                    return FFmpegDownloadResult.CreateFailure("FFmpeg was downloaded but could not be located.");
+                    ffmpegPath = Path.Combine(destinationFolder, ffmpegBinary);
                 }
 
                 return FFmpegDownloadResult.CreateSuccess(ffmpegPath);
@@ -350,106 +363,6 @@ namespace XerahS.Common
             }
         }
 
-        public static async Task<string?> DownloadFFprobeFallbackAsync(
-            string destinationFolder,
-            IProgress<double>? progress = null,
-            CancellationToken cancellationToken = default)
-        {
-            if (string.IsNullOrWhiteSpace(destinationFolder))
-            {
-                return null;
-            }
-
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return null;
-            }
-
-            string ffprobeBinary = OperatingSystem.IsWindows() ? "ffprobe.exe" : "ffprobe";
-            if (!OperatingSystem.IsWindows())
-            {
-                return null;
-            }
-
-            Directory.CreateDirectory(destinationFolder);
-
-            string? downloadedArchive = null;
-            FileDownloader? downloader = null;
-            Action? detachProgressHandlers = null;
-
-            try
-            {
-                string? downloadUrl = await GetFFprobeFallbackDownloadUrlAsync(cancellationToken);
-
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return null;
-                }
-
-                if (string.IsNullOrWhiteSpace(downloadUrl))
-                {
-                    return null;
-                }
-
-                downloadedArchive = Path.Combine(
-                    Path.GetTempPath(),
-                    Path.GetFileName(new Uri(downloadUrl).AbsolutePath));
-
-                downloader = new FileDownloader(downloadUrl, downloadedArchive);
-                detachProgressHandlers = AttachProgressHandlers(downloader, progress);
-                bool downloadSuccess = await downloader.StartDownload(cancellationToken);
-                progress?.Report(100);
-
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return null;
-                }
-
-                if (!downloadSuccess || !File.Exists(downloadedArchive))
-                {
-                    return null;
-                }
-
-                ExtractExecutables(downloadedArchive, destinationFolder, ffprobeBinary);
-
-                string extractedFFprobePath = Path.Combine(destinationFolder, ffprobeBinary);
-                return File.Exists(extractedFFprobePath) ? extractedFFprobePath : null;
-            }
-            catch (OperationCanceledException)
-            {
-                return null;
-            }
-            catch (Exception ex)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return null;
-                }
-                DebugHelper.WriteException(ex, "FFprobe fallback download failed.");
-                return null;
-            }
-            finally
-            {
-                detachProgressHandlers?.Invoke();
-
-                if (!string.IsNullOrWhiteSpace(downloadedArchive) && File.Exists(downloadedArchive))
-                {
-                    try
-                    {
-                        File.Delete(downloadedArchive);
-                    }
-                    catch
-                    {
-                    }
-                }
-
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    DebugHelper.WriteLine("FFprobe fallback download was canceled.");
-                }
-            }
-        }
-
         private static void ExtractFFmpegBinaries(string archivePath, string destinationFolder)
         {
             string ffmpegBinary = OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";
@@ -530,79 +443,18 @@ namespace XerahS.Common
             }
         }
 
-        private static Task<string?> GetFFprobeFallbackDownloadUrlAsync()
+        private static bool ArchiveContains(string archivePath, string fileName)
         {
-            return GetFFprobeFallbackDownloadUrlAsync(CancellationToken.None);
-        }
-
-        private static async Task<string?> GetFFprobeFallbackDownloadUrlAsync(CancellationToken cancellationToken)
-        {
-            string response = await WebHelpers.DownloadStringAsync(
-                $"https://api.github.com/repos/{FFprobeFallbackOwner}/{FFprobeFallbackRepo}/releases/latest",
-                cancellationToken);
-            if (string.IsNullOrWhiteSpace(response))
+            using ZipArchive archive = ZipFile.OpenRead(archivePath);
+            foreach (ZipArchiveEntry entry in archive.Entries)
             {
-                return null;
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            using JsonDocument document = JsonDocument.Parse(response);
-            if (!document.RootElement.TryGetProperty("assets", out JsonElement assetsElement))
-            {
-                return null;
-            }
-
-            string[] preferredSuffixes = GetFFprobeFallbackAssetSuffixes();
-
-            foreach (string suffix in preferredSuffixes)
-            {
-                foreach (JsonElement assetElement in assetsElement.EnumerateArray())
+                if (string.Equals(entry.Name, fileName, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!assetElement.TryGetProperty("name", out JsonElement nameElement) ||
-                        !assetElement.TryGetProperty("browser_download_url", out JsonElement urlElement))
-                    {
-                        continue;
-                    }
-
-                    string? assetName = nameElement.GetString();
-                    if (!string.IsNullOrWhiteSpace(assetName) &&
-                        assetName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return urlElement.GetString();
-                    }
+                    return true;
                 }
             }
 
-            return null;
-        }
-
-        private static string[] GetFFprobeFallbackAssetSuffixes()
-        {
-            return FFmpegUpdateChecker.ResolveArchitecture() switch
-            {
-                FFmpegArchitecture.winArm64 =>
-                [
-                    "-gpl-arm64-static.zip",
-                    "-lgpl-arm64-static.zip",
-                    "-gpl-arm64-shared.zip",
-                    "-lgpl-arm64-shared.zip"
-                ],
-                FFmpegArchitecture.win64 =>
-                [
-                    "-gpl-amd64-static.zip",
-                    "-lgpl-amd64-static.zip",
-                    "-gpl-amd64-shared.zip",
-                    "-lgpl-amd64-shared.zip"
-                ],
-                _ =>
-                [
-                    "-gpl-x86-static.zip",
-                    "-lgpl-x86-static.zip",
-                    "-gpl-x86-shared.zip",
-                    "-lgpl-x86-shared.zip"
-                ]
-            };
+            return false;
         }
     }
 }

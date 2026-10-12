@@ -1,7 +1,7 @@
 # FFmpeg release handover
 
 **Date:** 2026-09-30
-**Status:** Linux releases implemented (2026-09-30). Windows release process and ShareX unchanged.
+**Status:** Linux releases implemented (2026-09-30). Windows `v8.1.1` (2026-10-12) is latest and includes `ffprobe.exe`. `v8.1` is unchanged. ShareX still pins `v8.1`.
 **Audience:** Whoever next publishes ShareX FFmpeg builds, Windows or Linux.
 
 User-facing recording behaviour stays in [FFMPEG.md](FFMPEG.md). This note is the release contract: which GitHub repos produce the binaries, what XerahS actually downloads, how the Windows DPI manifest fits in, and how ShareX Authenticode-signs `ffmpeg.exe`.
@@ -20,7 +20,7 @@ Checked trees:
 
 | Repo | What it is | What it publishes today |
 |---|---|---|
-| [ShareX/FFmpeg](https://github.com/ShareX/FFmpeg) | Release bucket. Windows tags `v8.1`, `v8.0`, `v7.1`, … are uploaded by hand. `.github/workflows/linux-release.yml` publishes `v<version>-linux` (section 5). | `ffmpeg-8.1-win-x64.zip`, `ffmpeg-8.1-win-arm64.zip`. Each zip contains one file, `ffmpeg.exe`, at the archive root. |
+| [ShareX/FFmpeg](https://github.com/ShareX/FFmpeg) | Release bucket. `.github/workflows/windows-release.yml` publishes a new `v*` tag. `.github/workflows/linux-release.yml` publishes `v<version>-linux` (section 5). | Latest `v8.1.1`: `ffmpeg-8.1.1-win-x64.zip` and `ffmpeg-8.1.1-win-arm64.zip`. Each zip contains `ffmpeg.exe`, `ffprobe.exe`, and `LICENSE.txt` at the archive root. Immutable `v8.1` still contains only `ffmpeg.exe`. |
 | [ShareX/FFmpeg-Builds](https://github.com/ShareX/FFmpeg-Builds) | Fork of [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds). `master` is the Windows fork, frozen at 2024-06-25 with its workflow disabled. Branch `linux` is current upstream plus `sharex/` Linux packaging (section 5). | `ffmpeg-latest-win64.zip`, `ffmpeg-7.0-win64.zip`, and the `win32` pair. Last auto-build 2024-06-28. |
 
 XerahS Windows download points at the release bucket, not the build repo:
@@ -30,7 +30,7 @@ XerahS Windows download points at the release bucket, not the build repo:
         public const string DefaultRepo = "FFmpeg";
 ```
 
-`v8.1` `ffmpeg.exe` is a static GPL build. Its configure line includes `libx264`, `libx265`, `libvpx`, `libaom`, `libsvtav1`, `gdigrab`, `dshow`, and `ddagrab`. It does not include `ffprobe`. On Windows, XerahS extracts `ffmpeg.exe` and, when `ffprobe.exe` is missing, downloads a probe from `System233/ffmpeg-msvc-prebuilt`.
+`v8.1` `ffmpeg.exe` is a static GPL build and does not include `ffprobe`. From `v8.1.1`, the Windows zip is the same toolchain with `ffprobe.exe` beside it (`libx264`, `libx265`, `libsvtav1`, `gdigrab`, `dshow`, `ddagrab`; `libvpx` and `libaom` stay disabled on Windows). XerahS installs both executables from that release. It does not download a probe from anywhere else.
 
 ---
 
@@ -117,7 +117,7 @@ Linux has no PE manifest. The equivalent requirement is which devices are compil
 
 `DownloadLatestAsync` in `src/desktop/core/XerahS.Common/FFmpegDownloader.cs`:
 
-- **Windows and macOS** call `FFmpegUpdateChecker("ShareX", "FFmpeg")`, which reads `/releases/latest`, download the zip and extract `ffmpeg.exe` / `ffprobe.exe` (or `ffmpeg` / `ffprobe`). When `ffprobe.exe` is missing on Windows, `DownloadFFprobeFallbackAsync` fetches one from `System233/ffmpeg-msvc-prebuilt`.
+- **Windows and macOS** call `FFmpegUpdateChecker("ShareX", "FFmpeg")`, which reads `/releases/latest`, downloads the zip, and extracts `ffmpeg.exe` and `ffprobe.exe` (or `ffmpeg` and `ffprobe`). The install stops if either file is missing from the archive.
 - **Linux** calls `DownloadLinuxAsync`:
   1. Lists `repos/ShareX/FFmpeg/releases` and picks the newest published, non-prerelease release whose tag matches `v<major>.<minor>-linux[.<n>]` and that has `ffmpeg-<major>.<minor>-linux-x64.zip` (or `-linux-arm64.zip`), `SHA256SUMS` and `SHA256SUMS.sig` (`SelectLinuxRelease`).
   2. Downloads `SHA256SUMS` and `SHA256SUMS.sig` and checks the ECDSA P-256 signature against the key built into `FFmpegReleaseVerifier.TrustedKeys`.
@@ -303,9 +303,9 @@ Windows zip, before upload:
 
 - [ ] `ffmpeg.exe` contains `PerMonitorV2` (`Extract-manifest.bat`, or strings). The Downloads manifest was not reapplied.
 - [ ] `signtool verify /pa /v ffmpeg.exe` succeeds, timestamped.
-- [ ] `ffprobe.exe` is either absent (current contract) or signed in the same step.
+- [ ] Zip root holds `ffmpeg.exe`, `ffprobe.exe`, and `LICENSE.txt`. Do not add files to the immutable `v8.1` assets.
 - [ ] Asset name is `ffmpeg-<version>-win-x64.zip` or `ffmpeg-<version>-win-arm64.zip` on a `v*` tag of `ShareX/FFmpeg`.
-- [ ] Zip root is the exe, not a nested `bin/` directory.
+- [ ] Zip root is those files, not a nested `bin/` directory. The published ShareX/FFmpeg zips stay unsigned, the same as `v8.1`. ShareX signs its own copy when it packs an installer.
 
 Linux release (the workflow checks all of this):
 
