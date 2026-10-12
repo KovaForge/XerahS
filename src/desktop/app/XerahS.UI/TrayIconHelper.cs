@@ -154,8 +154,8 @@ public class TrayIconHelper : INotifyPropertyChanged
         {
             return _currentRecordingStatus switch
             {
-                RecordingStatus.Recording => $"{AppResources.AppName} - Recording (click tray to stop)",
-                RecordingStatus.Paused => $"{AppResources.AppName} - Paused (click tray to resume)",
+                RecordingStatus.Recording => $"{AppResources.AppName} - Recording (Enter or tray click to stop)",
+                RecordingStatus.Paused => $"{AppResources.AppName} - Paused (Enter to stop, tray click to resume)",
                 RecordingStatus.Initializing => $"{AppResources.AppName} - Starting recording...",
                 RecordingStatus.Finalizing => $"{AppResources.AppName} - Finalizing...",
                 _ => AppResources.AppName
@@ -712,7 +712,7 @@ public class TrayIconHelper : INotifyPropertyChanged
     public void OnTrayClick()
     {
         // When recording is active, tray click honours the tooltip promise:
-        // "Recording (click tray to stop)" / "Paused (click tray to resume)"
+        // "Recording (Enter or tray click to stop)" / "Paused (Enter to stop, tray click to resume)"
         if (_currentRecordingStatus == RecordingStatus.Recording)
         {
             DebugHelper.WriteLine("Tray click: Recording active, stopping recording");
