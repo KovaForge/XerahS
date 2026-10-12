@@ -56,6 +56,7 @@ public partial class App : Application
     private static readonly TimeSpan ClipboardViewerAutoOpenCooldown = TimeSpan.FromSeconds(2);
     private IWorkflowOrchestrator? _workflowOrchestrator;
     private ITrayIconController? _trayIconController;
+    private RecordingEnterStopHotkey? _recordingEnterStopHotkey;
     private string _baseTitle = AppResources.ProductNameWithVersion;
     private EventHandler? _clipboardChangedHandler;
     private DateTime _lastClipboardViewerAutoOpenUtc = DateTime.MinValue;
@@ -312,6 +313,7 @@ public partial class App : Application
             _trayIconController = new TrayIconController();
             _workflowOrchestrator.Start(desktop, _baseTitle);
             TrayIconHelper.Instance.Initialize(screenRecordingCoordinator);
+            _recordingEnterStopHotkey = new RecordingEnterStopHotkey(screenRecordingCoordinator, PlatformServices.Hotkey);
             _trayIconController.Initialize();
             InitializeClipboardMonitor(desktop.MainWindow);
             IdleMemoryTrimmer.Initialize(desktop, taskManager);
@@ -324,6 +326,8 @@ public partial class App : Application
                     _clipboardChangedHandler = null;
                 }
                 PlatformServices.ClipboardMonitor.Stop();
+                _recordingEnterStopHotkey?.Dispose();
+                _recordingEnterStopHotkey = null;
                 // OOBE/first-run planning:
                 // Keep `IsFirstTimeRun=true` during the first session so UI (e.g. migration buttons) can show,
                 // then persist it as completed when the app exits.
