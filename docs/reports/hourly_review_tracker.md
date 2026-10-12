@@ -8016,3 +8016,13 @@ M build/linux/aur/xerahs-git/PKGBUILD
 - Commit: none (empty-queue audit; SHA in Step 9 summary only)
 - Follow-up: next cron tick re-runs Step 5a against any new clawpatch ingest. Producer (xerahs-review) is up to date and recently_pivoted holds 48 entries. Preserved cross-tick stashes remain for human review per v1.1.35 pitfall. Host needs aspnet-runtime before testhost can run (sudo pacman -S aspnet-runtime); DOTNET_ROOT overlay does not satisfy testhost.
 - Skill: xerahs-bugfix/SKILL.md v1.1.36 (no patch this tick)
+
+### 2026-10-13 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: next_candidates is empty (0 -> 0); Step 5a categoriser found nothing to drain. Fork sync HEAD == declan/develop (01f059fb). upstream/develop (9712850d) already ancestor of HEAD. ShareX.ImageEditor clean (d7c027fa9 == origin/develop). recently_pivoted FIFO at 48 / 200.
+- Status: Pivot (no-op)
+- Build/test: n/a (no code change; testhost still blocked by missing Microsoft.AspNetCore.App 10.0 on host, see v1.1.36 pitfall; recovery requires `sudo pacman -S aspnet-runtime`)
+- Commit: none (drain only)
+- Follow-up: do not re-queue unless producer ingest adds new candidates. Preserved stashes (xerahs-bugfix-WIP-WaylandPortalHotkeyService + wip-preserved-20260922 ModalOpenService) remain for human review.
