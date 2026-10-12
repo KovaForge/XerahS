@@ -8,7 +8,7 @@ XerahS uses FFmpeg as a recording backend across all supported platforms. The ro
 
 ### Installation
 
-XerahS can download FFmpeg automatically from **Workflows > Edit workflow > Video Settings > FFmpeg Tools > Download FFmpeg...**. It fetches the latest build from the [ShareX/FFmpeg](https://github.com/ShareX/FFmpeg) GitHub release and extracts it to the app's `Tools` folder.
+XerahS can download FFmpeg automatically from **Workflows > Edit workflow > Video Settings > FFmpeg Tools > Download FFmpeg...**. It fetches the latest build from the [ShareX/FFmpeg](https://github.com/ShareX/FFmpeg) GitHub release and extracts `ffmpeg` and `ffprobe` to the app's `Tools` folder.
 
 To use your own binary, open **Workflows > Edit workflow > Video Settings > FFmpeg Tools > Configure FFmpeg...**, enable **Override FFmpeg executable path**, and choose the binary there.
 
