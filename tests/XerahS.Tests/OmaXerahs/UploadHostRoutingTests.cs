@@ -75,6 +75,22 @@ public class UploadHostRoutingTests
 
     // ---------- IsUsableImageInstance: image-only, available, non-Auto, provider present, valid settings ----------
 
+    [TestCase(".PNG", "capture.png", true)]
+    [TestCase(" png ", "capture.PNG", true)]
+    [TestCase("png", "capture.jpg", false)]
+    [TestCase("zip", "capture.png", false)]
+    [TestCase("ico", null, true)]
+    [TestCase("webp", null, true)]
+    [TestCase("", null, false)]
+    public void RoutesImages_RespectsConfiguredTypes(string extension, string? path, bool expected)
+    {
+        var scope = new FileTypeScope { FileExtensions = [extension] };
+        Assert.That(UploadHost.RoutesImages(scope, path), Is.EqualTo(expected));
+        Assert.That(UploadHost.RoutesImages(null, path), Is.False);
+        scope.AllFileTypes = true;
+        Assert.That(UploadHost.RoutesImages(scope, path), Is.True);
+    }
+
     [Test]
     public void IsUsable_AcceptsAnImageInstanceWithAValidProvider()
     {

@@ -84,6 +84,10 @@ public class TaskSettings
     [JsonIgnore]
     public bool AllowCrossCategoryFallback { get; set; } = true;
 
+    /// <summary>A single explicitly routed File destination allowed to receive this image.</summary>
+    [JsonIgnore]
+    public string? RoutedImageFileDestinationId { get; set; }
+
     public bool OverrideFTP = false;
     public int FTPIndex = 0;
 

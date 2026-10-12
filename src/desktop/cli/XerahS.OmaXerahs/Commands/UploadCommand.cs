@@ -40,7 +40,7 @@ internal static class UploadCommand
     internal static Func<TaskInfo, CancellationToken, Task> ProcessUploadAsync { get; set; } =
         static (taskInfo, cancellationToken) => new UploadJobProcessor().ProcessAsync(taskInfo, cancellationToken);
 
-    internal static Func<ImageDestinationInspection> InspectImage { get; set; } =
+    internal static Func<string, ImageDestinationInspection> InspectImage { get; set; } =
         UploadHost.InspectImageDestination;
 
     internal static Command Create()
@@ -131,7 +131,7 @@ internal static class UploadCommand
             return false;
         }
 
-        if (!FileHelpers.IsImageFile(resolved))
+        if (!FileHelpers.IsImageFile(resolved) && !string.Equals(Path.GetExtension(resolved), ".webp", StringComparison.OrdinalIgnoreCase))
         {
             errorCode = CliErrorCodes.UnsupportedType;
             errorMessage = "File is not a supported image type.";
@@ -153,7 +153,7 @@ internal static class UploadCommand
         try
         {
             await UploadHost.EnsureBootstrappedAsync();
-            var inspection = InspectImage();
+            var inspection = InspectImage(canonicalPath);
             if (!inspection.Ready || inspection.Instance == null)
             {
                 return JsonStdout.WriteFailureAndExit(
@@ -162,14 +162,7 @@ internal static class UploadCommand
             }
 
             var workflow = SettingsManager.GetFirstWorkflowOrDefault(WorkflowType.FileUpload);
-            var taskSettings = CloneTaskSettings(workflow.TaskSettings);
-            taskSettings.Job = WorkflowType.FileUpload;
-            taskSettings.AfterCaptureJob = AfterCaptureTasks.None;
-            taskSettings.AfterUploadJob = AfterUploadTasks.None;
-            taskSettings.DestinationInstanceId = null;
-            // Route like the XerahS app: Image destinations first, then File destinations.
-            taskSettings.AllowCrossCategoryFallback = true;
-            taskSettings.GeneralSettings.ShowToastNotificationAfterTaskCompleted = false;
+            var taskSettings = CreateUploadTaskSettings(workflow.TaskSettings, inspection.Instance);
 
             var taskInfo = new TaskInfo(taskSettings)
             {
@@ -261,6 +254,19 @@ internal static class UploadCommand
             ".ico" => "image/x-icon",
             _ => "application/octet-stream"
         };
+    }
+
+    internal static TaskSettings CreateUploadTaskSettings(TaskSettings source, UploaderInstance instance)
+    {
+        var settings = CloneTaskSettings(source);
+        settings.Job = WorkflowType.FileUpload;
+        settings.AfterCaptureJob = AfterCaptureTasks.None;
+        settings.AfterUploadJob = AfterUploadTasks.None;
+        settings.DestinationInstanceId = instance.InstanceId;
+        settings.AllowCrossCategoryFallback = false;
+        settings.RoutedImageFileDestinationId = instance.Category == UploaderCategory.File ? instance.InstanceId : null;
+        settings.GeneralSettings.ShowToastNotificationAfterTaskCompleted = false;
+        return settings;
     }
 
     private static TaskSettings CloneTaskSettings(TaskSettings source)

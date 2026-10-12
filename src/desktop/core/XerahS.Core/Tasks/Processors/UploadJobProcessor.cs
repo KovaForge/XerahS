@@ -175,7 +175,7 @@ namespace XerahS.Core.Tasks.Processors
 
             if (!string.IsNullOrEmpty(targetInstanceId))
             {
-                targetInstance = ResolveRequestedInstance(instanceManager, targetInstanceId, category, allowCrossCategoryFallback);
+                targetInstance = ResolveRequestedInstance(instanceManager, targetInstanceId, category, allowCrossCategoryFallback, info.TaskSettings.RoutedImageFileDestinationId, info.FileName);
             }
 
             // Check if Auto destination is selected
@@ -245,7 +245,9 @@ namespace XerahS.Core.Tasks.Processors
             InstanceManager instanceManager,
             string targetInstanceId,
             UploaderCategory category,
-            bool allowCrossCategoryFallback = true)
+            bool allowCrossCategoryFallback = true,
+            string? routedImageFileDestinationId = null,
+            string? fileName = null)
         {
             var targetInstance = instanceManager.GetInstance(targetInstanceId);
             if (targetInstance == null)
@@ -256,7 +258,12 @@ namespace XerahS.Core.Tasks.Processors
 
             if (!InstanceManager.IsAutoProvider(targetInstance.ProviderId) && targetInstance.Category != category)
             {
-                if (!allowCrossCategoryFallback)
+                bool explicitlyRoutedImage = category == UploaderCategory.Image && targetInstance.Category == UploaderCategory.File &&
+                    string.Equals(targetInstance.InstanceId, routedImageFileDestinationId, StringComparison.Ordinal) &&
+                    !string.IsNullOrWhiteSpace(fileName) && targetInstance.FileTypeRouting != null &&
+                    (targetInstance.FileTypeRouting.AllFileTypes || (targetInstance.FileTypeRouting.FileExtensions ?? []).Any(ext =>
+                        string.Equals(ext?.Trim().TrimStart('.'), Path.GetExtension(fileName).TrimStart('.'), StringComparison.OrdinalIgnoreCase)));
+                if (!allowCrossCategoryFallback && !explicitlyRoutedImage)
                 {
                     DebugHelper.WriteLine($"Configured destination category mismatch. Expected {category}, got {targetInstance.Category}. Rejecting instance.");
                     return null;

@@ -113,7 +113,7 @@ internal static class UploadHost
         }
     }
 
-    internal static ImageDestinationInspection InspectImageDestination()
+    internal static ImageDestinationInspection InspectImageDestination(string? imagePath = null)
     {
         EnsurePluginsLoaded();
 
@@ -128,10 +128,9 @@ internal static class UploadHost
 
         int pluginsLoaded = ProviderCatalog.GetAllPluginMetadata().Count;
 
-        // Same order as the XerahS app: an Image destination first, then a File destination,
-        // which the app falls back to for images (UploadJobProcessor cross-category fallback).
+        // Prefer Image destinations; a File destination must explicitly route the image type.
         var preferred = PreferDefault(GetUsableImageInstances(), UploaderCategory.Image)
-            ?? PreferDefault(GetUsableFileInstances(), UploaderCategory.File);
+            ?? PreferDefault(GetUsableFileInstances().Where(i => RoutesImages(i.FileTypeRouting, imagePath)).ToList(), UploaderCategory.File);
 
         return new ImageDestinationInspection
         {
@@ -158,6 +157,22 @@ internal static class UploadHost
         return InstanceManager.Instance.GetInstancesByCategory(category)
             .Where(instance => IsUsableInstance(instance, category))
             .ToList();
+    }
+
+    private static readonly string[] ImageExtensions = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "tif", "tiff", "ico"];
+
+    internal static bool RoutesImages(FileTypeScope? routing, string? imagePath = null)
+    {
+        if (routing == null) return false;
+        if (routing.AllFileTypes) return true;
+        var extensions = routing.FileExtensions ?? [];
+        if (imagePath != null)
+        {
+            string extension = Path.GetExtension(imagePath).TrimStart('.');
+            return ImageExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase) &&
+                extensions.Any(ext => string.Equals(ext?.Trim().TrimStart('.'), extension, StringComparison.OrdinalIgnoreCase));
+        }
+        return extensions.Any(ext => ImageExtensions.Contains(ext?.Trim().TrimStart('.'), StringComparer.OrdinalIgnoreCase));
     }
 
     internal static bool IsUsableImageInstance(UploaderInstance instance) => IsUsableInstance(instance, UploaderCategory.Image);
