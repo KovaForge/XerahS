@@ -101,6 +101,9 @@ public class TaskSettings
 
     public TaskSettingsImage ImageSettings = new TaskSettingsImage();
 
+    private TaskSettingsPrivacy _privacySettings = new();
+    public TaskSettingsPrivacy PrivacySettings { get => _privacySettings; set => _privacySettings = value ?? new(); }
+
     public TaskSettingsCapture CaptureSettings = new TaskSettingsCapture();
 
     public TaskSettingsUpload UploadSettings = new TaskSettingsUpload();

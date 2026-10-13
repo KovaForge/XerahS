@@ -201,15 +201,15 @@ internal static class UploadCommand
             }
 
             var instance = ResolveUploadedInstance(taskInfo, inspection.Instance);
-            var fileInfo = new FileInfo(canonicalPath);
+            var fileInfo = new FileInfo(taskInfo.FilePath);
             JsonStdout.Write(new UploadSuccessResponse
             {
                 SchemaVersion = 1,
                 Ok = true,
                 Url = url!,
-                Filename = Path.GetFileName(canonicalPath),
+                Filename = Path.GetFileName(taskInfo.FilePath),
                 Size = fileInfo.Length,
-                Type = GetContentType(canonicalPath),
+                Type = GetContentType(taskInfo.FilePath),
                 DataType = "image",
                 ProviderId = instance?.ProviderId,
                 InstanceId = instance?.InstanceId,

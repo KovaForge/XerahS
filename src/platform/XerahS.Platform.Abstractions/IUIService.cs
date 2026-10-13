@@ -77,6 +77,12 @@ namespace XerahS.Platform.Abstractions
             return new ImageEditorSessionResult(renderedImage, sourceImage, annotationSnapshot);
         }
 
+        Task<ImageEditorSessionResult?> ShowPrivacyEditorAsync(SKBitmap image) => Task.FromResult<ImageEditorSessionResult?>(null);
+
+        async Task<((AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel, AfterCaptureQuickAction QuickAction) Tasks, bool PrivacyEnabled)>
+            ShowAfterCaptureWindowWithPrivacyAsync(SKBitmap image, AfterCaptureTasks capture, AfterUploadTasks upload, bool privacyEnabled)
+            => (await ShowAfterCaptureWindowAsync(image, capture, upload), privacyEnabled);
+
         /// <summary>
         /// Shows the video editor for the given video file. Returns the exported output path
         /// if the user completed export, or null if cancelled.

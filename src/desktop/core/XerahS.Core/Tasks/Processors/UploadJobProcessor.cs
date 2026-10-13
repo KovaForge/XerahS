@@ -25,6 +25,7 @@
 using System.IO;
 using System.Text;
 using XerahS.Common;
+using XerahS.Core.Services.Privacy;
 using XerahS.Core;
 using XerahS.Core.Managers;
 using XerahS.History;
@@ -111,8 +112,11 @@ namespace XerahS.Core.Tasks.Processors
             return true;
         }
 
+        internal Task<UploadResult?> UploadCaptureImageAsync(TaskInfo info, CancellationToken token) => UploadAsync(info, token);
+
         private async Task<UploadResult?> UploadAsync(TaskInfo info, CancellationToken token)
         {
+            if (!await PrivacyUploadGuard.PrepareAsync(info, token).ConfigureAwait(false)) return info.Result;
             if ((info.DataType is EDataType.Image or EDataType.File) && !string.IsNullOrEmpty(info.FilePath))
             {
                 FileReadinessStatus readiness = await FileReadiness.WaitUntilReadyAsync(info.FilePath, cancellationToken: token).ConfigureAwait(false);
@@ -214,6 +218,8 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             var primaryResult = await TryUploadWithInstanceAsync(targetInstance, info, token).ConfigureAwait(false);
+
+            if (info.PrivacyReviewRequired) return primaryResult;
 
             if (IsSuccessfulUploadResult(primaryResult))
             {
@@ -353,6 +359,7 @@ namespace XerahS.Core.Tasks.Processors
         /// </summary>
         private static async Task<UploadResult?> TryUploadWithFallbackAsync(InstanceManager instanceManager, UploaderCategory category, TaskInfo info, string? excludeInstanceId, CancellationToken token, HashSet<string>? attemptedInstanceIds = null)
         {
+            if (info.PrivacyReviewRequired) return info.Result;
             attemptedInstanceIds ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             
             DebugHelper.WriteLine($"Auto destination selected; trying uploaders with fallback for category {category}.");
@@ -407,6 +414,7 @@ namespace XerahS.Core.Tasks.Processors
                     DebugHelper.WriteLine($"Trying uploader: {instance.DisplayName} ({instance.ProviderId})");
 
                     var result = await TryUploadWithInstanceAsync(instance, info, token).ConfigureAwait(false);
+                    if (info.PrivacyReviewRequired) return result;
 
                     if (result != null && !result.IsError && !string.IsNullOrEmpty(result.URL))
                     {
@@ -518,6 +526,12 @@ namespace XerahS.Core.Tasks.Processors
             TaskInfo info,
             CancellationToken token)
         {
+            // Freeze the reviewed destination settings before creating a plugin. A concurrent UI edit
+            // cannot redirect an approved image after the final guard check.
+            instance = new UploaderInstance { InstanceId = instance.InstanceId, ProviderId = instance.ProviderId,
+                Category = instance.Category, DisplayName = instance.DisplayName, SettingsJson = instance.SettingsJson,
+                IsAvailable = instance.IsAvailable };
+            if (!await PrivacyUploadGuard.ConfirmDestinationAsync(info, instance, token).ConfigureAwait(false)) return info.Result;
             var provider = ProviderCatalog.GetProvider(instance.ProviderId);
             if (provider == null)
             {
@@ -538,7 +552,7 @@ namespace XerahS.Core.Tasks.Processors
 
             try
             {
-                await using Stream? content = OpenUploadContent(info, out string fileName, out UploaderCategory category);
+                await using Stream? content = OpenUploadContent(info, instance, out string fileName, out UploaderCategory category);
                 if (content == null)
                 {
                     return new UploadResult { IsSuccess = false, Response = "No content to upload." };
@@ -590,8 +604,14 @@ namespace XerahS.Core.Tasks.Processors
             }
         }
 
-        private static Stream? OpenUploadContent(TaskInfo info, out string fileName, out UploaderCategory category)
+        private static Stream? OpenUploadContent(TaskInfo info, UploaderInstance instance, out string fileName, out UploaderCategory category)
         {
+            if (PrivacyUploadGuard.IsRequired(info))
+            {
+                fileName = Path.GetFileName(info.PrivacyApproval?.FilePath ?? throw new InvalidOperationException("Privacy review required."));
+                category = UploaderCategory.Image;
+                return PrivacyUploadGuard.OpenApprovedContent(info, instance);
+            }
             if (!string.IsNullOrEmpty(info.FilePath))
             {
                 fileName = string.IsNullOrWhiteSpace(info.FileName) ? Path.GetFileName(info.FilePath) : info.FileName;

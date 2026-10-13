@@ -59,6 +59,22 @@ public class LinuxOcrServiceTests
     }
 
     [Test]
+    public void ParseGeometryMapsScaledWordsToSourcePixels()
+    {
+        const string tsv = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n" +
+            "5\t1\t1\t1\t1\t1\t20\t40\t100\t30\t95.5\tsynthetic@example.test\n";
+        var result = LinuxOcrService.ParseGeometry(tsv, 200, 100, 400, 200, false);
+        Assert.That(result.GeometryComplete, Is.True);
+        Assert.That(result.Words[0].X, Is.EqualTo(10));
+        Assert.That(result.Words[0].Y, Is.EqualTo(20));
+        Assert.That(result.Words[0].Width, Is.EqualTo(50));
+        Assert.That(result.Words[0].Confidence, Is.EqualTo(.955).Within(.0001));
+        var findings = XerahS.Core.Services.Privacy.PrivacyScanService.DetectText(result, new());
+        Assert.That(findings.Single().X, Is.EqualTo(.05));
+        Assert.That(findings.Single().Category, Is.EqualTo(XerahS.Core.Services.Privacy.PrivacyCategory.Email));
+    }
+
+    [Test]
     public async Task RecognizeAsync_ReadsRenderedTextWithSystemTesseract()
     {
         var service = new LinuxOcrService();
@@ -74,12 +90,15 @@ public class LinuxOcrServiceTests
             canvas.DrawText("Hello XerahS 2026", 20, 80, SKTextAlign.Left, font, paint);
         }
 
-        OcrResult result = await service.RecognizeAsync(bitmap, new OcrOptions { Language = "en" });
+        OcrResult result = await service.RecognizeAsync(bitmap, new OcrOptions { Language = "en", IncludeGeometry = true });
 
         Assert.Multiple(() =>
         {
             Assert.That(result.Success, Is.True, result.ErrorMessage);
             Assert.That(result.Text, Does.Contain("Hello XerahS 2026"));
+            Assert.That(result.GeometryComplete, Is.True);
+            Assert.That(result.Words, Is.Not.Empty);
+            Assert.That(result.Words.All(word => word.X >= 0 && word.X + word.Width <= bitmap.Width), Is.True);
         });
     }
 }

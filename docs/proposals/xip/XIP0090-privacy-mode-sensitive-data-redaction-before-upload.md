@@ -1,6 +1,7 @@
 # XIP0090 Privacy Mode Sensitive Data Redaction Before Upload
 
-**Status**: Draft  
+**Status**: Implemented (version 1; capability limits below)
+
 **Created**: 2026-10-13  
 **Updated**: 2026-10-13  
 **Area**: Desktop | Core | AI Integration | Image Editor | Uploaders | Privacy  
@@ -10,11 +11,23 @@
 
 ---
 
+## Version 1 implementation
+
+The upload checkbox, active-provider vision requests, local OCR/QR evidence, automatic redaction, preview/editor review, flattened derivatives and guards for both capture and file uploads are implemented. See [Privacy mode usage](../../privacy-mode.md).
+
+The shared `RegionRedactionRenderer` lives in `XerahS.Core/Services/Privacy` and delegates blur to the existing ImageEditor `BlurImageEffect`. MCP region annotations reuse it. This keeps the service reusable without changing the ImageEditor submodule revision or adding a dependency from Core to the MCP executable.
+
+Version 1 uses the active Assistant API connection, with explicit per-scan consent. It does not add subscription OAuth or infer API access from a chat subscription. Linux Tesseract and unrotated Windows OCR expose optional word geometry; missing OCR geometry is shown as a limitation. Local encoded-data detection covers QR codes; other barcode formats depend on AI/manual review. Oversized, animated or multipage inputs are blocked. The automatic renderer validates normalized bounds in the original image; it does not silently downscale or claim precision from tiled transforms. Unknown/incomplete vision output requires manual review.
+
+Approval is transient and tied separately to final encoded bytes, decoded preview pixels, privacy policy, provider/model/endpoint/credentials and destination settings. Plugins consume a private read-only copy of approved bytes. Destination fallback prompts for fresh approval. Imported originals are preserved; capture source/sidecar retention is deliberately omitted in this version so uploading captures save only flattened derivatives. Headless jobs surface Review required and remain blocked rather than persisting approval.
+
+The sections below retain the broader design and acceptance goals for future extensions. Account-specific subscription integration, non-QR barcode geometry, transformed/tiled analysis and optional original retention need their own verified capabilities before activation.
+
 ## Overview
 
 Screenshots can expose personal details and credentials in documents, messages, browser tabs, account pages, terminals and application chrome. Add **Privacy mode — scan and blur sensitive data before upload** next to **Upload image to host** in workflow settings and the After Capture window. When both privacy mode and an actual image upload are active, pause sharing, analyze the final screenshot, prepare automatic redactions, and show a warning with a preview and an **Annotate / review** action before any destination receives the image.
 
-The active AI subscription means the user's AI connection selected in XerahS, using its supported authentication and model capabilities. Reuse that connection and its credential store; do not introduce a separate privacy-provider account. Current Assistant adapters use API keys and text requests, so working image analysis and any subscription-backed connection support are explicit implementation work, not capabilities implied by the checkbox.
+The active AI subscription means the user's AI connection selected in XerahS, using its supported authentication and model capabilities. Reuse that connection and its credential store; do not introduce a separate privacy-provider account. At draft time, Assistant adapters used API keys and text requests, so working image analysis and any subscription-backed connection support are explicit implementation work, not capabilities implied by the checkbox.
 
 Automatic region blur is feasible with the existing code. The missing pieces are a shared renderer API, sensitivity detection with trustworthy coordinates, a review UI, and a gate covering both capture uploads and existing-file uploads. Keep analysis, local bitmap modification and destination upload separate. Cloud analysis itself sends content to the selected AI provider and needs informed consent before that transmission; masking afterward cannot undo that disclosure. Detection and blur reduce exposure but cannot guarantee that every secret is found or that blurred content cannot be inferred.
 
@@ -75,7 +88,7 @@ Blur is the requested default effect. Also offer pixelation and opaque masking, 
 
 ## Existing infrastructure and feasibility findings
 
-Findings below are based on inspection of the current checkout, not a claim that privacy mode is implemented.
+Findings below preserve the pre-implementation feasibility review. See the version 1 implementation above for current behavior.
 
 | Existing component | What is reusable and what is missing |
 |---|---|

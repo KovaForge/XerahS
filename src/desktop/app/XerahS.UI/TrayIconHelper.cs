@@ -523,6 +523,11 @@ public class TrayIconHelper : INotifyPropertyChanged
 
         TrayMenu.Items.Add(new NativeMenuItem { Header = "Open Main Window", Command = OpenMainWindowCommand });
         TrayMenu.Items.Add(new NativeMenuItem { Header = "Settings", Command = OpenSettingsCommand });
+        TrayMenu.Items.Add(new NativeMenuItem { Header = "Review pending uploads", Command = new RelayCommand(() =>
+        {
+            OpenMainWindowCommand.Execute(null);
+            Core.Services.UploadQueueService.Instance.ResumePendingReviews();
+        }) });
         TrayMenu.Items.Add(new NativeMenuItemSeparator());
         TrayMenu.Items.Add(new NativeMenuItem { Header = "Exit", Command = ExitCommand });
 

@@ -72,6 +72,7 @@ public class ViewLocator : IDataTemplate
             [typeof(UpdateMessageBoxViewModel)] = static () => new UpdateMessageBox(),
             [typeof(AfterCaptureViewModel)] = static () => new AfterCaptureWindow(),
             [typeof(SendToPromptViewModel)] = static () => new SendToPromptWindow(),
+            [typeof(PrivacyReviewViewModel)] = static () => new PrivacyReviewView(),
             [typeof(SimplePromptViewModel)] = static () => new SimplePromptView(),
         };
 

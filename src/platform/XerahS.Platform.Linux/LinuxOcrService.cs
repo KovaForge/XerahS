@@ -103,13 +103,20 @@ public class LinuxOcrService : IOcrService
 
             byte[] png = await Task.Run(() => EncodeScaledPng(image, options.ScaleFactor)).ConfigureAwait(false);
 
+            var arguments = new List<string> { "stdin", "stdout", "-l", language };
+            if (options.IncludeGeometry) arguments.Add("tsv");
             (int exitCode, byte[] output, string error) = await RunTesseractAsync(
-                ["stdin", "stdout", "-l", language], png, TimeSpan.FromMinutes(2), CancellationToken.None).ConfigureAwait(false);
+                arguments, png, TimeSpan.FromMinutes(2), options.CancellationToken).ConfigureAwait(false);
             if (exitCode != 0)
             {
                 return Failed($"tesseract failed: {error.Trim()}");
             }
 
+            if (options.IncludeGeometry)
+            {
+                using var codec = SKCodec.Create(new SKMemoryStream(png));
+                return ParseGeometry(Encoding.UTF8.GetString(output), image.Width, image.Height, codec.Info.Width, codec.Info.Height, options.SingleLine);
+            }
             return new OcrResult
             {
                 Text = FormatText(Encoding.UTF8.GetString(output), options.SingleLine),
@@ -120,6 +127,35 @@ public class LinuxOcrService : IOcrService
         {
             return Failed(ex.Message);
         }
+    }
+
+    internal static OcrResult ParseGeometry(string tsv, int width, int height, int scaledWidth, int scaledHeight, bool singleLine)
+    {
+        var words = new List<OcrWordRegion>();
+        bool valid = tsv.StartsWith("level\tpage_num\t", StringComparison.Ordinal) && width > 0 && height > 0 && scaledWidth > 0 && scaledHeight > 0;
+        foreach (string line in tsv.Split('\n').Skip(1))
+        {
+            var cells = line.TrimEnd('\r').Split('\t');
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            if (cells.Length < 12) { valid = false; continue; }
+            if (cells[0] != "5" || string.IsNullOrWhiteSpace(cells[11])) continue;
+            if (!double.TryParse(cells[6], NumberStyles.Float, CultureInfo.InvariantCulture, out double x) ||
+                !double.TryParse(cells[7], NumberStyles.Float, CultureInfo.InvariantCulture, out double y) ||
+                !double.TryParse(cells[8], NumberStyles.Float, CultureInfo.InvariantCulture, out double w) ||
+                !double.TryParse(cells[9], NumberStyles.Float, CultureInfo.InvariantCulture, out double h) ||
+                !double.TryParse(cells[10], NumberStyles.Float, CultureInfo.InvariantCulture, out double confidence) ||
+                !double.IsFinite(x + y + w + h + confidence) || x < 0 || y < 0 || w <= 0 || h <= 0 ||
+                x + w > scaledWidth || y + h > scaledHeight || confidence < 0 || confidence > 100)
+            { valid = false; continue; }
+            words.Add(new(cells[11], string.Join("/", cells[1..5]), x * width / scaledWidth, y * height / scaledHeight,
+                w * width / scaledWidth, h * height / scaledHeight, confidence / 100));
+        }
+        return new OcrResult
+        {
+            Success = true, GeometryComplete = valid, SourceWidth = width, SourceHeight = height, Words = words,
+            Text = string.Join(singleLine ? " " : Environment.NewLine,
+                words.GroupBy(word => word.LineId).Select(group => string.Join(" ", group.Select(word => word.Text))))
+        };
     }
 
     private static OcrResult Failed(string message) => new()

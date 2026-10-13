@@ -120,12 +120,15 @@ namespace XerahS.UI.Services
             return result?.RenderedImage;
         }
 
-        public async Task<ImageEditorSessionResult?> ShowEditorSessionAsync(
-            SKBitmap image,
-            string? sourceFilePath = null,
-            bool taskMode = false,
-            IReadOnlyList<Annotation>? annotations = null,
-            bool restoredAnnotations = false)
+        public Task<ImageEditorSessionResult?> ShowEditorSessionAsync(SKBitmap image, string? sourceFilePath = null,
+            bool taskMode = false, IReadOnlyList<Annotation>? annotations = null, bool restoredAnnotations = false)
+            => ShowEditorSessionCoreAsync(image, sourceFilePath, taskMode, annotations, restoredAnnotations, false);
+
+        public Task<ImageEditorSessionResult?> ShowPrivacyEditorAsync(SKBitmap image)
+            => ShowEditorSessionCoreAsync(image, null, true, null, false, true);
+
+        private async Task<ImageEditorSessionResult?> ShowEditorSessionCoreAsync(SKBitmap image, string? sourceFilePath,
+            bool taskMode, IReadOnlyList<Annotation>? annotations, bool restoredAnnotations, bool privacyReview)
         {
             if (_taskManager == null)
             {
@@ -150,26 +153,30 @@ namespace XerahS.UI.Services
                 editorViewModel.ShowStartScreen = !taskMode;
                 editorViewModel.ApplicationName = AppResources.AppName;
 
-                // Wire up UploadRequested to trigger host app upload workflow
-                MainViewModelHelper.WireUploadRequested(editorViewModel, _taskManager, () =>
+                if (!privacyReview)
                 {
-                    var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
-                    return editorView?.GetSnapshot();
-                });
+                    // Wire up UploadRequested to trigger host app upload workflow
+                    MainViewModelHelper.WireUploadRequested(editorViewModel, _taskManager, () =>
+                    {
+                        var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
+                        return editorView?.GetSnapshot();
+                    });
 
-                // Wire up CopyRequested to copy edited image (with annotations) to clipboard
-                MainViewModelHelper.WireCopyRequested(editorViewModel, () =>
-                {
-                    var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
-                    return editorView?.GetSnapshot();
-                });
+                    // Wire up CopyRequested to copy edited image (with annotations) to clipboard
+                    MainViewModelHelper.WireCopyRequested(editorViewModel, () =>
+                    {
+                        var editorView = editorWindow.FindControl<EditorView>("EditorViewControl");
+                        return editorView?.GetSnapshot();
+                    });
 
-                // Wire up SaveRequested / SaveAsRequested for standalone editor window
-                Func<SkiaSharp.SKBitmap?> getSnapshot = () =>
-                    editorWindow.FindControl<EditorView>("EditorViewControl")?.GetSnapshot();
-                MainViewModelHelper.WireSaveRequested(editorViewModel, getSnapshot, () => editorWindow);
-                MainViewModelHelper.WireSaveAsRequested(editorViewModel, getSnapshot, () => editorWindow);
-                MainViewModelHelper.WirePinRequested(editorViewModel, getSnapshot);
+                    // Wire up SaveRequested / SaveAsRequested for standalone editor window
+                    Func<SkiaSharp.SKBitmap?> getSnapshot = () =>
+                        editorWindow.FindControl<EditorView>("EditorViewControl")?.GetSnapshot();
+                    MainViewModelHelper.WireSaveRequested(editorViewModel, getSnapshot, () => editorWindow);
+                    MainViewModelHelper.WireSaveAsRequested(editorViewModel, getSnapshot, () => editorWindow);
+                    MainViewModelHelper.WirePinRequested(editorViewModel, getSnapshot);
+
+                }
 
                 // Set DataContext BEFORE initializing preview so bindings update correctly
                 editorWindow.DataContext = editorViewModel;
@@ -419,13 +426,15 @@ namespace XerahS.UI.Services
             owner.ShowInTaskbar;
 
         public async Task<(AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel, AfterCaptureQuickAction QuickAction)> ShowAfterCaptureWindowAsync(
-            SKBitmap image,
-            AfterCaptureTasks afterCapture,
-            AfterUploadTasks afterUpload)
+            SKBitmap image, AfterCaptureTasks afterCapture, AfterUploadTasks afterUpload)
+            => (await ShowAfterCaptureWindowWithPrivacyAsync(image, afterCapture, afterUpload, false)).Tasks;
+
+        public async Task<((AfterCaptureTasks Capture, AfterUploadTasks Upload, bool Cancel, AfterCaptureQuickAction QuickAction) Tasks, bool PrivacyEnabled)>
+            ShowAfterCaptureWindowWithPrivacyAsync(SKBitmap image, AfterCaptureTasks afterCapture, AfterUploadTasks afterUpload, bool privacyEnabled)
         {
             return await Dispatcher.UIThread.InvokeAsync(async () =>
             {
-                var viewModel = new AfterCaptureViewModel(image, afterCapture, afterUpload);
+                var viewModel = new AfterCaptureViewModel(image, afterCapture, afterUpload) { PrivacyMode = privacyEnabled };
 
                 // Standalone, unowned window: hosting this in the main window's modal overlay
                 // (or giving it an owner) raised the XerahS main window after every capture.
@@ -456,7 +465,7 @@ namespace XerahS.UI.Services
                 DebugHelper.WriteLine($"[{nameof(AfterCaptureViewModel)}] Window opened");
                 await closedTcs.Task;
 
-                return (viewModel.AfterCaptureTasks, viewModel.AfterUploadTasks, viewModel.Cancelled, viewModel.QuickAction);
+                return ((viewModel.AfterCaptureTasks, viewModel.AfterUploadTasks, viewModel.Cancelled, viewModel.QuickAction), viewModel.PrivacyMode);
             });
         }
 
