@@ -864,11 +864,19 @@ namespace XerahS.Core.Tasks.Processors
         /// </summary>
         private static void PersistPrivacyModeSetting(string? workflowId, bool enabled)
         {
-            var workflow = !string.IsNullOrEmpty(workflowId) ? SettingsManager.GetWorkflowById(workflowId) : null;
-            var settings = workflow?.TaskSettings ?? SettingsManager.DefaultTaskSettings;
-            if (settings == null) return;
-            settings.PrivacySettings.Enabled = enabled;
-            SettingsManager.SaveWorkflowsConfig();
+            try
+            {
+                var workflow = !string.IsNullOrEmpty(workflowId) ? SettingsManager.GetWorkflowById(workflowId) : null;
+                var settings = workflow?.TaskSettings ?? SettingsManager.DefaultTaskSettings;
+                if (settings == null) return;
+                settings.PrivacySettings.Enabled = enabled;
+                SettingsManager.SaveWorkflowsConfig();
+                DebugHelper.WriteLine($"Persisted PrivacySettings.Enabled={enabled} to workflow '{workflowId}'");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "Failed to persist privacy mode setting");
+            }
         }
 
         private static void PersistShowAfterCaptureWindowSetting(string? workflowId, bool showWindow)

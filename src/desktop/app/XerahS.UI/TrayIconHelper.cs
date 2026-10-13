@@ -466,6 +466,14 @@ public class TrayIconHelper : INotifyPropertyChanged
 
     private void OnSettingsChanged(object? sender, EventArgs e)
     {
+        // Saves run on the capture worker. Touching the tray there clears the menu,
+        // then NativeMenuItem.Parent throws because the menu belongs to the UI thread.
+        if (!Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => OnSettingsChanged(sender, e));
+            return;
+        }
+
         // Update ShowTray when settings change
         ShowTray = SettingsManager.Settings.ShowTray;
         OnPropertyChanged(nameof(CurrentTrayIcon));
@@ -485,14 +493,22 @@ public class TrayIconHelper : INotifyPropertyChanged
 
     public void BuildTrayMenu()
     {
-        TrayMenu.Items.Clear();
+        if (!Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(BuildTrayMenu);
+            return;
+        }
+
+        // Swap in a finished menu. Clearing the live NativeMenu from a worker
+        // empties the exported DBus menu and then throws on the next Add.
+        var menu = new NativeMenu();
 
         // Add recording-specific menu items at the top when recording is active
         // This matches ShareX behavior where recording controls appear first
         if (IsRecordingActive)
         {
-            AddRecordingMenuItems();
-            TrayMenu.Items.Add(new NativeMenuItemSeparator());
+            AddRecordingMenuItems(menu);
+            menu.Items.Add(new NativeMenuItemSeparator());
         }
 
         var workflows = SettingsManager.WorkflowsConfig?.Hotkeys;
@@ -510,28 +526,30 @@ public class TrayIconHelper : INotifyPropertyChanged
                         Header = displayName,
                         Command = new RelayCommand(() => ExecuteWorkflow(workflow))
                     };
-                    TrayMenu.Items.Add(item);
+                    menu.Items.Add(item);
                 }
                 index++;
             }
         }
 
-        if (TrayMenu.Items.Count > 0)
+        if (menu.Items.Count > 0)
         {
-            TrayMenu.Items.Add(new NativeMenuItemSeparator());
+            menu.Items.Add(new NativeMenuItemSeparator());
         }
 
-        TrayMenu.Items.Add(new NativeMenuItem { Header = "Open Main Window", Command = OpenMainWindowCommand });
-        TrayMenu.Items.Add(new NativeMenuItem { Header = "Settings", Command = OpenSettingsCommand });
-        TrayMenu.Items.Add(new NativeMenuItem { Header = "Review pending uploads", Command = new RelayCommand(() =>
+        menu.Items.Add(new NativeMenuItem { Header = "Open Main Window", Command = OpenMainWindowCommand });
+        menu.Items.Add(new NativeMenuItem { Header = "Settings", Command = OpenSettingsCommand });
+        menu.Items.Add(new NativeMenuItem { Header = "Review pending uploads", Command = new RelayCommand(() =>
         {
             OpenMainWindowCommand.Execute(null);
             Core.Services.UploadQueueService.Instance.ResumePendingReviews();
         }) });
-        TrayMenu.Items.Add(new NativeMenuItemSeparator());
-        TrayMenu.Items.Add(new NativeMenuItem { Header = "Exit", Command = ExitCommand });
+        menu.Items.Add(new NativeMenuItemSeparator());
+        menu.Items.Add(new NativeMenuItem { Header = "Exit", Command = ExitCommand });
 
+        TrayMenu = menu;
         OnPropertyChanged(nameof(TrayMenu));
+        DebugHelper.WriteLine($"Tray menu rebuilt with {menu.Items.Count} items.");
     }
 
     /// <summary>
@@ -541,7 +559,7 @@ public class TrayIconHelper : INotifyPropertyChanged
     /// - Paused: Shows "Resume Recording", "Stop Recording", "Abort Recording"
     /// - Initializing/Finalizing: Shows only "Abort Recording"
     /// </summary>
-    private void AddRecordingMenuItems()
+    private void AddRecordingMenuItems(NativeMenu menu)
     {
         bool canPauseResume = _screenRecordingCoordinator?.CurrentCapabilities.SupportsPauseResume == true &&
             (_currentRecordingStatus is RecordingStatus.Recording or RecordingStatus.Paused);
@@ -557,7 +575,7 @@ public class TrayIconHelper : INotifyPropertyChanged
                 ? "Resume Recording"
                 : "Pause Recording";
 
-            TrayMenu.Items.Add(new NativeMenuItem
+            menu.Items.Add(new NativeMenuItem
             {
                 Header = pauseResumeText,
                 Command = PauseResumeRecordingCommand
@@ -566,12 +584,12 @@ public class TrayIconHelper : INotifyPropertyChanged
 
         if (canStop)
         {
-            TrayMenu.Items.Add(new NativeMenuItem
+            menu.Items.Add(new NativeMenuItem
             {
                 Header = "Stop Recording",
                 Command = StopRecordingCommand
             });
-            TrayMenu.Items.Add(new NativeMenuItem
+            menu.Items.Add(new NativeMenuItem
             {
                 Header = "Restart Recording",
                 Command = RestartRecordingCommand
@@ -580,7 +598,7 @@ public class TrayIconHelper : INotifyPropertyChanged
 
         if (canAbort)
         {
-            TrayMenu.Items.Add(new NativeMenuItem
+            menu.Items.Add(new NativeMenuItem
             {
                 Header = "Abort Recording",
                 Command = AbortRecordingCommand
