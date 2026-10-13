@@ -122,13 +122,90 @@ namespace XerahS.Core.Tasks.Processors
                 FileReadinessStatus readiness = await FileReadiness.WaitUntilReadyAsync(info.FilePath, cancellationToken: token).ConfigureAwait(false);
                 if (readiness != FileReadinessStatus.Ready)
                 {
-                    string message = FileReadiness.Describe(readiness, info.FilePath);
-                    DebugHelper.WriteLine($"[UploadTrace {info.CorrelationId}] Upload skipped: {message}");
-                    return new UploadResult { IsSuccess = false, Response = message };
+                    if (readiness == FileReadinessStatus.Missing)
+                    {
+                        string sourcePath = info.FilePath;
+                        UploadResult? recorded = AdoptRecordedUpload(
+                            info,
+                            WatchedFileUploadRecovery.FindRecordedUpload(sourcePath, DateTime.Now - WatchedFileUploadRecovery.RecentWindow));
+                        if (recorded != null)
+                        {
+                            return recorded;
+                        }
+
+                        string? movedPath = WatchedFileUploadRecovery.FindMovedPath(sourcePath);
+                        if (movedPath != null)
+                        {
+                            recorded = AdoptRecordedUpload(info, WatchedFileUploadRecovery.FindRecordedUpload(sourcePath));
+                            if (recorded != null)
+                            {
+                                return recorded;
+                            }
+
+                            DebugHelper.WriteLine($"[UploadTrace {info.CorrelationId}] Source was moved to {movedPath}. Waiting for the watch-folder upload.");
+                            recorded = await WaitForRecordedUploadAsync(info, sourcePath, token).ConfigureAwait(false);
+                            if (recorded != null)
+                            {
+                                return recorded;
+                            }
+
+                            info.FilePath = movedPath;
+                            readiness = await FileReadiness.WaitUntilReadyAsync(movedPath, TimeSpan.FromSeconds(3), token).ConfigureAwait(false);
+                            if (readiness == FileReadinessStatus.Ready)
+                            {
+                                DebugHelper.WriteLine($"[UploadTrace {info.CorrelationId}] Watch-folder upload was not recorded. Uploading {movedPath}.");
+                            }
+                        }
+                    }
+
+                    if (readiness != FileReadinessStatus.Ready)
+                    {
+                        string message = FileReadiness.Describe(readiness, info.FilePath);
+                        DebugHelper.WriteLine($"[UploadTrace {info.CorrelationId}] Upload skipped: {message}");
+                        return new UploadResult { IsSuccess = false, Response = message };
+                    }
                 }
             }
 
             return await StartUploadAsync(info, token).ConfigureAwait(false);
+        }
+
+        private static UploadResult? AdoptRecordedUpload(TaskInfo info, HistoryItem? recorded)
+        {
+            UploadResult? result = WatchedFileUploadRecovery.ToAdoptedResult(recorded);
+            if (result == null || recorded == null)
+            {
+                return null;
+            }
+
+            if (!string.IsNullOrEmpty(recorded.FilePath))
+            {
+                info.FilePath = recorded.FilePath;
+            }
+
+            DebugHelper.WriteLine($"[UploadTrace {info.CorrelationId}] Upload already recorded for {Path.GetFileName(recorded.FilePath)}: {result.URL}");
+            return result;
+        }
+
+        private static async Task<UploadResult?> WaitForRecordedUploadAsync(TaskInfo info, string sourcePath, CancellationToken token)
+        {
+            DateTime deadline = DateTime.UtcNow + WatchedFileUploadRecovery.InFlightGrace;
+            DateTime notBefore = DateTime.Now - WatchedFileUploadRecovery.RecentWindow;
+            while (true)
+            {
+                UploadResult? recorded = AdoptRecordedUpload(info, WatchedFileUploadRecovery.FindRecordedUpload(sourcePath, notBefore));
+                if (recorded != null)
+                {
+                    return recorded;
+                }
+
+                if (DateTime.UtcNow >= deadline)
+                {
+                    return null;
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(250), token).ConfigureAwait(false);
+            }
         }
 
         private Task<UploadResult?> StartUploadAsync(TaskInfo info, CancellationToken token)
@@ -711,6 +788,14 @@ namespace XerahS.Core.Tasks.Processors
             {
                 var historyPath = SettingsManager.GetHistoryFilePath();
                 using var historyManager = new HistoryManagerSQLite(historyPath);
+
+                string sourceName = Path.GetFileName(info.FilePath ?? string.Empty);
+                HistoryItem? alreadyRecorded = historyManager.FindBySourceFileName(sourceName);
+                if (alreadyRecorded != null && string.Equals(alreadyRecorded.URL, url, StringComparison.Ordinal))
+                {
+                    DebugHelper.WriteLine($"History already records {url} for {sourceName}");
+                    return;
+                }
 
                 var historyItem = CreateHistoryItem(info, url);
 

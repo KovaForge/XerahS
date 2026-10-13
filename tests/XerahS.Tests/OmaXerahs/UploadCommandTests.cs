@@ -80,9 +80,21 @@ public class UploadCommandTests
     }
 
     [Test]
-    public void TryValidateImagePath_RejectsMissingFileAsInvalidPath()
+    public void TryValidateImagePath_DefersAMissingImageSoAWatchFolderMoveCanBeFollowed()
     {
-        string missing = Path.Combine(Path.GetTempPath(), "omaxerahs-missing-" + Guid.NewGuid().ToString("N") + ".png");
+        string missing = Path.Combine(Path.GetTempPath(), "screenshot-missing-" + Guid.NewGuid().ToString("N") + ".png");
+
+        bool ok = UploadCommand.TryValidateImagePath(missing, out string canonical, out string errorCode, out string errorMessage);
+
+        Assert.That(ok, Is.True, errorMessage);
+        Assert.That(errorCode, Is.Empty);
+        Assert.That(canonical, Is.EqualTo(Path.GetFullPath(missing)));
+    }
+
+    [Test]
+    public void TryValidateImagePath_RejectsMissingNonImageAsInvalidPath()
+    {
+        string missing = Path.Combine(Path.GetTempPath(), "omaxerahs-missing-" + Guid.NewGuid().ToString("N") + ".txt");
 
         bool ok = UploadCommand.TryValidateImagePath(missing, out _, out string errorCode, out _);
 

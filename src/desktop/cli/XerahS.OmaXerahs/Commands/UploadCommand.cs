@@ -101,6 +101,11 @@ internal static class UploadCommand
                 resolved = linkTarget.FullName;
             }
         }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            // The watch folder may already have moved this screenshot. Existence is resolved
+            // again after startup, when history and the screenshots folder can be checked.
+        }
         catch (Exception ex)
         {
             errorMessage = $"Unable to resolve path: {ex.Message}";
@@ -109,8 +114,16 @@ internal static class UploadCommand
 
         if (!File.Exists(resolved))
         {
-            errorMessage = $"File not found: {resolved}";
-            return false;
+            if (!FileHelpers.IsImageFile(resolved) &&
+                !string.Equals(Path.GetExtension(resolved), ".webp", StringComparison.OrdinalIgnoreCase))
+            {
+                errorMessage = $"File not found: {resolved}";
+                return false;
+            }
+
+            canonicalPath = resolved;
+            errorCode = string.Empty;
+            return true;
         }
 
         FileAttributes attributes;
