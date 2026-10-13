@@ -8044,3 +8044,12 @@ M build/linux/aur/xerahs-git/PKGBUILD
 - Build/test: n/a
 - Commit: PENDING (set after push)
 - Follow-up: do not re-queue unless producer ingest adds new candidates; xerahs-review (producer) has not published new items this tick
+### 2026-10-14 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json
+- Findings: next_candidates is empty (0 -> 0); Step 5a categoriser found nothing to drain. Worktree HEAD was detached at a1453779 (same commit as declan/develop) on cron start; reattached to refs/heads/develop. Fork sync HEAD == declan/develop == origin/develop (a1453779). upstream/develop (9712850d) is ancestor of HEAD, no merge required. ShareX.ImageEditor submodule clean (d7c027fa == origin/develop). No deferred-last-runs files to clean. recently_pivoted FIFO at 48 / 200. last_runs 139 -> 140 (+1 audit row).
+- Status: No-op
+- Build/test: n/a (no code change)
+- Commit: see Step 7b tracker commit
+- Follow-up: do not re-queue unless producer ingest adds new candidates; xerahs-review (producer) has not published new items this tick
