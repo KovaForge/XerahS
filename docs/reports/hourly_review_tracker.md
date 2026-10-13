@@ -8026,3 +8026,11 @@ M build/linux/aur/xerahs-git/PKGBUILD
 - Build/test: n/a (no code change; testhost still blocked by missing Microsoft.AspNetCore.App 10.0 on host, see v1.1.36 pitfall; recovery requires `sudo pacman -S aspnet-runtime`)
 - Commit: none (drain only)
 - Follow-up: do not re-queue unless producer ingest adds new candidates. Preserved stashes (xerahs-bugfix-WIP-WaylandPortalHotkeyService + wip-preserved-20260922 ModalOpenService) remain for human review.
+### 2026-10-13 08:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: next_candidates is empty (0 -> 0); Step 5a categoriser found nothing to drain. Worktree was on stale detached HEAD (cf077379); reset to declan/develop (67dea62b). Fork sync HEAD == declan/develop (67dea62b). upstream/develop (9712850d) already ancestor of HEAD. ShareX.ImageEditor clean (d7c027fa9 == origin/develop). recently_pivoted FIFO at 48 / 200. last_runs 137 -> 138 (+1 audit row).
+- Status: Pivot (no-op)
+- Build/test: n/a (no code change; testhost still blocked by missing Microsoft.AspNetCore.App 10.0 on host, see v1.1.36 pitfall; recovery requires `sudo pacman -S aspnet-runtime`)
+- Commit: see Step 7b tracker commit
