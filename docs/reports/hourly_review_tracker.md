@@ -8034,3 +8034,13 @@ M build/linux/aur/xerahs-git/PKGBUILD
 - Status: Pivot (no-op)
 - Build/test: n/a (no code change; testhost still blocked by missing Microsoft.AspNetCore.App 10.0 on host, see v1.1.36 pitfall; recovery requires `sudo pacman -S aspnet-runtime`)
 - Commit: see Step 7b tracker commit
+
+### 2026-10-13 16:07 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: (none — no code change)
+- Findings: Step 5a categoriser found zero candidates in next_candidates; queue 0 -> 0. Empty-queue audit tick.
+- Status: No-op
+- Build/test: n/a
+- Commit: PENDING (set after push)
+- Follow-up: do not re-queue unless producer ingest adds new candidates; xerahs-review (producer) has not published new items this tick
