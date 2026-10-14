@@ -8074,3 +8074,14 @@ M build/linux/aur/xerahs-git/PKGBUILD
 - Commit: none (empty-queue audit; SHA in Step 9 summary only)
 - Follow-up: next cron tick re-runs Step 5a against any new clawpatch ingest. Do not pop preserved WIP stashes from unattended ticks. Producer (xerahs-review) has not published new items this tick.
 - Skill: xerahs-bugfix/SKILL.md v1.1.36 (no patch this tick)
+
+### 2026-10-15 00:06 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: next_candidates is empty (0 -> 0); Step 5a categoriser found nothing to drain. Fork sync HEAD == declan/develop (75787cc1). origin/develop (ba367240) is 1 behind (prior empty-queue audit). upstream/develop already ancestor of HEAD (115 local commits ahead, 0 incoming). ShareX.ImageEditor clean (d7c027fa == origin/develop; no upstream remote on submodule). recently_pivoted FIFO at 48 / 200. last_runs 142 -> 143 (+1 audit row). Preserved stashes left untouched (wip-preserved-20261014-080611, wip-preserved-20260922 ModalOpenService, xerahs-bugfix-WIP-WaylandPortalHotkeyService). No deferred-last-runs files.
+- Status: No-op (empty-queue audit, v1.1.9 contract)
+- Build/test: n/a (no code change this tick; testhost still blocked by missing Microsoft.AspNetCore.App 10.0 on host, see v1.1.36 pitfall; recovery requires sudo pacman -S aspnet-runtime)
+- Commit: none (empty-queue audit; SHA in Step 9 summary only)
+- Follow-up: next cron tick re-runs Step 5a against any new clawpatch ingest. Do not pop preserved WIP stashes from unattended ticks. Producer (xerahs-review) has not published new items this tick.
+- Skill: xerahs-bugfix/SKILL.md v1.1.36 (no patch this tick)
