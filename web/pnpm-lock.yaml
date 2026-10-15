@@ -29,6 +29,9 @@ importers:
       '@neon/functions':
         specifier: 0.11.0
         version: 0.11.0(hono@4.13.11)
+      bcryptjs:
+        specifier: 3.0.3
+        version: 3.0.3
       better-auth:
         specifier: 1.7.6
         version: 1.7.6(next@16.3.7(@types/node@24.10.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.11(@types/node@24.10.1)(jsdom@27.4.0(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0)))
@@ -1959,6 +1962,10 @@ packages:
   baseline-browser-mapping@2.11.17:
     resolution: {integrity: sha512-KAUDn1OSS0fmPlGO+NOUMRcOQ/b/shUBH3OgkG73mPgdf+JD/BQ6fHboGxNOxnUmlwcq+lLq3dTkayRPuSfXwg==}
     engines: {node: '>=6.0.0'}
+    hasBin: true
+
+  bcryptjs@3.0.3:
+    resolution: {integrity: sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==}
     hasBin: true
 
   better-auth@1.7.6:
@@ -5457,6 +5464,8 @@ snapshots:
   balanced-match@4.0.4: {}
 
   baseline-browser-mapping@2.11.17: {}
+
+  bcryptjs@3.0.3: {}
 
   better-auth@1.7.6(next@16.3.7(@types/node@24.10.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.11(@types/node@24.10.1)(jsdom@27.4.0(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@24.10.1)(esbuild@0.28.1)(jiti@2.7.0))):
     dependencies:

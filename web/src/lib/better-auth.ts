@@ -22,6 +22,7 @@ import { PostgresDialect } from "kysely";
 import pg from "pg";
 
 import { sendEmail } from "./email";
+import { verifyPasswordWithLegacy } from "./legacy-password";
 
 const appOrigin = (process.env.APP_ORIGIN ?? "http://localhost:3000").replace(
   /\/$/,
@@ -146,6 +147,8 @@ export const auth = betterAuth({
     maxPasswordLength: 256,
     requireEmailVerification: true,
     revokeSessionsOnPasswordReset: true,
+    // Accounts imported from Supabase still have bcrypt hashes; new hashes stay scrypt.
+    password: { verify: verifyPasswordWithLegacy },
     sendResetPassword: async ({ user, url }) => {
       await sendEmail({
         to: user.email,
