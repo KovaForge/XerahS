@@ -79,9 +79,18 @@ final class AppState: ObservableObject {
             return
         }
 
+        consumePendingShareItems()
+    }
+
+    /// Picks up imports and failed uploads queued by the Share Extension. Share extensions cannot
+    /// open the app themselves, so this also runs whenever the app becomes active.
+    func consumePendingShareItems() {
         importPendingSxcuFiles()
         importPendingXsdcFiles()
-        pendingSharedPaths = ShareGroup.consumePendingPaths()
+        let paths = ShareGroup.consumePendingPaths()
+        if !paths.isEmpty {
+            pendingSharedPaths += paths
+        }
     }
 
     private func importPendingSxcuFiles() {

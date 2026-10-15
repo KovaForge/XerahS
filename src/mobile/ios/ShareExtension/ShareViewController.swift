@@ -281,8 +281,12 @@ final class ShareViewController: UIViewController {
         }
 
         if uploadPaths.isEmpty {
+            // Share extensions usually cannot open their app, so say where the import continues.
+            updateStatus("Open XerahS to finish importing.")
             openContainingApp()
-            extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+            }
             return
         }
 
