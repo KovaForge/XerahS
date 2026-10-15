@@ -263,8 +263,8 @@ final class ShareViewController: UIViewController {
             return
         }
 
-        updateStatus("Uploading...")
-
+        // Apps often share a .sxcu as generic JSON/text/data without its name, so recognise it by content.
+        let savedPaths = savedPaths.map(Self.renamingSxcuByContent)
         let sxcuPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() == "sxcu" }
         let xsdcPaths = savedPaths.filter { ($0 as NSString).pathExtension.lowercased() == "xsdc" }
         let uploadPaths = savedPaths.filter {
@@ -282,7 +282,10 @@ final class ShareViewController: UIViewController {
 
         if uploadPaths.isEmpty {
             // Share extensions usually cannot open their app, so say where the import continues.
-            updateStatus("Open XerahS to finish importing.")
+            let names = sxcuPaths.compactMap(Self.sxcuUploaderName)
+            updateStatus(names.isEmpty
+                ? "Open XerahS to finish importing."
+                : "Open XerahS to add the \(names.joined(separator: ", ")) uploader.")
             openContainingApp()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                 self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
@@ -290,6 +293,7 @@ final class ShareViewController: UIViewController {
             return
         }
 
+        updateStatus("Uploading...")
         Task { [weak self] in
             guard let self else { return }
             let results = await self.uploadService.uploadFiles(uploadPaths)
@@ -332,6 +336,29 @@ final class ShareViewController: UIViewController {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
             self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
         }
+    }
+
+    /// A small JSON object with a RequestURL is a ShareX custom uploader whatever it was shared as;
+    /// give it the .sxcu extension so it is imported instead of uploaded.
+    private static func renamingSxcuByContent(_ path: String) -> String {
+        let ext = (path as NSString).pathExtension.lowercased()
+        guard !["sxcu", "xsdc"].contains(ext), ["", "json", "txt", "text", "bin", "data"].contains(ext),
+              let size = (try? FileManager.default.attributesOfItem(atPath: path)[.size]) as? Int,
+              size <= 64 * 1024, sxcuDefinition(atPath: path) != nil else { return path }
+        let base = ext.isEmpty ? path : (path as NSString).deletingPathExtension
+        let renamed = base + ".sxcu"
+        return (try? FileManager.default.moveItem(atPath: path, toPath: renamed)) != nil ? renamed : path
+    }
+
+    private static func sxcuDefinition(atPath path: String) -> SxcuDefinition? {
+        guard let data = FileManager.default.contents(atPath: path),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let requestURL = object["RequestURL"] as? String, !requestURL.isEmpty else { return nil }
+        return try? JSONDecoder().decode(SxcuDefinition.self, from: data)
+    }
+
+    private static func sxcuUploaderName(_ path: String) -> String? {
+        sxcuDefinition(atPath: path).map { CustomUploaderEntry.from(sxcu: $0).displayName }
     }
 
     private func enqueueForMainApp(paths: [String], key: String) {

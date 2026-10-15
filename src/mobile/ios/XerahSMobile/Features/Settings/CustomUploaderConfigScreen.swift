@@ -24,9 +24,11 @@
 
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct CustomUploaderConfigScreen: View {
     @ObservedObject var viewModel: CustomUploaderConfigViewModel
+    @State private var isImportingFile = false
 
     var body: some View {
         List {
@@ -54,11 +56,30 @@ struct CustomUploaderConfigScreen: View {
             }
 
             Section {
+                // PasteButton reads the clipboard without the iOS paste-permission prompt.
+                PasteButton(payloadType: String.self) { strings in
+                    guard let text = strings.first else { return }
+                    Task { @MainActor in viewModel.importSxcu(text: text, source: "clipboard") }
+                }
+                .buttonBorderShape(.capsule)
+
+                Button {
+                    isImportingFile = true
+                } label: {
+                    Label("Choose .sxcu File", systemImage: "folder")
+                }
+            } header: {
+                Text("Import")
+            } footer: {
+                Text("Paste the contents of a ShareX `.sxcu` file, or pick one from Files.")
+            }
+
+            Section {
                 if viewModel.uploaders.isEmpty {
                     ContentUnavailableView(
                         "No Custom Uploaders",
                         systemImage: "curlybraces",
-                        description: Text("Import a `.sxcu` from the clipboard or create one manually.")
+                        description: Text("Import a `.sxcu` above or create one manually with +.")
                     )
                 } else {
                     ForEach(viewModel.uploaders) { entry in
@@ -78,12 +99,6 @@ struct CustomUploaderConfigScreen: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
-                    viewModel.importFromClipboard()
-                } label: {
-                    Label("Import Clipboard", systemImage: "doc.on.clipboard")
-                }
-
-                Button {
                     viewModel.addNew()
                 } label: {
                     Label("New Custom Uploader", systemImage: "plus")
@@ -91,6 +106,17 @@ struct CustomUploaderConfigScreen: View {
             }
         }
         .onAppear { viewModel.refresh() }
+        .fileImporter(
+            isPresented: $isImportingFile,
+            allowedContentTypes: CustomUploaderConfigViewModel.importableTypes
+        ) { result in
+            switch result {
+            case .success(let url):
+                viewModel.importSxcu(fileURL: url)
+            case .failure(let error):
+                viewModel.reportImportFailure(error)
+            }
+        }
         .sheet(item: $viewModel.editingEntry) { entry in
             CustomUploaderEditSheet(
                 entry: entry,
@@ -343,18 +369,35 @@ final class CustomUploaderConfigViewModel: ObservableObject {
         setStatus("Deleted \(entry.displayName).")
     }
 
-    func importFromClipboard() {
-        guard let payload = clipboardPayload() else {
-            setStatus(
-                "Clipboard does not contain .sxcu JSON or a readable .sxcu file path.",
-                isError: true,
-                details: clipboardDiagnostics(payload: nil, cleanedString: UIPasteboard.general.string)
-            )
-            return
-        }
+    static let importableTypes: [UTType] = [
+        UTType("com.xerahs.xerahs.sxcu") ?? .json, .json, .plainText, .data
+    ]
 
+    func importSxcu(text: String, source: String) {
+        let cleaned = stripMarkdownCodeFence(from: text.trimmingCharacters(in: .whitespacesAndNewlines))
+        importSxcu(payload: Data(cleaned.utf8), source: source, sourceText: text)
+    }
+
+    func importSxcu(fileURL: URL) {
+        let accessing = fileURL.startAccessingSecurityScopedResource()
+        defer { if accessing { fileURL.stopAccessingSecurityScopedResource() } }
+        do {
+            importSxcu(payload: try Data(contentsOf: fileURL), source: fileURL.lastPathComponent, sourceText: nil)
+        } catch {
+            reportImportFailure(error)
+        }
+    }
+
+    func reportImportFailure(_ error: Error) {
+        setStatus("Could not read the .sxcu file: \(error.localizedDescription)", isError: true)
+    }
+
+    private func importSxcu(payload: Data, source: String, sourceText: String?) {
         do {
             let definition = try decoder.decode(SxcuDefinition.self, from: payload)
+            guard !definition.requestURL.trimmingCharacters(in: .whitespaces).isEmpty else {
+                throw CocoaError(.coderValueNotFound, userInfo: [NSLocalizedDescriptionKey: "The .sxcu has no RequestURL."])
+            }
             let entry = CustomUploaderEntry.from(sxcu: definition)
             var list = uploaders
             list.append(entry)
@@ -363,13 +406,16 @@ final class CustomUploaderConfigViewModel: ObservableObject {
                 settingsRepository.setDefaultDestinationInstanceId(entry.id)
             }
             uploaders = list
-            setStatus("Imported \(entry.displayName) from clipboard.")
+            setStatus("Imported \(entry.displayName) from \(source).")
         } catch {
-            let clipboardString = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines)
             setStatus(
-                "Failed to import .sxcu from clipboard: \(error.localizedDescription)",
+                "Failed to import .sxcu from \(source): \(error.localizedDescription)",
                 isError: true,
-                details: clipboardDiagnostics(payload: payload, cleanedString: clipboardString, error: error)
+                details: clipboardDiagnostics(
+                    payload: payload,
+                    cleanedString: sourceText?.trimmingCharacters(in: .whitespacesAndNewlines),
+                    error: error
+                )
             )
         }
     }
@@ -388,25 +434,6 @@ final class CustomUploaderConfigViewModel: ObservableObject {
         } catch {
             setStatus("Failed to encode .sxcu JSON: \(error.localizedDescription)", isError: true)
         }
-    }
-
-    private func clipboardPayload() -> Data? {
-        if let string = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines), !string.isEmpty {
-            let cleaned = stripMarkdownCodeFence(from: string)
-            if cleaned.hasPrefix("file://"), let url = URL(string: cleaned) {
-                return try? Data(contentsOf: url)
-            }
-            if cleaned.hasSuffix(".sxcu"), FileManager.default.fileExists(atPath: cleaned) {
-                return try? Data(contentsOf: URL(fileURLWithPath: cleaned))
-            }
-            return cleaned.data(using: .utf8)
-        }
-
-        if let url = UIPasteboard.general.url {
-            return try? Data(contentsOf: url)
-        }
-
-        return nil
     }
 
     private func stripMarkdownCodeFence(from input: String) -> String {
@@ -429,10 +456,8 @@ final class CustomUploaderConfigViewModel: ObservableObject {
         }()
 
         var lines: [String] = [
-            "SXCU clipboard import failed",
+            "SXCU import failed",
             "Timestamp: \(ISO8601DateFormatter().string(from: Date()))",
-            "Clipboard has string: \((UIPasteboard.general.string?.isEmpty == false) ? "true" : "false")",
-            "Clipboard has URL: \(UIPasteboard.general.url != nil ? "true" : "false")",
             "Payload bytes: \(payload?.count ?? 0)"
         ]
 
@@ -443,7 +468,7 @@ final class CustomUploaderConfigViewModel: ObservableObject {
             lines.append("Decoded top-level keys: \(decodedJsonKeys)")
         }
         if let preview, !preview.isEmpty {
-            lines.append("Clipboard preview:")
+            lines.append("Input preview:")
             lines.append(preview)
         } else if let payloadText, !payloadText.isEmpty {
             lines.append("Payload preview:")
