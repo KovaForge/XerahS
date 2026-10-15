@@ -24,10 +24,11 @@ the Xcode Info.plists (version and build number come from `project.pbxproj`) int
 
 ## Differences from Xcode builds
 
-- xtool signs with `XTL-<id>.`-prefixed IDs (`XTL-<id>.com.xerahs.xerahs.mobile`,
-  `group.XTL-<id>.com.xerahs.xerahs`), so an xtool build installs next to the App Store or Xcode
-  build with its own settings and history. `AppIdentifiers.swift` derives the matching App Group
-  and keychain group at runtime.
+- xtool signs with `XTL-<id>.`-prefixed bundle IDs (`XTL-7C5AS6VPUH.com.xerahs.xerahs.mobile` on
+  the paid team), so an xtool build installs next to the App Store or Xcode build. xtool reuses the
+  team's `group.com.xerahs.xerahs` App Group when it exists (so both installs share settings and
+  history) and signs both targets with the `<team>.<app bundle ID>` keychain group.
+  `AppIdentifiers.swift` resolves both at runtime instead of hardcoding them.
 - Asset catalogs are not compiled. The app icon comes from `AppIcon.png`, and `Logo.png` is
   copied into the bundle root so `Image("Logo")` still resolves. The accent color falls back to
   the system default.

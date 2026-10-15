@@ -26,12 +26,15 @@ import Foundation
 
 /// App Group and keychain identifiers shared by the app and the Share Extension.
 ///
-/// xtool development builds are re-signed under `XTL-<id>.`-prefixed bundle IDs, and xtool registers
-/// the App Group as `group.XTL-<id>.com.xerahs.xerahs`. Derive the identifiers from the running bundle
-/// so those builds use the IDs they were provisioned with, while Xcode/App Store builds keep the real ones.
+/// xtool development builds are re-signed under `XTL-<id>.`-prefixed bundle IDs. xtool reuses the
+/// team's existing App Group when it can and otherwise registers `group.XTL-<id>.com.xerahs.xerahs`,
+/// and it signs both targets with the main app's `<team>.<bundle ID>` keychain group. Derive the
+/// identifiers from the running build so xtool and Xcode/App Store builds both use what they were
+/// actually provisioned with.
 enum AppIdentifiers {
+    private static let teamID = "7C5AS6VPUH"
     private static let baseAppGroupId = "group.com.xerahs.xerahs"
-    private static let baseKeychainAccessGroup = "7C5AS6VPUH.com.xerahs.xerahs.mobile"
+    private static let extensionSuffix = ".ShareExtension"
 
     /// `XTL-<id>` when running an xtool-signed build; otherwise nil.
     static let xtoolPrefix: String? = {
@@ -40,12 +43,22 @@ enum AppIdentifiers {
         return String(first)
     }()
 
-    static let appGroupId: String = {
-        guard let xtoolPrefix else { return baseAppGroupId }
-        return "group.\(xtoolPrefix).com.xerahs.xerahs"
+    /// Bundle ID of the containing app, also when running in the Share Extension.
+    private static let appBundleID: String = {
+        let id = Bundle.main.bundleIdentifier ?? "com.xerahs.xerahs.mobile"
+        return id.hasSuffix(extensionSuffix) ? String(id.dropLast(extensionSuffix.count)) : id
     }()
 
-    /// xtool gives the app and the extension separate keychain-access-groups, so share
-    /// the keychain through the App Group, which iOS also accepts as an access group.
-    static let keychainAccessGroup: String = xtoolPrefix == nil ? baseKeychainAccessGroup : appGroupId
+    /// The App Group this build is entitled to: iOS only returns a container for entitled groups.
+    static let appGroupId: String = {
+        var candidates = [baseAppGroupId]
+        if let xtoolPrefix { candidates.append("group.\(xtoolPrefix).com.xerahs.xerahs") }
+        return candidates.first {
+            FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: $0) != nil
+        } ?? baseAppGroupId
+    }()
+
+    /// Both targets are signed with the main app's keychain group, `<team>.<app bundle ID>`
+    /// (`7C5AS6VPUH.com.xerahs.xerahs.mobile` for Xcode/App Store builds).
+    static let keychainAccessGroup = "\(teamID).\(appBundleID)"
 }
