@@ -106,6 +106,9 @@ struct CustomUploaderConfigScreen: View {
             }
         }
         .onAppear { viewModel.refresh() }
+        .alert(item: $viewModel.importAlert) { result in
+            Alert(title: Text(result.title), message: Text(result.message))
+        }
         .fileImporter(
             isPresented: $isImportingFile,
             allowedContentTypes: CustomUploaderConfigViewModel.importableTypes
@@ -316,6 +319,7 @@ final class CustomUploaderConfigViewModel: ObservableObject {
     @Published var statusMessage: String?
     @Published var isStatusError: Bool = false
     @Published var importErrorDetails: String?
+    @Published var importAlert: ImportResultAlert?
 
     private let settingsRepository: SettingsRepository
     private let decoder = JSONDecoder()
@@ -398,15 +402,29 @@ final class CustomUploaderConfigViewModel: ObservableObject {
             guard !definition.requestURL.trimmingCharacters(in: .whitespaces).isEmpty else {
                 throw CocoaError(.coderValueNotFound, userInfo: [NSLocalizedDescriptionKey: "The .sxcu has no RequestURL."])
             }
-            let entry = CustomUploaderEntry.from(sxcu: definition)
+            var entry = CustomUploaderEntry.from(sxcu: definition)
             var list = uploaders
-            list.append(entry)
+            // Re-importing the same uploader (same name and request URL) updates it instead of adding a copy.
+            let existingIndex = list.firstIndex {
+                $0.requestUrl.caseInsensitiveCompare(entry.requestUrl) == .orderedSame &&
+                    $0.name.caseInsensitiveCompare(entry.name) == .orderedSame
+            }
+            if let existingIndex {
+                entry.id = list[existingIndex].id
+                list[existingIndex] = entry
+            } else {
+                list.append(entry)
+            }
             settingsRepository.saveCustomUploaders(list)
             if settingsRepository.getDefaultDestinationInstanceId() == nil {
                 settingsRepository.setDefaultDestinationInstanceId(entry.id)
             }
             uploaders = list
-            setStatus("Imported \(entry.displayName) from \(source).")
+            let message = existingIndex == nil
+                ? "Added \(entry.displayName) from \(source)."
+                : "Updated \(entry.displayName) from \(source)."
+            setStatus(message)
+            importAlert = ImportResultAlert(succeeded: true, message: message)
         } catch {
             setStatus(
                 "Failed to import .sxcu from \(source): \(error.localizedDescription)",
