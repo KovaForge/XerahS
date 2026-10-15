@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-10-15 16:07 AWST",
+  "last_updated": "2026-10-16 00:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2134,6 +2134,15 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a found zero candidates in next_candidates; fork + upstream sync no-op (HEAD == declan/develop == origin/develop at b5b0e107, upstream/develop 9712850d already ancestor, 120 KovaForge commits ahead). ShareX.ImageEditor submodule clean (HEAD == origin/develop at d7c027fa; no upstream remote). Preserved unstaged iOS WIP (26 files under src/mobile/ios, not discarded, not stashed, not committed). Older stashes left untouched (wip-preserved-20261014-080611, wip-preserved-20260922 ModalOpenService, xerahs-bugfix-WIP-WaylandPortalHotkeyService). No deferred-last-runs files. No code fixes landed this tick.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-10-16 00:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates in next_candidates; fork + upstream sync no-op (HEAD == declan/develop == origin/develop at 11924a7f, upstream/develop 9712850d already ancestor, 130 KovaForge commits ahead). ShareX.ImageEditor submodule clean (HEAD == origin/develop at d7c027fa; no upstream remote). Preserved unstaged teammate WIP (src/mobile/ios + web/, not discarded, not stashed, not committed). Older stashes left untouched (wip-preserved-20261014-080611, wip-preserved-20260922 ModalOpenService, xerahs-bugfix-WIP-WaylandPortalHotkeyService). No deferred-last-runs files. No code fixes landed this tick.",
       "status": "no-op"
     }
   ],
