@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 
 import { authClient, authErrorMessage } from "@/lib/auth-client";
+import { oauthContinueUrl } from "@/lib/oauth-continue";
 
 type Mode = "signin" | "signup" | "second-factor" | "reset";
 
@@ -18,10 +19,15 @@ export function AuthForm({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
-  function finish() {
+  function finish(data?: unknown) {
+    // Signing in from an OAuth authorize redirect (desktop or iOS app) carries
+    // the signed request in the page query; Better Auth then answers with the
+    // next step of that authorization (the consent page) instead of a session
+    // only. Follow it, same-origin only, or the app never gets its code.
+    const continueUrl = oauthContinueUrl(data, location.origin);
     // Start a fresh document request after the auth cookie is written so
     // prefetched anonymous React Server Component data is not reused.
-    location.replace(next);
+    location.replace(continueUrl ?? next);
   }
 
   function switchMode(target: Mode) {
@@ -52,7 +58,7 @@ export function AuthForm({
         ) {
           return switchMode("second-factor");
         }
-        return finish();
+        return finish(result.data);
       }
 
       if (mode === "second-factor") {
@@ -60,7 +66,7 @@ export function AuthForm({
           ? await authClient.twoFactor.verifyBackupCode({ code })
           : await authClient.twoFactor.verifyTotp({ code });
         if (result.error) return setMessage(authErrorMessage(result.error));
-        return finish();
+        return finish(result.data);
       }
 
       if (mode === "signup") {
@@ -98,7 +104,7 @@ export function AuthForm({
     const result = await authClient.signIn.passkey();
     setBusy(false);
     if (result?.error) return setMessage(authErrorMessage(result.error));
-    finish();
+    finish(result?.data);
   }
 
   if (mode === "second-factor") {
