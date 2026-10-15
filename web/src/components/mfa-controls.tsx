@@ -8,6 +8,9 @@ import { authClient, authErrorMessage } from "@/lib/auth-client";
 
 interface TotpEnrollment {
   qrCode: string;
+  // otpauth:// link: on a phone the QR code can't be scanned from the same
+  // screen, so the link hands the secret to the authenticator app instead.
+  totpUri: string;
   secret: string;
   backupCodes: string[];
 }
@@ -57,10 +60,20 @@ export function MfaControls({
     setEnrollment({
       // Rendered locally from the otpauth:// URI; never sent anywhere or logged.
       qrCode: await QRCode.toDataURL(data.totpURI, { margin: 1, width: 192 }),
+      totpUri: data.totpURI,
       secret: secretFromUri(data.totpURI),
       backupCodes: data.backupCodes,
     });
     setBusy(false);
+  }
+
+  async function copySecret(secret: string) {
+    try {
+      await navigator.clipboard.writeText(secret);
+      setMessage("Setup key copied. Paste it into your authenticator app.");
+    } catch {
+      setMessage("Copy failed. Select the setup key and copy it manually.");
+    }
   }
 
   async function verify() {
@@ -115,18 +128,36 @@ export function MfaControls({
     router.refresh();
   }
 
-  const codeInput = (
-    <label>
-      Authenticator code
+  // A named one-time-code field inside a form, which password managers such
+  // as Proton Pass need to recognise it as a two-factor field.
+  const codeForm = (
+    <form
+      className="stack"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void verify();
+      }}
+    >
+      <label htmlFor="totp-code">Authenticator code</label>
       <input
         autoComplete="one-time-code"
+        id="totp-code"
         inputMode="numeric"
         maxLength={6}
+        name="code"
         onChange={(event) => setCode(event.target.value.replaceAll(/\D/g, ""))}
         pattern="[0-9]{6}"
+        type="text"
         value={code}
       />
-    </label>
+      <button
+        className="primary"
+        disabled={busy || code.length !== 6}
+        type="submit"
+      >
+        Verify authenticator
+      </button>
+    </form>
   );
 
   return (
@@ -137,21 +168,18 @@ export function MfaControls({
       ) : twoFactorEnabled && !enrollment ? (
         <>
           <p>Verify your authenticator to unlock your gallery and billing.</p>
-          {codeInput}
-          <button
-            className="primary"
-            disabled={busy || code.length !== 6}
-            onClick={() => void verify()}
-          >
-            Verify authenticator
-          </button>
+          {codeForm}
         </>
       ) : enrollment ? (
         <div className="stack">
           <p>
-            Scan this QR code with your authenticator app, or enter the secret
-            manually, then enter the code it shows.
+            Scan this QR code with your authenticator app. On this device, use
+            Add to authenticator app or copy the setup key instead. Then enter
+            the code it shows.
           </p>
+          <a className="button" href={enrollment.totpUri}>
+            Add to authenticator app
+          </a>
           {/* A local data URI; must never be optimized, cached or logged. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -161,14 +189,13 @@ export function MfaControls({
             width="192"
           />
           <code>{enrollment.secret}</code>
-          {codeInput}
           <button
-            className="primary"
-            disabled={busy || code.length !== 6}
-            onClick={() => void verify()}
+            onClick={() => void copySecret(enrollment.secret)}
+            type="button"
           >
-            Verify authenticator
+            Copy setup key
           </button>
+          {codeForm}
         </div>
       ) : (
         <form className="stack" onSubmit={enroll}>
