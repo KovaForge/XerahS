@@ -37,6 +37,8 @@
 		D1000001 /* ShareGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000002 /* ShareGroup.swift */; };
 		F3000001 /* AppIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000002 /* AppIdentifiers.swift */; };
 		F3000003 /* AppIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3000002 /* AppIdentifiers.swift */; };
+		F3000004 /* HistoryRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000A6 /* HistoryRepository.swift */; };
+		F3000005 /* HistoryEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000004 /* HistoryEntry.swift */; };
 		E1000001 /* UploadFileNameGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1000002 /* UploadFileNameGenerator.swift */; };
 		D1000003 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1000004 /* ShareViewController.swift */; };
 		D1000005 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D1000000 /* ShareExtension.appex */; };
@@ -466,6 +468,8 @@
 				D2000004 /* Paths.swift in Sources */,
 				D2000005 /* KeychainStore.swift in Sources */,
 				F3000003 /* AppIdentifiers.swift in Sources */,
+				F3000004 /* HistoryRepository.swift in Sources */,
+				F3000005 /* HistoryEntry.swift in Sources */,
 				F2000003 /* XerahSCloudClient.swift in Sources */,
 				D2000006 /* UploadOutcome.swift in Sources */,
 				D2000007 /* CustomUploader.swift in Sources */,
