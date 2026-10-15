@@ -123,6 +123,11 @@ final class AppState: ObservableObject {
         importSxcuData(data, sourceLabel: url.lastPathComponent)
     }
 
+    /// Starts importing a destination config picked in the app; asks for its passphrase.
+    func importDestinationConfig(from url: URL) {
+        queueXsdcFile(from: url)
+    }
+
     private func queueXsdcFile(from url: URL) {
         let accessing = url.startAccessingSecurityScopedResource()
         defer {
