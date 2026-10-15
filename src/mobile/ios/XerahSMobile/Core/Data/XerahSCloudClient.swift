@@ -26,7 +26,7 @@ enum XerahSCloudConfiguration {
 
 enum XerahSCloudSettings {
     private static let autoPublishKey = "XerahSCloud.AutoPublish"
-    private static let appGroupID = "group.com.xerahs.xerahs"
+    private static let appGroupID = AppIdentifiers.appGroupId
 
     static var automaticallyPublishesEligibleUploads: Bool {
         get { UserDefaults(suiteName: appGroupID)?.bool(forKey: autoPublishKey) ?? false }
@@ -126,7 +126,7 @@ struct XerahSCloudError: LocalizedError {
 
 enum XerahSCloudCredentialStore {
     private static let service = "com.xerahs.xerahs.mobile.cloud"
-    private static let accessGroup = "7C5AS6VPUH.com.xerahs.xerahs.mobile"
+    private static let accessGroup = AppIdentifiers.keychainAccessGroup
     private static let refreshAccount = "oauth.refresh-token"
     private static let subjectAccount = "oauth.owner-subject"
 
