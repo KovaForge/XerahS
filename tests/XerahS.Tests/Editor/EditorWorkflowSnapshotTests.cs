@@ -13,6 +13,7 @@ using SkiaSharp;
 using XerahS.Common;
 using XerahS.Core;
 using XerahS.Core.Tasks.Processors;
+using XerahS.Core.Tasks.Pipeline;
 using XerahS.Platform.Abstractions;
 using XerahS.Tests.Xip0052;
 using XerahS.UI.Services;
@@ -27,25 +28,33 @@ namespace XerahS.Tests.Editor;
 public class EditorWorkflowSnapshotTests
 {
     [AvaloniaTest]
-    public async Task Cancel_StopsWorkflowBeforeSavingOrUploadingOriginal()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Cancel_StopsWorkflowBeforeSavingOrUploadingOriginal(bool closeWindow)
     {
         string folder = Path.Combine(Path.GetTempPath(), "xerahs-annotation-cancel-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
         var info = new TaskInfo(new TaskSettings
         {
-            AfterCaptureJob = AfterCaptureTasks.AnnotateMedia | AfterCaptureTasks.SaveImageToFile | AfterCaptureTasks.UploadImageToHost,
+            AfterCaptureJob = AfterCaptureTasks.AnnotateMedia | AfterCaptureTasks.SaveImageToFile | AfterCaptureTasks.CopyImageToClipboard | AfterCaptureTasks.UploadImageToHost,
             OverrideScreenshotsFolder = true, ScreenshotsFolder = folder
         });
         info.Metadata.Image = new SKBitmap(80, 60);
         info.Metadata.Image.Erase(SKColors.White);
         PlatformServices.RegisterUIService(new AvaloniaUIService(new FakeDesktopTaskManager()));
         using var opened = Window.WindowOpenedEvent.AddClassHandler<HostEditorWindow>((window, _) =>
-            Dispatcher.UIThread.Post(() => ((MainViewModel)window.DataContext!).CancelCommand.Execute(null)));
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (closeWindow) window.Close();
+                else ((MainViewModel)window.DataContext!).CancelCommand.Execute(null);
+            }));
         try
         {
-            var workflow = new CaptureJobProcessor().ProcessAsync(info, CancellationToken.None);
+            var context = new PipelineContext { Info = info };
+            var workflow = new FinalizationStage().ExecuteAsync(context, CancellationToken.None);
             Dispatcher.UIThread.RunJobs();
-            Assert.That(await workflow, Is.False);
+            Assert.That(await workflow, Is.EqualTo(PipelineStageResult.Stop));
+            Assert.That(context.Status, Is.EqualTo(XerahS.Core.TaskStatus.Canceled));
             Assert.That(Directory.GetFiles(folder), Is.Empty);
             Assert.That(info.Result.URL, Is.Null.Or.Empty);
         }
