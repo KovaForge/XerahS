@@ -694,10 +694,13 @@ namespace XerahS.App
 
                     try
                     {
-                        XerahS.Common.NetworkMonitor.NetworkMonitorHost.Shared.EnsureStarted();
-                        XerahS.Common.DebugHelper.WriteLine(
-                            "Network monitor started. Outage log: " +
-                            XerahS.Common.NetworkMonitor.NetworkMonitorHost.Shared.LogFilePath);
+                        if (SettingsManager.Settings.NetworkMonitorEnabled)
+                        {
+                            XerahS.Common.NetworkMonitor.NetworkMonitorHost.Shared.EnsureStarted();
+                            XerahS.Common.DebugHelper.WriteLine(
+                                "Network monitor started. Outage log: " +
+                                XerahS.Common.NetworkMonitor.NetworkMonitorHost.Shared.LogFilePath);
+                        }
                     }
                     catch (Exception ex)
                     {

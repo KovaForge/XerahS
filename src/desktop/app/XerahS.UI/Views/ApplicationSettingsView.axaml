@@ -401,6 +401,10 @@
                                 <StackPanel Spacing="16">
                                     <CheckBox IsChecked="{Binding RunAtStartup}" 
                                               Content="Run at system startup" AutomationProperties.Name="Run at Startup"/>
+                                    <CheckBox IsChecked="{Binding NetworkMonitorEnabled}"
+                                              Content="Run Network Monitor in the background"
+                                              ToolTip.Tip="Periodically pings external hosts to monitor connectivity, including at startup. Disabled by default. You can also use Tools > Network Monitor for a temporary session."
+                                              AutomationProperties.Name="Background Network Monitor"/>
                                     <CheckBox IsChecked="{Binding EnableContextMenuIntegration}" 
                                               Content="Add 'Upload with XerahS' to context menu"
                                               IsEnabled="{Binding SupportsContextMenuIntegration}"
