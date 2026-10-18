@@ -844,7 +844,8 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             }
 
             // Stop GStreamer by sending EOS (End of Stream) via SIGINT
-            if (gstreamerPid.HasValue)
+            // A completed bridge has disposed its child processes. Never signal a stale PID.
+            if (gstreamerPid.HasValue && ffmpegTask is not { IsCompleted: true })
             {
                 try
                 {
@@ -860,10 +861,14 @@ public sealed class WaylandPortalRecordingService : IRecordingService
                         DebugHelper.WriteLine("[WaylandPortalRecording] GStreamer did not exit in time, force killing...");
                         try { Process.Start("kill", $"-9 {gstreamerPid.Value}")?.WaitForExit(1000); } catch { }
                     }
-                    else if (gstreamer != null)
+                    else if (gstreamer != null && ffmpegTask is not { IsCompleted: true })
                     {
                         DebugHelper.WriteLine($"[WaylandPortalRecording] GStreamer exited with code {gstreamer.ExitCode}");
                     }
+                }
+                catch (ObjectDisposedException) when (ffmpegTask is { IsCompleted: true })
+                {
+                    DebugHelper.WriteLine("[WaylandPortalRecording] Recording worker already finalized its processes.");
                 }
                 catch (Exception ex)
                 {
@@ -873,7 +878,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
                     try { Process.Start("kill", $"-9 {gstreamerPid.Value}")?.WaitForExit(1000); } catch { }
                 }
             }
-            else if (gstreamer != null)
+            else if (gstreamer != null && ffmpegTask is not { IsCompleted: true })
             {
                 forcedTermination = true;
                 // Fallback: no stored PID, try Kill() directly

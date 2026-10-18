@@ -132,6 +132,32 @@ public class WaylandRawFrameIntegrationTests
     }
 
     [Test]
+    public async Task AlreadyCompletedBridge_StopsWithoutSignallingItsDisposedChildProcesses()
+    {
+        RequireLinux();
+        byte[] listing = await RunToolAsync("ffmpeg", "-hide_banner -encoders");
+        var plan = FFmpegEncodingBridge.PlanEncoders(VideoCodec.H264, 4000,
+            FFmpegFeatures.Parse(System.Text.Encoding.UTF8.GetString(listing), ""));
+        if (plan == null) Assert.Ignore("A video encoder is required.");
+        await RunToolAsync("gst-launch-1.0", "--version");
+        string path = Path.Combine(Path.GetTempPath(), $"xerahs-completed-bridge-{Guid.NewGuid():N}.mp4");
+        using var service = new WaylandPortalRecordingService();
+        var errors = new List<Exception>();
+        service.ErrorOccurred += (_, args) => errors.Add(args.Error);
+        try
+        {
+            await service.StartFFmpegEncodingBridge(
+                FFmpegEncodingBridge.BuildCaptureArgs("videotestsrc num-buffers=3", 160, 120),
+                "ffmpeg", FFmpegEncodingBridge.BuildEncodeArgs(160, 120, 30, plan!, null, path), path, 160, 120)
+                .WaitAsync(TimeSpan.FromSeconds(15));
+            await service.StopRecordingAsync();
+            Assert.That(errors, Is.Empty);
+            XerahS.Common.RecordingOutputValidator.EnsureUsable(path);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Test]
     public async Task FragmentedGStreamerMp4_RemainsDecodableAfterForcedTermination()
     {
         RequireLinux();

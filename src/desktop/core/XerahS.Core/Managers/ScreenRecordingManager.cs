@@ -758,6 +758,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
         lock (_lock)
         {
             if (!ReferenceEquals(sender, _currentRecording)) return;
+            if (e.IsFatal) _recordingFailure = e.Error;
         }
         DebugHelper.WriteException(e.Error, $"ScreenRecordingManager: Recording error (Fatal={e.IsFatal})");
         ErrorOccurred?.Invoke(this, e);
@@ -769,7 +770,6 @@ public class ScreenRecordingManager : IScreenRecordingManager
             lock (_lock)
             {
                 if (!ReferenceEquals(sender, _currentRecording)) return;
-                _recordingFailure = e.Error;
                 failedRecording = _currentRecording;
 
                 _currentRecording = null;

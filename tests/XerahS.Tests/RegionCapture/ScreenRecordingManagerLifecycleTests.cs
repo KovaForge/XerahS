@@ -275,6 +275,20 @@ public sealed class ScreenRecordingManagerLifecycleTests
         Assert.That(File.Exists(Path.Combine(_folder, "capture.part000.mp4")), Is.True);
     }
 
+    [Test]
+    public async Task FatalError_IsRecordedBeforeReentrantStopFromAnErrorSubscriber()
+    {
+        await _manager.StartRecordingAsync(Options());
+        Task<string?>? stop = null;
+        _manager.ErrorOccurred += (_, _) => stop = _manager.StopRecordingAsync();
+        int completions = 0;
+        _manager.RecordingCompleted += (_, _) => completions++;
+        _native.Fail();
+        Assert.That(stop, Is.Not.Null);
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await stop!);
+        Assert.That(completions, Is.Zero);
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public async Task IncompleteOutput_NeverCompletesAndKeepsPartialFile(bool empty)
