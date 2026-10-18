@@ -35,7 +35,9 @@ empty build directory, then run `makepkg --syncdeps`. The normal recipe requires
 no environment overrides or separate ImageEditor/Omacut clones. Review the recipe
 before installing build dependencies or the resulting package. To build the current
 local repository instead, run `bash build/linux/package-aur.sh`; only committed
-source is included, and packages are copied to `dist/aur/`.
+source is included, and packages are copied to `dist/aur/`. Local sources are
+trusted build inputs; when the selected source is a partial clone, Git may fetch
+its missing objects during the first package build.
 
 The `Arch package` GitHub workflow checks generated metadata and runs the actual
 package build as an unprivileged user in a fresh Arch container. It uploads the
