@@ -29,69 +29,37 @@ using System.Text.RegularExpressions;
 
 namespace XerahS.Common
 {
-    /// <summary>
-    /// Checks the Linux FFmpeg releases on ShareX/FFmpeg: SHA256SUMS must carry a valid
-    /// ECDSA P-256 signature (SHA256SUMS.sig) from a pinned key, and the zip must match its line.
-    /// </summary>
+    /// <summary>Verifies archives against BtbN's HTTPS-hosted checksums.sha256 manifest.</summary>
     public static class FFmpegReleaseVerifier
     {
-        /// <summary>
-        /// Public keys that may sign SHA256SUMS. Same file as ShareX/FFmpeg keys/linux-release-2026.pub.pem.
-        /// To rotate, add the new key here first and keep the old one while its releases are in use.
-        /// </summary>
-        public static readonly IReadOnlyList<string> TrustedKeys =
-        [
-            """
-            -----BEGIN PUBLIC KEY-----
-            MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEtLBu32RqxWLpS2DoG4YD8i+LkAf4
-            ga3I3An27cmwmQjTOW0Vx6TbK307E5QsdDIQ7y6Ddqe5JHmVbSlficp+ng==
-            -----END PUBLIC KEY-----
-            """,
-        ];
-
-        public const string ChecksumsFileName = "SHA256SUMS";
-        public const string SignatureFileName = "SHA256SUMS.sig";
+        public const string ChecksumsFileName = "checksums.sha256";
 
         private static readonly Regex ChecksumLine = new(
             @"^(?<hash>[0-9a-fA-F]{64}) [ *](?<name>\S+)$",
             RegexOptions.CultureInvariant);
 
-        /// <summary>True when <paramref name="signature"/> (DER, as openssl dgst -sign writes it) signs <paramref name="checksums"/>.</summary>
-        public static bool IsSignatureValid(byte[] checksums, byte[] signature, IEnumerable<string>? trustedKeys = null)
-        {
-            foreach (string pem in trustedKeys ?? TrustedKeys)
-            {
-                using ECDsa key = ECDsa.Create();
-                key.ImportFromPem(pem);
-                if (key.VerifyData(checksums, signature, HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         /// <summary>Hash listed for <paramref name="fileName"/> in sha256sum output, lower case, or null.</summary>
         public static string? FindHash(byte[] checksums, string fileName)
         {
+            string? hash = null;
             foreach (string line in Encoding.UTF8.GetString(checksums).Split('\n'))
             {
                 Match match = ChecksumLine.Match(line.TrimEnd('\r'));
                 if (match.Success && match.Groups["name"].Value == fileName)
                 {
-                    return match.Groups["hash"].Value.ToLowerInvariant();
+                    if (hash != null) return null;
+                    hash = match.Groups["hash"].Value.ToLowerInvariant();
                 }
             }
 
-            return null;
+            return hash;
         }
 
         public static async Task<bool> IsFileHashValidAsync(string path, string expectedHash, CancellationToken cancellationToken = default)
         {
             await using FileStream stream = File.OpenRead(path);
             byte[] hash = await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false);
-            return string.Equals(Convert.ToHexStringLower(hash), expectedHash, StringComparison.Ordinal);
+            return string.Equals(Convert.ToHexStringLower(hash), expectedHash, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

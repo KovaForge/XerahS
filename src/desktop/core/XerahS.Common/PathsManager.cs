@@ -242,7 +242,7 @@ namespace XerahS.Common
         public static string ToolsArchitectureFolder => Path.Combine(ToolsFolder, GetToolsArchitectureFolderName());
 
         /// <summary>
-        /// Tools folder name, matching the ShareX/FFmpeg asset suffix (win-x64, linux-arm64, ...).
+        /// Stable local tools folder name (win-x64, linux-arm64, ...), independent of download asset naming.
         /// Plugins keep <see cref="GetArchitectureFolderName"/>, where Linux is still "linux64".
         /// </summary>
         public static string GetToolsArchitectureFolderName() => GetToolsArchitectureFolderName(RuntimeInformation.OSArchitecture);

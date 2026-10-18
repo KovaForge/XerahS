@@ -184,7 +184,8 @@ namespace XerahS.Common
         winArm64,
         macos64,
         linux64,
-        linuxArm64
+        linuxArm64,
+        unsupported
     }
 
     public enum StepType // Localized
