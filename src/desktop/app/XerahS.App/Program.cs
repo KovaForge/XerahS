@@ -368,17 +368,27 @@ namespace XerahS.App
         /// </summary>
         private static void ClearX11SessionManagement()
         {
-            var sessionManager = Environment.GetEnvironmentVariable("SESSION_MANAGER");
-            var smClientId = Environment.GetEnvironmentVariable("SM_CLIENT_ID");
-
-            if (sessionManager != null || smClientId != null)
+            // Environment.SetEnvironmentVariable updates .NET's environment cache, but
+            // native libSM may still see the inherited values through libc getenv().
+            foreach (string name in new[] { "SESSION_MANAGER", "SM_CLIENT_ID" })
             {
-                Environment.SetEnvironmentVariable("SESSION_MANAGER", null);
-                Environment.SetEnvironmentVariable("SM_CLIENT_ID", null);
-                XerahS.Common.DebugHelper.WriteLine(
-                    "Linux X11: Cleared SESSION_MANAGER and SM_CLIENT_ID to prevent XSMP shutdown interference (issue #169).");
+                Environment.SetEnvironmentVariable(name, null);
+                if (UnsetNativeEnvironmentVariable(name) != 0)
+                {
+                    DebugHelper.WriteLine($"Linux X11: could not clear native {name}.");
+                }
             }
+            DebugHelper.WriteLine("Linux X11: disabled session management to avoid blocking logout (issues #169, #293).");
         }
+
+        [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "unsetenv", SetLastError = true)]
+        private static extern int UnsetNativeEnvironmentVariable(string name);
+
+        private static X11PlatformOptions CreateX11PlatformOptions() => new()
+        {
+            WmClass = "xerahs",
+            EnableSessionManagement = false
+        };
 
         /// <summary>
         /// Validates Linux display environment and warns about common issues before Avalonia initialization
@@ -828,7 +838,7 @@ namespace XerahS.App
                 .UsePlatformDetect()
                 // Avalonia defaults the X11 WM_CLASS to the entry assembly name ("XerahS"),
                 // which does not match StartupWMClass=xerahs in our .desktop files.
-                .With(new X11PlatformOptions { WmClass = "xerahs" })
+                .With(CreateX11PlatformOptions())
                 .WithInterFont()
                 .LogToTrace();
         }
