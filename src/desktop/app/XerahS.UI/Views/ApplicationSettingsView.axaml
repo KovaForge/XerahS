@@ -110,6 +110,9 @@
                                         </Grid>
                                     </Grid>
 
+                                    <TextBlock Text="Release checks ShareX/XerahS. PreRelease checks the selected source; KovaForge/XerahS contains this fork's development builds. Versions and availability can differ between repositories."
+                                               TextWrapping="Wrap" FontSize="12" Opacity="0.8"/>
+
                                     <Grid ColumnDefinitions="Auto, 16, *">
                                         <Button Grid.Column="0"
                                                 Content="{Binding ManualUpdateButtonText}"
