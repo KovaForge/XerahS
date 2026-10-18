@@ -624,8 +624,11 @@ public sealed class WaylandPortalRecordingService : IRecordingService
             _gstreamerProcess = process;
             try { _gstreamerPid = process.Id; } catch { }
 
+            // Drain both pipes concurrently: an unread stdout pipe can stall gst-launch.
+            Task stdoutDrain = process.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
             stderrOutput = process.StandardError.ReadToEnd();
             process.WaitForExit();
+            stdoutDrain.GetAwaiter().GetResult();
 
             if (process.ExitCode != 0)
             {
@@ -644,6 +647,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
                         var fileInfo = new FileInfo(_gstreamerOutputPath);
                         if (fileInfo.Exists && fileInfo.Length > 0)
                         {
+                            RecordingOutputValidator.EnsureUsable(fileInfo.FullName);
                             DebugHelper.WriteLine(
                                 $"[WaylandPortalRecording] GStreamer exited with error but segment file exists " +
                                 $"({fileInfo.Length} bytes). Treating as external stop (partial recording recovered).");
@@ -782,8 +786,10 @@ public sealed class WaylandPortalRecordingService : IRecordingService
 
                 _gstreamerProcess = process;  // Reuse this field for the process reference
                 try { _gstreamerPid = process.Id; } catch { }
+                Task stdoutDrain = process.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
                 string output = process.StandardError.ReadToEnd();
                 process.WaitForExit();
+                stdoutDrain.GetAwaiter().GetResult();
 
                 if (process.ExitCode != 0 && !_stopRequested)
                 {
@@ -806,6 +812,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
         int? gstreamerPid;
         Task? ffmpegTask;
         bool usingFFmpegEncodingBridge;
+        bool forcedTermination = false;
 
         lock (_lock)
         {
@@ -849,6 +856,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
                     // Wait for GStreamer to finish writing and exit
                     if (gstreamer != null && !gstreamer.WaitForExit(10000))
                     {
+                        forcedTermination = true;
                         DebugHelper.WriteLine("[WaylandPortalRecording] GStreamer did not exit in time, force killing...");
                         try { Process.Start("kill", $"-9 {gstreamerPid.Value}")?.WaitForExit(1000); } catch { }
                     }
@@ -860,12 +868,14 @@ public sealed class WaylandPortalRecordingService : IRecordingService
                 catch (Exception ex)
                 {
                     DebugHelper.WriteLine($"[WaylandPortalRecording] Error stopping GStreamer: {ex.Message}");
+                    forcedTermination = true;
                     // If SIGINT fails, try force kill
                     try { Process.Start("kill", $"-9 {gstreamerPid.Value}")?.WaitForExit(1000); } catch { }
                 }
             }
             else if (gstreamer != null)
             {
+                forcedTermination = true;
                 // Fallback: no stored PID, try Kill() directly
                 try { gstreamer.Kill(); } catch { }
             }
@@ -880,13 +890,17 @@ public sealed class WaylandPortalRecordingService : IRecordingService
                 }
                 else
                 {
-                    await Task.WhenAny(ffmpegTask, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
+                    try { await ffmpegTask.WaitAsync(TimeSpan.FromSeconds(30)).ConfigureAwait(false); }
+                    catch (TimeoutException) { ffmpeg?.Close(); throw; }
                 }
             }
+            if (forcedTermination)
+                throw new TimeoutException("Recording backend did not finalize normally and was force-stopped. Partial output has been kept for recovery.");
         }
         catch (Exception ex)
         {
             HandleFatalError(ex, false);
+            throw;
         }
         finally
         {
@@ -1622,7 +1636,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
 
             // Use a named muxer so both video and audio branches can connect
             pipeline.Add("!");
-            pipeline.Add($"{actualMuxer} name=mux");
+            pipeline.Add($"{ConfigureGStreamerMuxer(actualMuxer)} name=mux");
             pipeline.Add("!");
             pipeline.Add($"filesink location=\"{finalOutputPath}\"");
 
@@ -1642,7 +1656,7 @@ public sealed class WaylandPortalRecordingService : IRecordingService
         {
             // Simple pipeline without named muxer
             pipeline.Add("!");
-            pipeline.Add(muxerElement);
+            pipeline.Add(ConfigureGStreamerMuxer(muxerElement));
             pipeline.Add("!");
             pipeline.Add($"filesink location=\"{finalOutputPath}\"");
         }
@@ -1651,6 +1665,11 @@ public sealed class WaylandPortalRecordingService : IRecordingService
 
         return (string.Join(" ", pipeline), finalOutputPath);
     }
+
+    // Periodic fragments keep the MP4 initialization metadata on disk before EOS.
+    // This limits damage from a compositor failure or a forced process termination.
+    internal static string ConfigureGStreamerMuxer(string muxer) =>
+        muxer == "mp4mux" ? "mp4mux fragment-duration=1000" : muxer;
 
     /// <summary>
     /// Returns a compatible (audioEncoder, muxer, extension) tuple.

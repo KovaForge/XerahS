@@ -38,6 +38,7 @@ public sealed class ScreenRecordingManagerLifecycleTests
     private ScreenRecordingManager _manager = null!;
     private FakeRecording _native = null!, _fallback = null!;
     private string _folder = null!;
+    private static readonly byte[] CompleteContainer = [0, 0, 0, 9, 109, 111, 111, 118, 1, 0, 0, 0, 9, 109, 100, 97, 116, 1];
 
     [SetUp]
     public void SetUp()
@@ -170,7 +171,7 @@ public sealed class ScreenRecordingManagerLifecycleTests
         await stopped.WaitAsync(TimeSpan.FromSeconds(2));
         string? output = await _manager.StopRecordingAsync();
         Assert.That(output, Is.EqualTo(Path.Combine(_folder, "capture.mp4")));
-        Assert.That(File.ReadAllBytes(output!), Is.EqualTo(new byte[] { 1, 2, 3 }));
+        Assert.That(File.ReadAllBytes(output!), Is.EqualTo(CompleteContainer));
         Assert.That(_manager.IsRecording, Is.False);
     }
 
@@ -262,6 +263,32 @@ public sealed class ScreenRecordingManagerLifecycleTests
         Assert.That(_fallback.Starts, Is.Zero, "An in-progress recording must not silently restart from time zero.");
     }
 
+    [Test]
+    public async Task FatalFailure_NeverPublishesOrRecoversAPathAsSuccess()
+    {
+        await _manager.StartRecordingAsync(Options());
+        int completions = 0;
+        _manager.RecordingCompleted += (_, _) => completions++;
+        _native.Fail();
+        Assert.ThrowsAsync<InvalidOperationException>(() => _manager.StopRecordingAsync());
+        Assert.That(completions, Is.Zero);
+        Assert.That(File.Exists(Path.Combine(_folder, "capture.part000.mp4")), Is.True);
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task IncompleteOutput_NeverCompletesAndKeepsPartialFile(bool empty)
+    {
+        await _manager.StartRecordingAsync(Options());
+        string partial = Path.Combine(_folder, "capture.part000.mp4");
+        File.WriteAllBytes(partial, empty ? [] : [0, 0, 0, 9, 109, 100, 97, 116, 1]);
+        int completions = 0;
+        _manager.RecordingCompleted += (_, _) => completions++;
+        Assert.ThrowsAsync<InvalidDataException>(() => _manager.StopRecordingAsync());
+        Assert.That(completions, Is.Zero);
+        Assert.That(File.Exists(partial), Is.True);
+    }
+
     private sealed class FakeRecording : IRecordingService, IMovableRecordingService, IRecordingCompletionSource
     {
         public Exception? StartError;
@@ -288,7 +315,7 @@ public sealed class ScreenRecordingManagerLifecycleTests
                 throw StartError;
             }
             Directory.CreateDirectory(Path.GetDirectoryName(options.OutputPath!)!);
-            File.WriteAllBytes(options.OutputPath!, [1, 2, 3]);
+            File.WriteAllBytes(options.OutputPath!, CompleteContainer);
             StatusChanged?.Invoke(this, new(RecordingStatus.Recording, TimeSpan.Zero));
             if (CompleteDuringStart) Complete();
             return Task.CompletedTask;

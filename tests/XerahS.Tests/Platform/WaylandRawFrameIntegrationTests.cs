@@ -131,6 +131,52 @@ public class WaylandRawFrameIntegrationTests
         }
     }
 
+    [Test]
+    public async Task FragmentedGStreamerMp4_RemainsDecodableAfterForcedTermination()
+    {
+        RequireLinux();
+        string plugins = System.Text.Encoding.UTF8.GetString(await RunToolAsync("gst-inspect-1.0", ""));
+        if (!plugins.Contains("x264enc") || !plugins.Contains("mp4mux"))
+            Assert.Ignore("Fragment recovery requires GStreamer's x264enc and mp4mux plugins.");
+        await RunToolAsync("ffmpeg", "-version");
+        string path = Path.Combine(Path.GetTempPath(), $"xerahs-fragment-recovery-{Guid.NewGuid():N}.mp4");
+        using var process = Process.Start(new ProcessStartInfo("gst-launch-1.0",
+            "-q -e videotestsrc is-live=true ! video/x-raw,width=160,height=120,framerate=30/1 ! videoconvert ! " +
+            "x264enc tune=zerolatency key-int-max=15 ! h264parse ! " +
+            WaylandPortalRecordingService.ConfigureGStreamerMuxer("mp4mux") + $" ! filesink location=\"{path}\"")
+        { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true })!;
+        Task stdout = process.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
+        Task<string> errors = process.StandardError.ReadToEndAsync();
+        try
+        {
+            bool hasFragment = false;
+            var deadline = Stopwatch.StartNew();
+            while (deadline.Elapsed < TimeSpan.FromSeconds(10) && !process.HasExited)
+            {
+                try { XerahS.Common.RecordingOutputValidator.EnsureUsable(path); hasFragment = true; break; }
+                catch (Exception ex) when (ex is IOException or InvalidDataException) { }
+                await Task.Delay(100);
+            }
+            Assert.That(hasFragment, Is.True, "A complete MP4 fragment must be written before EOS.");
+            process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
+            await stdout;
+            await errors;
+            XerahS.Common.RecordingOutputValidator.EnsureUsable(path);
+            string probe = System.Text.Encoding.UTF8.GetString(await RunToolAsync("ffprobe",
+                $"-v error -select_streams v:0 -show_entries stream=codec_name -of default=nw=1 \"{path}\""));
+            Assert.That(probe, Does.Contain("h264"));
+            await RunToolAsync("ffmpeg", $"-v error -i \"{path}\" -f null -");
+        }
+        finally
+        {
+            if (!process.HasExited) { process.Kill(entireProcessTree: true); await process.WaitForExitAsync(); }
+            await stdout;
+            await errors;
+            File.Delete(path);
+        }
+    }
+
     private static void RequireLinux()
     {
         if (!OperatingSystem.IsLinux())

@@ -56,6 +56,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
     private bool _restartRequested;
     private bool _isFinalized;
     private string? _cachedFinalPath;
+    private Exception? _recordingFailure;
     private TimeSpan _lastDuration;
     private RecordingRuntimeCapabilities _currentCapabilities = RecordingRuntimeCapabilities.None;
 
@@ -342,16 +343,20 @@ public class ScreenRecordingManager : IScreenRecordingManager
                 return null;
             }
 
+            ThrowIfRecordingFailed();
             await StopRecordingCoreAsync(signalStop: true);
+            ThrowIfRecordingFailed();
             string? finalPath = await FinalizeSegmentsAsync();
 
             if (!string.IsNullOrEmpty(finalPath))
             {
+                RecordingOutputValidator.EnsureUsable(finalPath);
                 RecordingCompleted?.Invoke(this, finalPath);
             }
 
             if (string.IsNullOrEmpty(finalPath) && !string.IsNullOrEmpty(_finalOutputPath) && File.Exists(_finalOutputPath))
             {
+                RecordingOutputValidator.EnsureUsable(_finalOutputPath);
                 finalPath = _finalOutputPath;
             }
 
@@ -613,6 +618,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
                 {
                     recordingService = CreateRecordingService(useFallback);
                     capabilities = recordingService.GetCapabilities(optionsToStart);
+                    _recordingFailure = null;
                     _currentRecording = recordingService;
                     _currentOptions = optionsToStart;
                     _currentCapabilities = capabilities;
@@ -763,6 +769,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
             lock (_lock)
             {
                 if (!ReferenceEquals(sender, _currentRecording)) return;
+                _recordingFailure = e.Error;
                 failedRecording = _currentRecording;
 
                 _currentRecording = null;
@@ -901,6 +908,7 @@ public class ScreenRecordingManager : IScreenRecordingManager
             _isPaused = false;
             _isFinalized = false;
             _cachedFinalPath = null;
+            _recordingFailure = null;
             _finalOutputPath = options.OutputPath;
             _resumeOptions = CloneOptions(options);
         }
@@ -1035,6 +1043,8 @@ public class ScreenRecordingManager : IScreenRecordingManager
 
                 if (File.Exists(resolvedOutput))
                 {
+                    ThrowIfRecordingFailed();
+                    RecordingOutputValidator.EnsureUsable(resolvedOutput);
                     _segments.Add(resolvedOutput);
                 }
                 else
@@ -1172,6 +1182,15 @@ public class ScreenRecordingManager : IScreenRecordingManager
 
         int lastIndex = Math.Max(0, _segmentIndex - 1);
         return BuildSegmentPath(_finalOutputPath, lastIndex);
+    }
+
+    private void ThrowIfRecordingFailed()
+    {
+        lock (_lock)
+        {
+            if (_recordingFailure != null)
+                throw new InvalidOperationException("Recording failed. Partial output has been kept for recovery.", _recordingFailure);
+        }
     }
 
     private void ResetSegmentState()
