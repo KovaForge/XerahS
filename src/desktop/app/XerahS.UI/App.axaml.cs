@@ -210,9 +210,6 @@ public partial class App : Application
                 }
             });
 
-            // Wire up UploadRequested for embedded editor in MainWindow
-            Services.MainViewModelHelper.WireUploadRequested(mainViewModel, taskManager);
-
             // Wire up CopyRequested for embedded editor in MainWindow (use edited snapshot when on Editor tab)
             Services.MainViewModelHelper.WireCopyRequested(mainViewModel, () =>
             {
@@ -225,7 +222,7 @@ public partial class App : Application
                 return null;
             });
 
-            // Wire up SaveRequested / SaveAsRequested for embedded editor in MainWindow
+            // Use the flattened editor image for upload, save and pin actions.
             Func<SkiaSharp.SKBitmap?> getEmbeddedSnapshot = () =>
             {
                 if (desktop.MainWindow is Views.MainWindow mw)
@@ -236,6 +233,7 @@ public partial class App : Application
                 }
                 return null;
             };
+            Services.MainViewModelHelper.WireUploadRequested(mainViewModel, taskManager, getEmbeddedSnapshot);
             Services.MainViewModelHelper.WireSaveRequested(mainViewModel, getEmbeddedSnapshot, () => desktop.MainWindow);
             Services.MainViewModelHelper.WireSaveAsRequested(mainViewModel, getEmbeddedSnapshot, () => desktop.MainWindow);
             Services.MainViewModelHelper.WirePinRequested(mainViewModel, getEmbeddedSnapshot);

@@ -65,6 +65,7 @@ namespace XerahS.Core.Tasks.Processors
             ImageEditorSessionResult? editorResult = null;
             string? annotationSidecarPath = null;
             bool annotationSidecarSaveAttempted = false;
+            bool imageChanged = false;
 
             if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.ShowAfterCaptureWindow))
             {
@@ -121,6 +122,7 @@ namespace XerahS.Core.Tasks.Processors
                     }
 
                     info.Metadata.Image = processed;
+                    imageChanged = true;
                 }
             }
 
@@ -137,19 +139,29 @@ namespace XerahS.Core.Tasks.Processors
                     {
                         info.Metadata!.Image!.Dispose();
                         info.Metadata.Image = hostedAnnotation.Annotated;
+                        imageChanged = true;
                     }
                 }
                 else if (info.Metadata?.Image != null && PlatformServices.UI != null)
                 {
                     editorResult = await PlatformServices.UI.ShowEditorSessionAsync(info.Metadata.Image, taskMode: true);
-                    if (editorResult?.RenderedImage != null)
+                    if (editorResult == null)
                     {
-                        if (info.Metadata.Image != editorResult.RenderedImage)
-                        {
-                            info.Metadata.Image.Dispose();
-                        }
-                        info.Metadata.Image = editorResult.RenderedImage;
+                        // Cancelled or failed editor exports must not upload the unannotated input.
+                        DebugHelper.WriteLine("Annotation editor returned no image; stopping after-capture tasks.");
+                        return false;
                     }
+                    if (info.Metadata.Image != editorResult.RenderedImage)
+                    {
+                        info.Metadata.Image.Dispose();
+                    }
+                    info.Metadata.Image = editorResult.RenderedImage;
+                    imageChanged = true;
+                }
+                else
+                {
+                    DebugHelper.WriteLine("Annotation editor is unavailable; stopping after-capture tasks.");
+                    return false;
                 }
             }
 
@@ -161,7 +173,17 @@ namespace XerahS.Core.Tasks.Processors
                 if (!await PrivacyUploadGuard.PrepareAsync(info, token)) return false;
             }
 
-            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.SaveImageToFile))
+            if (imageChanged && info.PrivacyApproval == null)
+            {
+                // FilePath may still identify an imported/pre-edit image. Force downstream
+                // saving/uploading to materialize the current pixels without overwriting the input.
+                // Keep the original path until privacy review has checked its source format.
+                info.FilePath = string.Empty;
+            }
+
+            bool editedFileNeeded = imageChanged && (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyFileToClipboard)
+                || settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyFilePathToClipboard));
+            if (settings.AfterCaptureJob.HasFlag(AfterCaptureTasks.SaveImageToFile) || editedFileNeeded)
             {
                 await SaveImageToFileAsync(info);
                 annotationSidecarPath = await SaveAnnotationSidecarAsync(info, editorResult);
