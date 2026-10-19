@@ -55,7 +55,7 @@ public class TrayIconHelper : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public NativeMenu TrayMenu { get; private set; }
+    public NativeMenu TrayMenu { get; }
 
     public ICommand OpenMainWindowCommand { get; }
     public ICommand OpenSettingsCommand { get; }
@@ -487,8 +487,7 @@ public class TrayIconHelper : INotifyPropertyChanged
     /// </summary>
     public void RefreshFromSettings()
     {
-        ShowTray = SettingsManager.Settings.ShowTray;
-        BuildTrayMenu();
+        OnSettingsChanged(this, EventArgs.Empty);
     }
 
     public void BuildTrayMenu()
@@ -499,8 +498,8 @@ public class TrayIconHelper : INotifyPropertyChanged
             return;
         }
 
-        // Swap in a finished menu. Clearing the live NativeMenu from a worker
-        // empties the exported DBus menu and then throws on the next Add.
+        // Prepare the items before touching the exported menu. All NativeMenu
+        // creation and mutation must stay on the UI thread (including on Linux).
         var menu = new NativeMenu();
 
         // Add recording-specific menu items at the top when recording is active
@@ -547,9 +546,18 @@ public class TrayIconHelper : INotifyPropertyChanged
         menu.Items.Add(new NativeMenuItemSeparator());
         menu.Items.Add(new NativeMenuItem { Header = "Exit", Command = ExitCommand });
 
-        TrayMenu = menu;
-        OnPropertyChanged(nameof(TrayMenu));
-        DebugHelper.WriteLine($"Tray menu rebuilt with {menu.Items.Count} items.");
+        // macOS's native exporter retains a proxy for the original menu. Replacing
+        // that root throws "The menu being updated does not match" (#300).
+        // Detach the prepared items from their temporary parent before moving them.
+        var items = menu.Items.ToArray();
+        menu.Items.Clear();
+        TrayMenu.Items.Clear();
+        foreach (var item in items)
+        {
+            TrayMenu.Items.Add(item);
+        }
+
+        DebugHelper.WriteLine($"Tray menu rebuilt with {TrayMenu.Items.Count} items.");
     }
 
     /// <summary>

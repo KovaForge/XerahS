@@ -174,6 +174,23 @@ jobs:
             rm -f "$ARCHIVE_LIST"
           done
 
+      - name: Smoke test native macOS startup
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s build/ci -p 'test_smoke_desktop_startup.py'
+          case "$(uname -m)" in
+            arm64) ARCH=arm64 ;;
+            x86_64) ARCH=x64 ;;
+            *) echo "Unsupported macOS runner architecture" >&2; exit 1 ;;
+          esac
+          SMOKE_ROOT="$(mktemp -d)"
+          trap 'rm -rf "$SMOKE_ROOT"' EXIT
+          tar -xzf "dist/XerahS-${{ needs.validate-version.outputs.version }}-mac-${ARCH}.tar.gz" -C "$SMOKE_ROOT"
+          python3 -B build/ci/smoke_desktop_startup.py \
+            --app-bundle "$SMOKE_ROOT/XerahS.app" \
+            --output-log build/logs/macos-startup.log
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -189,7 +206,9 @@ jobs:
         with:
           name: macos-build-log
           if-no-files-found: warn
-          path: build/logs/macos-build.log
+          path: |
+            build/logs/macos-build.log
+            build/logs/macos-startup.log
 
   # OmaSnap capture engine (XIP0088), bundled in the Linux x64 tarball so XerahS works out of
   # the box on Omarchy/Hyprland. Ubuntu 24.04 ships Qt 6.4, so OmaSnap is built in an Arch

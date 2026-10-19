@@ -42,6 +42,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="0.33.4" date="2026-10-20">
+      <description>
+        <p>Fix macOS tray startup and keep update dialogs opaque over the editor.</p>
+      </description>
+    </release>
     <release version="0.33.3" date="2026-10-19">
       <description>
         <p>Improve annotation workflows, image colors, recording recovery, network monitoring and Linux packaging. See CHANGELOG.md for details.</p>

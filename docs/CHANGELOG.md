@@ -10,6 +10,19 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.33.4
+
+### Fixes
+
+- **macOS startup**: Keep the tray's native menu instance stable when initializing or rebuilding its items. This fixes the v0.33.3 startup crash reporting "The menu being updated does not match" and retains UI-thread updates for Linux.
+- **Update dialogs**: Keep the update prompt opaque while the image editor is open. App dialogs use the shell's dialog surface; editor dialogs retain their own overlay.
+
+### Build
+
+- **macOS verification**: Start the packaged app twice on the native CI runner with an isolated profile. Require tray initialization, loaded plugins and a live process before publishing the archives.
+
+---
+
 ## v0.33.3
 
 ### Features
