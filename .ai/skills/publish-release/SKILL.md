@@ -309,6 +309,7 @@ Default release-channel policy: `ShareX/XerahS` = pre-release; `KovaForge/XerahS
 One line per failed release iteration. Read before tagging; append a line for every new failure.
 
 - **Removing a shipped artifact leaves stale checks in several layers.** When a failed run names a missing file, grep the exact string across `build/` (including `build/ci/*.py` and the `.ps1` test fixtures), `src/desktop/app/XerahS.App/XerahS.App.csproj`, and `.github/workflows/`, then fix every hit in one `[Fix]` commit. Each run only reveals the first failing layer.
+- v0.33.4: Chocolatey metadata sync used an anonymous GitHub API request and hit a shared runner rate limit (403). Pass the job token to the sync step and authenticate only the API metadata request; keep token-precedence regressions in the Windows job.
 - v0.30.4: `build/windows/package-portable.ps1` still required `frontend/dist/index.html` from the removed ShareX.VideoEditor frontend.
 - v0.30.5: `build/windows/test-package-portable.ps1` fixture held a second `frontend/dist/index.html` reference.
 - v0.30.6: `XerahS.App.csproj` `<Error>` validators required the watch folder daemon/omaxerahs `.runtimeconfig.json` sidecar on macOS; .NET 10 single-file publish embeds it.

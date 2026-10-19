@@ -586,8 +586,14 @@ jobs:
 
           choco --version
 
+      - name: Test Chocolatey release metadata
+        shell: pwsh
+        run: .\build\windows\chocolatey\test-release-metadata.ps1
+
       - name: Sync and pack Chocolatey package
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           .\build\windows\chocolatey\Sync-ChocolateyPackage.ps1 `
             -Version "${{ needs.validate-version.outputs.version }}" `

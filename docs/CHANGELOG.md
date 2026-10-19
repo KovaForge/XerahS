@@ -10,6 +10,16 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.33.5
+
+Includes the macOS startup and update-dialog fixes from v0.33.4. Both native macOS launch checks passed for that build; its final Chocolatey job hit GitHub's anonymous API rate limit.
+
+### Build
+
+- **Release reliability**: Authenticate GitHub metadata requests during Chocolatey packaging so shared runner API quotas do not prevent publication of the package.
+
+---
+
 ## v0.33.4
 
 ### Fixes
