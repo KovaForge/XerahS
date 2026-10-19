@@ -59,7 +59,8 @@ recipe; the checked-in recipe and CI artifact are the fork's validated sources.
 
 Arch packaging always publishes plugins serially because they share project outputs.
 The general Linux packager bounds each `dotnet build-server shutdown` request to
-15 seconds. A failed or stalled shutdown client emits a warning and packaging
+15 seconds, with a five-second termination grace period. A failed or stalled
+shutdown client emits a warning and packaging
 continues; this maintenance operation must not block completed compiler output.
 The timeout targets only the shutdown client, not unrelated task processes.
 

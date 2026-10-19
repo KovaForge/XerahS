@@ -58,7 +58,7 @@ These are source fixes on KovaForge's develop branch, not a new published releas
 - Final complete package: `dist/aur/xerahs-git-0.33.2.r5080.gd4420337-1-x86_64.pkg.tar.zst`, built from `d4420337` with the repository-owned recipe. The packaged CLI's SQLite smoke check passed. Payload inspection verified app/CLI/daemon, twelve plugins, OmaSnap, MIT/OFL/ISC notices, desktop launcher and executable links. No host installation was performed.
 - Final desktop solution build after all source changes: **0 warnings, 0 errors**.
 - Code pushed to `KovaForge/XerahS/develop` at `d4420337`; dependency pushed to `KovaForge/ShareX.ImageEditor/develop` at `fc2a4f3`. Both pushes used the configured Declan wrapper.
-- GitHub [Markdown Hygiene](https://github.com/KovaForge/XerahS/actions/runs/39177283175) and [submodule enforcement](https://github.com/KovaForge/XerahS/actions/runs/39177283158) passed. [Clean Arch package CI](https://github.com/KovaForge/XerahS/actions/runs/39177283152) and [Windows/Linux recording CI](https://github.com/KovaForge/XerahS/actions/runs/39177283156) were running when this report was written; their links are the source of truth for completion.
+- GitHub [Markdown Hygiene](https://github.com/KovaForge/XerahS/actions/runs/39177283175), [submodule enforcement](https://github.com/KovaForge/XerahS/actions/runs/39177283158), [Windows/Linux recording CI](https://github.com/KovaForge/XerahS/actions/runs/39177283156), and the corrected [clean Arch package CI](https://github.com/KovaForge/XerahS/actions/runs/39237601524) all passed. The initial Arch timeout and verified recovery are documented below.
 
 ## Remaining confirmation / external work
 
@@ -82,5 +82,20 @@ an application compilation failure.
 The follow-up bounds the shutdown client to 15 seconds (continuing with a diagnostic
 if it fails), enforces serial plugin publishing in the Arch recipe, and exercises
 successful, failed and stalled shutdown clients in CI. Shell/metadata checks and
-the desktop solution build (0 warnings/errors) pass. A new clean Arch run verifies
-the complete recovery; its result will be recorded after completion.
+the desktop solution build (0 warnings/errors) pass. The corrected clean Arch run verifies the complete recovery, as recorded below.
+
+### Completed clean Arch verification
+
+[Run 39237601524](https://github.com/KovaForge/XerahS/actions/runs/39237601524)
+**passed** on `6237ebea`. Its log confirms the previously stalled shutdown client
+again reached its timeout (exit 124), emitted the diagnostic after 15 seconds,
+and packaging continued successfully. This exercises the actual CI failure path,
+in addition to the mocked shutdown regressions.
+
+The clean container built the app, CLI, daemon, twelve plugins and OmaSnap; the
+CLI SQLite smoke check passed. It produced
+`xerahs-git-0.33.2.r5084.g6237ebea-1-x86_64.pkg.tar.zst` and uploaded the
+`xerahs-arch-package` artifact (162,296,475 bytes; artifact ID `12179504731`).
+No CI time-limit increase was needed. Application fixes are in `d4420337`,
+the ImageEditor dependency fix is `fc2a4f3`, and the additional packaging recovery
+is `6237ebea`; all are pushed to their KovaForge repositories.
