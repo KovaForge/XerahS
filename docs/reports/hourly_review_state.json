@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-10-19 00:08 AWST",
+  "last_updated": "2026-10-19 08:07 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2224,6 +2224,15 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a found zero candidates in next_candidates; fork + upstream sync no-op (HEAD == declan/develop == origin/develop at 81069ae6, upstream/develop 9712850d already ancestor, 143 KovaForge commits ahead). ShareX.ImageEditor submodule clean (HEAD == origin/develop at d7c027fa; no upstream remote). Preserved unstaged teammate WIP (src/mobile/ios + web/, not discarded, not stashed, not committed). Also left unstaged local dirty tree on LinuxProcessTree.cs / FFmpegCLIManager.cs / FFmpeg desktop files / two test files (reverses HEAD 0a7b2899; not discarded). Older stashes left untouched (wip-preserved-20261014-080611, wip-preserved-20260922 ModalOpenService, xerahs-bugfix-WIP-WaylandPortalHotkeyService). No deferred-last-runs files. No code fixes landed this tick.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-10-19 08:07 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a found zero candidates in next_candidates; fork + upstream sync no-op (HEAD == declan/develop == origin/develop at ec5803ba, upstream/develop 9712850d already ancestor, 157 KovaForge commits ahead). ShareX.ImageEditor origin/develop fast-forwarded d7c027fa -> fc2a4f36 (no upstream remote). Parent gitlink left uncommitted to preserve existing dirty index/WIP. Preserved teammate WIP (src/mobile/ios + web/ + 32 previously staged files, not discarded, not stashed, not committed). Also left remaining worktree dirty files (not discarded). Older stashes left untouched (wip-preserved-20261014-080611, wip-preserved-20260922 ModalOpenService, xerahs-bugfix-WIP-WaylandPortalHotkeyService). No deferred-last-runs files. No code fixes landed this tick.",
       "status": "no-op"
     }
   ],
