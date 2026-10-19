@@ -184,17 +184,17 @@ namespace XerahS.UI.Views
         private void UpdateShellModalVisibility()
         {
             Grid? overlay = this.FindControl<Grid>("MainWindowModalOverlay");
-            ContentControl? contentFrame = this.FindControl<ContentControl>("ContentFrame");
-
             if (overlay == null)
             {
                 return;
             }
 
-            bool isEditorContent = contentFrame?.Content is EditorView;
             bool isModalOpen = _mainViewModel?.IsModalOpen == true;
+            bool editorOwnsModal = MainViewModel.IsEditorOwnedModal(_mainViewModel?.ModalContent);
 
-            overlay.IsVisible = isModalOpen && !isEditorContent;
+            // Editor dialogs bring their own surface. App dialogs (update prompt and the
+            // rest) use this overlay's opaque card, including while the editor page is open.
+            overlay.IsVisible = isModalOpen && !editorOwnsModal;
         }
 
         private void NavigateFromMenuTag(string? navTag)
