@@ -10,6 +10,38 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.33.3
+
+### Features
+
+- **Privacy mode**: Review sensitive content detected by the configured AI provider before an image upload, apply redaction, or open the annotation editor for manual changes.
+- **Recording controls**: Stop an active screen recording with Enter.
+
+### Fixes
+
+- **Annotation workflows**: Save, copy and upload the flattened annotated image when continuing from the editor. Cancel and window close now stop the workflow before its save, copy and upload tasks.
+- **Editor colors**: Preserve red, blue and alpha channels when converting between Avalonia and Skia images, including macOS RGBA images.
+- **Linux startup and logout**: Open the clipboard viewer safely when the main window is hidden, avoid activating background opens, and disable X11 session registration that can block logout.
+- **Network Monitor**: Make background monitoring opt-in, with settings and manual-session controls that stop probes when monitoring is disabled.
+- **Wayland recording**: Drain recorder output pipes, preserve playable fragments after interruption, and report forced shutdown or unusable output as failure before upload. Retain fatal errors through concurrent stop and completion paths.
+- **Windows cursor recovery**: Keep the recovery marker when cursor restoration fails so exit or next startup can retry.
+- **Upload reliability**: Handle moved watch-folder screenshots and let the CLI use file destinations that also accept images.
+- **Cloud and iOS**: Improve Cloud sign-in and TOTP setup, iOS credential storage, share-extension history and import handling, destination imports and uploaded file content types.
+
+### Build and downloads
+
+- **FFmpeg**: Use verified BtbN FFmpeg 9.0 stable builds for managed downloads.
+- **Arch Linux**: Maintain the AUR recipe and metadata in the repository, enforce pinned recursive dependencies, and verify packaging in a clean Arch CI container. Bound build-server shutdown so packaging can finish after a stalled shutdown client.
+- **Download channels**: Explain the separate ShareX upstream and KovaForge release histories and update sources.
+
+### Known limitations
+
+- The original intermittent Wayland/PipeWire stall and Windows capture crash still need reproduction; this release fixes recording failure handling and cursor recovery without claiming those underlying failures are eliminated.
+- Native macOS color and KDE/XFCE logout confirmation remain outstanding. The public AUR listing and separately hosted website require their own updates.
+- iOS and Cloud changes are source changes; this desktop release does not publish an iOS app or deploy Cloud.
+
+---
+
 ## v0.33.1
 
 ### Features
