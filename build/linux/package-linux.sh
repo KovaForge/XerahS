@@ -640,7 +640,7 @@ for ARCH in "${ARCHITECTURES[@]}"; do
     fi
 
     echo "Running dotnet publish ($ARCH)..."
-    dotnet build-server shutdown >/dev/null 2>&1 || true
+    bash "$SCRIPT_DIR/shutdown-build-servers.sh"
     dotnet_publish_serial "$PROJECT" \
         -c Release \
         -r "$ARCH" \
@@ -701,7 +701,7 @@ for ARCH in "${ARCHITECTURES[@]}"; do
 
     echo "Published $PLUGIN_COUNT plugins to startup Plugins folder: $PLUGINS_DIR"
     find "$PUBLISH_DIR" \( -name '*.pdb' -o -name 'DirectML*.dll' -o -name 'DirectML*.pdb' -o -name 'onnxruntime.dll' -o -name 'onnxruntime_providers_shared.dll' -o -name 'libe_sqlite3.a' \) -delete
-    dotnet build-server shutdown >/dev/null 2>&1 || true
+    bash "$SCRIPT_DIR/shutdown-build-servers.sh"
 
     # 2. Package
     echo "Packaging ($ARCH)..."

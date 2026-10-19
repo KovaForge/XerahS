@@ -54,3 +54,16 @@ Maintainer publishing checklist:
 Public AUR ownership/publishing remains external to `KovaForge/XerahS`. Until that
 transfer and publication happen, `yay -S xerahs-git` may still use the community
 recipe; the checked-in recipe and CI artifact are the fork's validated sources.
+
+## Build-server shutdown and plugin publishing
+
+Arch packaging always publishes plugins serially because they share project outputs.
+The general Linux packager bounds each `dotnet build-server shutdown` request to
+15 seconds. A failed or stalled shutdown client emits a warning and packaging
+continues; this maintenance operation must not block completed compiler output.
+The timeout targets only the shutdown client, not unrelated task processes.
+
+`bash build/tests/shutdown-build-servers.sh` covers successful, failed and stalled
+shutdown clients without touching real SDK servers. This fixes the first clean
+Arch CI run, which finished its app and plugins in about three minutes and then
+waited at server shutdown until the CI job expired.

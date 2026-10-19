@@ -69,3 +69,18 @@ These are source fixes on KovaForge's develop branch, not a new published releas
 | P1 | Native macOS and Linux desktop checks | On macOS, annotate a screenshot with distinct red/blue pixels and inspect saved/uploaded output. In a disposable KDE/XFCE session, confirm logout with XerahS running. Do not log the user's active desktop out as a test. |
 | P2 | Public AUR package (#284/#292) | Obtain co-maintainer authority, verify a clean graphical Arch install/start, then publish the reviewed recipe and metadata to the existing AUR package. The fork's commits do not alter the community listing. |
 | P2 | Hosted upstream website (#295) | Apply the channel explanation in the website repository if maintainers still want both download sources presented, then deploy through its normal review process. This audit changes only KovaForge/XerahS and its dependency. |
+
+### Clean CI follow-up
+
+Windows x64 build/recording tests, Windows ARM64 compilation, and Linux
+build/recording tests all passed in Native Recording run `39177283156`.
+The first clean Arch job `39177283152` compiled the app and twelve plugins in about
+three minutes, then stalled at the unbounded `dotnet build-server shutdown` call
+until GitHub canceled the one-hour job. This is a build orchestration defect, not
+an application compilation failure.
+
+The follow-up bounds the shutdown client to 15 seconds (continuing with a diagnostic
+if it fails), enforces serial plugin publishing in the Arch recipe, and exercises
+successful, failed and stalled shutdown clients in CI. Shell/metadata checks and
+the desktop solution build (0 warnings/errors) pass. A new clean Arch run verifies
+the complete recovery; its result will be recorded after completion.

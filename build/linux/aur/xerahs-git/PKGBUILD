@@ -89,7 +89,7 @@ build() {
     export XERAHS_ARCHITECTURES='linux-x64'
     # Build the vendored OmaSnap capture engine into the portable tarball (XIP0088).
     export XERAHS_BUILD_OMASNAP=1
-    export XERAHS_PLUGIN_JOBS="${XERAHS_PLUGIN_JOBS:-4}"
+    export XERAHS_PLUGIN_JOBS=1
 
     # Arch needs only the portable payload; do not hide unrelated packaging failures.
     export XERAHS_TARBALL_ONLY=1

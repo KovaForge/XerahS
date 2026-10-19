@@ -7,6 +7,7 @@ on:
       - 'build/linux/**'
       - 'build/verify-submodules.sh'
       - 'build/tests/verify-submodules.sh'
+      - 'build/tests/shutdown-build-servers.sh'
       - '.gitmodules'
       - 'ShareX.ImageEditor'
       - 'Omacut'
@@ -16,6 +17,13 @@ on:
     branches: [develop]
     paths:
       - 'build/linux/**'
+      - 'build/verify-submodules.sh'
+      - 'build/tests/verify-submodules.sh'
+      - 'build/tests/shutdown-build-servers.sh'
+      - '.gitmodules'
+      - 'ShareX.ImageEditor'
+      - 'Omacut'
+      - 'native/omasnap'
       - '.github/workflows/arch-package.yml'
 
 permissions:
@@ -46,6 +54,7 @@ jobs:
         working-directory: build/linux/aur/xerahs-git
         run: |
           runuser -u builder -- bash ../../../tests/verify-submodules.sh
+          runuser -u builder -- bash ../../../tests/shutdown-build-servers.sh
           runuser -u builder -- makepkg --printsrcinfo > /tmp/xerahs.SRCINFO
           diff -u .SRCINFO /tmp/xerahs.SRCINFO
       - name: Build package from the checked-out revision
