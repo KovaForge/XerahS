@@ -224,7 +224,8 @@
                             VerticalAlignment="Center" HorizontalAlignment="Center"
                             Margin="20"
                             BoxShadow="0 4 20 0 #40000000">
-                        <ContentControl Content="{Binding ModalContent}"/>
+                        <ContentControl x:Name="ShellModalContentHost"
+                                        Content="{Binding ShellModalContent}"/>
                     </Border>
                 </Grid>
             </ScrollViewer>
