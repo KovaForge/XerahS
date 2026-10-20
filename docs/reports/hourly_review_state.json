@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-10-20 00:06 AWST",
+  "last_updated": "2026-10-20 08:06 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2251,6 +2251,15 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a categoriser found zero candidates in next_candidates; fork sync no-op (HEAD == declan/develop at f282227f, origin/develop at ae9a5cc7). upstream/develop (9712850d) already ancestor of HEAD (162 KovaForge commits ahead, 0 incoming). ShareX.ImageEditor submodule clean (fc2a4f36 == origin/develop; no upstream remote on submodule). recently_pivoted FIFO at 48 / 200. Preserved unstaged teammate WIP (101 files including src/mobile/ios, web/, build/linux, README, docs/, .github/workflows, tests/) left as found (not discarded, not stashed, not committed). Older stashes left untouched (wip-preserved-20261014-080611, wip-preserved-20260922 ModalOpenService, xerahs-bugfix-WIP-WaylandPortalHotkeyService). No deferred-last-runs files. No code fixes landed this tick.",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-10-20 08:06 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a categoriser found zero candidates in next_candidates; fork sync no-op (HEAD == declan/develop == origin/develop at 5aa3463f). upstream/develop (9712850d) already ancestor of HEAD (165 KovaForge commits ahead, 0 incoming). ShareX.ImageEditor submodule fast-forwarded fc2a4f3 -> f34dd43 (no upstream remote on submodule); HEAD tree gitlink already at f34dd43 so no parent pointer update needed. Since last audit (f282227f, v0.33.3) three non-audit commits landed on declan/develop: dbf65ef4 ([Fix] Keep the update prompt opaque), 6608ea49 ([v0.33.4] Preserve native tray menu identity), 5aa3463f ([v0.33.5] Authenticate Chocolatey release metadata requests); plus audit-cycle merge db02e57a and prior-tick audit 53990817. recently_pivoted FIFO at 48 / 200. Preserved unstaged teammate WIP (109 files: build/, docs/, .github/workflows, src/desktop/app, src/desktop/plugins, tests/, etc.) left as found (not discarded, not stashed, not committed). Older stashes left untouched (wip-preserved-20261014-080611, wip-preserved-20260922 ModalOpenService, xerahs-bugfix-WIP-WaylandPortalHotkeyService). No deferred-last-runs files. No code fixes landed this tick.",
       "status": "no-op"
     }
   ],
