@@ -151,7 +151,9 @@ namespace XerahS.Core.Tasks.Pipeline
                 return hostedResult.Value;
             }
 
-            if (WorkflowCatalog.IsToolWorkflow(taskSettings.Job))
+            // Upload Content queues its items as ClipboardUploadWithContentViewer tasks with the content preloaded;
+            // those must upload, not reopen the Upload Content window.
+            if (WorkflowCatalog.IsToolWorkflow(taskSettings.Job) && !HasPreloadedUploadContent(context))
             {
                 await _workerTask.HandleToolWorkflowAsync(token);
                 return PipelineStageResult.Stop;
@@ -182,12 +184,7 @@ namespace XerahS.Core.Tasks.Pipeline
                     break;
 
                 case WorkflowType.ClipboardUploadWithContentViewer:
-                    bool hasPreloadedUploadContent =
-                        metadata.Image != null ||
-                        !string.IsNullOrEmpty(context.Info.TextContent) ||
-                        !string.IsNullOrEmpty(context.Info.FilePath);
-
-                    if (hasPreloadedUploadContent)
+                    if (HasPreloadedUploadContent(context))
                     {
                         DebugHelper.WriteLine("ClipboardUploadWithContentViewer: preloaded content detected, bypassing tool callback.");
                         break;
@@ -430,6 +427,14 @@ namespace XerahS.Core.Tasks.Pipeline
             }
 
             return FinishCapture(context, image, captureStopwatch);
+        }
+
+        internal static bool HasPreloadedUploadContent(PipelineContext context)
+        {
+            return context.Info.TaskSettings?.Job == WorkflowType.ClipboardUploadWithContentViewer &&
+                (context.Info.Metadata?.Image != null ||
+                 !string.IsNullOrEmpty(context.Info.TextContent) ||
+                 !string.IsNullOrEmpty(context.Info.FilePath));
         }
 
         private static PipelineStageResult FinishCapture(PipelineContext context, SKBitmap? image, Stopwatch captureStopwatch)
