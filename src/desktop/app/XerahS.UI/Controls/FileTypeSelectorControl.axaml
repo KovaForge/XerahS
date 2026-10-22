@@ -9,9 +9,19 @@
         <CheckBox Content="Handle all file types for this category"
                   IsChecked="{Binding IsAllFileTypes}"
                   FontWeight="SemiBold"/>
+        <TextBlock Text="Types that another destination claims below still go to that destination."
+                   FontSize="11"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                   Margin="0,-6,0,0"/>
 
         <!-- File Type Selector (disabled when All File Types is checked) -->
         <StackPanel Spacing="5" IsEnabled="{Binding !IsAllFileTypes}">
+            <CheckBox Content="Text files (Markdown, plain text, code, JSON, YAML, CSV, ...)"
+                      IsChecked="{Binding IsTextFiles}"
+                      IsVisible="{Binding ShowTextFilesOption}"
+                      FontWeight="SemiBold"/>
+
             <TextBlock Text="Specific File Types:" FontWeight="SemiBold"/>
             <TextBlock Text="Select which file types this instance should handle"
                        FontSize="11"

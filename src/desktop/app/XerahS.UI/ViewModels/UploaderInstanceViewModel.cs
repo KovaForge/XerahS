@@ -51,6 +51,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
     private string _displayName = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowTextFilesOption))]
     private UploaderCategory _category;
 
     [ObservableProperty]
@@ -94,6 +95,12 @@ public partial class UploaderInstanceViewModel : ViewModelBase
 
     [ObservableProperty]
     private bool _isAllFileTypes;
+
+    [ObservableProperty]
+    private bool _isTextFiles;
+
+    /// <summary>"Text files" only routes file uploads; text and image uploads have their own categories.</summary>
+    public bool ShowTextFilesOption => Category == UploaderCategory.File;
 
     [ObservableProperty]
     private ObservableCollection<string> _selectedFileExtensions = new();
@@ -201,7 +208,8 @@ public partial class UploaderInstanceViewModel : ViewModelBase
 
     private void OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(IsAllFileTypes) || e.PropertyName == nameof(SelectedFileExtensions))
+        if (e.PropertyName == nameof(IsAllFileTypes) || e.PropertyName == nameof(IsTextFiles) ||
+            e.PropertyName == nameof(SelectedFileExtensions))
         {
             UpdateFileTypeScope();
             UpdateFileTypeScopeDisplay();
@@ -335,6 +343,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
     {
         // Load current file type scope from instance
         IsAllFileTypes = Instance.FileTypeRouting.AllFileTypes;
+        IsTextFiles = Instance.FileTypeRouting.TextFiles;
 
         SelectedFileExtensions.Clear();
         foreach (var ext in Instance.FileTypeRouting.FileExtensions)
@@ -395,6 +404,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
     private void UpdateFileTypeScope()
     {
         Instance.FileTypeRouting.AllFileTypes = IsAllFileTypes;
+        Instance.FileTypeRouting.TextFiles = !IsAllFileTypes && IsTextFiles;
         Instance.FileTypeRouting.FileExtensions.Clear();
 
         if (!IsAllFileTypes)
@@ -414,9 +424,15 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         {
             FileTypeScopeDisplay = "All File Types";
         }
-        else if (SelectedFileExtensions.Any())
+        else if (IsTextFiles || SelectedFileExtensions.Any())
         {
-            FileTypeScopeDisplay = string.Join(", ", SelectedFileExtensions.OrderBy(x => x));
+            var parts = SelectedFileExtensions.OrderBy(x => x).ToList();
+            if (IsTextFiles)
+            {
+                parts.Insert(0, "Text files");
+            }
+
+            FileTypeScopeDisplay = string.Join(", ", parts);
         }
         else
         {

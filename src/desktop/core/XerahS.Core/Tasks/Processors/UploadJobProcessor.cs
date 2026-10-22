@@ -268,6 +268,11 @@ namespace XerahS.Core.Tasks.Processors
             // Not Auto - use the configured instance directly
             targetInstance ??= ResolveDefaultInstance(instanceManager, category);
 
+            if (allowCrossCategoryFallback)
+            {
+                targetInstance = ApplyFileTypeRoute(instanceManager, category, targetInstance, info.FileName);
+            }
+
             if (targetInstance == null && category == UploaderCategory.File)
             {
                 targetInstance = EnsureAutoFileDestinationInstance(instanceManager);
@@ -362,6 +367,55 @@ namespace XerahS.Core.Tasks.Processors
             }
 
             return targetInstance;
+        }
+
+        /// <summary>
+        /// Hands a file to the destination that claims its type (a listed extension or "Text files") when the
+        /// chosen destination only covers it as a catch-all, so e.g. .md goes to a docs host while the
+        /// default stays object storage. Auto destinations already route by type.
+        /// </summary>
+        internal static UploaderInstance? ApplyFileTypeRoute(
+            InstanceManager instanceManager,
+            UploaderCategory category,
+            UploaderInstance? targetInstance,
+            string? fileName)
+        {
+            if (category != UploaderCategory.File || string.IsNullOrWhiteSpace(fileName) ||
+                (targetInstance != null && InstanceManager.IsAutoProvider(targetInstance.ProviderId)))
+            {
+                return targetInstance;
+            }
+
+            string extension = Path.GetExtension(fileName);
+            if (targetInstance != null && ClaimsFileTypeSpecifically(targetInstance, extension))
+            {
+                return targetInstance;
+            }
+
+            var specialist = instanceManager.GetSpecificDestinationForFile(category, extension);
+            if (specialist == null ||
+                (targetInstance != null && string.Equals(specialist.InstanceId, targetInstance.InstanceId, StringComparison.OrdinalIgnoreCase)))
+            {
+                return targetInstance;
+            }
+
+            DebugHelper.WriteLine(
+                $"File type route: '{extension}' goes to {specialist.DisplayName} ({specialist.InstanceId}) " +
+                $"instead of {targetInstance?.DisplayName ?? "(no destination)"}.");
+            return specialist;
+        }
+
+        private static bool ClaimsFileTypeSpecifically(UploaderInstance instance, string extension)
+        {
+            var routing = instance.FileTypeRouting;
+            if (routing == null || routing.AllFileTypes)
+            {
+                return false;
+            }
+
+            string ext = extension.Trim().TrimStart('.');
+            return (routing.FileExtensions ?? []).Any(e => string.Equals(e?.Trim().TrimStart('.'), ext, StringComparison.OrdinalIgnoreCase)) ||
+                (routing.TextFiles && FileTypeScope.IsTextFileExtension(ext));
         }
 
         private static bool AllowsCrossCategoryFallback(TaskInfo info)
