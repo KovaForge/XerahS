@@ -8381,3 +8381,13 @@ M build/linux/aur/xerahs-git/PKGBUILD
   since 2026-09-15 (latest .clawpatch report 20260915T150433-dbf64c.md);
   consumer queue stays empty until the producer lands a fresh payload.
 - Skill: xerahs-bugfix/SKILL.md v1.1.37 (no patch this tick)
+
+### 2026-10-22 16:15 AWST - Queue check / no queued candidates
+
+- Area: xerahs-bugfix consumer queue (empty-queue audit, Step 7c)
+- Files: docs/reports/hourly_review_state.json, docs/reports/hourly_review_tracker.md
+- Findings: Step 5a categoriser over 0 next_candidates produced 0 real-bug, 0 already-fixed, 0 tfm-noise, 0 dead-code, 0 false-positive, 0 out-of-scope. No code fix and no pivot this tick. Producer xerahs-review has emitted no new candidates since 2026-09-15.
+- Status: No-op (audit only)
+- Build/test: not run (no code change this tick); logs: n/a
+- Commit: (this tracker commit; state row commit=null)
+- Follow-up: queue stays empty until producer lands a fresh payload; worktree disk/index remain stale vs HEAD 046e33ef (left as found)
