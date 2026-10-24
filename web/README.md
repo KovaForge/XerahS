@@ -26,6 +26,17 @@ pnpm test
 pnpm build
 ```
 
+`pnpm audit --prod --audit-level high` is the first gate of the `XerahS Cloud Web CI` web job and fails the whole job when it trips. Fix a failing advisory by upgrading the affected package to a patched release; never lower `--audit-level` and never add an audit ignore or an override that keeps a vulnerable version in place. When an advisory has no patched release yet, record the package, the advisory id and the mitigation in this file, next to the lockfile, instead of skipping the gate.
+
+Dependency refresh, 2026-10-25, after CI run 40038453939 (21 findings: 2 low, 11 moderate, 6 high, 2 critical):
+
+- `next` 16.3.7 → 16.4.3 fixes GHSA-2464-fhr4-w9xw and GHSA-673q-mjm6-r5xr (unauthenticated remote code execution in the image optimization API and in `use cache`), GHSA-p3m5-59mp-jv5r (denial of service in App Router server actions) and GHSA-cjq9-62q9-8jv4 (server-side request forgery in image optimization), plus the 16.3.x cache advisories.
+- `zod` 4.4.3 and 4.6.5 → 4.6.7 fixes GHSA-mrhx-c7xc-m3w5 (memory exhaustion when validating oversized constrained collections). One `zod` version now serves the whole production graph.
+- `vitest` 4.1.11 → 4.1.12 fixes GHSA-qxg6-89mg-rqv8 and GHSA-xp26-3454-mjgp in `@vitest/mocker`, and pulls `vite` 8.2.2 → 8.3.5 (GHSA-587h-7wmj-h5pm) and `source-map-js` 1.2.1 → 1.2.2 (GHSA-68fv-2mgg-jv7q).
+- `eslint-config-next` 16.3.2 → 16.4.3 keeps the lint configuration in lockstep with `next`.
+
+`vite` and `source-map-js` only reached the production audit because `better-auth` declares `vitest` as an optional peer dependency, so the workspace's development `vitest` sits inside the production dependency graph that `pnpm audit --prod` walks. `pnpm audit --prod` is clean after the refresh. A full `pnpm audit` still reports development-only findings in `wrangler` → `miniflare` → `undici`/`sharp` and in the ESLint toolchain under `tooling/eslint`; those are outside the production gate and are tracked separately.
+
 Database migrations, RLS policies, the local seed and pgTAP tests live in `db/cloud/`. `00000000000000_supabase_compat.sql` recreates the small part of Supabase the XIP0085 SQL uses (the `anon`/`authenticated`/`service_role` roles and `auth.uid()`/`auth.jwt()` over `request.jwt.claims`), so those migrations run unchanged on plain Postgres. Apply migrations with `node scripts/db-migrate.ts --dir db/cloud/migrations`, never by editing the database by hand; test them on a throwaway Neon branch first. The web handlers depend on the narrowly granted RPCs documented in `openapi.yaml` and the migrations; `src/lib/database.ts` calls them the way PostgREST did (`SET LOCAL ROLE`, request claims, then the function).
 
 The root workflows run the Node 24 application checks and a Postgres 17 migration, seed and pgTAP suite. Staging deployment is manual and protected until the Vercel and Neon environment secrets are connected.
