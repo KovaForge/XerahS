@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "purpose": "Hot state for recurring XerahS hourly review selection. Keep this file small and machine-readable; archive raw detail separately.",
-  "last_updated": "2026-10-24 00:06 AWST",
+  "last_updated": "2026-10-24 08:05 AWST",
   "selection_rules": [
     "Read this JSON first, then the short current tracker only if human context is needed.",
     "Prefer the stalest high-priority area that is not blocked by a larger prerequisite.",
@@ -2359,6 +2359,15 @@
       "item": "xerahs-bugfix consumer queue",
       "commit": null,
       "summary": "Step 5a categoriser found zero next_candidates (queue 0 -> 0); no fixes, no pivots this tick. Deleted stale deferred-last-runs files if any. HEAD 64c733a7 == declan/develop == origin/develop; upstream/develop 9712850d already an ancestor (185 KovaForge commits ahead, 0 incoming). ShareX.ImageEditor clean at f34dd43 == origin/develop (no upstream remote in submodule).",
+      "status": "no-op"
+    },
+    {
+      "ts": "2026-10-24 08:05 AWST",
+      "agent": "declan",
+      "outcome": "no-op",
+      "item": "xerahs-bugfix consumer queue",
+      "commit": null,
+      "summary": "Step 5a categoriser found zero next_candidates (queue 0 -> 0); no fixes, no pivots this tick. Deleted stale deferred-last-runs files if any. HEAD c0c11c29 == declan/develop == origin/develop; upstream/develop 9712850d already an ancestor (186 KovaForge commits ahead, 0 incoming). ShareX.ImageEditor clean at f34dd43 == origin/develop (no upstream remote in submodule).",
       "status": "no-op"
     }
   ],
