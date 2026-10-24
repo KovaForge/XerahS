@@ -415,7 +415,7 @@ namespace XerahS.Core.Tasks.Processors
 
             string ext = extension.Trim().TrimStart('.');
             return (routing.FileExtensions ?? []).Any(e => string.Equals(e?.Trim().TrimStart('.'), ext, StringComparison.OrdinalIgnoreCase)) ||
-                (routing.TextFiles && FileTypeScope.IsTextFileExtension(ext));
+                routing.ClaimsAsTextFile(ext);
         }
 
         private static bool AllowsCrossCategoryFallback(TaskInfo info)

@@ -21,6 +21,11 @@ public class FileTypeScope
         "diff", "patch", "srt", "vtt"
     };
 
+    /// <summary>
+    /// Web pages are uploaded to be hosted and opened as pages, so by default they are not routed as text files.
+    /// </summary>
+    public static readonly IReadOnlyList<string> DefaultTextFileExceptions = new[] { "html", "htm", "xhtml", "xht" };
+
     /// <summary>Catch-all for the category. Instances with specific types or <see cref="TextFiles"/> take precedence.</summary>
     public bool AllFileTypes { get; set; }
 
@@ -29,13 +34,29 @@ public class FileTypeScope
 
     public List<string> FileExtensions { get; set; } = new();
 
+    /// <summary>
+    /// Extensions <see cref="TextFiles"/> must not claim, so they keep going to the file destination.
+    /// Null means <see cref="DefaultTextFileExceptions"/> (older settings have no value); an empty list means none.
+    /// </summary>
+    public List<string>? TextFileExceptions { get; set; }
+
+    public IReadOnlyList<string> EffectiveTextFileExceptions => TextFileExceptions ?? DefaultTextFileExceptions;
+
+    /// <summary>True when <see cref="TextFiles"/> is on and claims this extension (a text type that is not an exception).</summary>
+    public bool ClaimsAsTextFile(string? extension)
+    {
+        if (!TextFiles || !IsTextFileExtension(extension)) return false;
+        string ext = extension!.Trim().TrimStart('.');
+        return !EffectiveTextFileExceptions.Contains(ext, StringComparer.OrdinalIgnoreCase);
+    }
+
     public static bool IsTextFileExtension(string? extension) =>
         !string.IsNullOrWhiteSpace(extension) && TextFileExtensions.Contains(extension.Trim().TrimStart('.'));
 
     public bool HandlesExtension(string extension)
     {
         if (AllFileTypes) return true;
-        if (TextFiles && IsTextFileExtension(extension)) return true;
+        if (ClaimsAsTextFile(extension)) return true;
         return FileExtensions.Contains(extension.Trim().TrimStart('.'), StringComparer.OrdinalIgnoreCase);
     }
 }

@@ -99,6 +99,12 @@ public partial class UploaderInstanceViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isTextFiles;
 
+    /// <summary>Comma-separated extensions that "Text files" must not claim.</summary>
+    [ObservableProperty]
+    private string _textFileExceptionsText = string.Empty;
+
+    public bool ShowTextFileExceptions => ShowTextFilesOption && IsTextFiles;
+
     /// <summary>"Text files" only routes file uploads; text and image uploads have their own categories.</summary>
     public bool ShowTextFilesOption => Category == UploaderCategory.File;
 
@@ -208,8 +214,13 @@ public partial class UploaderInstanceViewModel : ViewModelBase
 
     private void OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(IsTextFiles))
+        {
+            OnPropertyChanged(nameof(ShowTextFileExceptions));
+        }
+
         if (e.PropertyName == nameof(IsAllFileTypes) || e.PropertyName == nameof(IsTextFiles) ||
-            e.PropertyName == nameof(SelectedFileExtensions))
+            e.PropertyName == nameof(TextFileExceptionsText) || e.PropertyName == nameof(SelectedFileExtensions))
         {
             UpdateFileTypeScope();
             UpdateFileTypeScopeDisplay();
@@ -344,6 +355,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
         // Load current file type scope from instance
         IsAllFileTypes = Instance.FileTypeRouting.AllFileTypes;
         IsTextFiles = Instance.FileTypeRouting.TextFiles;
+        TextFileExceptionsText = string.Join(", ", Instance.FileTypeRouting.EffectiveTextFileExceptions);
 
         SelectedFileExtensions.Clear();
         foreach (var ext in Instance.FileTypeRouting.FileExtensions)
@@ -405,6 +417,7 @@ public partial class UploaderInstanceViewModel : ViewModelBase
     {
         Instance.FileTypeRouting.AllFileTypes = IsAllFileTypes;
         Instance.FileTypeRouting.TextFiles = !IsAllFileTypes && IsTextFiles;
+        Instance.FileTypeRouting.TextFileExceptions = ParseExtensionList(TextFileExceptionsText);
         Instance.FileTypeRouting.FileExtensions.Clear();
 
         if (!IsAllFileTypes)
@@ -417,6 +430,14 @@ public partial class UploaderInstanceViewModel : ViewModelBase
 
         InstanceManager.Instance.UpdateInstance(Instance);
     }
+
+    internal static List<string> ParseExtensionList(string? text) =>
+        (text ?? string.Empty)
+            .Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => x.TrimStart('.').ToLowerInvariant())
+            .Where(x => x.Length > 0)
+            .Distinct()
+            .ToList();
 
     private void UpdateFileTypeScopeDisplay()
     {

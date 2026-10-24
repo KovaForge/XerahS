@@ -21,6 +21,14 @@
                       IsChecked="{Binding IsTextFiles}"
                       IsVisible="{Binding ShowTextFilesOption}"
                       FontWeight="SemiBold"/>
+            <StackPanel Spacing="3" IsVisible="{Binding ShowTextFileExceptions}">
+                <TextBlock Text="Except these types (they stay on the file destination):"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                <TextBox Text="{Binding TextFileExceptionsText}"
+                         Watermark="html, htm"
+                         AutomationProperties.Name="Text file types that are not routed as text files"/>
+            </StackPanel>
 
             <TextBlock Text="Specific File Types:" FontWeight="SemiBold"/>
             <TextBlock Text="Select which file types this instance should handle"

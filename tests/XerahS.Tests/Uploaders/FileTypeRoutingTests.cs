@@ -59,6 +59,56 @@ public class FileTypeRoutingTests
         Assert.That(InstanceManager.Instance.GetSpecificDestinationForFile(UploaderCategory.File, ".png"), Is.Null);
     }
 
+    [TestCase("html")]
+    [TestCase(".HTM")]
+    [TestCase("xhtml")]
+    public void WebPages_AreExceptionsToTextFilesByDefault(string extension)
+    {
+        var s3 = Add("S3", new FileTypeScope { AllFileTypes = true });
+        Add("Docs", new FileTypeScope { TextFiles = true });
+
+        Assert.That(FileTypeScope.IsTextFileExtension(extension), Is.True);
+        Assert.That(InstanceManager.Instance.GetSpecificDestinationForFile(UploaderCategory.File, extension), Is.Null);
+        Assert.That(InstanceManager.Instance.GetDestinationForFile(UploaderCategory.File, extension)?.InstanceId, Is.EqualTo(s3.InstanceId));
+        Assert.That(Route(s3, "architecture." + extension.TrimStart('.'))?.InstanceId, Is.EqualTo(s3.InstanceId));
+    }
+
+    [Test]
+    public void TextFileExceptions_AreConfigurable()
+    {
+        var s3 = Add("S3", new FileTypeScope { AllFileTypes = true });
+        var docs = Add("Docs", new FileTypeScope { TextFiles = true, TextFileExceptions = [] });
+
+        // An empty list removes the default exception, so html is a text file again.
+        Assert.That(Route(s3, "page.html")?.InstanceId, Is.EqualTo(docs.InstanceId));
+
+        docs.FileTypeRouting!.TextFileExceptions = ["md"];
+        Assert.That(Route(s3, "notes.md")?.InstanceId, Is.EqualTo(s3.InstanceId));
+        Assert.That(Route(s3, "page.html")?.InstanceId, Is.EqualTo(docs.InstanceId));
+        Assert.That(docs.FileTypeRouting.HandlesExtension("md"), Is.False);
+    }
+
+    [Test]
+    public void TextFileExceptions_DefaultsWhenMissingFromSavedSettings()
+    {
+        var scope = Newtonsoft.Json.JsonConvert.DeserializeObject<FileTypeScope>("{\"TextFiles\":true,\"FileExtensions\":[]}")!;
+
+        Assert.That(scope.TextFileExceptions, Is.Null);
+        Assert.That(scope.EffectiveTextFileExceptions, Is.EquivalentTo(FileTypeScope.DefaultTextFileExceptions));
+        Assert.That(scope.ClaimsAsTextFile("html"), Is.False);
+        Assert.That(scope.ClaimsAsTextFile("md"), Is.True);
+    }
+
+    [Test]
+    public void CopiedInstance_KeepsTextFileExceptions()
+    {
+        var docs = Add("Docs", new FileTypeScope { TextFiles = true, TextFileExceptions = ["md", "txt"] });
+
+        var copy = InstanceManager.Instance.DuplicateInstance(docs.InstanceId, "Docs 2");
+
+        Assert.That(copy?.FileTypeRouting?.TextFileExceptions, Is.EqualTo(new[] { "md", "txt" }));
+    }
+
     [Test]
     public void ApplyFileTypeRoute_HandsTextFileFromDefaultToSpecialist()
     {

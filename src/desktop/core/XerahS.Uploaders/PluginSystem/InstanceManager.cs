@@ -307,6 +307,7 @@ public class InstanceManager
                 {
                     AllFileTypes = source.FileTypeRouting.AllFileTypes,
                     TextFiles = source.FileTypeRouting.TextFiles,
+                    TextFileExceptions = source.FileTypeRouting.TextFileExceptions?.ToList(),
                     FileExtensions = source.FileTypeRouting.FileExtensions.ToList()
                 },
                 CreatedAt = createdAt,
@@ -459,7 +460,7 @@ public class InstanceManager
 
             return instances.FirstOrDefault(i =>
                     GetFileTypeRouting(i).FileExtensions.Any(e => e.Equals(ext, StringComparison.OrdinalIgnoreCase))) ??
-                instances.FirstOrDefault(i => GetFileTypeRouting(i).TextFiles && FileTypeScope.IsTextFileExtension(ext));
+                instances.FirstOrDefault(i => GetFileTypeRouting(i).ClaimsAsTextFile(ext));
         }
     }
 
