@@ -167,7 +167,36 @@ namespace XerahS.Core.Tasks.Processors
                 }
             }
 
+            ApplyNamingConvention(info);
+
             return await StartUploadAsync(info, token).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Generic file uploads keep their source name, so different files sent with the same name
+        /// end up at one constant URL. Apply the task's name pattern (as screenshots do) and keep the extension.
+        /// </summary>
+        private static void ApplyNamingConvention(TaskInfo info)
+        {
+            if (info.DataType != EDataType.File || string.IsNullOrEmpty(info.FilePath) || PrivacyUploadGuard.IsRequired(info))
+            {
+                return;
+            }
+
+            try
+            {
+                string extension = Path.GetExtension(info.FilePath);
+                string newName = TaskHelpers.GetFileName(info.TaskSettings, extension, info.Metadata);
+                if (!string.IsNullOrWhiteSpace(newName))
+                {
+                    DebugHelper.WriteLine($"[UploadTrace {info.CorrelationId}] Renaming upload \"{info.FileName}\" -> \"{newName}\"");
+                    info.SetFileName(newName);
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.WriteException(ex, "Failed to apply upload naming convention; keeping original file name");
+            }
         }
 
         private static UploadResult? AdoptRecordedUpload(TaskInfo info, HistoryItem? recorded)
