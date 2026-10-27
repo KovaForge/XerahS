@@ -110,6 +110,12 @@ CREATE TABLE IF NOT EXISTS History (
             return items;
         }
 
+        /// <summary>
+        /// Loads the complete history for statistics. Read failures propagate
+        /// so callers can distinguish an unavailable database from an empty history.
+        /// </summary>
+        public List<HistoryItem> GetStatisticsItems() => Load();
+
         public int GetTotalCount()
         {
             using (SqliteCommand cmd = new SqliteCommand("SELECT COUNT(*) FROM History;", EnsureConnection()))
