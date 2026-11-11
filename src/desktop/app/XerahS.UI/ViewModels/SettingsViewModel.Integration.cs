@@ -180,6 +180,25 @@ namespace XerahS.UI.ViewModels
         [ObservableProperty]
         private string _assistantProviderStatusText = "Local commands are available without an AI provider.";
 
+        private ObservableCollection<AssistantFeatureOptionViewModel>? _assistantFeatureOptions;
+
+        /// <summary>
+        /// One checkbox per place XerahS uses the AI provider (XerahS.Assistant.Ai.AiFeatures).
+        /// </summary>
+        public ObservableCollection<AssistantFeatureOptionViewModel> AssistantFeatureOptions =>
+            _assistantFeatureOptions ??= new(XerahS.Assistant.Ai.AiFeatures.All.Select(feature => new AssistantFeatureOptionViewModel(feature)));
+
+        // Every provider change (saved, validated, key removed) reports through the status text.
+        partial void OnAssistantProviderStatusTextChanged(string value) => RefreshAssistantFeatureAvailability();
+
+        private void RefreshAssistantFeatureAvailability()
+        {
+            foreach (AssistantFeatureOptionViewModel option in AssistantFeatureOptions)
+            {
+                option.RefreshAvailability();
+            }
+        }
+
         public bool AssistantEnabled
         {
             get => SettingsManager.Settings.AssistantEnabled;
@@ -231,14 +250,26 @@ namespace XerahS.UI.ViewModels
 
         public bool AssistantProviderNeedsApiKey => SelectedAssistantProvider?.Id != "ollama";
 
+        public bool AssistantProviderSupportsChatGptSignIn =>
+            string.Equals(SelectedAssistantProvider?.Id, "openai", StringComparison.OrdinalIgnoreCase);
+
+        public bool AssistantProviderHasChatGptSession =>
+            AssistantProviderSupportsChatGptSignIn && ChatGptSignIn.IsSignedIn;
+
         public bool AssistantProviderHasApiKey =>
             SelectedAssistantProvider != null && AssistantProviderSecrets.HasApiKey(SelectedAssistantProvider.Id);
 
-        public string AssistantProviderKeyStatus => AssistantProviderHasApiKey
-            ? "API key is stored in the XerahS secret store."
-            : AssistantProviderNeedsApiKey
-                ? "API key is not configured."
-                : "Ollama uses the local daemon and does not need an API key.";
+        public string AssistantProviderKeyStatus => AssistantProviderHasChatGptSession
+            ? string.IsNullOrWhiteSpace(ChatGptSignIn.Email)
+                ? "Signed in with ChatGPT. Requests use your ChatGPT plan. An API key is optional."
+                : $"Signed in with ChatGPT ({ChatGptSignIn.Email}). Requests use your ChatGPT plan. An API key is optional."
+            : AssistantProviderHasApiKey
+                ? "API key is stored in the XerahS secret store."
+                : AssistantProviderNeedsApiKey
+                    ? AssistantProviderSupportsChatGptSignIn
+                        ? "Not signed in. Continue with ChatGPT, or save an API key."
+                        : "API key is not configured."
+                    : "Ollama uses the local daemon and does not need an API key.";
 
         public string AssistantHotkeyStatusText
         {
@@ -293,9 +324,11 @@ namespace XerahS.UI.ViewModels
             SaveSelectedAssistantProviderSettings();
             if (!AssistantProviderSettingsResolver.TryGetActive(out AssistantProviderRuntimeSettings runtimeSettings))
             {
-                AssistantProviderStatusText = AssistantProviderNeedsApiKey
-                    ? "Save an API key before validating this provider."
-                    : "Provider settings are incomplete.";
+                AssistantProviderStatusText = AssistantProviderSupportsChatGptSignIn
+                    ? "Sign in with ChatGPT or save an API key before validating this provider."
+                    : AssistantProviderNeedsApiKey
+                        ? "Save an API key before validating this provider."
+                        : "Provider settings are incomplete.";
                 return;
             }
 
@@ -327,6 +360,43 @@ namespace XerahS.UI.ViewModels
             AssistantProviderSecrets.DeleteApiKey(SelectedAssistantProvider.Id);
             AssistantProviderApiKey = string.Empty;
             AssistantProviderStatusText = $"{SelectedAssistantProvider.DisplayName} API key removed.";
+            NotifyAssistantProviderSecretProperties();
+        }
+
+        [RelayCommand]
+        private async Task SignInWithChatGptAsync()
+        {
+            if (!AssistantProviderSupportsChatGptSignIn || SelectedAssistantProvider == null)
+            {
+                return;
+            }
+
+            SaveSelectedAssistantProviderSettings();
+            AssistantProviderStatusText = "Waiting for ChatGPT in the browser...";
+            try
+            {
+                string email = await ChatGptSignIn.SignInAsync(CancellationToken.None);
+                AssistantProviderStatusText = string.IsNullOrWhiteSpace(email)
+                    ? "Signed in with ChatGPT."
+                    : $"Signed in with ChatGPT as {email}.";
+            }
+            catch (ChatGptSignInException ex)
+            {
+                AssistantProviderStatusText = ex.Message;
+            }
+            catch (Exception)
+            {
+                AssistantProviderStatusText = "ChatGPT sign-in failed.";
+            }
+
+            NotifyAssistantProviderSecretProperties();
+        }
+
+        [RelayCommand]
+        private void SignOutOfChatGpt()
+        {
+            ChatGptSignIn.SignOut();
+            AssistantProviderStatusText = "Signed out of ChatGPT.";
             NotifyAssistantProviderSecretProperties();
         }
 
@@ -397,6 +467,8 @@ namespace XerahS.UI.ViewModels
         private void NotifyAssistantProviderSecretProperties()
         {
             OnPropertyChanged(nameof(AssistantProviderNeedsApiKey));
+            OnPropertyChanged(nameof(AssistantProviderSupportsChatGptSignIn));
+            OnPropertyChanged(nameof(AssistantProviderHasChatGptSession));
             OnPropertyChanged(nameof(AssistantProviderHasApiKey));
             OnPropertyChanged(nameof(AssistantProviderKeyStatus));
         }

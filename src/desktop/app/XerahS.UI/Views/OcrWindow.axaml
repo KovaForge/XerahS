@@ -16,6 +16,20 @@
     <!-- Options Bar -->
     <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16" Margin="0,0,0,12">
 
+      <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasEngineChoice}">
+        <TextBlock Text="Engine:" VerticalAlignment="Center" />
+        <ComboBox ItemsSource="{Binding AvailableEngines}"
+                  SelectedItem="{Binding SelectedEngine}"
+                  MinWidth="130"
+                  AutomationProperties.Name="OCR Engine">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="platform:OcrEngineInfo">
+              <TextBlock Text="{Binding DisplayName}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+
       <StackPanel Orientation="Horizontal" Spacing="8">
         <TextBlock Text="Language:" VerticalAlignment="Center" />
         <ComboBox ItemsSource="{Binding AvailableLanguages}"
@@ -74,7 +88,7 @@
     </Grid>
 
     <!-- Bottom Bar -->
-    <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*,Auto" Margin="0,12,0,0">
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,*,Auto" Margin="0,12,0,0">
 
       <Button Grid.Column="0"
               Content="Select Region"
@@ -91,7 +105,36 @@
               IsEnabled="{Binding HasResult}"
               AutomationProperties.Name="Copy all recognized text to clipboard" />
 
-      <TextBlock Grid.Column="3"
+      <!-- AI actions on the result. Shown when a provider is set up and the features are on in Settings > Assistant. -->
+      <Button Grid.Column="2"
+              Content="AI"
+              Margin="8,0,0,0"
+              MinWidth="60"
+              IsVisible="{Binding AiMenuAvailable}"
+              AutomationProperties.Name="AI Assistant actions">
+        <Button.Flyout>
+          <MenuFlyout Placement="TopEdgeAlignedLeft">
+            <MenuItem Header="{Binding AiTranslateLabel}"
+                      Command="{Binding AiTranslateCommand}"
+                      IsVisible="{Binding AiTextToolsAvailable}"
+                      IsEnabled="{Binding HasResult}" />
+            <MenuItem Header="Summarise"
+                      Command="{Binding AiSummariseCommand}"
+                      IsVisible="{Binding AiTextToolsAvailable}"
+                      IsEnabled="{Binding HasResult}" />
+            <MenuItem Header="Clean up OCR mistakes"
+                      Command="{Binding AiCleanUpCommand}"
+                      IsVisible="{Binding AiTextToolsAvailable}"
+                      IsEnabled="{Binding HasResult}" />
+            <MenuItem Header="Describe image"
+                      Command="{Binding AiDescribeImageCommand}"
+                      IsVisible="{Binding AiDescribeImageAvailable}" />
+          </MenuFlyout>
+        </Button.Flyout>
+      </Button>
+
+      <TextBlock Grid.Column="4"
+                 TextTrimming="CharacterEllipsis"
                  Text="{Binding StatusText}"
                  VerticalAlignment="Center"
                  Opacity="0.7"

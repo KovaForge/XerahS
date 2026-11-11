@@ -22,29 +22,19 @@
 */
 
 #endregion License Information (GPL v3)
-using XerahS.Common;
 
-namespace XerahS.Core.Managers
+using XerahS.Platform.Abstractions;
+
+namespace XerahS.Assistant.Ai;
+
+/// <summary>
+/// Plugs the AI features into the rest of the application. Call once at start-up, after the OCR service is in place.
+/// </summary>
+public static class AiIntegrations
 {
-    public class CleanupManager
+    public static void Register()
     {
-        private static readonly Lazy<CleanupManager> _lazy = new(() => new CleanupManager());
-        public static CleanupManager Instance => _lazy.Value;
-
-        private CleanupManager()
-        {
-        }
-
-        public void Cleanup()
-        {
-            // TODO: Implement comprehensive cleanup logic based on Settings.
-            // For now, this is a placeholder to satisfy the porting requirement.
-            DebugHelper.WriteLine("CleanupManager: Cleanup started (Placeholder).");
-        }
-
-        public void CheckFreeSpace()
-        {
-            // Check free space implementation
-        }
+        // The engine list asks the engine whether a provider is set up each time, so this is safe before one is.
+        (PlatformServices.Ocr as IOcrEngineHost)?.AddEngine(new AiOcrEngine());
     }
 }

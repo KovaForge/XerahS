@@ -10,6 +10,46 @@ The format follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 ---
 
+## v0.34.0
+
+### Features
+
+- **OCR: PaddleOCR is built in**: The OCR tool now reads text with bundled PaddleOCR models (PP-OCRv6), so it works without installing anything. That includes Linux without Tesseract, and Apple Silicon Macs, which had no OCR before. It reads Latin, Greek, Chinese and Japanese text in one pass.
+- **OCR: choose the engine**: The OCR window has an Engine list: Automatic, PaddleOCR, or the system engine (Windows OCR, or Tesseract on Linux). Automatic uses PaddleOCR unless the chosen language is one it cannot read, such as Russian or Korean, and the system engine has it. The choice also applies to After Capture OCR, the Assistant and the history text index.
+- **Settings: Assistant tab**: Settings has a new Assistant tab with the AI provider and API key, a checkbox for each place XerahS uses the AI provider, and the Assistant overlay options. Each feature can be switched off, including the AI scan in Privacy mode. Nothing is sent until you use a feature.
+- **Assistant: Grok**: Grok is an AI provider, using grok-4.7 at api.x.ai. It reads images.
+- **Assistant: Continue with ChatGPT**: OpenAI can sign in with a ChatGPT account. Those requests use the ChatGPT plan. An OpenAI API key still works, and is used when there is no sign-in.
+- **OCR: AI Assistant engine**: When an AI provider whose model reads images is set up, the OCR window's Engine list gains AI Assistant. It reads languages and handwriting the built-in engines cannot. It sends the image to the provider, so it is used only when you choose it. Automatic, the history text index and the Privacy mode local scan never use it.
+- **OCR window: AI menu**: The OCR window has an AI menu to translate the text, summarise it, clean up OCR mistakes, or describe the image. It sends the text or the image to your AI provider when you choose an action.
+
+- **Redact sensitive information**: Right-click an image in History, or on the toast after a capture, and choose "Redact sensitive information...". XerahS finds names, emails, card numbers, passwords and keys, shows a preview you can edit, and saves a redacted copy next to the original. The original is not changed. With an AI provider it asks before sending the image; without one it uses local text recognition and manual review.
+
+- **After Capture window: skip image effects**: The window now has an "Apply image effects" checkbox, ticked when the workflow has image effects on. Untick it to save or upload the capture without them. Like the other options in that window, the choice stays for the workflow until you change it back.
+- **Video trimmer: several clips**: Omacut can split a video into clips, drop in more videos, reorder them, and undo. Export joins the clips. Opening another video asks first when that edit has not been exported. `F` saves the frame on screen.
+
+### Internal
+
+- New `XerahS.OCR` project, ported from `ShareX.OCR`. See `docs/technical/ocr-engines.md`.
+- New AI framework in `XerahS.Assistant/Ai` (`IAiClient`, `AiFeatures`): one way for features to use the user's AI provider, with a Settings switch per feature. The OCR service is now `OcrEngineService` and takes added engines. The privacy scan and the overlay request planner use the same client. See `docs/technical/ai-framework.md`.
+- `AGENTS.md` records that the agents working on XerahS own its direction and design.
+
+## v0.33.11
+
+v0.33.10 was tagged but never published: its macOS build stalled while uploading to Apple for notarization. Its changes ship here.
+
+### Fixes
+
+- **A capture cancelled during its start delay was reported as completed**: Stopping a delayed capture before it fired left the task marked Completed, so `xerahs capture` and workflow runs from the command line reported success with no output. It now ends as Stopped.
+- **Tasks**: A task that has finished can no longer be moved back to "Stopping" by a stop request that arrives a moment too late.
+- **Tray menu**: An error while running a tray action is now logged instead of being able to close the app.
+
+### Internal
+
+- **Build (macOS)**: Every notarization call now has a time limit, and the upload is retried up to three times, so a stalled upload can no longer hold a release for hours.
+- The capture and upload task lifecycle now has one documented transition table (`TaskStatusMachine`). Four unused recording status enums were removed. See `docs/technical/implicit-state-machines.md`.
+- Removed dead code and stray files: three unused placeholder classes, three tracked build logs and a 17 MB Android log dump. Fixed stale paths in the README and KNOWN_ISSUES.
+- The desktop solution now also builds the Assistant, omaxerahs and MCP server projects. Removed an unused duplicate hotkey status type and a broken macOS icon script, and repaired 75 dead links in the docs.
+
 ## v0.33.9
 
 ### Fixes
