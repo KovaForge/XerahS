@@ -52,7 +52,14 @@ namespace XerahS.Common
             if (IsPrimitive(typeToReflect)) return originalObject;
             if (visited.ContainsKey(originalObject)) return visited[originalObject];
             if (typeof(Delegate).IsAssignableFrom(typeToReflect)) return null;
+            // TimeZoneInfo's .NET 11 private transition cache is a ConcurrentDictionary whose
+            // lock array points at itself. It is immutable, so share the instance instead of
+            // cloning runtime internals.
+            if (typeToReflect == typeof(TimeZoneInfo)) return originalObject;
             object cloneObject = CloneMethod.Invoke(originalObject, Array.Empty<object>())!;
+            // Record the clone before walking array elements. .NET 11 ConcurrentDictionary lock
+            // arrays are self-referential, and walking them first overflows the stack.
+            visited.Add(originalObject, cloneObject);
             if (typeToReflect.IsArray)
             {
                 Type? arrayType = typeToReflect.GetElementType();
@@ -62,7 +69,6 @@ namespace XerahS.Common
                     clonedArray.ForEach((array, indices) => array.SetValue(InternalCopy(clonedArray.GetValue(indices), visited), indices));
                 }
             }
-            visited.Add(originalObject, cloneObject);
             CopyFields(originalObject, visited, cloneObject, typeToReflect);
             RecursiveCopyBaseTypePrivateFields(originalObject, visited, cloneObject, typeToReflect);
             return cloneObject;
